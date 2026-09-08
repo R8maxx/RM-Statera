@@ -1,0 +1,171 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Resources;
+
+use App\Http\Resources\Definicion\Columna;
+use App\Http\Resources\Definicion\Filtro;
+use App\Http\Resources\Definicion\MetaTabla;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
+use Spatie\QueryBuilder\AllowedSort;
+use Spatie\QueryBuilder\QueryBuilder;
+
+/**
+ * Traduce la query string al conjunto de filas que pide la tabla.
+ *
+ * Lo que no está declarado en el `Recurso` no filtra ni ordena: los
+ * `allowedFilters` y `allowedSorts` salen de la definición, nunca de lo que
+ * llegue en la URL. Un parámetro de más se ignora, no se aplica a ciegas.
+ *
+ * @template TModel of Model
+ */
+final readonly class ConsultaRecurso
+{
+    /** @param  Recurso<TModel>  $recurso */
+    public function __construct(private Recurso $recurso) {}
+
+    /**
+     * @return array{filas: list<array<string, mixed>>, meta: MetaTabla}
+     */
+    public function ejecutar(Request $request): array
+    {
+        $columnas = $this->recurso->columnas();
+        $filtros = $this->recurso->filtros();
+
+        $paginador = $this->paginador($request, $columnas, $filtros);
+
+        return [
+            'filas' => $this->filas($paginador, $columnas),
+            'meta' => MetaTabla::desdePaginador(
+                $paginador,
+                $this->ordenAplicado($request, $columnas),
+                $this->filtrosAplicados($request, $filtros),
+            ),
+        ];
+    }
+
+    /**
+     * @param  list<Columna>  $columnas
+     * @param  list<Filtro>  $filtros
+     * @return LengthAwarePaginator<int, TModel>
+     */
+    private function paginador(Request $request, array $columnas, array $filtros): LengthAwarePaginator
+    {
+        $ordenables = array_values(array_map(
+            static fn (Columna $columna): AllowedSort => AllowedSort::field($columna->clave, $columna->campoOrden()),
+            array_filter($columnas, static fn (Columna $columna): bool => $columna->ordenable),
+        ));
+
+        $consulta = QueryBuilder::for($this->recurso->consulta(), $request)
+            ->allowedFilters(...array_map(
+                static fn (Filtro $filtro) => $filtro->allowedFilter(),
+                $filtros,
+            ))
+            ->allowedSorts(...$ordenables)
+            ->defaultSort($this->ordenPorDefecto($columnas));
+
+        return $consulta->paginate($this->porPagina($request))->withQueryString();
+    }
+
+    /**
+     * El orden por defecto se resuelve por la misma vía que uno pedido: si la
+     * columna declara un campo de ordenación distinto de su clave, se usa.
+     *
+     * Sin esto, «Código» ordenaría por el texto del código al pulsar la
+     * cabecera y por otra cosa al entrar en la página, que es peor que
+     * cualquiera de las dos.
+     *
+     * @param  list<Columna>  $columnas
+     */
+    private function ordenPorDefecto(array $columnas): AllowedSort
+    {
+        $valor = $this->recurso->ordenPorDefecto();
+        $clave = ltrim($valor, '-');
+
+        $columna = array_find(
+            $columnas,
+            static fn (Columna $columna): bool => $columna->clave === $clave,
+        );
+
+        return AllowedSort::field($valor, $columna?->campoOrden());
+    }
+
+    /**
+     * Sólo se aceptan los tamaños que el recurso declara: `por_pagina=100000` es
+     * una denegación de servicio barata.
+     */
+    private function porPagina(Request $request): int
+    {
+        $pedido = (int) $request->integer('por_pagina');
+
+        return in_array($pedido, $this->recurso->tamanosPagina(), true)
+            ? $pedido
+            : $this->recurso->porPagina();
+    }
+
+    /**
+     * @param  LengthAwarePaginator<int, TModel>  $paginador
+     * @param  list<Columna>  $columnas
+     * @return list<array<string, mixed>>
+     */
+    private function filas(LengthAwarePaginator $paginador, array $columnas): array
+    {
+        $filas = [];
+
+        foreach ($paginador->items() as $modelo) {
+            $fila = ['id' => $modelo->getKey(), ...$this->recurso->extrasDeFila($modelo)];
+
+            foreach ($columnas as $columna) {
+                $fila[$columna->clave] = $columna->valorDe($modelo);
+            }
+
+            $filas[] = $fila;
+        }
+
+        return $filas;
+    }
+
+    /**
+     * @param  list<Columna>  $columnas
+     */
+    private function ordenAplicado(Request $request, array $columnas): string
+    {
+        $pedido = $request->string('sort')->toString();
+        $clave = ltrim($pedido, '-');
+
+        $existe = array_any(
+            $columnas,
+            static fn (Columna $columna): bool => $columna->ordenable && $columna->clave === $clave,
+        );
+
+        return $existe ? $pedido : $this->recurso->ordenPorDefecto();
+    }
+
+    /**
+     * @param  list<Filtro>  $filtros
+     * @return array<string, string|list<string>>
+     */
+    private function filtrosAplicados(Request $request, array $filtros): array
+    {
+        /** @var array<string, mixed> $recibidos */
+        $recibidos = $request->array('filter');
+        $aplicados = [];
+
+        foreach ($filtros as $filtro) {
+            $valor = $recibidos[$filtro->clave] ?? null;
+
+            if ($valor === null || $valor === '' || $valor === []) {
+                continue;
+            }
+
+            $aplicados[$filtro->clave] = is_array($valor)
+                ? array_values(array_map(strval(...), $valor))
+                : (string) $valor;
+        }
+
+        return $aplicados;
+    }
+}

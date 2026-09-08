@@ -1,0 +1,161 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../views/**/*.blade.php';
+@source '../js/**/*.{ts,vue}';
+
+/*
+ * Statera — un producto de RM Technology.
+ *
+ * Tailwind v4 se configura aquí, no en un `tailwind.config.js`: ese fichero no
+ * existe y no hace falta. Los componentes de shadcn-vue referencian estos
+ * tokens (`bg-background`, `border-border`, `rounded-lg`); sin declararlos
+ * salen sin estilo.
+ */
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+    --radius: 0.5rem;
+
+    /* Fondo hueso, tinta azul-pizarra. Herramienta de trabajo, no escaparate. */
+    --background: oklch(0.99 0.002 250);
+    --foreground: oklch(0.24 0.02 255);
+
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.24 0.02 255);
+
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.24 0.02 255);
+
+    --primary: oklch(0.45 0.09 233);
+    --primary-foreground: oklch(0.99 0.002 250);
+
+    --secondary: oklch(0.96 0.006 250);
+    --secondary-foreground: oklch(0.32 0.025 255);
+
+    --muted: oklch(0.96 0.006 250);
+    --muted-foreground: oklch(0.53 0.02 255);
+
+    --accent: oklch(0.94 0.015 233);
+    --accent-foreground: oklch(0.32 0.04 233);
+
+    --destructive: oklch(0.55 0.19 27);
+    --destructive-foreground: oklch(0.99 0.002 250);
+
+    --border: oklch(0.91 0.008 250);
+    --input: oklch(0.91 0.008 250);
+    --ring: oklch(0.45 0.09 233);
+
+    /*
+     * Estados del dominio. Se declaran una sola vez aquí y los consume
+     * `CeldaBadge`; no se reparten clases sueltas por cada módulo.
+     */
+    --estado-no-iniciado: oklch(0.62 0.015 255);
+    --estado-no-iniciado-suave: oklch(0.95 0.006 255);
+    --estado-planificado: oklch(0.52 0.13 245);
+    --estado-planificado-suave: oklch(0.95 0.03 245);
+    --estado-en-progreso: oklch(0.62 0.14 70);
+    --estado-en-progreso-suave: oklch(0.96 0.04 80);
+    --estado-implantado: oklch(0.52 0.13 155);
+    --estado-implantado-suave: oklch(0.95 0.04 155);
+    --estado-no-aplica: oklch(0.6 0.01 285);
+    --estado-no-aplica-suave: oklch(0.955 0.004 285);
+}
+
+.dark {
+    --background: oklch(0.19 0.015 258);
+    --foreground: oklch(0.95 0.004 250);
+
+    --card: oklch(0.23 0.017 258);
+    --card-foreground: oklch(0.95 0.004 250);
+
+    --popover: oklch(0.23 0.017 258);
+    --popover-foreground: oklch(0.95 0.004 250);
+
+    --primary: oklch(0.72 0.1 233);
+    --primary-foreground: oklch(0.19 0.015 258);
+
+    --secondary: oklch(0.28 0.018 258);
+    --secondary-foreground: oklch(0.95 0.004 250);
+
+    --muted: oklch(0.28 0.018 258);
+    --muted-foreground: oklch(0.68 0.015 255);
+
+    --accent: oklch(0.31 0.03 233);
+    --accent-foreground: oklch(0.93 0.02 233);
+
+    --destructive: oklch(0.63 0.18 25);
+    --destructive-foreground: oklch(0.98 0.004 250);
+
+    --border: oklch(1 0 0 / 12%);
+    --input: oklch(1 0 0 / 16%);
+    --ring: oklch(0.72 0.1 233);
+
+    --estado-no-iniciado: oklch(0.7 0.015 255);
+    --estado-no-iniciado-suave: oklch(0.3 0.012 255);
+    --estado-planificado: oklch(0.72 0.12 245);
+    --estado-planificado-suave: oklch(0.3 0.05 245);
+    --estado-en-progreso: oklch(0.78 0.13 75);
+    --estado-en-progreso-suave: oklch(0.32 0.05 75);
+    --estado-implantado: oklch(0.72 0.13 155);
+    --estado-implantado-suave: oklch(0.3 0.05 155);
+    --estado-no-aplica: oklch(0.66 0.01 285);
+    --estado-no-aplica-suave: oklch(0.29 0.008 285);
+}
+
+@theme inline {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+
+    --color-estado-no-iniciado: var(--estado-no-iniciado);
+    --color-estado-no-iniciado-suave: var(--estado-no-iniciado-suave);
+    --color-estado-planificado: var(--estado-planificado);
+    --color-estado-planificado-suave: var(--estado-planificado-suave);
+    --color-estado-en-progreso: var(--estado-en-progreso);
+    --color-estado-en-progreso-suave: var(--estado-en-progreso-suave);
+    --color-estado-implantado: var(--estado-implantado);
+    --color-estado-implantado-suave: var(--estado-implantado-suave);
+    --color-estado-no-aplica: var(--estado-no-aplica);
+    --color-estado-no-aplica-suave: var(--estado-no-aplica-suave);
+
+    --radius-sm: calc(var(--radius) - 4px);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) + 4px);
+    --font-heading: var(--font-sans);
+}
+
+@layer base {
+    * {
+        @apply border-border outline-ring/50;
+    }
+
+    body {
+        @apply bg-background text-foreground;
+        font-feature-settings: 'cv11', 'ss01';
+        font-variation-settings: 'opsz' 32;
+    }
+}

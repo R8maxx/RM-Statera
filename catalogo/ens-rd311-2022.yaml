@@ -1,0 +1,502 @@
+# Esquema Nacional de Seguridad — Real Decreto 311/2022, de 3 de mayo
+#
+# Anexo II completo: los tres marcos (organizativo, operacional y medidas de
+# protección) con la matriz de aplicabilidad por categoría.
+#
+# Se carga el Anexo II ENTERO aunque de momento solo se use el subconjunto de
+# categoría básica (invariante 5 de la especificación): el coste marginal es un
+# seed más largo, y el coste de cargarlo a medias es rehacer el modelo cuando
+# llegue el primer cliente de categoría media.
+#
+# ---------------------------------------------------------------------------
+# PENDIENTE DE VERIFICACIÓN
+#
+# Los códigos, títulos y, sobre todo, la matriz de aplicabilidad de este fichero
+# están escritos a partir del RD 311/2022 y deben contrastarse CELDA A CELDA con
+# el texto publicado en el BOE (BOE-A-2022-7191) antes de dar el catálogo por
+# bueno. Hasta entonces, `revisado: false`.
+#
+# La corrección es barata: se corrige el YAML y se reimporta. El importador hace
+# diff y dice exactamente qué cambia.
+#
+# Falta también, y se añadirá en la misma pasada de verificación:
+#   - La descripción literal de cada refuerzo R1/R2/R3 del Anexo II. La matriz ya
+#     registra QUÉ refuerzo se exige, que es lo que el motor de categorización
+#     necesita; falta el texto que lo describe.
+#   - Los perfiles de cumplimiento específicos de la serie CCN-STIC 890, incluido
+#     el de requisitos esenciales.
+# ---------------------------------------------------------------------------
+#
+# Lectura de `aplicabilidad`: la clave es la categoría del sistema. Cuando la
+# celda lleva `dimension`, el valor se lee como el NIVEL de esa dimensión
+# concreta (bajo/medio/alto) en lugar de como la categoría global: es la
+# modulación por dimensión que aplican algunas medidas del marco operacional.
+marco:
+  codigo: ENS-RD311-2022
+  nombre: Esquema Nacional de Seguridad
+  version: RD 311/2022
+  fecha_vigencia: '2022-05-05'
+  estado: vigente
+
+fuente: 'BOE-A-2022-7191, Real Decreto 311/2022 de 3 de mayo, Anexo II'
+revisado: false
+
+requisitos:
+  # ===========================================================================
+  # MARCO ORGANIZATIVO
+  # ===========================================================================
+  - codigo: org
+    tipo: medida
+    titulo: Marco organizativo
+    orden: 100
+    hijos:
+      - codigo: org.1
+        tipo: medida
+        titulo: Política de seguridad
+        aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+      - codigo: org.2
+        tipo: medida
+        titulo: Normativa de seguridad
+        aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+      - codigo: org.3
+        tipo: medida
+        titulo: Procedimientos de seguridad
+        aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+      - codigo: org.4
+        tipo: medida
+        titulo: Proceso de autorización
+        aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+
+  # ===========================================================================
+  # MARCO OPERACIONAL
+  # ===========================================================================
+  - codigo: op
+    tipo: medida
+    titulo: Marco operacional
+    orden: 200
+    hijos:
+      - codigo: op.pl
+        tipo: medida
+        titulo: Planificación
+        hijos:
+          - codigo: op.pl.1
+            tipo: medida
+            titulo: Análisis de riesgos
+            aplicabilidad: {basica: aplica, media: R1, alta: R2}
+          - codigo: op.pl.2
+            tipo: medida
+            titulo: Arquitectura de seguridad
+            aplicabilidad: {basica: aplica, media: R1, alta: R2}
+          - codigo: op.pl.3
+            tipo: medida
+            titulo: Adquisición de nuevos componentes
+            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+          - codigo: op.pl.4
+            tipo: medida
+            titulo: Dimensionamiento y gestión de la capacidad
+            aplicabilidad:
+              basica: {exigencia: no_aplica, dimension: D}
+              media: {exigencia: aplica, dimension: D}
+              alta: {exigencia: R1, dimension: D}
+          - codigo: op.pl.5
+            tipo: medida
+            titulo: Componentes certificados
+            aplicabilidad: {basica: no_aplica, media: no_aplica, alta: aplica}
+
+      - codigo: op.acc
+        tipo: medida
+        titulo: Control de acceso
+        hijos:
+          - codigo: op.acc.1
+            tipo: medida
+            titulo: Identificación
+            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+          - codigo: op.acc.2
+            tipo: medida
+            titulo: Requisitos de acceso
+            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+          - codigo: op.acc.3
+            tipo: medida
+            titulo: Segregación de funciones y tareas
+            aplicabilidad: {basica: no_aplica, media: aplica, alta: R1}
+          - codigo: op.acc.4
+            tipo: medida
+            titulo: Proceso de gestión de derechos de acceso
+            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+          - codigo: op.acc.5
+            tipo: medida
+            titulo: Mecanismo de autenticación (usuarios externos)
+            aplicabilidad: {basica: aplica, media: R1, alta: R2}
+            refuerzos:
+              - codigo: R1
+                descripcion: >-
+                  Se exige un segundo factor de autenticación además de la
+                  contraseña.
+              - codigo: R2
+                descripcion: >-
+                  Se exige autenticación basada en certificado cualificado o
+                  equivalente, sobre dispositivo cualificado de creación de firma.
+          - codigo: op.acc.6
+            tipo: medida
+            titulo: Mecanismo de autenticación (usuarios de la organización)
+            aplicabilidad: {basica: aplica, media: R1, alta: R2}
+            refuerzos:
+              - codigo: R1
+                descripcion: >-
+                  Se exige un segundo factor de autenticación además de la
+                  contraseña.
+              - codigo: R2
+                descripcion: >-
+                  Se exige autenticación basada en certificado cualificado o
+                  equivalente, sobre dispositivo cualificado de creación de firma.
+
+      - codigo: op.exp
+        tipo: medida
+        titulo: Explotación
+        hijos:
+          - codigo: op.exp.1
+            tipo: medida
+            titulo: Inventario de activos
+            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+          - codigo: op.exp.2
+            tipo: medida
+            titulo: Configuración de seguridad
+            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+          - codigo: op.exp.3
+            tipo: medida
+            titulo: Gestión de la configuración de seguridad
+            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+          - codigo: op.exp.4
+            tipo: medida
+            titulo: Mantenimiento y actualizaciones de seguridad
+            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+          - codigo: op.exp.5
+            tipo: medida
+            titulo: Gestión de cambios
+            aplicabilidad: {basica: no_aplica, media: aplica, alta: R1}
+          - codigo: op.exp.6
+            tipo: medida
+            titulo: Protección frente a código dañino
+            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+          - codigo: op.exp.7
+            tipo: medida
+            titulo: Gestión de incidentes
+            aplicabilidad: {basica: no_aplica, media: aplica, alta: R1}
+          - codigo: op.exp.8
+            tipo: medida
+            titulo: Registro de la actividad
+            aplicabilidad:
+              basica: {exigencia: no_aplica, dimension: T}
+              media: {exigencia: aplica, dimension: T}
+              alta: {exigencia: R1, dimension: T}
+          - codigo: op.exp.9
+            tipo: medida
+            titulo: Registro de la gestión de incidentes
+            aplicabilidad: {basica: no_aplica, media: aplica, alta: aplica}
+          - codigo: op.exp.10
+            tipo: medida
+            titulo: Protección de los registros de actividad
+            aplicabilidad:
+              basica: {exigencia: no_aplica, dimension: T}
+              media: {exigencia: no_aplica, dimension: T}
+              alta: {exigencia: aplica, dimension: T}
+          - codigo: op.exp.11
+            tipo: medida
+            titulo: Protección de claves criptográficas
+            aplicabilidad: {basica: aplica, media: R1, alta: R2}
+
+      - codigo: op.ext
+        tipo: medida
+        titulo: Recursos externos
+        hijos:
+          - codigo: op.ext.1
+            tipo: medida
+            titulo: Contratación y acuerdos de nivel de servicio
+            aplicabilidad: {basica: no_aplica, media: aplica, alta: R1}
+          - codigo: op.ext.2
+            tipo: medida
+            titulo: Gestión diaria
+            aplicabilidad: {basica: no_aplica, media: aplica, alta: R1}
+          - codigo: op.ext.3
+            tipo: medida
+            titulo: Protección de la cadena de suministro
+            aplicabilidad: {basica: no_aplica, media: no_aplica, alta: aplica}
+          - codigo: op.ext.4
+            tipo: medida
+            titulo: Interconexión de sistemas
+            aplicabilidad: {basica: no_aplica, media: aplica, alta: R1}
+
+      - codigo: op.nub
+        tipo: medida
+        titulo: Servicios en la nube
+        hijos:
+          - codigo: op.nub.1
+            tipo: medida
+            titulo: Protección de servicios en la nube
+            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+
+      - codigo: op.cont
+        tipo: medida
+        titulo: Continuidad del servicio
+        hijos:
+          - codigo: op.cont.1
+            tipo: medida
+            titulo: Análisis de impacto
+            aplicabilidad:
+              basica: {exigencia: no_aplica, dimension: D}
+              media: {exigencia: aplica, dimension: D}
+              alta: {exigencia: aplica, dimension: D}
+          - codigo: op.cont.2
+            tipo: medida
+            titulo: Plan de continuidad
+            aplicabilidad:
+              basica: {exigencia: no_aplica, dimension: D}
+              media: {exigencia: no_aplica, dimension: D}
+              alta: {exigencia: aplica, dimension: D}
+          - codigo: op.cont.3
+            tipo: medida
+            titulo: Pruebas periódicas
+            aplicabilidad:
+              basica: {exigencia: no_aplica, dimension: D}
+              media: {exigencia: no_aplica, dimension: D}
+              alta: {exigencia: aplica, dimension: D}
+          - codigo: op.cont.4
+            tipo: medida
+            titulo: Medios alternativos
+            aplicabilidad:
+              basica: {exigencia: no_aplica, dimension: D}
+              media: {exigencia: no_aplica, dimension: D}
+              alta: {exigencia: aplica, dimension: D}
+
+      - codigo: op.mon
+        tipo: medida
+        titulo: Monitorización del sistema
+        hijos:
+          - codigo: op.mon.1
+            tipo: medida
+            titulo: Detección de intrusión
+            aplicabilidad: {basica: no_aplica, media: aplica, alta: R1}
+          - codigo: op.mon.2
+            tipo: medida
+            titulo: Sistema de métricas
+            aplicabilidad: {basica: no_aplica, media: aplica, alta: R1}
+          - codigo: op.mon.3
+            tipo: medida
+            titulo: Vigilancia
+            aplicabilidad: {basica: aplica, media: R1, alta: R2}
+
+  # ===========================================================================
+  # MEDIDAS DE PROTECCIÓN
+  # ===========================================================================
+  - codigo: mp
+    tipo: medida
+    titulo: Medidas de protección
+    orden: 300
+    hijos:
+      - codigo: mp.if
+        tipo: medida
+        titulo: Protección de las instalaciones e infraestructuras
+        hijos:
+          - codigo: mp.if.1
+            tipo: medida
+            titulo: Áreas separadas y con control de acceso
+            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+          - codigo: mp.if.2
+            tipo: medida
+            titulo: Identificación de las personas
+            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+          - codigo: mp.if.3
+            tipo: medida
+            titulo: Acondicionamiento de los locales
+            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+          - codigo: mp.if.4
+            tipo: medida
+            titulo: Energía eléctrica
+            aplicabilidad:
+              basica: {exigencia: aplica, dimension: D}
+              media: {exigencia: R1, dimension: D}
+              alta: {exigencia: R2, dimension: D}
+          - codigo: mp.if.5
+            tipo: medida
+            titulo: Protección frente a incendios
+            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+          - codigo: mp.if.6
+            tipo: medida
+            titulo: Protección frente a inundaciones
+            aplicabilidad: {basica: no_aplica, media: aplica, alta: aplica}
+          - codigo: mp.if.7
+            tipo: medida
+            titulo: Registro de entrada y salida de equipamiento
+            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+
+      - codigo: mp.per
+        tipo: medida
+        titulo: Gestión del personal
+        hijos:
+          - codigo: mp.per.1
+            tipo: medida
+            titulo: Caracterización del puesto de trabajo
+            aplicabilidad: {basica: no_aplica, media: aplica, alta: R1}
+          - codigo: mp.per.2
+            tipo: medida
+            titulo: Deberes y obligaciones
+            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+          - codigo: mp.per.3
+            tipo: medida
+            titulo: Concienciación
+            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+          - codigo: mp.per.4
+            tipo: medida
+            titulo: Formación
+            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+
+      - codigo: mp.eq
+        tipo: medida
+        titulo: Protección de los equipos
+        hijos:
+          - codigo: mp.eq.1
+            tipo: medida
+            titulo: Puesto de trabajo despejado
+            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+          - codigo: mp.eq.2
+            tipo: medida
+            titulo: Bloqueo de puesto de trabajo
+            aplicabilidad: {basica: no_aplica, media: aplica, alta: R1}
+          - codigo: mp.eq.3
+            tipo: medida
+            titulo: Protección de dispositivos portátiles
+            aplicabilidad: {basica: aplica, media: R1, alta: R2}
+          - codigo: mp.eq.4
+            tipo: medida
+            titulo: Otros dispositivos conectados a la red
+            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+
+      - codigo: mp.com
+        tipo: medida
+        titulo: Protección de las comunicaciones
+        hijos:
+          - codigo: mp.com.1
+            tipo: medida
+            titulo: Perímetro seguro
+            aplicabilidad: {basica: aplica, media: R1, alta: R2}
+          - codigo: mp.com.2
+            tipo: medida
+            titulo: Protección de la confidencialidad
+            aplicabilidad:
+              basica: {exigencia: no_aplica, dimension: C}
+              media: {exigencia: aplica, dimension: C}
+              alta: {exigencia: R1, dimension: C}
+          - codigo: mp.com.3
+            tipo: medida
+            titulo: Protección de la autenticidad y de la integridad
+            aplicabilidad: {basica: aplica, media: R1, alta: R2}
+          - codigo: mp.com.4
+            tipo: medida
+            titulo: Separación de flujos de información en la red
+            aplicabilidad: {basica: no_aplica, media: aplica, alta: R1}
+
+      - codigo: mp.si
+        tipo: medida
+        titulo: Protección de los soportes de información
+        hijos:
+          - codigo: mp.si.1
+            tipo: medida
+            titulo: Marcado de soportes
+            aplicabilidad:
+              basica: {exigencia: no_aplica, dimension: C}
+              media: {exigencia: aplica, dimension: C}
+              alta: {exigencia: aplica, dimension: C}
+          - codigo: mp.si.2
+            tipo: medida
+            titulo: Criptografía
+            aplicabilidad:
+              basica: {exigencia: no_aplica, dimension: C}
+              media: {exigencia: aplica, dimension: C}
+              alta: {exigencia: R1, dimension: C}
+          - codigo: mp.si.3
+            tipo: medida
+            titulo: Custodia
+            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+          - codigo: mp.si.4
+            tipo: medida
+            titulo: Transporte
+            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+          - codigo: mp.si.5
+            tipo: medida
+            titulo: Borrado y destrucción
+            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+
+      - codigo: mp.sw
+        tipo: medida
+        titulo: Protección de las aplicaciones informáticas
+        hijos:
+          - codigo: mp.sw.1
+            tipo: medida
+            titulo: Desarrollo de aplicaciones
+            aplicabilidad: {basica: no_aplica, media: aplica, alta: R1}
+          - codigo: mp.sw.2
+            tipo: medida
+            titulo: Aceptación y puesta en servicio
+            aplicabilidad: {basica: aplica, media: R1, alta: R2}
+
+      - codigo: mp.info
+        tipo: medida
+        titulo: Protección de la información
+        hijos:
+          - codigo: mp.info.1
+            tipo: medida
+            titulo: Datos de carácter personal
+            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+          - codigo: mp.info.2
+            tipo: medida
+            titulo: Calificación de la información
+            aplicabilidad:
+              basica: {exigencia: no_aplica, dimension: C}
+              media: {exigencia: aplica, dimension: C}
+              alta: {exigencia: R1, dimension: C}
+          - codigo: mp.info.3
+            tipo: medida
+            titulo: Firma electrónica
+            aplicabilidad: {basica: no_aplica, media: aplica, alta: R1}
+          - codigo: mp.info.4
+            tipo: medida
+            titulo: Sellos de tiempo
+            aplicabilidad:
+              basica: {exigencia: no_aplica, dimension: T}
+              media: {exigencia: no_aplica, dimension: T}
+              alta: {exigencia: aplica, dimension: T}
+          - codigo: mp.info.5
+            tipo: medida
+            titulo: Limpieza de documentos
+            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+          - codigo: mp.info.6
+            tipo: medida
+            titulo: Copias de seguridad
+            aplicabilidad:
+              basica: {exigencia: aplica, dimension: D}
+              media: {exigencia: R1, dimension: D}
+              alta: {exigencia: R2, dimension: D}
+
+      - codigo: mp.s
+        tipo: medida
+        titulo: Protección de los servicios
+        hijos:
+          - codigo: mp.s.1
+            tipo: medida
+            titulo: Protección del correo electrónico
+            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+          - codigo: mp.s.2
+            tipo: medida
+            titulo: Protección de servicios y aplicaciones web
+            aplicabilidad: {basica: aplica, media: R1, alta: R2}
+          - codigo: mp.s.3
+            tipo: medida
+            titulo: Protección de la navegación web
+            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+          - codigo: mp.s.4
+            tipo: medida
+            titulo: Protección frente a la denegación de servicio
+            aplicabilidad:
+              basica: {exigencia: no_aplica, dimension: D}
+              media: {exigencia: aplica, dimension: D}
+              alta: {exigencia: R1, dimension: D}

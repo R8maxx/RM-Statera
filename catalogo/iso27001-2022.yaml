@@ -1,0 +1,602 @@
+# ISO/IEC 27001:2022 — catálogo normativo
+#
+# Fuente: ISO/IEC 27001:2022 (cláusulas 4 a 10 y Anexo A) e ISO/IEC 27002:2022
+# (atributos de cada control). Incluye la enmienda 1:2024, que añade el cambio
+# climático como cuestión a considerar en 4.1 y 4.2.
+#
+# El texto normativo de ISO/IEC 27001 y 27002 tiene derechos de autor: aquí van
+# únicamente el código, el título corto y los atributos, que es lo que el sistema
+# necesita para mapear, filtrar y generar la Declaración de Aplicabilidad. La
+# redacción íntegra de cada control NO se vuelca a este repositorio.
+#
+# `revisado: false` mientras los títulos no se hayan contrastado con la norma.
+marco:
+  codigo: ISO27001-2022
+  nombre: ISO/IEC 27001 — Sistemas de gestión de la seguridad de la información
+  version: '2022'
+  fecha_vigencia: '2022-10-25'
+  estado: vigente
+
+fuente: 'ISO/IEC 27001:2022 + Amd 1:2024; atributos según ISO/IEC 27002:2022'
+revisado: false
+
+requisitos:
+  # ---------------------------------------------------------------------------
+  # Cuerpo de la norma. Es lo que se audita como sistema de gestión, y lo que
+  # más se descuida cuando alguien confunde "ISO 27001" con "los 93 controles".
+  # ---------------------------------------------------------------------------
+  - codigo: '4'
+    tipo: clausula
+    titulo: Contexto de la organización
+    orden: 4
+    hijos:
+      - codigo: '4.1'
+        tipo: clausula
+        titulo: Comprensión de la organización y de su contexto
+        descripcion: >-
+          Cuestiones internas y externas pertinentes. La enmienda 1:2024 obliga a
+          determinar si el cambio climático es una cuestión pertinente; el auditor
+          lo pregunta.
+      - codigo: '4.2'
+        tipo: clausula
+        titulo: Comprensión de las necesidades y expectativas de las partes interesadas
+        descripcion: >-
+          Incluye, desde la enmienda 1:2024, los requisitos de las partes
+          interesadas relacionados con el cambio climático.
+      - codigo: '4.3'
+        tipo: clausula
+        titulo: Determinación del alcance del sistema de gestión de la seguridad de la información
+      - codigo: '4.4'
+        tipo: clausula
+        titulo: Sistema de gestión de la seguridad de la información
+
+  - codigo: '5'
+    tipo: clausula
+    titulo: Liderazgo
+    orden: 5
+    hijos:
+      - codigo: '5.1'
+        tipo: clausula
+        titulo: Liderazgo y compromiso
+      - codigo: '5.2'
+        tipo: clausula
+        titulo: Política
+      - codigo: '5.3'
+        tipo: clausula
+        titulo: Roles, responsabilidades y autoridades en la organización
+
+  - codigo: '6'
+    tipo: clausula
+    titulo: Planificación
+    orden: 6
+    hijos:
+      - codigo: '6.1'
+        tipo: clausula
+        titulo: Acciones para tratar riesgos y oportunidades
+        hijos:
+          - codigo: '6.1.1'
+            tipo: clausula
+            titulo: Generalidades
+          - codigo: '6.1.2'
+            tipo: clausula
+            titulo: Apreciación de riesgos de seguridad de la información
+            descripcion: >-
+              Exige metodología formal con criterios de aceptación del riesgo.
+              Es más estricta que el análisis informal que admite el ENS de
+              categoría básica, así que el módulo de riesgos se dimensiona por
+              esta cláusula.
+          - codigo: '6.1.3'
+            tipo: clausula
+            titulo: Tratamiento de riesgos de seguridad de la información
+            descripcion: >-
+              De aquí sale la Declaración de Aplicabilidad, que en Statera es una
+              consulta sobre la tabla de implantaciones, no un documento mantenido
+              a mano.
+      - codigo: '6.2'
+        tipo: clausula
+        titulo: Objetivos de seguridad de la información y planificación para su consecución
+      - codigo: '6.3'
+        tipo: clausula
+        titulo: Planificación de cambios
+        descripcion: Cláusula nueva en la revisión de 2022.
+
+  - codigo: '7'
+    tipo: clausula
+    titulo: Soporte
+    orden: 7
+    hijos:
+      - codigo: '7.1'
+        tipo: clausula
+        titulo: Recursos
+      - codigo: '7.2'
+        tipo: clausula
+        titulo: Competencia
+      - codigo: '7.3'
+        tipo: clausula
+        titulo: Concienciación
+        descripcion: Sustenta el acuse de lectura de la documentación publicada.
+      - codigo: '7.4'
+        tipo: clausula
+        titulo: Comunicación
+      - codigo: '7.5'
+        tipo: clausula
+        titulo: Información documentada
+        hijos:
+          - codigo: '7.5.1'
+            tipo: clausula
+            titulo: Generalidades
+          - codigo: '7.5.2'
+            tipo: clausula
+            titulo: Creación y actualización
+          - codigo: '7.5.3'
+            tipo: clausula
+            titulo: Control de la información documentada
+
+  - codigo: '8'
+    tipo: clausula
+    titulo: Operación
+    orden: 8
+    hijos:
+      - codigo: '8.1'
+        tipo: clausula
+        titulo: Planificación y control operacional
+      - codigo: '8.2'
+        tipo: clausula
+        titulo: Apreciación de riesgos de seguridad de la información
+      - codigo: '8.3'
+        tipo: clausula
+        titulo: Tratamiento de riesgos de seguridad de la información
+
+  - codigo: '9'
+    tipo: clausula
+    titulo: Evaluación del desempeño
+    orden: 9
+    hijos:
+      - codigo: '9.1'
+        tipo: clausula
+        titulo: Seguimiento, medición, análisis y evaluación
+      - codigo: '9.2'
+        tipo: clausula
+        titulo: Auditoría interna
+        hijos:
+          - codigo: '9.2.1'
+            tipo: clausula
+            titulo: Generalidades
+          - codigo: '9.2.2'
+            tipo: clausula
+            titulo: Programa de auditoría interna
+      - codigo: '9.3'
+        tipo: clausula
+        titulo: Revisión por la dirección
+        hijos:
+          - codigo: '9.3.1'
+            tipo: clausula
+            titulo: Generalidades
+          - codigo: '9.3.2'
+            tipo: clausula
+            titulo: Entradas de la revisión por la dirección
+            descripcion: >-
+              Lista cerrada de entradas obligatorias. El generador de actas de
+              Statera las recoge automáticamente.
+          - codigo: '9.3.3'
+            tipo: clausula
+            titulo: Resultados de la revisión por la dirección
+
+  - codigo: '10'
+    tipo: clausula
+    titulo: Mejora
+    orden: 10
+    hijos:
+      - codigo: '10.1'
+        tipo: clausula
+        titulo: Mejora continua
+      - codigo: '10.2'
+        tipo: clausula
+        titulo: No conformidad y acción correctiva
+        descripcion: >-
+          Incluye la verificación de la eficacia de la acción correctiva, que es
+          lo que más se olvida y lo primero que el auditor comprueba.
+
+  # ---------------------------------------------------------------------------
+  # Anexo A. 93 controles en cuatro temas: organizativos (37), personas (8),
+  # físicos (14) y tecnológicos (34).
+  #
+  # Los cinco atributos de cada control son los que define la ISO 27002:2022 y
+  # se guardan en JSONB: sirven para filtrar y agrupar la vista del catálogo sin
+  # necesidad de siete tablas de apoyo.
+  # ---------------------------------------------------------------------------
+  - codigo: A.5
+    tipo: control
+    titulo: Controles organizativos
+    orden: 100
+    hijos:
+      - codigo: A.5.1
+        tipo: control
+        titulo: Políticas de seguridad de la información
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [identificar], capacidades_operativas: [gobernanza], dominios_seguridad: [gobernanza_y_ecosistema, resiliencia]}
+      - codigo: A.5.2
+        tipo: control
+        titulo: Roles y responsabilidades en seguridad de la información
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [identificar], capacidades_operativas: [gobernanza], dominios_seguridad: [gobernanza_y_ecosistema, proteccion, resiliencia]}
+      - codigo: A.5.3
+        tipo: control
+        titulo: Segregación de funciones
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [gobernanza, gestion_de_identidad_y_acceso], dominios_seguridad: [gobernanza_y_ecosistema]}
+      - codigo: A.5.4
+        tipo: control
+        titulo: Responsabilidades de la dirección
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [identificar], capacidades_operativas: [gobernanza], dominios_seguridad: [gobernanza_y_ecosistema]}
+      - codigo: A.5.5
+        tipo: control
+        titulo: Contacto con las autoridades
+        atributos: {tipo_control: [preventivo, correctivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [identificar, proteger, responder, recuperar], capacidades_operativas: [gobernanza], dominios_seguridad: [defensa, resiliencia]}
+      - codigo: A.5.6
+        tipo: control
+        titulo: Contacto con grupos de interés especial
+        atributos: {tipo_control: [preventivo, correctivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger, responder, recuperar], capacidades_operativas: [gobernanza], dominios_seguridad: [defensa]}
+      - codigo: A.5.7
+        tipo: control
+        titulo: Inteligencia sobre amenazas
+        atributos: {tipo_control: [preventivo, detectivo, correctivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [identificar, detectar, responder], capacidades_operativas: [gestion_de_amenazas_y_vulnerabilidades], dominios_seguridad: [defensa, resiliencia]}
+      - codigo: A.5.8
+        tipo: control
+        titulo: Seguridad de la información en la gestión de proyectos
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [identificar, proteger], capacidades_operativas: [gobernanza], dominios_seguridad: [gobernanza_y_ecosistema, proteccion]}
+      - codigo: A.5.9
+        tipo: control
+        titulo: Inventario de información y otros activos asociados
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [identificar], capacidades_operativas: [gestion_de_activos], dominios_seguridad: [gobernanza_y_ecosistema, proteccion]}
+      - codigo: A.5.10
+        tipo: control
+        titulo: Uso aceptable de la información y otros activos asociados
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [gestion_de_activos, proteccion_de_la_informacion], dominios_seguridad: [gobernanza_y_ecosistema, proteccion]}
+      - codigo: A.5.11
+        tipo: control
+        titulo: Devolución de activos
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [gestion_de_activos], dominios_seguridad: [proteccion]}
+      - codigo: A.5.12
+        tipo: control
+        titulo: Clasificación de la información
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [identificar], capacidades_operativas: [proteccion_de_la_informacion], dominios_seguridad: [proteccion, defensa]}
+      - codigo: A.5.13
+        tipo: control
+        titulo: Etiquetado de la información
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [proteccion_de_la_informacion], dominios_seguridad: [proteccion, defensa]}
+      - codigo: A.5.14
+        tipo: control
+        titulo: Transferencia de información
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [gestion_de_activos, proteccion_de_la_informacion], dominios_seguridad: [proteccion]}
+      - codigo: A.5.15
+        tipo: control
+        titulo: Control de acceso
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [gestion_de_identidad_y_acceso], dominios_seguridad: [proteccion]}
+      - codigo: A.5.16
+        tipo: control
+        titulo: Gestión de la identidad
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [gestion_de_identidad_y_acceso], dominios_seguridad: [proteccion]}
+      - codigo: A.5.17
+        tipo: control
+        titulo: Información de autenticación
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [gestion_de_identidad_y_acceso], dominios_seguridad: [proteccion]}
+      - codigo: A.5.18
+        tipo: control
+        titulo: Derechos de acceso
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [gestion_de_identidad_y_acceso], dominios_seguridad: [proteccion]}
+      - codigo: A.5.19
+        tipo: control
+        titulo: Seguridad de la información en las relaciones con proveedores
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [identificar], capacidades_operativas: [seguridad_relaciones_proveedores], dominios_seguridad: [gobernanza_y_ecosistema, proteccion]}
+      - codigo: A.5.20
+        tipo: control
+        titulo: Tratamiento de la seguridad de la información en los acuerdos con proveedores
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [identificar], capacidades_operativas: [seguridad_relaciones_proveedores], dominios_seguridad: [gobernanza_y_ecosistema, proteccion]}
+      - codigo: A.5.21
+        tipo: control
+        titulo: Gestión de la seguridad de la información en la cadena de suministro TIC
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [identificar], capacidades_operativas: [seguridad_relaciones_proveedores], dominios_seguridad: [gobernanza_y_ecosistema, proteccion]}
+      - codigo: A.5.22
+        tipo: control
+        titulo: Seguimiento, revisión y gestión de cambios de los servicios de proveedores
+        atributos: {tipo_control: [preventivo, detectivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [identificar, proteger, detectar], capacidades_operativas: [seguridad_relaciones_proveedores, aseguramiento_de_la_seguridad], dominios_seguridad: [gobernanza_y_ecosistema, proteccion, defensa]}
+      - codigo: A.5.23
+        tipo: control
+        titulo: Seguridad de la información para el uso de servicios en la nube
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [seguridad_relaciones_proveedores], dominios_seguridad: [gobernanza_y_ecosistema, proteccion]}
+      - codigo: A.5.24
+        tipo: control
+        titulo: Planificación y preparación de la gestión de incidentes de seguridad de la información
+        atributos: {tipo_control: [correctivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [responder, recuperar], capacidades_operativas: [gestion_de_eventos_de_seguridad], dominios_seguridad: [defensa]}
+      - codigo: A.5.25
+        tipo: control
+        titulo: Evaluación y decisión sobre eventos de seguridad de la información
+        atributos: {tipo_control: [detectivo, correctivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [detectar, responder], capacidades_operativas: [gestion_de_eventos_de_seguridad], dominios_seguridad: [defensa]}
+      - codigo: A.5.26
+        tipo: control
+        titulo: Respuesta a incidentes de seguridad de la información
+        atributos: {tipo_control: [correctivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [responder, recuperar], capacidades_operativas: [gestion_de_eventos_de_seguridad], dominios_seguridad: [defensa]}
+      - codigo: A.5.27
+        tipo: control
+        titulo: Aprendizaje de los incidentes de seguridad de la información
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [identificar, proteger], capacidades_operativas: [gestion_de_eventos_de_seguridad], dominios_seguridad: [defensa]}
+      - codigo: A.5.28
+        tipo: control
+        titulo: Recopilación de evidencias
+        atributos: {tipo_control: [correctivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [detectar, responder], capacidades_operativas: [gestion_de_eventos_de_seguridad], dominios_seguridad: [defensa]}
+      - codigo: A.5.29
+        tipo: control
+        titulo: Seguridad de la información durante la interrupción
+        atributos: {tipo_control: [preventivo, correctivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger, responder], capacidades_operativas: [continuidad], dominios_seguridad: [proteccion, resiliencia]}
+      - codigo: A.5.30
+        tipo: control
+        titulo: Preparación de las TIC para la continuidad de negocio
+        atributos: {tipo_control: [correctivo], propiedades_seguridad: [D], conceptos_ciberseguridad: [responder], capacidades_operativas: [continuidad], dominios_seguridad: [resiliencia]}
+      - codigo: A.5.31
+        tipo: control
+        titulo: Requisitos legales, estatutarios, reglamentarios y contractuales
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [identificar], capacidades_operativas: [legal_y_cumplimiento], dominios_seguridad: [gobernanza_y_ecosistema, proteccion]}
+      - codigo: A.5.32
+        tipo: control
+        titulo: Derechos de propiedad intelectual
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [identificar], capacidades_operativas: [legal_y_cumplimiento], dominios_seguridad: [gobernanza_y_ecosistema]}
+      - codigo: A.5.33
+        tipo: control
+        titulo: Protección de registros
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [legal_y_cumplimiento, gestion_de_activos, proteccion_de_la_informacion], dominios_seguridad: [defensa]}
+      - codigo: A.5.34
+        tipo: control
+        titulo: Privacidad y protección de datos personales
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [identificar, proteger], capacidades_operativas: [proteccion_de_la_informacion, legal_y_cumplimiento], dominios_seguridad: [proteccion]}
+      - codigo: A.5.35
+        tipo: control
+        titulo: Revisión independiente de la seguridad de la información
+        atributos: {tipo_control: [preventivo, correctivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [identificar, proteger], capacidades_operativas: [aseguramiento_de_la_seguridad], dominios_seguridad: [gobernanza_y_ecosistema]}
+      - codigo: A.5.36
+        tipo: control
+        titulo: Cumplimiento de las políticas, reglas y normas de seguridad de la información
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [identificar], capacidades_operativas: [legal_y_cumplimiento, aseguramiento_de_la_seguridad], dominios_seguridad: [gobernanza_y_ecosistema]}
+      - codigo: A.5.37
+        tipo: control
+        titulo: Procedimientos operativos documentados
+        atributos: {tipo_control: [preventivo, correctivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger, recuperar], capacidades_operativas: [gestion_de_activos, seguridad_fisica, configuracion_segura, gestion_de_identidad_y_acceso, gestion_de_amenazas_y_vulnerabilidades, continuidad, seguridad_de_aplicaciones], dominios_seguridad: [gobernanza_y_ecosistema, proteccion, defensa]}
+
+  - codigo: A.6
+    tipo: control
+    titulo: Controles de personas
+    orden: 200
+    hijos:
+      - codigo: A.6.1
+        tipo: control
+        titulo: Investigación de antecedentes
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [seguridad_rrhh], dominios_seguridad: [gobernanza_y_ecosistema]}
+      - codigo: A.6.2
+        tipo: control
+        titulo: Términos y condiciones del empleo
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [seguridad_rrhh], dominios_seguridad: [gobernanza_y_ecosistema]}
+      - codigo: A.6.3
+        tipo: control
+        titulo: Concienciación, educación y formación en seguridad de la información
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [seguridad_rrhh], dominios_seguridad: [gobernanza_y_ecosistema]}
+      - codigo: A.6.4
+        tipo: control
+        titulo: Proceso disciplinario
+        atributos: {tipo_control: [preventivo, correctivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger, responder], capacidades_operativas: [seguridad_rrhh], dominios_seguridad: [gobernanza_y_ecosistema]}
+      - codigo: A.6.5
+        tipo: control
+        titulo: Responsabilidades ante la finalización o cambio del empleo
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [seguridad_rrhh, gestion_de_activos], dominios_seguridad: [gobernanza_y_ecosistema]}
+      - codigo: A.6.6
+        tipo: control
+        titulo: Acuerdos de confidencialidad o no divulgación
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C], conceptos_ciberseguridad: [proteger], capacidades_operativas: [seguridad_rrhh, proteccion_de_la_informacion, seguridad_relaciones_proveedores], dominios_seguridad: [gobernanza_y_ecosistema]}
+      - codigo: A.6.7
+        tipo: control
+        titulo: Trabajo a distancia
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [gestion_de_activos, proteccion_de_la_informacion, seguridad_fisica, seguridad_sistemas_y_redes], dominios_seguridad: [proteccion]}
+      - codigo: A.6.8
+        tipo: control
+        titulo: Notificación de eventos de seguridad de la información
+        atributos: {tipo_control: [detectivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [detectar], capacidades_operativas: [gestion_de_eventos_de_seguridad], dominios_seguridad: [defensa]}
+
+  - codigo: A.7
+    tipo: control
+    titulo: Controles físicos
+    orden: 300
+    hijos:
+      - codigo: A.7.1
+        tipo: control
+        titulo: Perímetros de seguridad física
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [seguridad_fisica], dominios_seguridad: [proteccion]}
+      - codigo: A.7.2
+        tipo: control
+        titulo: Entrada física
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [seguridad_fisica, gestion_de_identidad_y_acceso], dominios_seguridad: [proteccion]}
+      - codigo: A.7.3
+        tipo: control
+        titulo: Seguridad de oficinas, despachos e instalaciones
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [seguridad_fisica], dominios_seguridad: [proteccion]}
+      - codigo: A.7.4
+        tipo: control
+        titulo: Monitorización de la seguridad física
+        atributos: {tipo_control: [preventivo, detectivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger, detectar], capacidades_operativas: [seguridad_fisica], dominios_seguridad: [proteccion, defensa]}
+      - codigo: A.7.5
+        tipo: control
+        titulo: Protección contra amenazas físicas y ambientales
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [seguridad_fisica], dominios_seguridad: [proteccion]}
+      - codigo: A.7.6
+        tipo: control
+        titulo: Trabajo en áreas seguras
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [seguridad_fisica], dominios_seguridad: [proteccion]}
+      - codigo: A.7.7
+        tipo: control
+        titulo: Puesto de trabajo despejado y pantalla limpia
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C], conceptos_ciberseguridad: [proteger], capacidades_operativas: [seguridad_fisica], dominios_seguridad: [proteccion]}
+      - codigo: A.7.8
+        tipo: control
+        titulo: Emplazamiento y protección de equipos
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [seguridad_fisica], dominios_seguridad: [proteccion]}
+      - codigo: A.7.9
+        tipo: control
+        titulo: Seguridad de los activos fuera de las instalaciones
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [seguridad_fisica, gestion_de_activos], dominios_seguridad: [proteccion]}
+      - codigo: A.7.10
+        tipo: control
+        titulo: Soportes de almacenamiento
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [seguridad_fisica, gestion_de_activos], dominios_seguridad: [proteccion]}
+      - codigo: A.7.11
+        tipo: control
+        titulo: Servicios de suministro
+        atributos: {tipo_control: [preventivo, detectivo], propiedades_seguridad: [I, D], conceptos_ciberseguridad: [proteger, detectar], capacidades_operativas: [seguridad_fisica, continuidad], dominios_seguridad: [proteccion, resiliencia]}
+      - codigo: A.7.12
+        tipo: control
+        titulo: Seguridad del cableado
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [seguridad_fisica, continuidad], dominios_seguridad: [proteccion]}
+      - codigo: A.7.13
+        tipo: control
+        titulo: Mantenimiento de los equipos
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [seguridad_fisica, continuidad], dominios_seguridad: [proteccion, resiliencia]}
+      - codigo: A.7.14
+        tipo: control
+        titulo: Eliminación o reutilización segura de equipos
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C], conceptos_ciberseguridad: [proteger], capacidades_operativas: [seguridad_fisica, gestion_de_activos], dominios_seguridad: [proteccion]}
+
+  - codigo: A.8
+    tipo: control
+    titulo: Controles tecnológicos
+    orden: 400
+    hijos:
+      - codigo: A.8.1
+        tipo: control
+        titulo: Dispositivos de usuario final
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [gestion_de_activos, proteccion_de_la_informacion], dominios_seguridad: [proteccion]}
+      - codigo: A.8.2
+        tipo: control
+        titulo: Derechos de acceso privilegiado
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [gestion_de_identidad_y_acceso], dominios_seguridad: [proteccion]}
+      - codigo: A.8.3
+        tipo: control
+        titulo: Restricción del acceso a la información
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [gestion_de_identidad_y_acceso], dominios_seguridad: [proteccion]}
+      - codigo: A.8.4
+        tipo: control
+        titulo: Acceso al código fuente
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [gestion_de_identidad_y_acceso, seguridad_de_aplicaciones, configuracion_segura], dominios_seguridad: [proteccion]}
+      - codigo: A.8.5
+        tipo: control
+        titulo: Autenticación segura
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [gestion_de_identidad_y_acceso], dominios_seguridad: [proteccion]}
+      - codigo: A.8.6
+        tipo: control
+        titulo: Gestión de capacidades
+        atributos: {tipo_control: [preventivo, detectivo], propiedades_seguridad: [I, D], conceptos_ciberseguridad: [identificar, proteger, detectar], capacidades_operativas: [continuidad], dominios_seguridad: [gobernanza_y_ecosistema, proteccion]}
+      - codigo: A.8.7
+        tipo: control
+        titulo: Protección frente a malware
+        atributos: {tipo_control: [preventivo, detectivo, correctivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger, detectar], capacidades_operativas: [gestion_de_amenazas_y_vulnerabilidades], dominios_seguridad: [proteccion, defensa]}
+      - codigo: A.8.8
+        tipo: control
+        titulo: Gestión de vulnerabilidades técnicas
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [identificar, proteger], capacidades_operativas: [gestion_de_amenazas_y_vulnerabilidades], dominios_seguridad: [gobernanza_y_ecosistema, proteccion, defensa]}
+      - codigo: A.8.9
+        tipo: control
+        titulo: Gestión de la configuración
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [configuracion_segura], dominios_seguridad: [proteccion]}
+      - codigo: A.8.10
+        tipo: control
+        titulo: Borrado de información
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C], conceptos_ciberseguridad: [proteger], capacidades_operativas: [proteccion_de_la_informacion, legal_y_cumplimiento], dominios_seguridad: [proteccion]}
+      - codigo: A.8.11
+        tipo: control
+        titulo: Enmascaramiento de datos
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C], conceptos_ciberseguridad: [proteger], capacidades_operativas: [proteccion_de_la_informacion], dominios_seguridad: [proteccion]}
+      - codigo: A.8.12
+        tipo: control
+        titulo: Prevención de fuga de datos
+        atributos: {tipo_control: [preventivo, detectivo], propiedades_seguridad: [C], conceptos_ciberseguridad: [proteger, detectar], capacidades_operativas: [proteccion_de_la_informacion], dominios_seguridad: [proteccion, defensa]}
+      - codigo: A.8.13
+        tipo: control
+        titulo: Copias de seguridad de la información
+        atributos: {tipo_control: [correctivo], propiedades_seguridad: [I, D], conceptos_ciberseguridad: [recuperar], capacidades_operativas: [continuidad], dominios_seguridad: [proteccion]}
+      - codigo: A.8.14
+        tipo: control
+        titulo: Redundancia de las instalaciones de procesamiento de información
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [continuidad, gestion_de_activos], dominios_seguridad: [proteccion, resiliencia]}
+      - codigo: A.8.15
+        tipo: control
+        titulo: Registro de eventos
+        atributos: {tipo_control: [detectivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [detectar], capacidades_operativas: [gestion_de_eventos_de_seguridad], dominios_seguridad: [proteccion, defensa]}
+      - codigo: A.8.16
+        tipo: control
+        titulo: Actividades de monitorización
+        atributos: {tipo_control: [detectivo, correctivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [detectar, responder], capacidades_operativas: [gestion_de_eventos_de_seguridad], dominios_seguridad: [defensa]}
+      - codigo: A.8.17
+        tipo: control
+        titulo: Sincronización de relojes
+        atributos: {tipo_control: [detectivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger, detectar], capacidades_operativas: [gestion_de_eventos_de_seguridad], dominios_seguridad: [proteccion, defensa]}
+      - codigo: A.8.18
+        tipo: control
+        titulo: Uso de programas de utilidad privilegiados
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [configuracion_segura, seguridad_sistemas_y_redes, seguridad_de_aplicaciones], dominios_seguridad: [proteccion]}
+      - codigo: A.8.19
+        tipo: control
+        titulo: Instalación de software en sistemas operativos
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [configuracion_segura, seguridad_de_aplicaciones], dominios_seguridad: [proteccion]}
+      - codigo: A.8.20
+        tipo: control
+        titulo: Seguridad de las redes
+        atributos: {tipo_control: [preventivo, detectivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger, detectar], capacidades_operativas: [seguridad_sistemas_y_redes], dominios_seguridad: [proteccion]}
+      - codigo: A.8.21
+        tipo: control
+        titulo: Seguridad de los servicios de red
+        atributos: {tipo_control: [preventivo, detectivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger, detectar], capacidades_operativas: [seguridad_sistemas_y_redes], dominios_seguridad: [proteccion]}
+      - codigo: A.8.22
+        tipo: control
+        titulo: Segregación de redes
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [seguridad_sistemas_y_redes], dominios_seguridad: [proteccion]}
+      - codigo: A.8.23
+        tipo: control
+        titulo: Filtrado web
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [seguridad_sistemas_y_redes], dominios_seguridad: [proteccion]}
+      - codigo: A.8.24
+        tipo: control
+        titulo: Uso de criptografía
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [criptografia_segura], dominios_seguridad: [proteccion]}
+      - codigo: A.8.25
+        tipo: control
+        titulo: Ciclo de vida de desarrollo seguro
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [seguridad_de_aplicaciones, configuracion_segura], dominios_seguridad: [proteccion]}
+      - codigo: A.8.26
+        tipo: control
+        titulo: Requisitos de seguridad de las aplicaciones
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [identificar, proteger], capacidades_operativas: [seguridad_de_aplicaciones, configuracion_segura], dominios_seguridad: [proteccion, defensa]}
+      - codigo: A.8.27
+        tipo: control
+        titulo: Principios de ingeniería y arquitectura de sistemas seguros
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [seguridad_de_aplicaciones, seguridad_sistemas_y_redes], dominios_seguridad: [proteccion]}
+      - codigo: A.8.28
+        tipo: control
+        titulo: Codificación segura
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [seguridad_de_aplicaciones, seguridad_sistemas_y_redes], dominios_seguridad: [proteccion]}
+      - codigo: A.8.29
+        tipo: control
+        titulo: Pruebas de seguridad en desarrollo y aceptación
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [identificar], capacidades_operativas: [seguridad_de_aplicaciones, seguridad_sistemas_y_redes], dominios_seguridad: [proteccion]}
+      - codigo: A.8.30
+        tipo: control
+        titulo: Desarrollo externalizado
+        atributos: {tipo_control: [preventivo, detectivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [identificar, proteger, detectar], capacidades_operativas: [seguridad_sistemas_y_redes, seguridad_de_aplicaciones, seguridad_relaciones_proveedores], dominios_seguridad: [proteccion]}
+      - codigo: A.8.31
+        tipo: control
+        titulo: Separación de los entornos de desarrollo, pruebas y producción
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [seguridad_de_aplicaciones, seguridad_sistemas_y_redes], dominios_seguridad: [proteccion]}
+      - codigo: A.8.32
+        tipo: control
+        titulo: Gestión de cambios
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [seguridad_de_aplicaciones, seguridad_sistemas_y_redes], dominios_seguridad: [proteccion]}
+      - codigo: A.8.33
+        tipo: control
+        titulo: Información de prueba
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I], conceptos_ciberseguridad: [proteger], capacidades_operativas: [proteccion_de_la_informacion], dominios_seguridad: [proteccion]}
+      - codigo: A.8.34
+        tipo: control
+        titulo: Protección de los sistemas de información durante las pruebas de auditoría
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [seguridad_sistemas_y_redes, proteccion_de_la_informacion], dominios_seguridad: [gobernanza_y_ecosistema, proteccion]}

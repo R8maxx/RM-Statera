@@ -1,0 +1,61 @@
+# Dependencias y resultado de la compilación
+/node_modules
+/vendor
+/public/build
+/public/hot
+/public/storage
+/public/fonts-manifest.dev.json
+*.tsbuildinfo
+
+# Entorno y credenciales. `.env.example` es la plantilla y sí se versiona;
+# cualquier otra variante queda fuera, incluidas las que nadie ha inventado aún.
+.env
+.env.*
+!.env.example
+/auth.json
+Homestead.json
+Homestead.yaml
+
+# Estado generado en ejecución. `/storage/*.key` cubre además las claves que
+# dejan atrás paquetes ya retirados.
+*.log
+/storage/*.key
+/storage/pail
+
+# Cachés de las herramientas de calidad
+.phpunit.result.cache
+/.phpunit.cache
+/.pint.cache
+/.php-cs-fixer.cache
+/.phpstan
+/coverage
+
+# Guías y skills de Laravel Boost.
+#
+# Las genera `php artisan boost:install` a partir de `boost.json`, que sí se
+# versiona: son la salida, no la fuente. Además son tres copias idénticas del
+# mismo material, una por asistente, así que versionarlas añade tres cuartos de
+# megabyte duplicado y conflictos de fusión a cambio de nada. Se regeneran con
+# `php artisan boost:update`.
+/.agents/skills
+/.claude/skills
+/.junie/skills
+/.claude/settings.local.json
+
+# Editores y entornos de desarrollo
+/.codex
+/.cursor/
+/.fleet
+/.idea
+/.nova
+/.vscode
+/.zed
+.phpactor.json
+.phpstorm.meta.php
+_ide_helper.php
+_ide_helper_models.php
+*.swp
+
+# Sistema operativo
+.DS_Store
+Thumbs.db

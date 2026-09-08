@@ -1,0 +1,430 @@
+# Mapeos ISO/IEC 27001:2022 ↔ ENS (RD 311/2022)
+#
+# Esta es la pieza que justifica el proyecto: sin ella, una evidencia que sirve a
+# un control ISO y a tres medidas ENS se mantiene por triplicado, que es
+# exactamente el problema que hoy se sufre en hojas de cálculo.
+#
+# `tipo` no es decorativo:
+#   - equivalente: el destino cubre el origen en lo sustancial.
+#   - parcial:     cubre una parte; la nota dice cuál y qué queda fuera.
+#   - relacionado: se apoyan mutuamente, pero ninguno cubre al otro.
+#
+# Dar por equivalente una correspondencia parcial es la forma más rápida de
+# declarar implantado algo que no lo está, así que en la duda va `parcial` con
+# nota.
+#
+# Cobertura: este fichero recoge las correspondencias principales, no todas las
+# posibles. Se amplía a medida que se trabaja cada control. `revisado: false`
+# hasta contrastarlo con el Anexo II del BOE y con la guía CCN-STIC 825.
+fuente: 'Elaboración propia a partir de ISO/IEC 27001:2022 Anexo A y RD 311/2022 Anexo II'
+revisado: false
+
+mapeos:
+  # --- Marco organizativo -----------------------------------------------------
+  - origen: {marco: ISO27001-2022, codigo: A.5.1}
+    destino: {marco: ENS-RD311-2022, codigo: org.1}
+    tipo: equivalente
+    nota: Ambos exigen una política de seguridad aprobada por la dirección, publicada y revisada.
+
+  - origen: {marco: ISO27001-2022, codigo: A.5.1}
+    destino: {marco: ENS-RD311-2022, codigo: org.2}
+    tipo: parcial
+    nota: La normativa de seguridad del ENS es el segundo nivel documental; la ISO lo trata dentro del mismo control de políticas.
+
+  - origen: {marco: ISO27001-2022, codigo: A.5.37}
+    destino: {marco: ENS-RD311-2022, codigo: org.3}
+    tipo: equivalente
+    nota: Procedimientos operativos documentados.
+
+  - origen: {marco: ISO27001-2022, codigo: A.5.2}
+    destino: {marco: ENS-RD311-2022, codigo: org.1}
+    tipo: parcial
+    nota: >-
+      El ENS exige roles nominados y con separación obligatoria (responsable de
+      la información, del servicio, de seguridad y del sistema). La ISO exige
+      asignar responsabilidades pero no impone esa estructura.
+
+  - origen: {marco: ISO27001-2022, codigo: A.5.3}
+    destino: {marco: ENS-RD311-2022, codigo: op.acc.3}
+    tipo: equivalente
+    nota: Segregación de funciones y tareas.
+
+  - origen: {marco: ISO27001-2022, codigo: A.5.8}
+    destino: {marco: ENS-RD311-2022, codigo: org.4}
+    tipo: parcial
+    nota: >-
+      El proceso de autorización del ENS es más amplio que la gestión de
+      proyectos: cubre la entrada en servicio de instalaciones, equipos,
+      aplicaciones y soportes.
+
+  # --- Activos ----------------------------------------------------------------
+  - origen: {marco: ISO27001-2022, codigo: A.5.9}
+    destino: {marco: ENS-RD311-2022, codigo: op.exp.1}
+    tipo: equivalente
+    nota: Inventario de activos con responsable asignado.
+
+  - origen: {marco: ISO27001-2022, codigo: A.5.12}
+    destino: {marco: ENS-RD311-2022, codigo: mp.info.2}
+    tipo: equivalente
+    nota: Clasificación y calificación de la información.
+
+  - origen: {marco: ISO27001-2022, codigo: A.5.13}
+    destino: {marco: ENS-RD311-2022, codigo: mp.si.1}
+    tipo: parcial
+    nota: El ENS lo limita al marcado de soportes; la ISO cubre el etiquetado de la información en cualquier formato.
+
+  - origen: {marco: ISO27001-2022, codigo: A.5.14}
+    destino: {marco: ENS-RD311-2022, codigo: mp.si.4}
+    tipo: parcial
+    nota: Transporte de soportes. La transferencia electrónica de información se apoya además en mp.com.
+
+  - origen: {marco: ISO27001-2022, codigo: A.5.10}
+    destino: {marco: ENS-RD311-2022, codigo: mp.per.2}
+    tipo: parcial
+    nota: Los deberes y obligaciones del personal incluyen el uso aceptable de los activos.
+
+  # --- Control de acceso ------------------------------------------------------
+  - origen: {marco: ISO27001-2022, codigo: A.5.15}
+    destino: {marco: ENS-RD311-2022, codigo: op.acc.2}
+    tipo: equivalente
+    nota: Requisitos de acceso, con el principio de mínimo privilegio.
+
+  - origen: {marco: ISO27001-2022, codigo: A.5.16}
+    destino: {marco: ENS-RD311-2022, codigo: op.acc.1}
+    tipo: equivalente
+    nota: Identificación singular de cada usuario.
+
+  - origen: {marco: ISO27001-2022, codigo: A.5.17}
+    destino: {marco: ENS-RD311-2022, codigo: op.acc.5}
+    tipo: parcial
+    nota: Información de autenticación de usuarios externos.
+
+  - origen: {marco: ISO27001-2022, codigo: A.5.17}
+    destino: {marco: ENS-RD311-2022, codigo: op.acc.6}
+    tipo: parcial
+    nota: Información de autenticación de usuarios de la organización.
+
+  - origen: {marco: ISO27001-2022, codigo: A.5.18}
+    destino: {marco: ENS-RD311-2022, codigo: op.acc.4}
+    tipo: equivalente
+    nota: Alta, modificación y baja de derechos de acceso.
+
+  - origen: {marco: ISO27001-2022, codigo: A.8.2}
+    destino: {marco: ENS-RD311-2022, codigo: op.acc.4}
+    tipo: parcial
+    nota: El ENS no separa los derechos privilegiados en una medida propia; quedan dentro del proceso general de gestión de derechos.
+
+  - origen: {marco: ISO27001-2022, codigo: A.8.3}
+    destino: {marco: ENS-RD311-2022, codigo: op.acc.2}
+    tipo: equivalente
+    nota: Restricción del acceso a la información.
+
+  - origen: {marco: ISO27001-2022, codigo: A.8.5}
+    destino: {marco: ENS-RD311-2022, codigo: op.acc.6}
+    tipo: equivalente
+    nota: Autenticación segura. Los refuerzos R1 y R2 del ENS concretan el segundo factor y el certificado cualificado.
+
+  # --- Proveedores y nube -----------------------------------------------------
+  - origen: {marco: ISO27001-2022, codigo: A.5.19}
+    destino: {marco: ENS-RD311-2022, codigo: op.ext.1}
+    tipo: equivalente
+    nota: Seguridad en las relaciones con proveedores y acuerdos de nivel de servicio.
+
+  - origen: {marco: ISO27001-2022, codigo: A.5.20}
+    destino: {marco: ENS-RD311-2022, codigo: op.ext.1}
+    tipo: equivalente
+    nota: Cláusulas de seguridad en los acuerdos con proveedores.
+
+  - origen: {marco: ISO27001-2022, codigo: A.5.21}
+    destino: {marco: ENS-RD311-2022, codigo: op.ext.3}
+    tipo: equivalente
+    nota: Protección de la cadena de suministro TIC. En el ENS solo se exige en categoría alta.
+
+  - origen: {marco: ISO27001-2022, codigo: A.5.22}
+    destino: {marco: ENS-RD311-2022, codigo: op.ext.2}
+    tipo: equivalente
+    nota: Seguimiento y revisión de los servicios prestados por terceros.
+
+  - origen: {marco: ISO27001-2022, codigo: A.5.23}
+    destino: {marco: ENS-RD311-2022, codigo: op.nub.1}
+    tipo: equivalente
+    nota: >-
+      Seguridad en el uso de servicios en la nube. El ENS añade el requisito de
+      conformidad del propio prestador, que la ISO no exige.
+
+  # --- Incidentes -------------------------------------------------------------
+  - origen: {marco: ISO27001-2022, codigo: A.5.24}
+    destino: {marco: ENS-RD311-2022, codigo: op.exp.7}
+    tipo: equivalente
+    nota: Planificación y preparación de la gestión de incidentes.
+
+  - origen: {marco: ISO27001-2022, codigo: A.5.25}
+    destino: {marco: ENS-RD311-2022, codigo: op.exp.7}
+    tipo: parcial
+    nota: Evaluación y clasificación del evento. El ENS remite a la taxonomía de la CCN-STIC 817.
+
+  - origen: {marco: ISO27001-2022, codigo: A.5.26}
+    destino: {marco: ENS-RD311-2022, codigo: op.exp.7}
+    tipo: parcial
+    nota: >-
+      Respuesta al incidente. El ENS añade la notificación al CCN-CERT con plazos
+      propios, que la ISO no contempla.
+
+  - origen: {marco: ISO27001-2022, codigo: A.5.27}
+    destino: {marco: ENS-RD311-2022, codigo: op.exp.9}
+    tipo: equivalente
+    nota: Registro de la gestión de incidentes y lecciones aprendidas.
+
+  - origen: {marco: ISO27001-2022, codigo: A.5.28}
+    destino: {marco: ENS-RD311-2022, codigo: op.exp.10}
+    tipo: parcial
+    nota: Protección de los registros de actividad como soporte de la recopilación de evidencias.
+
+  - origen: {marco: ISO27001-2022, codigo: A.6.8}
+    destino: {marco: ENS-RD311-2022, codigo: op.exp.7}
+    tipo: parcial
+    nota: Notificación de eventos por parte del personal.
+
+  # --- Continuidad ------------------------------------------------------------
+  - origen: {marco: ISO27001-2022, codigo: A.5.29}
+    destino: {marco: ENS-RD311-2022, codigo: op.cont.2}
+    tipo: equivalente
+    nota: Plan de continuidad. En el ENS solo se exige con disponibilidad de nivel alto.
+
+  - origen: {marco: ISO27001-2022, codigo: A.5.30}
+    destino: {marco: ENS-RD311-2022, codigo: op.cont.1}
+    tipo: equivalente
+    nota: Análisis de impacto y preparación de las TIC para la continuidad.
+
+  - origen: {marco: ISO27001-2022, codigo: A.5.30}
+    destino: {marco: ENS-RD311-2022, codigo: op.cont.3}
+    tipo: parcial
+    nota: Pruebas periódicas del plan.
+
+  - origen: {marco: ISO27001-2022, codigo: A.8.14}
+    destino: {marco: ENS-RD311-2022, codigo: op.cont.4}
+    tipo: equivalente
+    nota: Medios alternativos y redundancia de las instalaciones de procesamiento.
+
+  - origen: {marco: ISO27001-2022, codigo: A.8.13}
+    destino: {marco: ENS-RD311-2022, codigo: mp.info.6}
+    tipo: equivalente
+    nota: Copias de seguridad.
+
+  # --- Cumplimiento -----------------------------------------------------------
+  - origen: {marco: ISO27001-2022, codigo: A.5.31}
+    destino: {marco: ENS-RD311-2022, codigo: org.2}
+    tipo: relacionado
+    nota: La normativa de seguridad del ENS recoge los requisitos legales aplicables, pero no es su objeto principal.
+
+  - origen: {marco: ISO27001-2022, codigo: A.5.34}
+    destino: {marco: ENS-RD311-2022, codigo: mp.info.1}
+    tipo: equivalente
+    nota: Datos de carácter personal. Ambos remiten al RGPD y a la LOPDGDD.
+
+  - origen: {marco: ISO27001-2022, codigo: A.5.35}
+    destino: {marco: ENS-RD311-2022, codigo: op.mon.2}
+    tipo: relacionado
+    nota: >-
+      La revisión independiente de la ISO se corresponde en el ENS con la
+      auditoría del artículo 31 y el informe INES, no con una medida del Anexo II.
+
+  # --- Personas ---------------------------------------------------------------
+  - origen: {marco: ISO27001-2022, codigo: A.6.1}
+    destino: {marco: ENS-RD311-2022, codigo: mp.per.1}
+    tipo: equivalente
+    nota: Caracterización del puesto de trabajo, incluida la investigación de antecedentes.
+
+  - origen: {marco: ISO27001-2022, codigo: A.6.2}
+    destino: {marco: ENS-RD311-2022, codigo: mp.per.2}
+    tipo: equivalente
+    nota: Deberes y obligaciones recogidos en las condiciones de empleo.
+
+  - origen: {marco: ISO27001-2022, codigo: A.6.3}
+    destino: {marco: ENS-RD311-2022, codigo: mp.per.4}
+    tipo: equivalente
+    nota: Formación en seguridad.
+
+  - origen: {marco: ISO27001-2022, codigo: A.6.3}
+    destino: {marco: ENS-RD311-2022, codigo: mp.per.3}
+    tipo: parcial
+    nota: Concienciación, que el ENS separa de la formación reglada.
+
+  - origen: {marco: ISO27001-2022, codigo: A.6.6}
+    destino: {marco: ENS-RD311-2022, codigo: mp.per.2}
+    tipo: parcial
+    nota: Los acuerdos de confidencialidad forman parte de los deberes y obligaciones.
+
+  # --- Físicos ----------------------------------------------------------------
+  - origen: {marco: ISO27001-2022, codigo: A.7.1}
+    destino: {marco: ENS-RD311-2022, codigo: mp.if.1}
+    tipo: equivalente
+    nota: Áreas separadas con control de acceso.
+
+  - origen: {marco: ISO27001-2022, codigo: A.7.2}
+    destino: {marco: ENS-RD311-2022, codigo: mp.if.2}
+    tipo: equivalente
+    nota: Identificación y registro de las personas que acceden.
+
+  - origen: {marco: ISO27001-2022, codigo: A.7.5}
+    destino: {marco: ENS-RD311-2022, codigo: mp.if.5}
+    tipo: parcial
+    nota: Protección frente a incendios.
+
+  - origen: {marco: ISO27001-2022, codigo: A.7.5}
+    destino: {marco: ENS-RD311-2022, codigo: mp.if.6}
+    tipo: parcial
+    nota: Protección frente a inundaciones.
+
+  - origen: {marco: ISO27001-2022, codigo: A.7.7}
+    destino: {marco: ENS-RD311-2022, codigo: mp.eq.1}
+    tipo: equivalente
+    nota: Puesto de trabajo despejado.
+
+  - origen: {marco: ISO27001-2022, codigo: A.7.9}
+    destino: {marco: ENS-RD311-2022, codigo: mp.eq.3}
+    tipo: equivalente
+    nota: Protección de dispositivos fuera de las instalaciones.
+
+  - origen: {marco: ISO27001-2022, codigo: A.7.10}
+    destino: {marco: ENS-RD311-2022, codigo: mp.si.3}
+    tipo: equivalente
+    nota: Custodia de soportes de almacenamiento.
+
+  - origen: {marco: ISO27001-2022, codigo: A.7.11}
+    destino: {marco: ENS-RD311-2022, codigo: mp.if.4}
+    tipo: equivalente
+    nota: Suministro eléctrico y sistemas de alimentación ininterrumpida.
+
+  - origen: {marco: ISO27001-2022, codigo: A.7.13}
+    destino: {marco: ENS-RD311-2022, codigo: mp.if.3}
+    tipo: parcial
+    nota: Acondicionamiento y mantenimiento de los locales y del equipamiento que albergan.
+
+  - origen: {marco: ISO27001-2022, codigo: A.7.14}
+    destino: {marco: ENS-RD311-2022, codigo: mp.si.5}
+    tipo: equivalente
+    nota: Borrado y destrucción segura antes de reutilizar o desechar.
+
+  # --- Tecnológicos -----------------------------------------------------------
+  - origen: {marco: ISO27001-2022, codigo: A.8.1}
+    destino: {marco: ENS-RD311-2022, codigo: mp.eq.4}
+    tipo: parcial
+    nota: Dispositivos de usuario final conectados a la red.
+
+  - origen: {marco: ISO27001-2022, codigo: A.8.6}
+    destino: {marco: ENS-RD311-2022, codigo: op.pl.4}
+    tipo: equivalente
+    nota: Dimensionamiento y gestión de la capacidad.
+
+  - origen: {marco: ISO27001-2022, codigo: A.8.7}
+    destino: {marco: ENS-RD311-2022, codigo: op.exp.6}
+    tipo: equivalente
+    nota: Protección frente a código dañino.
+
+  - origen: {marco: ISO27001-2022, codigo: A.8.8}
+    destino: {marco: ENS-RD311-2022, codigo: op.exp.4}
+    tipo: equivalente
+    nota: Gestión de vulnerabilidades técnicas y actualizaciones de seguridad.
+
+  - origen: {marco: ISO27001-2022, codigo: A.8.9}
+    destino: {marco: ENS-RD311-2022, codigo: op.exp.2}
+    tipo: equivalente
+    nota: Configuración de seguridad de los componentes.
+
+  - origen: {marco: ISO27001-2022, codigo: A.8.9}
+    destino: {marco: ENS-RD311-2022, codigo: op.exp.3}
+    tipo: equivalente
+    nota: Gestión continuada de la configuración de seguridad.
+
+  - origen: {marco: ISO27001-2022, codigo: A.8.10}
+    destino: {marco: ENS-RD311-2022, codigo: mp.si.5}
+    tipo: parcial
+    nota: Borrado de información. El ENS lo trata en el ciclo de vida del soporte.
+
+  - origen: {marco: ISO27001-2022, codigo: A.8.15}
+    destino: {marco: ENS-RD311-2022, codigo: op.exp.8}
+    tipo: equivalente
+    nota: Registro de la actividad de los usuarios.
+
+  - origen: {marco: ISO27001-2022, codigo: A.8.16}
+    destino: {marco: ENS-RD311-2022, codigo: op.mon.1}
+    tipo: equivalente
+    nota: Monitorización y detección de intrusión.
+
+  - origen: {marco: ISO27001-2022, codigo: A.8.17}
+    destino: {marco: ENS-RD311-2022, codigo: mp.info.4}
+    tipo: relacionado
+    nota: >-
+      La sincronización de relojes es condición para que los sellos de tiempo y
+      la trazabilidad de los registros tengan valor probatorio.
+
+  - origen: {marco: ISO27001-2022, codigo: A.8.20}
+    destino: {marco: ENS-RD311-2022, codigo: mp.com.1}
+    tipo: equivalente
+    nota: Perímetro seguro y protección de las redes.
+
+  - origen: {marco: ISO27001-2022, codigo: A.8.21}
+    destino: {marco: ENS-RD311-2022, codigo: mp.com.3}
+    tipo: equivalente
+    nota: Protección de la autenticidad e integridad de los servicios de red.
+
+  - origen: {marco: ISO27001-2022, codigo: A.8.22}
+    destino: {marco: ENS-RD311-2022, codigo: mp.com.4}
+    tipo: equivalente
+    nota: Segregación y separación de flujos de información en la red.
+
+  - origen: {marco: ISO27001-2022, codigo: A.8.23}
+    destino: {marco: ENS-RD311-2022, codigo: mp.s.3}
+    tipo: equivalente
+    nota: Filtrado y protección de la navegación web.
+
+  - origen: {marco: ISO27001-2022, codigo: A.8.24}
+    destino: {marco: ENS-RD311-2022, codigo: mp.com.2}
+    tipo: parcial
+    nota: Uso de criptografía para proteger la confidencialidad de las comunicaciones.
+
+  - origen: {marco: ISO27001-2022, codigo: A.8.24}
+    destino: {marco: ENS-RD311-2022, codigo: mp.si.2}
+    tipo: parcial
+    nota: Uso de criptografía sobre los soportes de información.
+
+  - origen: {marco: ISO27001-2022, codigo: A.8.24}
+    destino: {marco: ENS-RD311-2022, codigo: op.exp.11}
+    tipo: parcial
+    nota: Gestión y protección de las claves criptográficas a lo largo de su ciclo de vida.
+
+  - origen: {marco: ISO27001-2022, codigo: A.8.25}
+    destino: {marco: ENS-RD311-2022, codigo: mp.sw.1}
+    tipo: equivalente
+    nota: Ciclo de vida de desarrollo seguro.
+
+  - origen: {marco: ISO27001-2022, codigo: A.8.26}
+    destino: {marco: ENS-RD311-2022, codigo: mp.s.2}
+    tipo: parcial
+    nota: Requisitos de seguridad de las aplicaciones y servicios web.
+
+  - origen: {marco: ISO27001-2022, codigo: A.8.27}
+    destino: {marco: ENS-RD311-2022, codigo: op.pl.2}
+    tipo: equivalente
+    nota: Principios de arquitectura e ingeniería de sistemas seguros.
+
+  - origen: {marco: ISO27001-2022, codigo: A.8.29}
+    destino: {marco: ENS-RD311-2022, codigo: mp.sw.2}
+    tipo: equivalente
+    nota: Pruebas de seguridad previas a la aceptación y puesta en servicio.
+
+  - origen: {marco: ISO27001-2022, codigo: A.8.31}
+    destino: {marco: ENS-RD311-2022, codigo: mp.sw.1}
+    tipo: parcial
+    nota: Separación de los entornos de desarrollo, pruebas y producción.
+
+  - origen: {marco: ISO27001-2022, codigo: A.8.32}
+    destino: {marco: ENS-RD311-2022, codigo: op.exp.5}
+    tipo: equivalente
+    nota: Gestión de cambios.
+
+  - origen: {marco: ISO27001-2022, codigo: A.8.33}
+    destino: {marco: ENS-RD311-2022, codigo: mp.sw.1}
+    tipo: parcial
+    nota: Uso de información de prueba en el desarrollo de aplicaciones.

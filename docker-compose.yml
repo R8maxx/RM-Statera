@@ -1,0 +1,86 @@
+# Statera — entorno de desarrollo.
+#
+# La aplicación PHP corre en el host (`composer dev`), no en un contenedor:
+# hay PHP 8.5 local y el ciclo de edición es más rápido así. Aquí solo viven
+# los servicios de apoyo. La imagen equivalente en producción se describe en
+# la §10 de stack-gestor-cumplimiento.md.
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: statera-postgres
+    environment:
+      POSTGRES_DB: statera
+      POSTGRES_USER: statera
+      POSTGRES_PASSWORD: statera
+      # La base de tests se crea en el arranque inicial del volumen.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U statera -d statera"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: statera-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Versión ANCLADA, nunca el tag "8": entre 8.8.0 y 8.9.1 la conversión a
+  # PDF/A y PDF/UA estuvo rota (§4 de stack-gestor-cumplimiento.md).
+  #
+  # Gotenberg descarga las URL que se le pasen: si es alcanzable desde fuera
+  # es un SSRF de manual. En desarrollo se publica SOLO en loopback porque la
+  # app corre en el host; en producción va en la red privada, sin puerto
+  # publicado y sin salida a internet.
+  #
+  # La allow-list restringe Chromium a los ficheros que el propio Gotenberg
+  # deja en /tmp, es decir: solo se renderiza el HTML y los assets que le
+  # enviamos en el multipart. Ninguna URL remota, ni nuestra ni ajena.
+  gotenberg:
+    image: gotenberg/gotenberg:8.9.1
+    container_name: statera-gotenberg
+    command:
+      - "gotenberg"
+      - "--chromium-allow-list=^file:///tmp/.*"
+      - "--api-timeout=120s"
+    ports:
+      - "127.0.0.1:3000:3000"
+
+  # S3 local para el almacén de evidencias.
+  minio:
+    image: minio/minio:latest
+    container_name: statera-minio
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: statera
+      MINIO_ROOT_PASSWORD: statera-secret
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres-data:
+  redis-data:
+  minio-data:

@@ -1,0 +1,12 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    # Nivel 6 es el mínimo acordado en la §2.3 de stack-gestor-cumplimiento.md.
+    # Subir, nunca bajar.
+    level: 6
+
+    paths:
+        - app
+        - database
+        - routes
