@@ -1,6 +1,7 @@
 import {
     ClipboardCheckIcon,
     LayoutDashboardIcon,
+    PaperclipIcon,
     ServerIcon,
     type LucideIcon,
 } from '@lucide/vue';
@@ -44,6 +45,12 @@ export const navegacion: GrupoNavegacion[] = [
                 href: '/implantaciones',
                 icono: ClipboardCheckIcon,
                 alias: ['controles', 'requisitos', 'medidas', 'anexo'],
+            },
+            {
+                titulo: 'Evidencias',
+                href: '/evidencias',
+                icono: PaperclipIcon,
+                alias: ['pruebas', 'adjuntos', 'capturas', 'soporte'],
             },
         ],
     },

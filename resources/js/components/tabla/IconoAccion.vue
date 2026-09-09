@@ -6,6 +6,7 @@ import {
     ListChecksIcon,
     PencilIcon,
     PlusIcon,
+    SlidersHorizontalIcon,
     Trash2Icon,
 } from '@lucide/vue';
 import { computed, type Component } from 'vue';
@@ -24,6 +25,7 @@ const iconos: Record<string, Component> = {
     ListChecks: ListChecksIcon,
     Pencil: PencilIcon,
     Plus: PlusIcon,
+    SlidersHorizontal: SlidersHorizontalIcon,
     Trash2: Trash2Icon,
 };
 

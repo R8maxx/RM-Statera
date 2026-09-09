@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Sistema\Models;
 
+use App\Domain\Auditoria\Concerns\RegistraTraza;
 use App\Domain\Catalogo\Enums\CategoriaEns;
 use App\Domain\Catalogo\Models\Marco;
 use App\Domain\Catalogo\Models\PerfilCumplimiento;
@@ -39,6 +40,7 @@ class Sistema extends Model
     use HasFactory;
 
     use PerteneceAOrganizacion;
+    use RegistraTraza;
 
     protected $table = 'sistemas';
 

@@ -14,6 +14,8 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
 use Laravel\Fortify\TwoFactorAuthenticatable;
+use Laravel\Passkeys\Contracts\PasskeyUser;
+use Laravel\Passkeys\PasskeyAuthenticatable;
 use Spatie\Permission\Traits\HasRoles;
 
 /**
@@ -22,15 +24,35 @@ use Spatie\Permission\Traits\HasRoles;
  * @property string $email
  * @property ?int $organizacion_id
  * @property ?Carbon $two_factor_confirmed_at
+ * @property ?string $two_factor_secret
  */
 #[Fillable(['name', 'email', 'password', 'organizacion_id'])]
 #[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'])]
-class User extends Authenticatable
+class User extends Authenticatable implements PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory;
 
-    use HasRoles, Notifiable, TwoFactorAuthenticatable;
+    use HasRoles, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
+
+    /**
+     * Si el segundo factor está activo de verdad.
+     *
+     * Tener secreto no basta: Fortify lo genera al empezar el alta y sólo queda
+     * confirmado cuando la persona introduce un código que cuadra. Entre las dos
+     * cosas el segundo factor no protege nada, y decir que sí sería mentirle a
+     * quien lo mira en el perfil.
+     */
+    public function dosFactoresConfirmado(): bool
+    {
+        return $this->two_factor_confirmed_at !== null;
+    }
+
+    /** Secreto generado y todavía sin confirmar: el alta a medias. */
+    public function dosFactoresPendiente(): bool
+    {
+        return $this->two_factor_secret !== null && $this->two_factor_confirmed_at === null;
+    }
 
     /**
      * La organización a la que pertenece. Nula significa que el usuario no ve

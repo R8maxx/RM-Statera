@@ -39,7 +39,7 @@ final class GeneradorImplantaciones
         DB::beginTransaction();
 
         try {
-            $resultado = $this->sincronizar($sistema);
+            $resultado = $this->sincronizar($sistema, $simulacion);
 
             if ($simulacion) {
                 DB::rollBack();
@@ -55,7 +55,7 @@ final class GeneradorImplantaciones
         }
     }
 
-    private function sincronizar(Sistema $sistema): ResultadoGeneracion
+    private function sincronizar(Sistema $sistema, bool $simulacion): ResultadoGeneracion
     {
         // `load` y no `loadMissing`: esto es un recálculo, y leer una valoración
         // obsoleta de una relación ya cargada daría un conjunto exigible que no se
@@ -79,6 +79,7 @@ final class GeneradorImplantaciones
             sistema: $sistema->nombre,
             marco: $sistema->marco->codigo,
             categoria: $sistema->categoria()?->value,
+            simulacion: $simulacion,
         );
 
         foreach ($diferencia->nuevas as $medida) {

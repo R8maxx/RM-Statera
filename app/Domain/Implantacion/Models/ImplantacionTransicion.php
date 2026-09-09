@@ -9,6 +9,7 @@ use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * Una transición de estado, con fecha y autor.
@@ -26,6 +27,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property EstadoImplantacion $estado_nuevo
  * @property ?int $usuario_id
  * @property ?string $nota
+ * @property ?Carbon $created_at
  */
 class ImplantacionTransicion extends Model
 {

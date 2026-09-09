@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Resources;
 
+use App\Domain\Autorizacion\Enums\Permiso;
 use App\Domain\Catalogo\Models\Marco;
 use App\Domain\Sistema\Enums\EstadoSistema;
 use App\Domain\Sistema\Models\Sistema;
@@ -111,10 +112,17 @@ final class SistemaRecurso extends Recurso
     public function accionesFila(): array
     {
         return [
-            Accion::editar('/sistemas/{id}/editar'),
+            Accion::editar('/sistemas/{id}/editar')->permiso(Permiso::SistemasGestionar->value),
+            // Antes de esto, valorar las cinco dimensiones sólo era posible por
+            // consola: el sistema nacía sin implantaciones y no había forma de
+            // arreglarlo desde la aplicación.
+            (new Accion('valoracion', 'Valorar dimensiones', '/sistemas/{id}/valoracion'))
+                ->icono('SlidersHorizontal')
+                ->permiso(Permiso::SistemasValorar->value),
             (new Accion('implantaciones', 'Ver implantaciones', '/implantaciones?filter[sistema_id]={id}'))
                 ->icono('ListChecks'),
-            Accion::eliminar('/sistemas/{id}', '¿Eliminar el sistema y todas sus implantaciones? La traza de estados se pierde con él.'),
+            Accion::eliminar('/sistemas/{id}', '¿Eliminar el sistema y todas sus implantaciones? La traza de estados se pierde con él.')
+                ->permiso(Permiso::SistemasGestionar->value),
         ];
     }
 
@@ -122,7 +130,9 @@ final class SistemaRecurso extends Recurso
     public function accionesGenerales(): array
     {
         return [
-            (new Accion('crear', 'Nuevo sistema', '/sistemas/crear', MetodoAccion::Get))->icono('Plus'),
+            (new Accion('crear', 'Nuevo sistema', '/sistemas/crear', MetodoAccion::Get))
+                ->icono('Plus')
+                ->permiso(Permiso::SistemasGestionar->value),
         ];
     }
 

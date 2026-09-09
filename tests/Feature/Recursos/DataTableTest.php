@@ -32,7 +32,7 @@ function usuarioConSistemas(int $cuantos = 3): User
         ]);
     }
 
-    return User::factory()->create(['organizacion_id' => $organizacion->id]);
+    return usuarioCon(organizacion: $organizacion);
 }
 
 it('expone la definición del recurso que declara el Resource', function (): void {

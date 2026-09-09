@@ -26,7 +26,7 @@ function escenarioDeSistemas(): array
     $organizacion = comoOrganizacion();
 
     return [
-        'usuario' => User::factory()->create(['organizacion_id' => $organizacion->id]),
+        'usuario' => usuarioCon(),
         'organizacion' => $organizacion,
         'marco' => Marco::factory()->create(),
     ];
@@ -108,7 +108,7 @@ it('el código es único dentro de la organización, no entre organizaciones', f
     // La misma clave en otra organización es perfectamente válida.
     $otra = Organizacion::factory()->create();
     comoOrganizacion($otra);
-    $usuarioAjeno = User::factory()->create(['organizacion_id' => $otra->id]);
+    $usuarioAjeno = usuarioCon(organizacion: $otra);
 
     $this->actingAs($usuarioAjeno)
         ->post('/sistemas', [

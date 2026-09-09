@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Resources;
 
+use App\Domain\Autorizacion\Enums\Permiso;
 use App\Domain\Catalogo\Enums\Exigencia;
 use App\Domain\Catalogo\Models\Marco;
 use App\Domain\Categorizacion\Enums\OrigenExigencia;
@@ -201,12 +202,26 @@ final class ImplantacionRecurso extends Recurso
         ];
     }
 
+    /**
+     * La ficha es la respuesta a las tres preguntas de una auditoría, así que
+     * es la acción por defecto de la fila.
+     *
+     * @return list<Accion>
+     */
+    public function accionesFila(): array
+    {
+        return [
+            Accion::ver('/implantaciones/{id}'),
+        ];
+    }
+
     /** @return list<Accion> */
     public function accionesMasivas(): array
     {
         return [
             (new Accion('cambiar_estado', 'Cambiar estado', '/implantaciones/estado', MetodoAccion::Post))
-                ->icono('CircleDot'),
+                ->icono('CircleDot')
+                ->permiso(Permiso::ImplantacionesGestionar->value),
         ];
     }
 

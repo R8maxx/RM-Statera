@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import BarraAcciones from '@/components/formulario/BarraAcciones.vue';
 import { Button } from '@/components/ui/button';
 import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
-import { Form, Link } from '@inertiajs/vue3';
+import { Form } from '@inertiajs/vue3';
 import type { Method } from '@inertiajs/core';
 import { AlertCircleIcon } from '@lucide/vue';
 import { motion } from 'motion-v';
@@ -14,9 +15,8 @@ import { motion } from 'motion-v';
  * cual los devuelve el `FormRequest`, que es la única fuente de verdad de la
  * validación.
  *
- * La barra de acciones queda pegada al pie de la ventana porque los formularios
- * de este dominio son largos —una valoración de dimensiones no cabe en una
- * pantalla— y bajar hasta el final para guardar es trabajo que no aporta nada.
+ * El pie lo pone `BarraAcciones`, que comparte con las pantallas de este tipo
+ * que no son un `<Form>`.
  */
 withDefaults(
     defineProps<{
@@ -89,17 +89,10 @@ function irAlCampo(nombre: string): void {
             </div>
         </motion.div>
 
-        <div
-            class="fixed inset-x-0 bottom-0 z-20 border-t bg-background/90 px-4 py-3 backdrop-blur-sm sm:px-6 lg:px-8"
-        >
-            <div class="mx-auto flex max-w-4xl items-center justify-end gap-2">
-                <Link :href="urlCancelar">
-                    <Button type="button" variant="ghost">Cancelar</Button>
-                </Link>
-                <Button type="submit" :disabled="processing">
-                    {{ processing ? 'Guardando…' : etiquetaEnviar }}
-                </Button>
-            </div>
-        </div>
+        <BarraAcciones :url-cancelar="urlCancelar">
+            <Button type="submit" :disabled="processing">
+                {{ processing ? 'Guardando…' : etiquetaEnviar }}
+            </Button>
+        </BarraAcciones>
     </Form>
 </template>

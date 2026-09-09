@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Domain\Implantacion\Enums\EstadoImplantacion;
 use App\Domain\Implantacion\ResumenCumplimiento;
 use App\Domain\Sistema\Models\Sistema;
+use App\Http\Resources\Panel\ResumenEvidencias;
 use App\Http\Resources\Panel\ResumenPanel;
 use App\Http\Resources\Panel\SistemaResumido;
 use Illuminate\Database\Eloquent\Builder;
@@ -52,6 +53,7 @@ class PanelController extends Controller
             ->values();
 
         $madurez = $resumen->madurez();
+        $evidencias = $resumen->evidencias();
 
         return Inertia::render('Panel', [
             'sistemas' => $sistemas,
@@ -62,6 +64,12 @@ class PanelController extends Controller
                 pendientes: $resumen->pendientes(),
                 madurezMedia: $madurez['media'],
                 madurezEvaluadas: $madurez['evaluadas'],
+            ),
+            'evidencias' => new ResumenEvidencias(
+                total: $evidencias['total'],
+                caducadas: $evidencias['caducadas'],
+                porCaducar: $evidencias['porCaducar'],
+                implantadasSinEvidencia: $resumen->implantadasSinEvidencia(),
             ),
             'porEstado' => $resumen->porEstado(),
             'porMarco' => $resumen->porMarco(),

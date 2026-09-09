@@ -48,6 +48,20 @@ enum NivelDimension: string
         };
     }
 
+    /**
+     * `Na` se etiqueta «No aplica» y no «Ninguno»: la dimensión no es de
+     * aplicación al sistema, que no es lo mismo que valorarla en lo más bajo.
+     */
+    public function etiqueta(): string
+    {
+        return match ($this) {
+            self::Na => 'No aplica',
+            self::Bajo => 'Bajo',
+            self::Medio => 'Medio',
+            self::Alto => 'Alto',
+        };
+    }
+
     public function alcanza(self $minimo): bool
     {
         return $this->peso() >= $minimo->peso();

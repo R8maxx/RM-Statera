@@ -30,6 +30,7 @@ import {
     SearchIcon,
     ShieldCheckIcon,
     SunIcon,
+    UserRoundCogIcon,
 } from '@lucide/vue';
 import { useStorage } from '@vueuse/core';
 import { MotionConfig, motion } from 'motion-v';
@@ -351,6 +352,12 @@ const salir = (): void => router.post('/logout');
                                         {{ usuario?.dosFactores ? 'Segundo factor activo' : 'Sin segundo factor' }}
                                     </DropdownMenuLabel>
                                     <DropdownMenuSeparator />
+                                    <DropdownMenuItem as-child>
+                                        <Link href="/perfil">
+                                            <UserRoundCogIcon class="size-4" />
+                                            Mi cuenta
+                                        </Link>
+                                    </DropdownMenuItem>
                                     <DropdownMenuItem @select="salir">
                                         <LogOutIcon class="size-4" />
                                         Cerrar sesión

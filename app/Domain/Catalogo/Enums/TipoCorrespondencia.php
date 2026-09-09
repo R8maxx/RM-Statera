@@ -16,4 +16,25 @@ enum TipoCorrespondencia: string
     case Equivalente = 'equivalente';
     case Parcial = 'parcial';
     case Relacionado = 'relacionado';
+
+    public function etiqueta(): string
+    {
+        return match ($this) {
+            self::Equivalente => 'Equivalente',
+            self::Parcial => 'Cobertura parcial',
+            self::Relacionado => 'Relacionado',
+        };
+    }
+
+    /**
+     * Si lo hecho en el otro requisito vale como prueba de éste sin más.
+     *
+     * Sólo la equivalencia lo permite. Dar por buena una cobertura parcial es
+     * la forma más rápida de dar por implantado algo que no lo está, así que la
+     * ficha lo dice en vez de dejarlo a interpretación.
+     */
+    public function cubreDelTodo(): bool
+    {
+        return $this === self::Equivalente;
+    }
 }

@@ -27,4 +27,22 @@ enum Dimension: string
             self::Trazabilidad => 'Trazabilidad',
         };
     }
+
+    /**
+     * La pregunta que hay que contestar para valorar la dimensión.
+     *
+     * El Anexo I no se razona por el nombre de la dimensión sino por el
+     * perjuicio: quien valora no tiene que saber qué significa «trazabilidad»,
+     * tiene que saber qué pasa si no se puede reconstruir quién hizo qué.
+     */
+    public function pregunta(): string
+    {
+        return match ($this) {
+            self::Confidencialidad => '¿Qué perjuicio causa que la información la conozca quien no debe?',
+            self::Integridad => '¿Qué perjuicio causa que la información se altere sin autorización?',
+            self::Disponibilidad => '¿Qué perjuicio causa que el servicio o la información no estén cuando se necesitan?',
+            self::Autenticidad => '¿Qué perjuicio causa no poder asegurar quién es el autor de un dato o el origen de una petición?',
+            self::Trazabilidad => '¿Qué perjuicio causa no poder reconstruir quién hizo qué y cuándo?',
+        };
+    }
 }

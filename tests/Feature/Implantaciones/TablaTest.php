@@ -50,7 +50,7 @@ function escenarioDeImplantaciones(): array
     }
 
     return [
-        'usuario' => User::factory()->create(['organizacion_id' => $organizacion->id]),
+        'usuario' => usuarioCon(),
         'implantaciones' => $implantaciones,
     ];
 }

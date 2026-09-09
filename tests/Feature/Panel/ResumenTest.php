@@ -61,7 +61,7 @@ function escenarioDePanel(): array
     $crear($ens, ['estado' => 'no_aplica', 'aplica' => false, 'justificacion' => 'Fuera del alcance.']);
 
     return [
-        'usuario' => User::factory()->create(['organizacion_id' => $organizacion->id]),
+        'usuario' => usuarioCon(),
         'ens' => $ens,
         'iso' => $iso,
     ];
@@ -123,7 +123,7 @@ it('da la madurez media con el número de requisitos sobre los que se calcula', 
 
 it('distingue una madurez sin valorar de una madurez cero', function (): void {
     $organizacion = comoOrganizacion();
-    $usuario = User::factory()->create(['organizacion_id' => $organizacion->id]);
+    $usuario = usuarioCon();
 
     $this->actingAs($usuario)
         ->get('/panel')

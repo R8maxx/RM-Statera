@@ -176,9 +176,9 @@ mapeos:
     nota: Registro de la gestión de incidentes y lecciones aprendidas.
 
   - origen: {marco: ISO27001-2022, codigo: A.5.28}
-    destino: {marco: ENS-RD311-2022, codigo: op.exp.10}
+    destino: {marco: ENS-RD311-2022, codigo: op.exp.8}
     tipo: parcial
-    nota: Protección de los registros de actividad como soporte de la recopilación de evidencias.
+    nota: El registro de la actividad es el soporte del que se recopilan las evidencias.
 
   - origen: {marco: ISO27001-2022, codigo: A.6.8}
     destino: {marco: ENS-RD311-2022, codigo: op.exp.7}
@@ -390,7 +390,7 @@ mapeos:
     nota: Uso de criptografía sobre los soportes de información.
 
   - origen: {marco: ISO27001-2022, codigo: A.8.24}
-    destino: {marco: ENS-RD311-2022, codigo: op.exp.11}
+    destino: {marco: ENS-RD311-2022, codigo: op.exp.10}
     tipo: parcial
     nota: Gestión y protección de las claves criptográficas a lo largo de su ciclo de vida.
 

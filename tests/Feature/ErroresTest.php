@@ -5,7 +5,6 @@ declare(strict_types=1);
 use App\Domain\Catalogo\Models\Marco;
 use App\Domain\Organizacion\Models\Organizacion;
 use App\Domain\Sistema\Models\Sistema;
-use App\Models\User;
 use Inertia\Testing\AssertableInertia;
 
 /*
@@ -50,7 +49,7 @@ it('devuelve un 404 —no un 403— al pedir un sistema de otra organización', 
     $sistemaAjeno = Sistema::factory()->de($ajena)->conMarco($marco)->create(['codigo' => 'AJE-01']);
 
     comoOrganizacion($propia);
-    $usuario = User::factory()->create(['organizacion_id' => $propia->id]);
+    $usuario = usuarioCon();
 
     $this->actingAs($usuario)
         ->get("/sistemas/{$sistemaAjeno->id}/editar")

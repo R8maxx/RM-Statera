@@ -175,7 +175,7 @@ it('el modo mantenimiento se cierra al salir, incluso si el callback lanza', fun
 });
 
 it('el middleware web no abre nunca el modo mantenimiento', function (): void {
-    $usuario = User::factory()->create(['organizacion_id' => $this->beta->id]);
+    $usuario = usuarioCon(organizacion: $this->beta);
 
     $this->actingAs($usuario)->get('/');
 

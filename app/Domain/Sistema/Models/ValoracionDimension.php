@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Sistema\Models;
 
+use App\Domain\Auditoria\Concerns\RegistraTraza;
 use App\Domain\Catalogo\Enums\Dimension;
 use App\Domain\Categorizacion\Enums\NivelDimension;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
@@ -31,6 +32,7 @@ class ValoracionDimension extends Model
     use HasFactory;
 
     use PerteneceAOrganizacion;
+    use RegistraTraza;
 
     protected $table = 'valoracion_dimensiones';
 

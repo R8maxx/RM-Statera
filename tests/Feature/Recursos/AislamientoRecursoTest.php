@@ -39,7 +39,7 @@ function escenarioDeDosOrganizaciones(): array
     $sistemaPropio = Sistema::factory()->de($propia)->conMarco($marco)
         ->create(['codigo' => 'PRO-01', 'nombre' => 'Propio']);
     Implantacion::factory()->for($sistemaPropio)->create();
-    $usuario = User::factory()->create(['organizacion_id' => $propia->id]);
+    $usuario = usuarioCon(organizacion: $propia);
 
     comoOrganizacion($ajena);
     $sistemaAjeno = Sistema::factory()->de($ajena)->conMarco($marco)
@@ -137,15 +137,22 @@ it('la acción masiva no toca implantaciones de otra organización', function ()
         ->toBe('no_iniciado');
 });
 
-it('un usuario sin organización no ve ninguna fila', function (): void {
+it('un usuario sin organización no llega ni a la tabla', function (): void {
     escenarioDeDosOrganizaciones();
 
     $huerfano = User::factory()->create(['organizacion_id' => null]);
 
+    /*
+     * Le paran dos capas, y en este orden. La primera es el RBAC: los roles van
+     * por organización (`teams = true` con `organizacion_id`), así que quien no
+     * tiene organización no puede tener ningún rol y no tiene ningún permiso.
+     *
+     * La segunda —el scope, que sin contexto no devuelve fila alguna— sigue
+     * probada aparte en `tests/Feature/Organizacion/AislamientoTest.php`: que
+     * el permiso corte antes no puede ser el motivo de dejar de comprobarla,
+     * porque un permiso mal dado no debe poder abrir la puerta del tenant.
+     */
     $this->actingAs($huerfano)
         ->get('/sistemas')
-        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
-            ->has('filas', 0)
-            ->where('organizacion', null)
-        );
+        ->assertForbidden();
 });

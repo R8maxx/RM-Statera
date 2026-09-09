@@ -37,6 +37,14 @@ const tonos: Record<string, { badge: string; punto: string | null }> = {
     exigible: { badge: 'bg-muted text-foreground', punto: 'bg-muted-foreground' },
     reforzado: { badge: 'bg-accent text-accent-foreground', punto: 'bg-primary' },
 
+    /*
+     * Una evidencia caducada es de las pocas cosas del dominio que sí van mal:
+     * el requisito que probaba se ha quedado sin prueba y el auditor lo verá.
+     * Es el uso que DESIGN.md §3 reserva al rojo, y por eso no lo tiene ningún
+     * otro badge.
+     */
+    caducada: { badge: 'bg-destructive/10 text-destructive', punto: 'bg-destructive' },
+
     /* Procedencia, no estado: chip neutro y monoespaciado, sin punto. */
     marco: { badge: 'cifra bg-muted text-muted-foreground', punto: null },
 };

@@ -1,5 +1,16 @@
 declare namespace App {
 namespace Domain {
+namespace Auditoria {
+namespace Enums {
+export type AccionAuditada = 'creado' | 'actualizado' | 'eliminado';
+}
+}
+namespace Autorizacion {
+namespace Enums {
+export type Permiso = 'panel.ver' | 'sistemas.ver' | 'sistemas.gestionar' | 'sistemas.valorar' | 'implantaciones.ver' | 'implantaciones.gestionar' | 'evidencias.ver' | 'evidencias.gestionar';
+export type Rol = 'responsable_seguridad' | 'tecnico' | 'auditor';
+}
+}
 namespace Catalogo {
 namespace Enums {
 export type CategoriaEns = 'basica' | 'media' | 'alta';
@@ -13,6 +24,12 @@ namespace Categorizacion {
 namespace Enums {
 export type NivelDimension = 'na' | 'bajo' | 'medio' | 'alto';
 export type OrigenExigencia = 'categoria' | 'modulacion_dimension' | 'perfil' | 'catalogo';
+}
+}
+namespace Evidencia {
+namespace Enums {
+export type PeriodicidadRenovacion = 'mensual' | 'trimestral' | 'semestral' | 'anual' | 'bienal';
+export type TipoEvidencia = 'captura' | 'log' | 'informe' | 'contrato' | 'registro' | 'certificado';
 }
 }
 namespace Implantacion {
@@ -120,12 +137,37 @@ export type MetodoAccion = 'get' | 'post' | 'put' | 'patch' | 'delete';
 export type TipoColumna = 'texto' | 'numero' | 'fecha' | 'fecha_hora' | 'booleano' | 'badge' | 'enlace' | 'progreso' | 'escala';
 export type TipoFiltro = 'busqueda' | 'texto' | 'select' | 'multi_select' | 'booleano' | 'rango_fechas';
 }
+namespace Implantacion {
+export type Correspondencia = {
+readonly requisitoId: number,
+readonly codigo: string,
+readonly titulo: string,
+readonly marco: string | null,
+readonly tipo: string,
+readonly cubreDelTodo: boolean,
+readonly nota: string | null,
+readonly implantaciones: App.Http.Resources.Implantacion.EstadoCorrespondencia[],
+};
+export type EstadoCorrespondencia = {
+readonly implantacionId: number,
+readonly sistema: string,
+readonly estado: string,
+readonly estadoEtiqueta: string,
+readonly aplica: boolean,
+};
+}
 namespace Panel {
 export type AvanceMarco = {
 readonly codigo: string,
 readonly nombre: string,
 readonly aplicables: number,
 readonly implantadas: number,
+};
+export type ResumenEvidencias = {
+readonly total: number,
+readonly caducadas: number,
+readonly porCaducar: number,
+readonly implantadasSinEvidencia: number,
 };
 export type ResumenPanel = {
 readonly sistemas: number,
@@ -148,6 +190,23 @@ readonly marco: string | null,
 readonly categoria: string | null,
 readonly aplicables: number,
 readonly implantadas: number,
+};
+}
+namespace Valoracion {
+export type CambioExigencia = {
+readonly codigo: string,
+readonly anterior: string,
+readonly nueva: string,
+};
+export type PrevisualizacionValoracion = {
+readonly categoria: string | null,
+readonly enAmbitoEns: boolean,
+readonly hayCambios: boolean,
+readonly creadas: string[],
+readonly reactivadas: string[],
+readonly dejanDeAplicar: string[],
+readonly cambianExigencia: App.Http.Resources.Valoracion.CambioExigencia[],
+readonly sinCambios: number,
 };
 }
 }

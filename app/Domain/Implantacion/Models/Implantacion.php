@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Domain\Implantacion\Models;
 
+use App\Domain\Auditoria\Concerns\RegistraTraza;
 use App\Domain\Catalogo\Enums\Dimension;
 use App\Domain\Catalogo\Enums\Exigencia;
 use App\Domain\Catalogo\Models\Requisito;
 use App\Domain\Categorizacion\Enums\OrigenExigencia;
+use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Implantacion\Enums\EstadoImplantacion;
 use App\Domain\Implantacion\Enums\NivelMadurez;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
@@ -19,7 +21,9 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 /**
  * El centro del modelo: une un requisito del catálogo global con un sistema de
@@ -40,6 +44,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property ?NivelMadurez $nivel_madurez
  * @property ?OrigenExigencia $origen_exigencia
  * @property ?Dimension $dimension_moduladora
+ * @property ?int $responsable_id
+ * @property ?Carbon $fecha_objetivo
+ * @property ?string $notas
  */
 class Implantacion extends Model
 {
@@ -47,6 +54,7 @@ class Implantacion extends Model
     use HasFactory;
 
     use PerteneceAOrganizacion;
+    use RegistraTraza;
 
     protected $table = 'implantaciones';
 
@@ -82,6 +90,21 @@ class Implantacion extends Model
     public function responsable(): BelongsTo
     {
         return $this->belongsTo(User::class, 'responsable_id');
+    }
+
+    /**
+     * Las pruebas de que este requisito se cumple.
+     *
+     * N:M y en los dos sentidos (invariante 6): una misma captura puede probar
+     * este control de ISO y tres medidas del ENS, y se registra una sola vez.
+     *
+     * @return BelongsToMany<Evidencia, $this>
+     */
+    public function evidencias(): BelongsToMany
+    {
+        return $this->belongsToMany(Evidencia::class, 'evidencia_implantacion')
+            ->withPivot(['nota', 'vinculada_por_id', 'created_at'])
+            ->orderByDesc('evidencias.fecha_obtencion');
     }
 
     /** @return HasMany<ImplantacionTransicion, $this> */

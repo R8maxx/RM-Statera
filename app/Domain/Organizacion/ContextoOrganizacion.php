@@ -8,6 +8,7 @@ use App\Domain\Organizacion\Models\Organizacion;
 use Closure;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
+use Spatie\Permission\PermissionRegistrar;
 
 /**
  * La organización activa de la petición o del comando en curso.
@@ -17,6 +18,13 @@ use RuntimeException;
  * la política de Row Level Security. Si sólo se cambiara una de las dos, la
  * aplicación y la base discreparían sobre quién es el tenant, que es la clase de
  * fallo que nadie detecta hasta que ya ha filtrado datos.
+ *
+ * Y una cuarta cosa que tampoco puede divergir: el «team» de
+ * `spatie/laravel-permission`, que está configurado como `organizacion_id`. Los
+ * roles son por organización, así que si el registrar se quedara apuntando a la
+ * anterior, un usuario vería los permisos de otro tenant. Va aquí y no en un
+ * middleware aparte precisamente para que no exista un camino que fije una cosa
+ * y olvide la otra.
  */
 final class ContextoOrganizacion
 {
@@ -122,5 +130,23 @@ final class ContextoOrganizacion
         DB::statement("SELECT set_config('app.mantenimiento', ?, false)", [
             $this->mantenimiento ? 'on' : 'off',
         ]);
+
+        $this->sincronizarPermisos();
+    }
+
+    /**
+     * Apunta el registrar de permisos a la organización activa y tira su caché.
+     *
+     * La caché de spatie es por proceso y no distingue tenant: sin vaciarla, los
+     * roles resueltos para la organización anterior seguirían contestando a la
+     * siguiente. En una petición web da igual —hay una sola organización por
+     * petición—, pero en un comando que recorre varias, y en los tests, no.
+     */
+    private function sincronizarPermisos(): void
+    {
+        $registrar = app(PermissionRegistrar::class);
+
+        $registrar->setPermissionsTeamId($this->organizacionId);
+        $registrar->forgetCachedPermissions();
     }
 }

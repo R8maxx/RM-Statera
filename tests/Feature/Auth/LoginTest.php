@@ -49,7 +49,7 @@ it('rechaza credenciales incorrectas', function (): void {
 
 it('el panel comparte el usuario y su organización', function (): void {
     $organizacion = comoOrganizacion();
-    $usuario = User::factory()->create(['organizacion_id' => $organizacion->id]);
+    $usuario = usuarioCon();
 
     $this->actingAs($usuario)
         ->get('/panel')

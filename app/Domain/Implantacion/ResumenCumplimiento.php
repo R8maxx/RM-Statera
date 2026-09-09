@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Implantacion;
 
+use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Implantacion\Enums\EstadoImplantacion;
 use App\Domain\Implantacion\Models\Implantacion;
 use App\Http\Resources\Panel\AvanceMarco;
@@ -142,6 +143,42 @@ final class ResumenCumplimiento
         return Implantacion::query()
             ->where('aplica', true)
             ->whereNot('estado', EstadoImplantacion::Implantado->value)
+            ->count();
+    }
+
+    /**
+     * El estado del repositorio de pruebas.
+     *
+     * Las tres cifras que un auditor mira antes que ninguna otra: cuántas
+     * pruebas hay, cuántas han caducado y cuántas están a punto. Una evidencia
+     * caducada deja sin prueba al requisito que sostenía, así que cuenta como
+     * incumplimiento aunque el estado siga diciendo «implantado».
+     *
+     * @return array{total: int, caducadas: int, porCaducar: int}
+     */
+    public function evidencias(): array
+    {
+        return [
+            'total' => Evidencia::query()->count(),
+            'caducadas' => Evidencia::query()->caducadas()->count(),
+            'porCaducar' => Evidencia::query()->porCaducar()->count(),
+        ];
+    }
+
+    /**
+     * Requisitos exigibles que no tienen ninguna prueba detrás.
+     *
+     * Es la pregunta que separa «lo tenemos hecho» de «lo podemos demostrar», y
+     * el motivo de que la Declaración de Aplicabilidad se entregue con una
+     * columna de evidencia. Se cuenta sólo sobre lo exigible: un requisito que
+     * no se le exige al sistema no necesita prueba.
+     */
+    public function implantadasSinEvidencia(): int
+    {
+        return Implantacion::query()
+            ->where('aplica', true)
+            ->where('estado', EstadoImplantacion::Implantado->value)
+            ->whereDoesntHave('evidencias')
             ->count();
     }
 }

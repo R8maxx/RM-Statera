@@ -14,11 +14,12 @@ import {
 import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Link } from '@inertiajs/vue3';
-import { ChevronRightIcon, ServerIcon } from '@lucide/vue';
+import { ChevronRightIcon, PaperclipIcon, ServerIcon } from '@lucide/vue';
 import { motion } from 'motion-v';
 import { computed } from 'vue';
 
 type AvanceMarco = App.Http.Resources.Panel.AvanceMarco;
+type ResumenEvidencias = App.Http.Resources.Panel.ResumenEvidencias;
 type ResumenPanel = App.Http.Resources.Panel.ResumenPanel;
 type SegmentoEstado = App.Http.Resources.Panel.SegmentoEstado;
 type SistemaResumido = App.Http.Resources.Panel.SistemaResumido;
@@ -32,6 +33,7 @@ type SistemaResumido = App.Http.Resources.Panel.SistemaResumido;
 const props = defineProps<{
     sistemas: SistemaResumido[];
     resumen: ResumenPanel;
+    evidencias: ResumenEvidencias;
     porEstado: SegmentoEstado[];
     porMarco: AvanceMarco[];
 }>();
@@ -74,6 +76,25 @@ const madurez = computed(() => {
         apoyo: `sobre ${props.resumen.madurezEvaluadas} valoradas`,
     };
 });
+
+/*
+ * Las cuatro cifras del repositorio de pruebas.
+ *
+ * Sólo dos pueden ir en rojo, y sólo cuando de verdad hay algo que mirar: una
+ * evidencia caducada deja sin prueba al requisito que sostenía, y un requisito
+ * implantado sin ninguna prueba es un hallazgo esperando a que alguien
+ * pregunte. Pintar de rojo un cero sería alarmar sin motivo.
+ */
+const pruebas = computed(() => [
+    { etiqueta: 'Evidencias registradas', valor: props.evidencias.total, alerta: false },
+    { etiqueta: 'Caducadas', valor: props.evidencias.caducadas, alerta: props.evidencias.caducadas > 0 },
+    { etiqueta: 'Caducan en 30 días', valor: props.evidencias.porCaducar, alerta: false },
+    {
+        etiqueta: 'Implantados sin prueba',
+        valor: props.evidencias.implantadasSinEvidencia,
+        alerta: props.evidencias.implantadasSinEvidencia > 0,
+    },
+]);
 
 const metricas = computed(() => [
     { etiqueta: 'Sistemas en alcance', valor: String(props.resumen.sistemas), apoyo: null as string | null },
@@ -125,6 +146,53 @@ const metricas = computed(() => [
                                 </div>
                             </dl>
                         </div>
+                    </CardContent>
+                </Card>
+            </motion.section>
+
+            <!-- ── Pruebas ────────────────────────────────────────────────── -->
+            <motion.section :variants="variantesEntrada">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Pruebas</CardTitle>
+                        <CardDescription>
+                            Lo que separa «lo tenemos hecho» de «lo podemos demostrar», que es lo único que un
+                            auditor distingue.
+                        </CardDescription>
+                        <CardAction>
+                            <Link
+                                href="/evidencias"
+                                class="rounded text-sm font-medium text-primary underline-offset-4 hover:underline"
+                            >
+                                Ver todas
+                            </Link>
+                        </CardAction>
+                    </CardHeader>
+
+                    <CardContent class="pt-0">
+                        <EstadoVacio
+                            v-if="evidencias.total === 0"
+                            :icono="PaperclipIcon"
+                            titulo="Todavía no hay ninguna evidencia"
+                            descripcion="Una evidencia se registra una vez y cuenta en todos los marcos donde aplique: la misma captura puede probar un control de ISO y tres medidas del ENS."
+                            :accion="{ etiqueta: 'Registrar la primera', href: '/evidencias/crear' }"
+                        />
+
+                        <dl v-else class="grid grid-cols-2 gap-y-4 sm:grid-cols-4 sm:divide-x sm:divide-border">
+                            <div
+                                v-for="(prueba, indice) in pruebas"
+                                :key="prueba.etiqueta"
+                                :class="indice > 0 && 'sm:pl-4'"
+                            >
+                                <dt class="text-xs text-muted-foreground">{{ prueba.etiqueta }}</dt>
+                                <dd
+                                    class="cifra mt-0.5 text-2xl font-semibold tracking-tight"
+                                    :class="prueba.alerta && 'text-destructive'"
+                                >
+                                    {{ prueba.valor }}
+                                </dd>
+                            </div>
+                        </dl>
                     </CardContent>
                 </Card>
             </motion.section>

@@ -2,11 +2,15 @@
 
 declare(strict_types=1);
 
+use App\Domain\Autorizacion\Enums\Rol;
+use App\Domain\Autorizacion\SembrarRoles;
 use App\Domain\Categorizacion\Enums\NivelDimension;
 use App\Domain\Categorizacion\ValoracionDimensiones;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Organizacion\Models\Organizacion;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Inertia;
 use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
@@ -93,6 +97,75 @@ function comoOrganizacion(Organizacion|int|null $organizacion = null): Organizac
 function sinOrganizacion(): void
 {
     app(ContextoOrganizacion::class)->olvidar();
+}
+
+/*
+|--------------------------------------------------------------------------
+| Usuarios con rol
+|--------------------------------------------------------------------------
+|
+| Desde que las rutas van con `can:`, un usuario sin rol no puede hacer nada:
+| es el comportamiento correcto y no un estorbo del test. Por eso el alta normal
+| de un usuario en un test pasa por aquí y lleva rol.
+|
+| Los roles son POR ORGANIZACIÓN (`teams = true` con `organizacion_id`), así que
+| hay que sembrarlos y asignarlos dentro del contexto de la suya.
+|
+*/
+
+function usuarioCon(Rol $rol = Rol::ResponsableSeguridad, Organizacion|int|null $organizacion = null): User
+{
+    $contexto = app(ContextoOrganizacion::class);
+
+    $organizacion = match (true) {
+        $organizacion instanceof Organizacion => $organizacion,
+        is_int($organizacion) => Organizacion::query()->findOrFail($organizacion),
+        default => Organizacion::query()->findOrFail($contexto->idObligatorio()),
+    };
+
+    return $contexto->paraOrganizacion($organizacion, function () use ($organizacion, $rol): User {
+        app(SembrarRoles::class)->paraOrganizacion($organizacion);
+
+        $usuario = User::factory()->create(['organizacion_id' => $organizacion->id]);
+        $usuario->syncRoles([$rol->value]);
+
+        return $usuario->fresh() ?? $usuario;
+    });
+}
+
+/*
+|--------------------------------------------------------------------------
+| Recargas parciales
+|--------------------------------------------------------------------------
+|
+| Los props opcionales (`Inertia::optional()`) sólo viajan cuando el cliente los
+| pide con `router.reload({ only: [...] })`. Reproducirlo en un test es cuestión
+| de cabeceras, y la de versión tiene que ser la buena: si no coincide, el
+| middleware responde 409 y el test falla diciendo que la respuesta no es de
+| Inertia, que no ayuda nada.
+|
+| `Inertia::getVersion()` sólo devuelve el valor real después de que el
+| middleware haya corrido, así que este helper se usa SIEMPRE tras una primera
+| petición normal a la misma página.
+|
+| Y sobre la respuesta: una recarga parcial devuelve JSON, no la vista con el
+| objeto `page`, así que `assertInertia` no sirve —falla con «Not a valid
+| Inertia response»—. Se afirma con `assertJsonPath('props.…')`.
+|
+*/
+
+/**
+ * @param  list<string>  $solo  Los props que se piden.
+ * @return array<string, string>
+ */
+function recargaParcial(string $componente, array $solo): array
+{
+    return [
+        'X-Inertia' => 'true',
+        'X-Inertia-Version' => (string) Inertia::getVersion(),
+        'X-Inertia-Partial-Component' => $componente,
+        'X-Inertia-Partial-Data' => implode(',', $solo),
+    ];
 }
 
 /*

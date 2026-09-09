@@ -9,17 +9,32 @@
 # llegue el primer cliente de categoría media.
 #
 # ---------------------------------------------------------------------------
-# PENDIENTE DE VERIFICACIÓN
+# CONTRASTADO CON EL BOE, Y LO QUE FALTA
 #
-# Los códigos, títulos y, sobre todo, la matriz de aplicabilidad de este fichero
-# están escritos a partir del RD 311/2022 y deben contrastarse CELDA A CELDA con
-# el texto publicado en el BOE (BOE-A-2022-7191) antes de dar el catálogo por
-# bueno. Hasta entonces, `revisado: false`.
+# Códigos, títulos y matriz se han contrastado celda a celda contra el texto
+# consolidado de BOE-A-2022-7191 (Anexo II, tabla de medidas de seguridad). De
+# ahí salieron 73 celdas mal —muchas de ellas exigiendo de MENOS en categoría
+# básica—, cinco títulos con la redacción cambiada y una medida de sobra,
+# `op.exp.11`, que es numeración del RD 3/2010 y no existe en el RD 311/2022.
+# Todo eso está corregido en este fichero.
 #
-# La corrección es barata: se corrige el YAML y se reimporta. El importador hace
-# diff y dice exactamente qué cambia.
+# `revisado` sigue en `false` porque quedan dos cosas que NO son datos, sino
+# modelo, y no se pueden arreglar aquí:
 #
-# Falta también, y se añadirá en la misma pasada de verificación:
+#   1. Nueve medidas están moduladas por VARIAS dimensiones a la vez (`op.acc.1`
+#      por T y A; `op.acc.2` a `op.acc.6` por C, I, T y A; `mp.com.3` y
+#      `mp.info.3` por I y A; `mp.si.2` por C e I). La tabla `aplicabilidad_ens`
+#      guarda una sola `dimension_moduladora`. Mientras tanto se leen por
+#      categoría —el máximo de las cinco—, que exige de más pero nunca de menos.
+#      Cada una lleva su aviso justo encima.
+#
+#   2. Diez celdas de cuatro medidas (`op.acc.5`, `op.acc.6`, `mp.com.4` y
+#      `mp.s.2`) exigen un refuerzo A ELEGIR entre varios: «+ [R1 o R2]». El
+#      value object `Exigencia` guarda un único `Rn` y no sabe expresar una
+#      alternativa. Queda registrado lo que se exige con seguridad, y el aviso
+#      de encima lleva la celda literal del BOE.
+#
+# Y sigue faltando, como antes:
 #   - La descripción literal de cada refuerzo R1/R2/R3 del Anexo II. La matriz ya
 #     registra QUÉ refuerzo se exige, que es lo que el motor de categorización
 #     necesita; falta el texto que lo describe.
@@ -31,6 +46,10 @@
 # celda lleva `dimension`, el valor se lee como el NIVEL de esa dimensión
 # concreta (bajo/medio/alto) en lugar de como la categoría global: es la
 # modulación por dimensión que aplican algunas medidas del marco operacional.
+#
+# Y sobre los refuerzos: en el Anexo II se acumulan —«+ R1 + R2» significa que
+# se exigen los dos—, así que aquí se guarda el mayor y `R2` se lee como «hasta
+# R2», no como «sólo R2».
 marco:
   codigo: ENS-RD311-2022
   nombre: Esquema Nacional de Seguridad
@@ -42,9 +61,10 @@ fuente: 'BOE-A-2022-7191, Real Decreto 311/2022 de 3 de mayo, Anexo II'
 revisado: false
 
 requisitos:
-  # ===========================================================================
+
+  # =========================================================================
   # MARCO ORGANIZATIVO
-  # ===========================================================================
+  # =========================================================================
   - codigo: org
     tipo: medida
     titulo: Marco organizativo
@@ -67,14 +87,15 @@ requisitos:
         titulo: Proceso de autorización
         aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
 
-  # ===========================================================================
+  # =========================================================================
   # MARCO OPERACIONAL
-  # ===========================================================================
+  # =========================================================================
   - codigo: op
     tipo: medida
     titulo: Marco operacional
     orden: 200
     hijos:
+
       - codigo: op.pl
         tipo: medida
         titulo: Planificación
@@ -85,70 +106,88 @@ requisitos:
             aplicabilidad: {basica: aplica, media: R1, alta: R2}
           - codigo: op.pl.2
             tipo: medida
-            titulo: Arquitectura de seguridad
-            aplicabilidad: {basica: aplica, media: R1, alta: R2}
+            titulo: Arquitectura de Seguridad
+            aplicabilidad: {basica: aplica, media: R1, alta: R3}
           - codigo: op.pl.3
             tipo: medida
             titulo: Adquisición de nuevos componentes
             aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
           - codigo: op.pl.4
             tipo: medida
-            titulo: Dimensionamiento y gestión de la capacidad
+            titulo: Dimensionamiento/gestión de la capacidad
             aplicabilidad:
-              basica: {exigencia: no_aplica, dimension: D}
-              media: {exigencia: aplica, dimension: D}
+              basica: {exigencia: aplica, dimension: D}
+              media: {exigencia: R1, dimension: D}
               alta: {exigencia: R1, dimension: D}
           - codigo: op.pl.5
             tipo: medida
             titulo: Componentes certificados
-            aplicabilidad: {basica: no_aplica, media: no_aplica, alta: aplica}
+            aplicabilidad: {basica: no_aplica, media: aplica, alta: aplica}
 
       - codigo: op.acc
         tipo: medida
         titulo: Control de acceso
         hijos:
+          # El Anexo II la modula por T A, y el modelo sólo admite UNA
+          # dimensión por celda. Se deja leer por categoría, que es el máximo de las
+          # cinco: nunca exige de menos, y exige de más sólo si la dimensión más alta
+          # es una de las que el Anexo II deja fuera.
           - codigo: op.acc.1
             tipo: medida
             titulo: Identificación
-            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+            aplicabilidad: {basica: aplica, media: R1, alta: R1}
+          # El Anexo II la modula por C I T A, y el modelo sólo admite UNA
+          # dimensión por celda. Se deja leer por categoría, que es el máximo de las
+          # cinco: nunca exige de menos, y exige de más sólo si la dimensión más alta
+          # es una de las que el Anexo II deja fuera.
           - codigo: op.acc.2
             tipo: medida
             titulo: Requisitos de acceso
-            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+            aplicabilidad: {basica: aplica, media: aplica, alta: R1}
+          # El Anexo II la modula por C I T A, y el modelo sólo admite UNA
+          # dimensión por celda. Se deja leer por categoría, que es el máximo de las
+          # cinco: nunca exige de menos, y exige de más sólo si la dimensión más alta
+          # es una de las que el Anexo II deja fuera.
           - codigo: op.acc.3
             tipo: medida
             titulo: Segregación de funciones y tareas
             aplicabilidad: {basica: no_aplica, media: aplica, alta: R1}
+          # El Anexo II la modula por C I T A, y el modelo sólo admite UNA
+          # dimensión por celda. Se deja leer por categoría, que es el máximo de las
+          # cinco: nunca exige de menos, y exige de más sólo si la dimensión más alta
+          # es una de las que el Anexo II deja fuera.
           - codigo: op.acc.4
             tipo: medida
             titulo: Proceso de gestión de derechos de acceso
             aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+          # El Anexo II la modula por C I T A, y el modelo sólo admite UNA
+          # dimensión por celda. Se deja leer por categoría, que es el máximo de las
+          # cinco: nunca exige de menos, y exige de más sólo si la dimensión más alta
+          # es una de las que el Anexo II deja fuera.
+          # basica: el Anexo II dice «+ [R1 o R2 o R3 o R4]». El grupo [R1 o R2 o R3 o R4] es una alternativa
+          # —uno a elegir— y el modelo no sabe guardarla; queda lo que se exige seguro.
+          # media: el Anexo II dice «+ [R2 o R3 o R4] + R5». El grupo [R2 o R3 o R4] es una alternativa
+          # —uno a elegir— y el modelo no sabe guardarla; queda lo que se exige seguro.
+          # alta: el Anexo II dice «+ [R2 o R3 o R4] + R5». El grupo [R2 o R3 o R4] es una alternativa
+          # —uno a elegir— y el modelo no sabe guardarla; queda lo que se exige seguro.
           - codigo: op.acc.5
             tipo: medida
             titulo: Mecanismo de autenticación (usuarios externos)
-            aplicabilidad: {basica: aplica, media: R1, alta: R2}
-            refuerzos:
-              - codigo: R1
-                descripcion: >-
-                  Se exige un segundo factor de autenticación además de la
-                  contraseña.
-              - codigo: R2
-                descripcion: >-
-                  Se exige autenticación basada en certificado cualificado o
-                  equivalente, sobre dispositivo cualificado de creación de firma.
+            aplicabilidad: {basica: aplica, media: R5, alta: R5}
+          # El Anexo II la modula por C I T A, y el modelo sólo admite UNA
+          # dimensión por celda. Se deja leer por categoría, que es el máximo de las
+          # cinco: nunca exige de menos, y exige de más sólo si la dimensión más alta
+          # es una de las que el Anexo II deja fuera.
+          # basica: el Anexo II dice «+ [R1 o R2 o R3 o R4] + R8 + R9». El grupo [R1 o R2 o R3 o R4] es una alternativa
+          # —uno a elegir— y el modelo no sabe guardarla; queda lo que se exige seguro.
+          # media: el Anexo II dice «+ [R1 o R2 o R3 o R4] + R5 + R8 + R9». El grupo [R1 o R2 o R3 o R4] es una alternativa
+          # —uno a elegir— y el modelo no sabe guardarla; queda lo que se exige seguro.
+          # alta: el Anexo II dice «+ [R1 o R2 o R3 o R4] + R5 + R6 + R7 + R8 + R9». El grupo [R1 o R2 o R3 o R4] es una alternativa
+          # —uno a elegir— y el modelo no sabe guardarla; queda lo que se exige seguro.
           - codigo: op.acc.6
             tipo: medida
             titulo: Mecanismo de autenticación (usuarios de la organización)
-            aplicabilidad: {basica: aplica, media: R1, alta: R2}
-            refuerzos:
-              - codigo: R1
-                descripcion: >-
-                  Se exige un segundo factor de autenticación además de la
-                  contraseña.
-              - codigo: R2
-                descripcion: >-
-                  Se exige autenticación basada en certificado cualificado o
-                  equivalente, sobre dispositivo cualificado de creación de firma.
+            aplicabilidad: {basica: R9, media: R9, alta: R9}
 
       - codigo: op.exp
         tipo: medida
@@ -165,11 +204,11 @@ requisitos:
           - codigo: op.exp.3
             tipo: medida
             titulo: Gestión de la configuración de seguridad
-            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+            aplicabilidad: {basica: aplica, media: R1, alta: R3}
           - codigo: op.exp.4
             tipo: medida
             titulo: Mantenimiento y actualizaciones de seguridad
-            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+            aplicabilidad: {basica: aplica, media: R1, alta: R2}
           - codigo: op.exp.5
             tipo: medida
             titulo: Gestión de cambios
@@ -177,33 +216,26 @@ requisitos:
           - codigo: op.exp.6
             tipo: medida
             titulo: Protección frente a código dañino
-            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+            aplicabilidad: {basica: aplica, media: R2, alta: R4}
           - codigo: op.exp.7
             tipo: medida
             titulo: Gestión de incidentes
-            aplicabilidad: {basica: no_aplica, media: aplica, alta: R1}
+            aplicabilidad: {basica: aplica, media: R2, alta: R3}
           - codigo: op.exp.8
             tipo: medida
             titulo: Registro de la actividad
             aplicabilidad:
-              basica: {exigencia: no_aplica, dimension: T}
-              media: {exigencia: aplica, dimension: T}
-              alta: {exigencia: R1, dimension: T}
+              basica: {exigencia: aplica, dimension: T}
+              media: {exigencia: R4, dimension: T}
+              alta: {exigencia: R5, dimension: T}
           - codigo: op.exp.9
             tipo: medida
             titulo: Registro de la gestión de incidentes
-            aplicabilidad: {basica: no_aplica, media: aplica, alta: aplica}
+            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
           - codigo: op.exp.10
             tipo: medida
-            titulo: Protección de los registros de actividad
-            aplicabilidad:
-              basica: {exigencia: no_aplica, dimension: T}
-              media: {exigencia: no_aplica, dimension: T}
-              alta: {exigencia: aplica, dimension: T}
-          - codigo: op.exp.11
-            tipo: medida
             titulo: Protección de claves criptográficas
-            aplicabilidad: {basica: aplica, media: R1, alta: R2}
+            aplicabilidad: {basica: aplica, media: R1, alta: R1}
 
       - codigo: op.ext
         tipo: medida
@@ -212,11 +244,11 @@ requisitos:
           - codigo: op.ext.1
             tipo: medida
             titulo: Contratación y acuerdos de nivel de servicio
-            aplicabilidad: {basica: no_aplica, media: aplica, alta: R1}
+            aplicabilidad: {basica: no_aplica, media: aplica, alta: aplica}
           - codigo: op.ext.2
             tipo: medida
             titulo: Gestión diaria
-            aplicabilidad: {basica: no_aplica, media: aplica, alta: R1}
+            aplicabilidad: {basica: no_aplica, media: aplica, alta: aplica}
           - codigo: op.ext.3
             tipo: medida
             titulo: Protección de la cadena de suministro
@@ -233,7 +265,7 @@ requisitos:
           - codigo: op.nub.1
             tipo: medida
             titulo: Protección de servicios en la nube
-            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+            aplicabilidad: {basica: aplica, media: R1, alta: R2}
 
       - codigo: op.cont
         tipo: medida
@@ -275,24 +307,25 @@ requisitos:
           - codigo: op.mon.1
             tipo: medida
             titulo: Detección de intrusión
-            aplicabilidad: {basica: no_aplica, media: aplica, alta: R1}
+            aplicabilidad: {basica: aplica, media: R1, alta: R2}
           - codigo: op.mon.2
             tipo: medida
             titulo: Sistema de métricas
-            aplicabilidad: {basica: no_aplica, media: aplica, alta: R1}
+            aplicabilidad: {basica: aplica, media: R2, alta: R2}
           - codigo: op.mon.3
             tipo: medida
             titulo: Vigilancia
-            aplicabilidad: {basica: aplica, media: R1, alta: R2}
+            aplicabilidad: {basica: aplica, media: R2, alta: R6}
 
-  # ===========================================================================
+  # =========================================================================
   # MEDIDAS DE PROTECCIÓN
-  # ===========================================================================
+  # =========================================================================
   - codigo: mp
     tipo: medida
     titulo: Medidas de protección
     orden: 300
     hijos:
+
       - codigo: mp.if
         tipo: medida
         titulo: Protección de las instalaciones e infraestructuras
@@ -315,15 +348,21 @@ requisitos:
             aplicabilidad:
               basica: {exigencia: aplica, dimension: D}
               media: {exigencia: R1, dimension: D}
-              alta: {exigencia: R2, dimension: D}
+              alta: {exigencia: R1, dimension: D}
           - codigo: mp.if.5
             tipo: medida
             titulo: Protección frente a incendios
-            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+            aplicabilidad:
+              basica: {exigencia: aplica, dimension: D}
+              media: {exigencia: aplica, dimension: D}
+              alta: {exigencia: aplica, dimension: D}
           - codigo: mp.if.6
             tipo: medida
             titulo: Protección frente a inundaciones
-            aplicabilidad: {basica: no_aplica, media: aplica, alta: aplica}
+            aplicabilidad:
+              basica: {exigencia: no_aplica, dimension: D}
+              media: {exigencia: aplica, dimension: D}
+              alta: {exigencia: aplica, dimension: D}
           - codigo: mp.if.7
             tipo: medida
             titulo: Registro de entrada y salida de equipamiento
@@ -336,11 +375,11 @@ requisitos:
           - codigo: mp.per.1
             tipo: medida
             titulo: Caracterización del puesto de trabajo
-            aplicabilidad: {basica: no_aplica, media: aplica, alta: R1}
+            aplicabilidad: {basica: no_aplica, media: aplica, alta: aplica}
           - codigo: mp.per.2
             tipo: medida
             titulo: Deberes y obligaciones
-            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+            aplicabilidad: {basica: aplica, media: R1, alta: R1}
           - codigo: mp.per.3
             tipo: medida
             titulo: Concienciación
@@ -357,19 +396,25 @@ requisitos:
           - codigo: mp.eq.1
             tipo: medida
             titulo: Puesto de trabajo despejado
-            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+            aplicabilidad: {basica: aplica, media: R1, alta: R1}
           - codigo: mp.eq.2
             tipo: medida
             titulo: Bloqueo de puesto de trabajo
-            aplicabilidad: {basica: no_aplica, media: aplica, alta: R1}
+            aplicabilidad:
+              basica: {exigencia: no_aplica, dimension: A}
+              media: {exigencia: aplica, dimension: A}
+              alta: {exigencia: R1, dimension: A}
           - codigo: mp.eq.3
             tipo: medida
             titulo: Protección de dispositivos portátiles
-            aplicabilidad: {basica: aplica, media: R1, alta: R2}
+            aplicabilidad: {basica: aplica, media: aplica, alta: R2}
           - codigo: mp.eq.4
             tipo: medida
             titulo: Otros dispositivos conectados a la red
-            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+            aplicabilidad:
+              basica: {exigencia: aplica, dimension: C}
+              media: {exigencia: R1, dimension: C}
+              alta: {exigencia: R1, dimension: C}
 
       - codigo: mp.com
         tipo: medida
@@ -378,22 +423,30 @@ requisitos:
           - codigo: mp.com.1
             tipo: medida
             titulo: Perímetro seguro
-            aplicabilidad: {basica: aplica, media: R1, alta: R2}
+            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
           - codigo: mp.com.2
             tipo: medida
             titulo: Protección de la confidencialidad
             aplicabilidad:
-              basica: {exigencia: no_aplica, dimension: C}
-              media: {exigencia: aplica, dimension: C}
-              alta: {exigencia: R1, dimension: C}
+              basica: {exigencia: aplica, dimension: C}
+              media: {exigencia: R1, dimension: C}
+              alta: {exigencia: R3, dimension: C}
+          # El Anexo II la modula por I A, y el modelo sólo admite UNA
+          # dimensión por celda. Se deja leer por categoría, que es el máximo de las
+          # cinco: nunca exige de menos, y exige de más sólo si la dimensión más alta
+          # es una de las que el Anexo II deja fuera.
           - codigo: mp.com.3
             tipo: medida
-            titulo: Protección de la autenticidad y de la integridad
-            aplicabilidad: {basica: aplica, media: R1, alta: R2}
+            titulo: Protección de la integridad y de la autenticidad
+            aplicabilidad: {basica: aplica, media: R2, alta: R4}
+          # media: el Anexo II dice «+ [R1 o R2 o R3]». El grupo [R1 o R2 o R3] es una alternativa
+          # —uno a elegir— y el modelo no sabe guardarla; queda lo que se exige seguro.
+          # alta: el Anexo II dice «+ [R2 o R3] + R4». El grupo [R2 o R3] es una alternativa
+          # —uno a elegir— y el modelo no sabe guardarla; queda lo que se exige seguro.
           - codigo: mp.com.4
             tipo: medida
             titulo: Separación de flujos de información en la red
-            aplicabilidad: {basica: no_aplica, media: aplica, alta: R1}
+            aplicabilidad: {basica: no_aplica, media: aplica, alta: R4}
 
       - codigo: mp.si
         tipo: medida
@@ -406,13 +459,14 @@ requisitos:
               basica: {exigencia: no_aplica, dimension: C}
               media: {exigencia: aplica, dimension: C}
               alta: {exigencia: aplica, dimension: C}
+          # El Anexo II la modula por C I, y el modelo sólo admite UNA
+          # dimensión por celda. Se deja leer por categoría, que es el máximo de las
+          # cinco: nunca exige de menos, y exige de más sólo si la dimensión más alta
+          # es una de las que el Anexo II deja fuera.
           - codigo: mp.si.2
             tipo: medida
             titulo: Criptografía
-            aplicabilidad:
-              basica: {exigencia: no_aplica, dimension: C}
-              media: {exigencia: aplica, dimension: C}
-              alta: {exigencia: R1, dimension: C}
+            aplicabilidad: {basica: no_aplica, media: aplica, alta: R2}
           - codigo: mp.si.3
             tipo: medida
             titulo: Custodia
@@ -424,7 +478,10 @@ requisitos:
           - codigo: mp.si.5
             tipo: medida
             titulo: Borrado y destrucción
-            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+            aplicabilidad:
+              basica: {exigencia: aplica, dimension: C}
+              media: {exigencia: R1, dimension: C}
+              alta: {exigencia: R1, dimension: C}
 
       - codigo: mp.sw
         tipo: medida
@@ -433,11 +490,11 @@ requisitos:
           - codigo: mp.sw.1
             tipo: medida
             titulo: Desarrollo de aplicaciones
-            aplicabilidad: {basica: no_aplica, media: aplica, alta: R1}
+            aplicabilidad: {basica: no_aplica, media: R4, alta: R4}
           - codigo: mp.sw.2
             tipo: medida
             titulo: Aceptación y puesta en servicio
-            aplicabilidad: {basica: aplica, media: R1, alta: R2}
+            aplicabilidad: {basica: aplica, media: R1, alta: R1}
 
       - codigo: mp.info
         tipo: medida
@@ -445,7 +502,7 @@ requisitos:
         hijos:
           - codigo: mp.info.1
             tipo: medida
-            titulo: Datos de carácter personal
+            titulo: Datos personales
             aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
           - codigo: mp.info.2
             tipo: medida
@@ -453,11 +510,15 @@ requisitos:
             aplicabilidad:
               basica: {exigencia: no_aplica, dimension: C}
               media: {exigencia: aplica, dimension: C}
-              alta: {exigencia: R1, dimension: C}
+              alta: {exigencia: aplica, dimension: C}
+          # El Anexo II la modula por I A, y el modelo sólo admite UNA
+          # dimensión por celda. Se deja leer por categoría, que es el máximo de las
+          # cinco: nunca exige de menos, y exige de más sólo si la dimensión más alta
+          # es una de las que el Anexo II deja fuera.
           - codigo: mp.info.3
             tipo: medida
             titulo: Firma electrónica
-            aplicabilidad: {basica: no_aplica, media: aplica, alta: R1}
+            aplicabilidad: {basica: aplica, media: R3, alta: R4}
           - codigo: mp.info.4
             tipo: medida
             titulo: Sellos de tiempo
@@ -468,7 +529,10 @@ requisitos:
           - codigo: mp.info.5
             tipo: medida
             titulo: Limpieza de documentos
-            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+            aplicabilidad:
+              basica: {exigencia: aplica, dimension: C}
+              media: {exigencia: aplica, dimension: C}
+              alta: {exigencia: aplica, dimension: C}
           - codigo: mp.info.6
             tipo: medida
             titulo: Copias de seguridad
@@ -485,17 +549,21 @@ requisitos:
             tipo: medida
             titulo: Protección del correo electrónico
             aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+          # basica: el Anexo II dice «+ [R1 o R2]». El grupo [R1 o R2] es una alternativa
+          # —uno a elegir— y el modelo no sabe guardarla; queda lo que se exige seguro.
+          # media: el Anexo II dice «+ [R1 o R2]». El grupo [R1 o R2] es una alternativa
+          # —uno a elegir— y el modelo no sabe guardarla; queda lo que se exige seguro.
           - codigo: mp.s.2
             tipo: medida
             titulo: Protección de servicios y aplicaciones web
-            aplicabilidad: {basica: aplica, media: R1, alta: R2}
+            aplicabilidad: {basica: aplica, media: aplica, alta: R3}
           - codigo: mp.s.3
             tipo: medida
             titulo: Protección de la navegación web
-            aplicabilidad: {basica: aplica, media: aplica, alta: aplica}
+            aplicabilidad: {basica: aplica, media: aplica, alta: R1}
           - codigo: mp.s.4
             tipo: medida
-            titulo: Protección frente a la denegación de servicio
+            titulo: Protección frente a denegación de servicio
             aplicabilidad:
               basica: {exigencia: no_aplica, dimension: D}
               media: {exigencia: aplica, dimension: D}
