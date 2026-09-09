@@ -9,6 +9,6 @@ import { createInertiaApp } from '@inertiajs/vue3';
 void createInertiaApp({
     title: (titulo) => (titulo ? `${titulo} · Statera` : 'Statera'),
     progress: {
-        color: 'oklch(0.45 0.09 233)',
+        color: 'oklch(0.52 0.13 196)',
     },
 });

@@ -12,8 +12,13 @@ export default defineConfig({
             input: ['resources/css/app.css', 'resources/js/app.ts'],
             refresh: true,
             fonts: [
+                // La interfaz. El peso 700 es para las cifras grandes del panel.
                 bunny('Instrument Sans', {
-                    weights: [400, 500, 600],
+                    weights: [400, 500, 600, 700],
+                }),
+                // Lo que es código: op.acc.4, contadores, porcentajes, hashes.
+                bunny('JetBrains Mono', {
+                    weights: [400, 500],
                 }),
             ],
         }),

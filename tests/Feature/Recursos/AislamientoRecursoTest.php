@@ -90,11 +90,13 @@ it('las opciones de los filtros tampoco enumeran datos de otra organización', f
 
     $this->actingAs($escenario['usuario'])
         ->get('/implantaciones')
-        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
-            // El filtro de sistema es el primero: sólo aparece el propio.
-            ->has('recurso.filtros.0.opciones', 1)
-            ->where('recurso.filtros.0.opciones.0.etiqueta', 'PRO-01 — Propio')
-        );
+        ->assertInertia(function (AssertableInertia $pagina): void {
+            // El filtro de sistema sólo enumera el propio.
+            $filtro = filtroDeclarado($pagina, 'sistema_id');
+
+            expect($filtro['opciones'])->toHaveCount(1)
+                ->and($filtro['opciones'][0]['etiqueta'])->toBe('PRO-01 — Propio');
+        });
 });
 
 it('editar o borrar un sistema de otra organización devuelve 404, no 403', function (): void {

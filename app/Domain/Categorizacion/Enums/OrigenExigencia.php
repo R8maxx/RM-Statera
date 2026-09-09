@@ -31,4 +31,20 @@ enum OrigenExigencia: string
      * del ENS.
      */
     case Catalogo = 'catalogo';
+
+    /**
+     * La respuesta a «¿de dónde sale esta exigencia?», en una línea.
+     *
+     * Sin esto la columna enseñaba `modulacion_dimension` tal cual, que es un
+     * identificador, no una explicación.
+     */
+    public function etiqueta(): string
+    {
+        return match ($this) {
+            self::Categoria => 'Categoría del sistema',
+            self::ModulacionDimension => 'Modulación por dimensión',
+            self::Perfil => 'Perfil de cumplimiento',
+            self::Catalogo => 'El propio marco',
+        };
+    }
 }

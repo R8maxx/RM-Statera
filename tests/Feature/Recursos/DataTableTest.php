@@ -49,7 +49,7 @@ it('expone la definición del recurso que declara el Resource', function (): voi
             ->where('recurso.columnas.0.clave', 'codigo')
             ->where('recurso.columnas.0.ordenable', true)
             ->where('recurso.columnas.0.anclada', true)
-            ->has('recurso.filtros', 3)
+            ->has('recurso.filtros', 6)
             ->has('filas', 3)
             ->where('meta.total', 3)
         );
@@ -72,10 +72,79 @@ it('resuelve en el servidor las opciones de los filtros de selección', function
 
     $this->actingAs($usuario)
         ->get('/sistemas')
+        ->assertInertia(function (AssertableInertia $pagina): void {
+            expect(filtroDeclarado($pagina, 'marco_id')['opciones'])->toHaveCount(1)
+                ->and(filtroDeclarado($pagina, 'estado')['opciones'])->toHaveCount(count(EstadoSistema::cases()));
+        });
+});
+
+it('dice bajo qué columna se pinta cada filtro, y cuál no cuelga de ninguna', function (): void {
+    $usuario = usuarioConSistemas(1);
+
+    $this->actingAs($usuario)
+        ->get('/sistemas')
+        ->assertInertia(function (AssertableInertia $pagina): void {
+            $busqueda = filtroDeclarado($pagina, 'q');
+            $nombre = filtroDeclarado($pagina, 'nombre');
+            $marco = filtroDeclarado($pagina, 'marco_id');
+
+            // La búsqueda cruza varios campos: no es de ninguna columna, y
+            // declara aparte en cuáles se resalta la coincidencia.
+            expect($busqueda['tipo'])->toBe('busqueda')
+                ->and($busqueda['columna'])->toBeNull()
+                ->and($busqueda['resaltaEn'])->toBe(['codigo', 'nombre'])
+                // Por defecto, la columna que se llama como la clave.
+                ->and($nombre['columna'])->toBe('nombre')
+                ->and($nombre['resaltaEn'])->toBe([])
+                // Y cuando no coinciden, lo dice el recurso.
+                ->and($marco['columna'])->toBe('marco');
+        });
+});
+
+it('la búsqueda cruza los campos declarados y ninguno más', function (): void {
+    $usuario = usuarioConSistemas(3);
+
+    // Por nombre.
+    $this->actingAs($usuario)
+        ->get('/sistemas?filter[q]=Sistema 2')
         ->assertInertia(fn (AssertableInertia $pagina) => $pagina
-            ->has('recurso.filtros.1.opciones', 1)
-            ->has('recurso.filtros.2.opciones', count(EstadoSistema::cases()))
+            ->has('filas', 1)
+            ->where('filas.0.codigo', 'SIS-02')
         );
+
+    // Y por código, con el mismo cuadro.
+    $this->actingAs($usuario)
+        ->get('/sistemas?filter[q]=sis-03')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->has('filas', 1)
+            ->where('filas.0.codigo', 'SIS-03')
+        );
+});
+
+it('ignora un extremo de fecha que no es una fecha, en vez de reventar', function (): void {
+    $usuario = usuarioConSistemas(3);
+
+    // La query string es del usuario y estas URL se guardan y se comparten.
+    // PostgreSQL responde a `>= '2026'` con un error de sintaxis: sin la
+    // comprobación previa, eso era un 500.
+    $this->actingAs($usuario)
+        ->get('/sistemas?filter[created_at]=2026,')
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina->has('filas', 3));
+
+    // Y una fecha de verdad sí estrecha.
+    $this->actingAs($usuario)
+        ->get('/sistemas?filter[created_at]=2000-01-01,2000-01-02')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina->has('filas', 0));
+});
+
+it('trata los comodines del término de búsqueda como texto', function (): void {
+    $usuario = usuarioConSistemas(3);
+
+    // Sin escapar, `%` devolvería la tabla entera en lugar de nada.
+    $this->actingAs($usuario)
+        ->get('/sistemas?filter[q]=%')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina->has('filas', 0));
 });
 
 it('aplica un filtro declarado', function (): void {
@@ -93,9 +162,10 @@ it('aplica un filtro declarado', function (): void {
 it('ignora un filtro que el recurso no declara', function (): void {
     $usuario = usuarioConSistemas(3);
 
-    // `codigo` es columna pero no filtro: no puede colarse por la query string.
+    // `aplicables` es columna pero no filtro: no puede colarse por la query
+    // string, ni siquiera llamándose como uno que sí existe en otro recurso.
     $this->actingAs($usuario)
-        ->get('/sistemas?filter[codigo]=SIS-02')
+        ->get('/sistemas?filter[aplicables]=3')
         ->assertInertia(fn (AssertableInertia $pagina) => $pagina
             ->has('filas', 3)
             ->where('meta.filtros', [])

@@ -2,7 +2,7 @@
 import MensajeError from '@/components/formulario/MensajeError.vue';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useId } from 'vue';
+import { computed, useId } from 'vue';
 
 // Los atributos no declarados (inputmode, maxlength, pattern…) van al <input>,
 // no al contenedor.
@@ -35,6 +35,11 @@ const props = withDefaults(
 const modelo = defineModel<string | number | undefined>();
 
 const id = `${props.nombre}-${useId()}`;
+
+/* El control apunta a su ayuda y a su error; si no hay ninguno, no apunta nada. */
+const descrito = computed(() =>
+    [props.ayuda ? `${id}-ayuda` : null, props.error ? `${id}-error` : null].filter(Boolean).join(' ') || undefined,
+);
 </script>
 
 <template>
@@ -57,12 +62,12 @@ const id = `${props.nombre}-${useId()}`;
             :autofocus="autofocus"
             :default-value="valorInicial"
             :aria-invalid="error ? true : undefined"
-            :aria-describedby="ayuda ? `${id}-ayuda` : undefined"
+            :aria-describedby="descrito"
             v-bind="$attrs"
         />
 
         <p v-if="ayuda" :id="`${id}-ayuda`" class="text-xs text-muted-foreground">{{ ayuda }}</p>
 
-        <MensajeError :mensaje="error" />
+        <MensajeError :id="`${id}-error`" :mensaje="error" />
     </div>
 </template>

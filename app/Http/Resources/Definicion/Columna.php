@@ -88,6 +88,12 @@ final class Columna
         return new self($clave, $etiqueta, TipoColumna::Progreso);
     }
 
+    /** Un nivel ordinal —la madurez L0–L5—, que se lee comparándolo. */
+    public static function escala(string $clave, string $etiqueta): self
+    {
+        return new self($clave, $etiqueta, TipoColumna::Escala);
+    }
+
     /** El `$campo` es la columna real de la base cuando no coincide con la clave. */
     public function ordenable(?string $campo = null): self
     {

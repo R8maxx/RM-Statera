@@ -8,7 +8,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { useId } from 'vue';
+import { computed, useId } from 'vue';
 
 interface Opcion {
     valor: string;
@@ -29,6 +29,10 @@ const props = defineProps<{
 const modelo = defineModel<string | undefined>();
 
 const id = `${props.nombre}-${useId()}`;
+
+const descrito = computed(() =>
+    [props.ayuda ? `${id}-ayuda` : null, props.error ? `${id}-error` : null].filter(Boolean).join(' ') || undefined,
+);
 </script>
 
 <template>
@@ -45,7 +49,7 @@ const id = `${props.nombre}-${useId()}`;
         <input type="hidden" :name="nombre" :value="modelo ?? ''" />
 
         <Select v-model="modelo" :disabled="deshabilitado">
-            <SelectTrigger :id="id" class="w-full" :aria-invalid="error ? true : undefined">
+            <SelectTrigger :id="id" class="w-full" :aria-invalid="error ? true : undefined" :aria-describedby="descrito">
                 <SelectValue :placeholder="placeholder ?? 'Selecciona una opción'" />
             </SelectTrigger>
             <SelectContent>
@@ -57,6 +61,6 @@ const id = `${props.nombre}-${useId()}`;
 
         <p v-if="ayuda" :id="`${id}-ayuda`" class="text-xs text-muted-foreground">{{ ayuda }}</p>
 
-        <MensajeError :mensaje="error" />
+        <MensajeError :id="`${id}-error`" :mensaje="error" />
     </div>
 </template>

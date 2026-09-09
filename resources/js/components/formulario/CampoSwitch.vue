@@ -2,7 +2,7 @@
 import MensajeError from '@/components/formulario/MensajeError.vue';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { useId } from 'vue';
+import { computed, useId } from 'vue';
 
 const props = defineProps<{
     nombre: string;
@@ -15,18 +15,27 @@ const props = defineProps<{
 const modelo = defineModel<boolean>({ default: false });
 
 const id = `${props.nombre}-${useId()}`;
+
+const descrito = computed(() =>
+    [props.ayuda ? `${id}-ayuda` : null, props.error ? `${id}-error` : null].filter(Boolean).join(' ') || undefined,
+);
 </script>
 
 <template>
     <div class="grid gap-2">
         <div class="flex items-center gap-3">
             <input type="hidden" :name="nombre" :value="modelo ? '1' : '0'" />
-            <Switch :id="id" v-model="modelo" :disabled="deshabilitado" />
+            <Switch
+                :id="id"
+                v-model="modelo"
+                :disabled="deshabilitado"
+                :aria-describedby="descrito"
+            />
             <Label :for="id" class="font-normal">{{ etiqueta }}</Label>
         </div>
 
-        <p v-if="ayuda" class="text-xs text-muted-foreground">{{ ayuda }}</p>
+        <p v-if="ayuda" :id="`${id}-ayuda`" class="text-xs text-muted-foreground">{{ ayuda }}</p>
 
-        <MensajeError :mensaje="error" />
+        <MensajeError :id="`${id}-error`" :mensaje="error" />
     </div>
 </template>

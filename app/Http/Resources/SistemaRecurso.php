@@ -81,20 +81,29 @@ final class SistemaRecurso extends Recurso
         ];
     }
 
-    /** @return list<Filtro> */
+    /**
+     * La búsqueda cruza código y nombre; el resto de filtros cuelga de su
+     * columna y se pinta en la fila de filtros de la cabecera.
+     *
+     * @return list<Filtro>
+     */
     public function filtros(): array
     {
         return [
-            Filtro::texto('nombre', 'Nombre')->placeholder('Buscar por nombre…'),
+            Filtro::busqueda('q', 'Buscar', ['codigo' => 'codigo', 'nombre' => 'nombre'])
+                ->placeholder('Buscar por código o nombre…'),
+            Filtro::texto('codigo', 'Código'),
+            Filtro::texto('nombre', 'Nombre'),
             Filtro::select('marco_id', 'Marco', fn (): array => Marco::query()
                 ->orderBy('nombre')
                 ->get()
                 ->map(fn (Marco $marco): Opcion => new Opcion((string) $marco->id, $marco->nombre))
-                ->all()),
+                ->all())->enColumna('marco'),
             Filtro::multiSelect('estado', 'Estado', array_map(
                 static fn (EstadoSistema $estado): Opcion => new Opcion($estado->value, $estado->etiqueta()),
                 EstadoSistema::cases(),
             )),
+            Filtro::rangoFechas('created_at', 'Alta'),
         ];
     }
 

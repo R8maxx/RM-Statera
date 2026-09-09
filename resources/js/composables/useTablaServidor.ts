@@ -1,3 +1,4 @@
+import { estaActivo } from '@/lib/filtros';
 import { router } from '@inertiajs/vue3';
 import { computed, ref, watch, type Ref } from 'vue';
 
@@ -43,9 +44,7 @@ export function useTablaServidor({ meta, ordenPorDefecto }: Opciones) {
         };
     });
 
-    const hayFiltrosActivos = computed(() =>
-        Object.values(filtros.value).some((valor) => valor !== null && valor !== '' && valor.length > 0),
-    );
+    const hayFiltrosActivos = computed(() => Object.values(filtros.value).some(estaActivo));
 
     function consultar(cambios: Record<string, unknown>, reemplazarHistorial = true): void {
         router.reload({
@@ -63,12 +62,17 @@ export function useTablaServidor({ meta, ordenPorDefecto }: Opciones) {
         });
     }
 
-    function ordenarPor(clave: string): void {
-        const descendente = orden.value.clave === clave && !orden.value.descendente;
+    /**
+     * Ordena por una columna. Sin sentido explícito alterna, que es lo que se
+     * espera al pulsar la cabecera; el menú de la columna sí lo fija, porque
+     * ahí se elige «Ascendente», no «lo contrario de lo que hubiera».
+     */
+    function ordenarPor(clave: string, descendente?: boolean): void {
+        const sentido = descendente ?? (orden.value.clave === clave && !orden.value.descendente);
 
         // Cambiar el orden con la vista en la página siete no tiene sentido:
         // el conjunto entero se reordena.
-        consultar({ sort: `${descendente ? '-' : ''}${clave}`, page: 1 });
+        consultar({ sort: `${sentido ? '-' : ''}${clave}`, page: 1 });
     }
 
     function irAPagina(pagina: number): void {

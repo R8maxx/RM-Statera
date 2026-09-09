@@ -18,4 +18,6 @@ enum TipoColumna: string
     case Badge = 'badge';
     case Enlace = 'enlace';
     case Progreso = 'progreso';
+    /** Un nivel dentro de una progresión conocida: la madurez L0–L5. */
+    case Escala = 'escala';
 }

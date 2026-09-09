@@ -7,6 +7,7 @@ use App\Domain\Categorizacion\ValoracionDimensiones;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Organizacion\Models\Organizacion;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
 /*
@@ -92,4 +93,31 @@ function comoOrganizacion(Organizacion|int|null $organizacion = null): Organizac
 function sinOrganizacion(): void
 {
     app(ContextoOrganizacion::class)->olvidar();
+}
+
+/*
+|--------------------------------------------------------------------------
+| La definición de un recurso
+|--------------------------------------------------------------------------
+|
+| Los filtros viajan como lista, y afirmar sobre `recurso.filtros.2` ata el
+| test al orden de declaración: añadir un filtro al principio rompía tres
+| pruebas que no tenían nada que ver. Se busca por clave, que es lo que de
+| verdad importa.
+|
+*/
+
+/**
+ * @return array<string, mixed>
+ */
+function filtroDeclarado(AssertableInertia $pagina, string $clave): array
+{
+    /** @var array<int, array<string, mixed>> $filtros */
+    $filtros = data_get($pagina->toArray(), 'props.recurso.filtros', []);
+
+    $filtro = collect($filtros)->firstWhere('clave', $clave);
+
+    expect($filtro)->not->toBeNull("El recurso no declara ningún filtro `{$clave}`.");
+
+    return $filtro;
 }

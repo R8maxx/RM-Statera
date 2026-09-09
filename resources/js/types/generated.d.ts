@@ -72,6 +72,8 @@ export type Filtro = {
 placeholder: string | null,
 opciones: App.Http.Resources.Definicion.Opcion[],
 multiple: boolean,
+columna: string | null,
+resaltaEn: string[],
 readonly clave: string,
 readonly etiqueta: string,
 readonly tipo: App.Http.Resources.Enums.TipoFiltro,
@@ -90,17 +92,63 @@ export type Opcion = {
 readonly valor: string,
 readonly etiqueta: string,
 };
+export type ValorEnlace = {
+readonly etiqueta: string,
+readonly url: string,
+readonly externo: boolean,
+};
+export type ValorEscala = {
+readonly valor: number,
+readonly de: number,
+readonly etiqueta: string,
+readonly corta: string | null,
+};
 export type ValorEtiquetado = {
 readonly valor: string | number | null,
 readonly etiqueta: string,
 readonly tono: string | null,
 };
+export type ValorProgreso = {
+readonly porcentaje: number,
+readonly hechas: number | null,
+readonly de: number | null,
+};
 }
 namespace Enums {
 export type Alineacion = 'izquierda' | 'centro' | 'derecha';
 export type MetodoAccion = 'get' | 'post' | 'put' | 'patch' | 'delete';
-export type TipoColumna = 'texto' | 'numero' | 'fecha' | 'fecha_hora' | 'booleano' | 'badge' | 'enlace' | 'progreso';
-export type TipoFiltro = 'texto' | 'select' | 'multi_select' | 'booleano' | 'rango_fechas';
+export type TipoColumna = 'texto' | 'numero' | 'fecha' | 'fecha_hora' | 'booleano' | 'badge' | 'enlace' | 'progreso' | 'escala';
+export type TipoFiltro = 'busqueda' | 'texto' | 'select' | 'multi_select' | 'booleano' | 'rango_fechas';
+}
+namespace Panel {
+export type AvanceMarco = {
+readonly codigo: string,
+readonly nombre: string,
+readonly aplicables: number,
+readonly implantadas: number,
+};
+export type ResumenPanel = {
+readonly sistemas: number,
+readonly aplicables: number,
+readonly implantadas: number,
+readonly pendientes: number,
+readonly madurezMedia: number | null,
+readonly madurezEvaluadas: number,
+};
+export type SegmentoEstado = {
+readonly clave: string,
+readonly etiqueta: string,
+readonly valor: number,
+};
+export type SistemaResumido = {
+readonly id: number,
+readonly codigo: string,
+readonly nombre: string,
+readonly marco: string | null,
+readonly categoria: string | null,
+readonly aplicables: number,
+readonly implantadas: number,
+};
 }
 }
 }

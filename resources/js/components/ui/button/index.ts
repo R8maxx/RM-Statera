@@ -8,10 +8,18 @@ export const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-primary text-primary-foreground hover:bg-primary/80',
+        // El hover que traía shadcn era `bg-primary/80`, que sobre un fondo
+        // claro mezcla con blanco y aclara el botón: con el teal de marca el
+        // contraste del texto caía a 3.4:1 y dejaba de pasar AA justo cuando el
+        // puntero está encima. Oscurecer un paso lo sube en lugar de bajarlo.
+        default: 'bg-primary text-primary-foreground hover:bg-marca-700 dark:hover:bg-marca-500',
         outline: 'border-border bg-background hover:bg-muted hover:text-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 aria-expanded:bg-muted aria-expanded:text-foreground shadow-xs',
         secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80 aria-expanded:bg-secondary aria-expanded:text-secondary-foreground',
         ghost: 'hover:bg-muted hover:text-foreground dark:hover:bg-muted/50 aria-expanded:bg-muted aria-expanded:text-foreground',
+        // El acento de marca. Reservado a la acción que abre un flujo de
+        // revisión o auditoría (DESIGN.md §9), y nunca junto a un primario: dos
+        // botones de color lleno en la misma vista y ninguno de los dos manda.
+        acento: 'bg-acento text-acento-foreground hover:bg-violeta-700 dark:hover:bg-violeta-300',
         destructive: 'bg-destructive/10 hover:bg-destructive/20 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/20 text-destructive focus-visible:border-destructive/40 dark:hover:bg-destructive/30',
         link: 'text-primary underline-offset-4 hover:underline',
       },

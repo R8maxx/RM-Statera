@@ -3,6 +3,7 @@ import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
 import FormularioRecurso from '@/components/formulario/FormularioRecurso.vue';
+import SeccionFormulario from '@/components/formulario/SeccionFormulario.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { ref } from 'vue';
 
@@ -46,68 +47,78 @@ const estado = ref(props.sistema?.estado ?? 'borrador');
             url-cancelar="/sistemas"
             #default="{ errors }"
         >
-            <div class="grid gap-5 sm:grid-cols-2">
+            <SeccionFormulario
+                titulo="Identificación"
+                ayuda="El código es el que aparecerá en la declaración de aplicabilidad y en las evidencias, así que conviene que no cambie."
+            >
+                <div class="grid gap-5 sm:grid-cols-2">
+                    <CampoTexto
+                        nombre="codigo"
+                        etiqueta="Código"
+                        :valor-inicial="sistema?.codigo"
+                        :error="errors.codigo"
+                        ayuda="Único dentro de la organización."
+                        requerido
+                        autofocus
+                    />
+
+                    <CampoSelect
+                        v-model="estado"
+                        nombre="estado"
+                        etiqueta="Estado"
+                        :opciones="estados"
+                        :error="errors.estado"
+                        requerido
+                    />
+                </div>
+
                 <CampoTexto
-                    nombre="codigo"
-                    etiqueta="Código"
-                    :valor-inicial="sistema?.codigo"
-                    :error="errors.codigo"
-                    ayuda="Único dentro de la organización."
+                    nombre="nombre"
+                    etiqueta="Nombre"
+                    :valor-inicial="sistema?.nombre"
+                    :error="errors.nombre"
                     requerido
-                    autofocus
                 />
 
                 <CampoSelect
-                    v-model="estado"
-                    nombre="estado"
-                    etiqueta="Estado"
-                    :opciones="estados"
-                    :error="errors.estado"
+                    v-model="marco"
+                    nombre="marco_id"
+                    etiqueta="Marco"
+                    :opciones="marcos"
+                    :error="errors.marco_id"
+                    placeholder="Selecciona el marco normativo"
                     requerido
                 />
-            </div>
 
-            <CampoTexto
-                nombre="nombre"
-                etiqueta="Nombre"
-                :valor-inicial="sistema?.nombre"
-                :error="errors.nombre"
-                requerido
-            />
+                <CampoTextarea
+                    nombre="descripcion"
+                    etiqueta="Descripción"
+                    :valor-inicial="sistema?.descripcion ?? ''"
+                    :error="errors.descripcion"
+                    :filas="3"
+                />
+            </SeccionFormulario>
 
-            <CampoSelect
-                v-model="marco"
-                nombre="marco_id"
-                etiqueta="Marco"
-                :opciones="marcos"
-                :error="errors.marco_id"
-                placeholder="Selecciona el marco normativo"
-                requerido
-            />
+            <SeccionFormulario
+                titulo="Alcance"
+                ayuda="Los dos campos que un auditor lee antes que ningún otro. Excluir algo sin decir por qué es el motivo de rechazo más habitual."
+            >
+                <CampoTextarea
+                    nombre="alcance_declarado"
+                    etiqueta="Alcance declarado"
+                    :valor-inicial="sistema?.alcance_declarado ?? ''"
+                    :error="errors.alcance_declarado"
+                    ayuda="Qué queda dentro del sistema: sedes, procesos, servicios y activos."
+                />
 
-            <CampoTextarea
-                nombre="descripcion"
-                etiqueta="Descripción"
-                :valor-inicial="sistema?.descripcion ?? ''"
-                :error="errors.descripcion"
-                :filas="3"
-            />
-
-            <CampoTextarea
-                nombre="alcance_declarado"
-                etiqueta="Alcance declarado"
-                :valor-inicial="sistema?.alcance_declarado ?? ''"
-                :error="errors.alcance_declarado"
-                ayuda="Lo que el auditor lee primero: qué queda dentro del sistema."
-            />
-
-            <CampoTextarea
-                nombre="exclusiones_justificadas"
-                etiqueta="Exclusiones justificadas"
-                :valor-inicial="sistema?.exclusiones_justificadas ?? ''"
-                :error="errors.exclusiones_justificadas"
-                ayuda="Excluir algo sin decir por qué es lo que el auditor rechaza."
-            />
+                <CampoTextarea
+                    nombre="exclusiones_justificadas"
+                    etiqueta="Exclusiones justificadas"
+                    :valor-inicial="sistema?.exclusiones_justificadas ?? ''"
+                    :error="errors.exclusiones_justificadas"
+                    ayuda="Qué queda fuera y con qué motivo."
+                />
+            </SeccionFormulario>
         </FormularioRecurso>
     </AppLayout>
 </template>

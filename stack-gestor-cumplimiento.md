@@ -321,6 +321,7 @@ Pest. Prioridad de cobertura, por orden:
 | **PrimeVue** | Ahorra tiempo inicial, ata el aspecto del producto. |
 | **Paquetes de multi-tenancy de terceros** | Es la frontera de seguridad principal; se implementa y se testea a mano. |
 | **MongoDB** | El dominio es relacional de principio a fin. |
+| **Chart.js (y cualquier librería de gráficas, por ahora)** | Pinta en canvas: en un PDF/A-3b entra como mapa de bits y se lleva por delante el texto seleccionable que PDF/UA exige. Además obliga a escribir los colores en JavaScript en vez de leerlos de los tokens, y en modo oscuro hay que repintar a mano. Las gráficas del panel —anillo, barra por tramos, barras horizontales— son SVG y CSS a mano sobre los tokens; las del documento las generará el servidor en SVG, sin JavaScript. **Se revisará** cuando llegue la primera serie histórica con eje de tiempo: ahí entrarían `d3-scale` y `d3-shape`, que son funciones puras sin DOM, porque escalas y ticks legibles es lo único que no compensa escribir a mano. |
 
 ---
 

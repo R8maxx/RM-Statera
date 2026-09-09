@@ -2,7 +2,7 @@
 import MensajeError from '@/components/formulario/MensajeError.vue';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useId } from 'vue';
+import { computed, useId } from 'vue';
 
 const props = withDefaults(
     defineProps<{
@@ -22,6 +22,11 @@ const props = withDefaults(
 const modelo = defineModel<string | undefined>();
 
 const id = `${props.nombre}-${useId()}`;
+
+/* El control apunta a su ayuda y a su error; si no hay ninguno, no apunta nada. */
+const descrito = computed(() =>
+    [props.ayuda ? `${id}-ayuda` : null, props.error ? `${id}-error` : null].filter(Boolean).join(' ') || undefined,
+);
 </script>
 
 <template>
@@ -41,11 +46,11 @@ const id = `${props.nombre}-${useId()}`;
             :placeholder="placeholder"
             :default-value="valorInicial"
             :aria-invalid="error ? true : undefined"
-            :aria-describedby="ayuda ? `${id}-ayuda` : undefined"
+            :aria-describedby="descrito"
         />
 
         <p v-if="ayuda" :id="`${id}-ayuda`" class="text-xs text-muted-foreground">{{ ayuda }}</p>
 
-        <MensajeError :mensaje="error" />
+        <MensajeError :id="`${id}-error`" :mensaje="error" />
     </div>
 </template>

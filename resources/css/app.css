@@ -13,45 +13,122 @@
  * existe y no hace falta. Los componentes de shadcn-vue referencian estos
  * tokens (`bg-background`, `border-border`, `rounded-lg`); sin declararlos
  * salen sin estilo.
+ *
+ * ── El color de marca ──────────────────────────────────────────────────────
+ * Teal petróleo, hue 196. No es una preferencia estética: la paleta de estados
+ * del dominio ya ocupa 245 (planificado), 155 (implantado), 70 (en progreso) y
+ * 27 (destructive). El teal es el hue libre más alejado de todos ellos —41 del
+ * más cercano—, así que un botón primario nunca se lee como un badge de estado.
+ * Esa colisión es la que descartó el verde y el ámbar, que encajaban mejor con
+ * la metáfora de la balanza pero rompían la semántica de la tabla.
+ *
+ * ── La regla de forma ──────────────────────────────────────────────────────
+ * Un solo sistema de radios, y se respeta:
+ *   · Superficies: tarjeta, tabla, diálogo, aviso → `rounded-xl`
+ *   · Controles: botón, input, select              → `rounded-md`
+ *   · Badges, avatares, píldoras, chips            → `rounded-full`
+ * El escalón de superficie es el que trae el estilo `reka-vega` de shadcn-vue
+ * en `Card`, y todo lo que hace de panel lo iguala. Mezclar radios sin regla es
+ * lo que hace que una interfaz parezca ensamblada por partes distintas.
  */
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
-    --radius: 0.5rem;
-
-    /* Fondo hueso, tinta azul-pizarra. Herramienta de trabajo, no escaparate. */
-    --background: oklch(0.99 0.002 250);
-    --foreground: oklch(0.24 0.02 255);
-
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.24 0.02 255);
-
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.24 0.02 255);
-
-    --primary: oklch(0.45 0.09 233);
-    --primary-foreground: oklch(0.99 0.002 250);
-
-    --secondary: oklch(0.96 0.006 250);
-    --secondary-foreground: oklch(0.32 0.025 255);
-
-    --muted: oklch(0.96 0.006 250);
-    --muted-foreground: oklch(0.53 0.02 255);
-
-    --accent: oklch(0.94 0.015 233);
-    --accent-foreground: oklch(0.32 0.04 233);
-
-    --destructive: oklch(0.55 0.19 27);
-    --destructive-foreground: oklch(0.99 0.002 250);
-
-    --border: oklch(0.91 0.008 250);
-    --input: oklch(0.91 0.008 250);
-    --ring: oklch(0.45 0.09 233);
+    --radius: 0.625rem;
 
     /*
-     * Estados del dominio. Se declaran una sola vez aquí y los consume
-     * `CeldaBadge`; no se reparten clases sueltas por cada módulo.
+     * Neutros con una gota del hue de marca (215) en lugar del azul-pizarra
+     * anterior: una paleta fría coherente lee como una sola decisión, y dos
+     * familias de gris en la misma pantalla se notan aunque nadie sepa decir
+     * por qué.
+     */
+    --background: oklch(0.988 0.003 215);
+    --foreground: oklch(0.23 0.018 235);
+
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.23 0.018 235);
+
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.23 0.018 235);
+
+    /* La superficie del chrome —sidebar, cabecera— separada del lienzo. */
+    --superficie: oklch(0.972 0.005 215);
+
+    --primary: oklch(0.52 0.13 196);
+    --primary-foreground: oklch(0.995 0.002 215);
+
+    --secondary: oklch(0.958 0.007 215);
+    --secondary-foreground: oklch(0.31 0.022 235);
+
+    --muted: oklch(0.958 0.007 215);
+    --muted-foreground: oklch(0.52 0.02 225);
+
+    --accent: oklch(0.955 0.032 196);
+    --accent-foreground: oklch(0.36 0.068 196);
+
+    --destructive: oklch(0.55 0.19 27);
+    --destructive-foreground: oklch(0.995 0.002 215);
+
+    --border: oklch(0.905 0.008 215);
+    --input: oklch(0.895 0.009 215);
+    --ring: oklch(0.52 0.13 196);
+
+    /* Escala de marca, para superficies teñidas y gráficos. */
+    --marca-50: oklch(0.975 0.014 196);
+    --marca-100: oklch(0.945 0.032 196);
+    --marca-200: oklch(0.895 0.058 196);
+    --marca-300: oklch(0.82 0.088 196);
+    --marca-400: oklch(0.71 0.115 196);
+    --marca-500: oklch(0.62 0.128 196);
+    --marca-600: oklch(0.52 0.13 196);
+    --marca-700: oklch(0.44 0.112 196);
+    --marca-800: oklch(0.36 0.09 196);
+    --marca-900: oklch(0.29 0.07 196);
+    --marca-950: oklch(0.22 0.05 196);
+
+    /*
+     * Escala de acento. Violeta, hue 299, tal y como lo fija DESIGN.md §3.
+     *
+     * No colisiona con nada: los estados ocupan 245, 155, 70, 27 y 285, y el
+     * más cercano —`no-aplica`, en 285— tiene croma 0.01 frente a 0.19. Es
+     * gris, no violeta; nadie va a confundirlos.
+     *
+     * El reparto es 60 / 30 / 10: neutros, teal y esto. El violeta que se ve
+     * en todas partes deja de ser acento y empieza a parecer otra marca.
+     */
+    --violeta-50: oklch(0.97 0.02 299);
+    --violeta-100: oklch(0.94 0.04 299);
+    --violeta-200: oklch(0.885 0.07 299);
+    --violeta-300: oklch(0.8 0.11 299);
+    --violeta-400: oklch(0.682 0.152 299);
+    --violeta-500: oklch(0.6 0.18 299);
+    --violeta-600: oklch(0.52 0.19 299);
+    --violeta-700: oklch(0.45 0.165 299);
+    --violeta-800: oklch(0.38 0.135 299);
+    --violeta-900: oklch(0.32 0.105 299);
+    --violeta-950: oklch(0.26 0.085 299);
+
+    /*
+     * El rol de acento. Ojo con el nombre: `--acento` es el violeta de marca y
+     * `--accent` —el de shadcn, unas líneas más arriba— es la superficie de
+     * hover, un teal pálido que consumen decenas de primitivos. Son cosas
+     * distintas y por eso tienen nombres distintos; unificarlos rompe el menú,
+     * el desplegable, el select y el ítem activo del sidebar de una vez.
+     *
+     * Sobre claro el acento es el 600 (6.02:1 sobre blanco). El 400 se queda
+     * en decorativo: 3.02:1 no pasa AA para texto.
+     */
+    --acento: var(--violeta-600);
+    --acento-foreground: oklch(0.995 0.002 215);
+    --acento-suave: var(--violeta-50);
+    --acento-borde: var(--violeta-200);
+
+    /*
+     * Estados del dominio. Se declaran una sola vez aquí y los consumen
+     * `CeldaBadge` y `BarraSegmentada`; no se reparten clases sueltas por cada
+     * módulo. Estos hues son semántica, no decoración: no se retocan al cambiar
+     * el color de marca.
      */
     --estado-no-iniciado: oklch(0.62 0.015 255);
     --estado-no-iniciado-suave: oklch(0.95 0.006 255);
@@ -63,36 +140,76 @@
     --estado-implantado-suave: oklch(0.95 0.04 155);
     --estado-no-aplica: oklch(0.6 0.01 285);
     --estado-no-aplica-suave: oklch(0.955 0.004 285);
+
+    /*
+     * Reservado. El dominio todavía no tiene este estado —las implantaciones
+     * van de `no_iniciado` a `implantado`—, pero el hueco existe: ni conforme
+     * ni incumplido, en manos de alguien. Es el trabajo funcional que hace el
+     * violeta según DESIGN.md §3, y declararlo aquí evita que cuando llegue el
+     * flujo de revisión alguien elija un color a mano.
+     */
+    --estado-en-revision: var(--violeta-600);
+    --estado-en-revision-suave: var(--violeta-50);
+
+    /* Sombras teñidas con el hue del fondo. Negro puro sobre claro ensucia. */
+    --sombra-1: 0 1px 2px oklch(0.23 0.018 235 / 7%), 0 1px 3px oklch(0.23 0.018 235 / 4%);
+    --sombra-2: 0 1px 2px oklch(0.23 0.018 235 / 6%), 0 8px 20px -8px oklch(0.23 0.018 235 / 12%);
+    --sombra-3: 0 2px 4px oklch(0.23 0.018 235 / 6%), 0 16px 40px -12px oklch(0.23 0.018 235 / 18%);
+
+    /* Motion: los números viven aquí y en `lib/motion.ts`, en ningún otro sitio. */
+    --duracion-rapida: 120ms;
+    --duracion: 220ms;
+    --duracion-lenta: 380ms;
+    /*
+     * El único bucle del chrome de trabajo: el hilo de carga de la tabla. No
+     * contradice el «lo decorativo no entra» de DESIGN.md §10 porque no es
+     * decorativo — dice que hay una consulta en marcha— y sólo existe mientras
+     * la petición está viva. Con `prefers-reduced-motion` se pinta quieto.
+     */
+    --duracion-bucle: 1100ms;
+    --curva: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .dark {
-    --background: oklch(0.19 0.015 258);
-    --foreground: oklch(0.95 0.004 250);
+    --background: oklch(0.175 0.014 235);
+    --foreground: oklch(0.955 0.004 215);
 
-    --card: oklch(0.23 0.017 258);
-    --card-foreground: oklch(0.95 0.004 250);
+    --card: oklch(0.215 0.016 235);
+    --card-foreground: oklch(0.955 0.004 215);
 
-    --popover: oklch(0.23 0.017 258);
-    --popover-foreground: oklch(0.95 0.004 250);
+    --popover: oklch(0.225 0.016 235);
+    --popover-foreground: oklch(0.955 0.004 215);
 
-    --primary: oklch(0.72 0.1 233);
-    --primary-foreground: oklch(0.19 0.015 258);
+    --superficie: oklch(0.2 0.015 235);
 
-    --secondary: oklch(0.28 0.018 258);
-    --secondary-foreground: oklch(0.95 0.004 250);
+    --primary: oklch(0.8 0.12 196);
+    --primary-foreground: oklch(0.17 0.02 220);
 
-    --muted: oklch(0.28 0.018 258);
-    --muted-foreground: oklch(0.68 0.015 255);
+    --secondary: oklch(0.265 0.017 235);
+    --secondary-foreground: oklch(0.955 0.004 215);
 
-    --accent: oklch(0.31 0.03 233);
-    --accent-foreground: oklch(0.93 0.02 233);
+    --muted: oklch(0.265 0.017 235);
+    --muted-foreground: oklch(0.7 0.015 225);
 
-    --destructive: oklch(0.63 0.18 25);
-    --destructive-foreground: oklch(0.98 0.004 250);
+    --accent: oklch(0.3 0.05 196);
+    --accent-foreground: oklch(0.9 0.05 196);
 
-    --border: oklch(1 0 0 / 12%);
-    --input: oklch(1 0 0 / 16%);
-    --ring: oklch(0.72 0.1 233);
+    --destructive: oklch(0.65 0.18 25);
+    --destructive-foreground: oklch(0.98 0.004 215);
+
+    --border: oklch(1 0 0 / 11%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.8 0.12 196);
+
+    /*
+     * La escala de marca NO se redefine aquí a propósito: 50 es el tono más
+     * claro y 950 el más oscuro en los dos temas. Invertirla en oscuro parecía
+     * elegante y era una trampa — `bg-marca-900 text-marca-950` deja de tener
+     * sentido en la mitad de los casos y el contraste se rompe sin que se vea
+     * en el fichero que lo usa. Lo que sí cambia de tema son los roles
+     * (`--primary`, `--accent`), que es donde debe estar la decisión. La
+     * escala `--violeta-*` se queda fuera por el mismo motivo.
+     */
 
     --estado-no-iniciado: oklch(0.7 0.015 255);
     --estado-no-iniciado-suave: oklch(0.3 0.012 255);
@@ -104,11 +221,24 @@
     --estado-implantado-suave: oklch(0.3 0.05 155);
     --estado-no-aplica: oklch(0.66 0.01 285);
     --estado-no-aplica-suave: oklch(0.29 0.008 285);
+    --estado-en-revision: var(--violeta-400);
+    --estado-en-revision-suave: oklch(0.3 0.06 299);
+
+    /* Sobre el fondo oscuro el acento es el 400 (5.55:1). Nunca el 600. */
+    --acento: var(--violeta-400);
+    --acento-foreground: oklch(0.17 0.02 220);
+    --acento-suave: oklch(0.3 0.06 299);
+    --acento-borde: oklch(0.38 0.08 299);
+
+    --sombra-1: 0 1px 2px oklch(0 0 0 / 40%);
+    --sombra-2: 0 1px 2px oklch(0 0 0 / 35%), 0 8px 20px -8px oklch(0 0 0 / 55%);
+    --sombra-3: 0 2px 4px oklch(0 0 0 / 35%), 0 16px 40px -12px oklch(0 0 0 / 65%);
 }
 
 @theme inline {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
     --color-background: var(--background);
     --color-foreground: var(--foreground);
@@ -116,6 +246,7 @@
     --color-card-foreground: var(--card-foreground);
     --color-popover: var(--popover);
     --color-popover-foreground: var(--popover-foreground);
+    --color-superficie: var(--superficie);
     --color-primary: var(--primary);
     --color-primary-foreground: var(--primary-foreground);
     --color-secondary: var(--secondary);
@@ -130,6 +261,35 @@
     --color-input: var(--input);
     --color-ring: var(--ring);
 
+    --color-marca-50: var(--marca-50);
+    --color-marca-100: var(--marca-100);
+    --color-marca-200: var(--marca-200);
+    --color-marca-300: var(--marca-300);
+    --color-marca-400: var(--marca-400);
+    --color-marca-500: var(--marca-500);
+    --color-marca-600: var(--marca-600);
+    --color-marca-700: var(--marca-700);
+    --color-marca-800: var(--marca-800);
+    --color-marca-900: var(--marca-900);
+    --color-marca-950: var(--marca-950);
+
+    --color-violeta-50: var(--violeta-50);
+    --color-violeta-100: var(--violeta-100);
+    --color-violeta-200: var(--violeta-200);
+    --color-violeta-300: var(--violeta-300);
+    --color-violeta-400: var(--violeta-400);
+    --color-violeta-500: var(--violeta-500);
+    --color-violeta-600: var(--violeta-600);
+    --color-violeta-700: var(--violeta-700);
+    --color-violeta-800: var(--violeta-800);
+    --color-violeta-900: var(--violeta-900);
+    --color-violeta-950: var(--violeta-950);
+
+    --color-acento: var(--acento);
+    --color-acento-foreground: var(--acento-foreground);
+    --color-acento-suave: var(--acento-suave);
+    --color-acento-borde: var(--acento-borde);
+
     --color-estado-no-iniciado: var(--estado-no-iniciado);
     --color-estado-no-iniciado-suave: var(--estado-no-iniciado-suave);
     --color-estado-planificado: var(--estado-planificado);
@@ -140,12 +300,19 @@
     --color-estado-implantado-suave: var(--estado-implantado-suave);
     --color-estado-no-aplica: var(--estado-no-aplica);
     --color-estado-no-aplica-suave: var(--estado-no-aplica-suave);
+    --color-estado-en-revision: var(--estado-en-revision);
+    --color-estado-en-revision-suave: var(--estado-en-revision-suave);
+
+    --shadow-sombra-1: var(--sombra-1);
+    --shadow-sombra-2: var(--sombra-2);
+    --shadow-sombra-3: var(--sombra-3);
 
     --radius-sm: calc(var(--radius) - 4px);
     --radius-md: calc(var(--radius) - 2px);
     --radius-lg: var(--radius);
     --radius-xl: calc(var(--radius) + 4px);
-    --font-heading: var(--font-sans);
+
+    --ease-marca: var(--curva);
 }
 
 @layer base {
@@ -153,9 +320,61 @@
         @apply border-border outline-ring/50;
     }
 
+    html {
+        scroll-behavior: smooth;
+    }
+
     body {
         @apply bg-background text-foreground;
         font-feature-settings: 'cv11', 'ss01';
         font-variation-settings: 'opsz' 32;
+    }
+
+    /*
+     * El foco visible no es negociable: la herramienta se recorre con teclado y
+     * el anillo de marca es lo que dice dónde estás.
+     */
+    :focus-visible {
+        @apply outline-ring outline-2 outline-offset-2;
+    }
+
+    /* Las cifras de una tabla se comparan en vertical; deben cuadrar. */
+    .cifra {
+        @apply font-mono tabular-nums;
+        font-feature-settings: 'tnum', 'zero';
+    }
+
+    /*
+     * El hilo que recorre el borde superior de la tabla mientras el servidor
+     * responde. Filtrar, ordenar y paginar son consultas de servidor: sin esto,
+     * escribir en un filtro deja la tabla quieta y parece que no ha pasado nada.
+     */
+    @keyframes hilo-de-carga {
+        from {
+            transform: translateX(-100%);
+        }
+        to {
+            transform: translateX(400%);
+        }
+    }
+
+    .hilo-de-carga {
+        animation: hilo-de-carga var(--duracion-bucle) var(--curva) infinite;
+    }
+}
+
+/*
+ * Red de seguridad de accesibilidad. Cada componente que anima consulta además
+ * `useMovimientoReducido`, pero esto cubre lo que venga de Reka, de
+ * `tw-animate-css` o de un descuido.
+ */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 1ms !important;
+        scroll-behavior: auto !important;
     }
 }

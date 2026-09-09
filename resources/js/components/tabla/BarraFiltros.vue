@@ -1,21 +1,32 @@
 <script setup lang="ts">
+import FiltroColumna from '@/components/tabla/FiltroColumna.vue';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-    DropdownMenu,
-    DropdownMenuCheckboxItem,
-    DropdownMenuContent,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { ValorFiltro } from '@/composables/useTablaServidor';
-import { ChevronDownIcon, XIcon } from '@lucide/vue';
-import { ref, watch } from 'vue';
+import { chipsDe, estaActivo } from '@/lib/filtros';
+import { ListFilterIcon, XIcon } from '@lucide/vue';
+import { computed } from 'vue';
 
 type Filtro = App.Http.Resources.Definicion.Filtro;
 
+/**
+ * La barra de filtros: lo que no cabe en la cabecera de la tabla.
+ *
+ * Desde que cada filtro cuelga de su columna, aquí quedan tres cosas: la
+ * búsqueda —que cruza varios campos y no pertenece a ninguna columna—, los
+ * filtros cuya columna está oculta o no existe, y los chips de lo aplicado.
+ *
+ * Los chips salen de `props.valores`, que viene de `MetaTabla`: es lo que el
+ * servidor aplicó de verdad, no lo que se pidió. Con la fila de filtros
+ * plegada siguen siendo la única forma de ver qué está estrechando la tabla.
+ */
 const props = defineProps<{
-    filtros: Filtro[];
+    /** La búsqueda general, si el recurso declara una. */
+    busqueda: Filtro | null;
+    /** Los que no tienen columna visible bajo la que pintarse. */
+    sueltos: Filtro[];
+    /** Todos los del recurso, para los chips. */
+    todos: Filtro[];
     valores: Record<string, ValorFiltro>;
     hayFiltrosActivos: boolean;
 }>();
@@ -25,163 +36,80 @@ const emit = defineEmits<{
     limpiar: [];
 }>();
 
-/* Los filtros de texto se aplican al dejar de escribir, no en cada tecla. */
-const borradores = ref<Record<string, string>>({});
-const temporizadores = new Map<string, ReturnType<typeof setTimeout>>();
+const chips = computed(() => chipsDe(props.todos, props.valores));
 
-watch(
-    () => props.valores,
-    (valores) => {
-        for (const filtro of props.filtros) {
-            if (filtro.tipo === 'texto') {
-                const valor = valores[filtro.clave];
-                borradores.value[filtro.clave] = typeof valor === 'string' ? valor : '';
-            }
-        }
-    },
-    { immediate: true, deep: true },
+const sueltosActivos = computed(
+    () => props.sueltos.filter((filtro) => estaActivo(props.valores[filtro.clave] ?? null)).length,
 );
-
-function escribir(clave: string, valor: string): void {
-    borradores.value[clave] = valor;
-
-    clearTimeout(temporizadores.get(clave));
-    temporizadores.set(
-        clave,
-        setTimeout(() => emit('aplicar', clave, valor === '' ? null : valor), 350),
-    );
-}
-
-function seleccionados(clave: string): string[] {
-    const valor = props.valores[clave];
-
-    if (Array.isArray(valor)) {
-        return valor;
-    }
-
-    return typeof valor === 'string' && valor !== '' ? valor.split(',') : [];
-}
-
-function alternar(clave: string, opcion: string): void {
-    const actuales = seleccionados(clave);
-    const siguientes = actuales.includes(opcion)
-        ? actuales.filter((valor) => valor !== opcion)
-        : [...actuales, opcion];
-
-    emit('aplicar', clave, siguientes.length === 0 ? null : siguientes);
-}
-
-function resumen(filtro: Filtro): string {
-    const activos = seleccionados(filtro.clave);
-
-    if (activos.length === 0) {
-        return filtro.etiqueta;
-    }
-
-    const etiquetas = filtro.opciones
-        .filter((opcion) => activos.includes(opcion.valor))
-        .map((opcion) => opcion.etiqueta);
-
-    return etiquetas.length <= 2
-        ? `${filtro.etiqueta}: ${etiquetas.join(', ')}`
-        : `${filtro.etiqueta}: ${etiquetas.length} seleccionados`;
-}
 </script>
 
 <template>
-    <div class="flex flex-wrap items-end gap-2">
-        <template v-for="filtro in filtros" :key="filtro.clave">
-            <div v-if="filtro.tipo === 'texto'" class="grid gap-1">
-                <Label :for="`filtro-${filtro.clave}`" class="text-xs text-muted-foreground">
-                    {{ filtro.etiqueta }}
-                </Label>
-                <Input
-                    :id="`filtro-${filtro.clave}`"
-                    :model-value="borradores[filtro.clave] ?? ''"
-                    :placeholder="filtro.placeholder ?? ''"
-                    class="h-8 w-56"
-                    type="search"
-                    @update:model-value="escribir(filtro.clave, String($event))"
+    <div class="flex w-full min-w-0 flex-col gap-2">
+        <div class="flex flex-wrap items-center gap-2">
+            <div v-if="busqueda" class="w-full sm:w-72">
+                <FiltroColumna
+                    :filtro="busqueda"
+                    :valor="valores[busqueda.clave] ?? null"
+                    variante="panel"
+                    @aplicar="(clave: string, valor: ValorFiltro) => emit('aplicar', clave, valor)"
                 />
             </div>
 
-            <div v-else-if="filtro.tipo === 'booleano'" class="grid gap-1">
-                <span class="text-xs text-muted-foreground">&nbsp;</span>
-                <Button
-                    :variant="valores[filtro.clave] ? 'secondary' : 'outline'"
-                    size="sm"
-                    @click="emit('aplicar', filtro.clave, valores[filtro.clave] ? null : '1')"
-                >
-                    {{ filtro.etiqueta }}
-                </Button>
-            </div>
-
-            <div v-else-if="filtro.tipo === 'rango_fechas'" class="grid gap-1">
-                <Label class="text-xs text-muted-foreground">{{ filtro.etiqueta }}</Label>
-                <div class="flex items-center gap-1">
-                    <Input
-                        type="date"
-                        class="h-8 w-36"
-                        :model-value="String(valores[filtro.clave] ?? '').split(',')[0] ?? ''"
-                        @update:model-value="
-                            emit(
-                                'aplicar',
-                                filtro.clave,
-                                `${$event},${String(valores[filtro.clave] ?? '').split(',')[1] ?? ''}`,
-                            )
-                        "
-                    />
-                    <span class="text-muted-foreground">–</span>
-                    <Input
-                        type="date"
-                        class="h-8 w-36"
-                        :model-value="String(valores[filtro.clave] ?? '').split(',')[1] ?? ''"
-                        @update:model-value="
-                            emit(
-                                'aplicar',
-                                filtro.clave,
-                                `${String(valores[filtro.clave] ?? '').split(',')[0] ?? ''},${$event}`,
-                            )
-                        "
-                    />
-                </div>
-            </div>
-
-            <div v-else class="grid gap-1">
-                <span class="text-xs text-muted-foreground">&nbsp;</span>
-                <DropdownMenu>
-                    <DropdownMenuTrigger as-child>
-                        <Button variant="outline" size="sm" class="gap-1">
-                            {{ resumen(filtro) }}
-                            <ChevronDownIcon class="size-3.5 opacity-60" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" class="max-h-80 w-64 overflow-y-auto">
-                        <DropdownMenuCheckboxItem
-                            v-for="opcion in filtro.opciones"
-                            :key="opcion.valor"
-                            :model-value="seleccionados(filtro.clave).includes(opcion.valor)"
-                            @select="(evento: Event) => evento.preventDefault()"
-                            @update:model-value="
-                                filtro.multiple
-                                    ? alternar(filtro.clave, opcion.valor)
-                                    : emit(
-                                          'aplicar',
-                                          filtro.clave,
-                                          seleccionados(filtro.clave).includes(opcion.valor) ? null : opcion.valor,
-                                      )
-                            "
+            <Popover v-if="sueltos.length > 0">
+                <PopoverTrigger as-child>
+                    <Button variant="outline" size="sm" class="h-9 gap-1.5">
+                        <ListFilterIcon class="size-3.5" />
+                        Filtros
+                        <span
+                            v-if="sueltosActivos > 0"
+                            class="cifra rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground"
                         >
-                            {{ opcion.etiqueta }}
-                        </DropdownMenuCheckboxItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </div>
-        </template>
+                            {{ sueltosActivos }}
+                        </span>
+                    </Button>
+                </PopoverTrigger>
 
-        <Button v-if="hayFiltrosActivos" variant="ghost" size="sm" class="gap-1" @click="emit('limpiar')">
-            <XIcon class="size-3.5" />
-            Limpiar
-        </Button>
+                <PopoverContent align="start" class="w-72 gap-3">
+                    <p class="text-xs font-medium text-muted-foreground">
+                        Sin columna a la vista. Muestra la columna y el filtro sube a la cabecera.
+                    </p>
+
+                    <div v-for="filtro in sueltos" :key="filtro.clave" class="grid gap-1.5">
+                        <span class="text-xs font-medium">{{ filtro.etiqueta }}</span>
+                        <FiltroColumna
+                            :filtro="filtro"
+                            :valor="valores[filtro.clave] ?? null"
+                            variante="panel"
+                            @aplicar="(clave: string, valor: ValorFiltro) => emit('aplicar', clave, valor)"
+                        />
+                    </div>
+                </PopoverContent>
+            </Popover>
+        </div>
+
+        <!-- Lo aplicado de verdad, y cómo quitarlo pieza a pieza. -->
+        <div v-if="chips.length > 0" class="flex flex-wrap items-center gap-1.5">
+            <button
+                v-for="(chip, indice) in chips"
+                :key="`${chip.clave}-${indice}`"
+                type="button"
+                class="group inline-flex max-w-xs items-center gap-1 rounded-full border bg-muted/60 py-0.5 pr-1 pl-2.5 text-xs font-medium transition-colors hover:border-destructive/40 hover:bg-destructive/10"
+                @click="emit('aplicar', chip.clave, chip.resto)"
+            >
+                <span class="truncate">{{ chip.etiqueta }}</span>
+                <span class="sr-only">, quitar este filtro</span>
+                <XIcon class="size-3 shrink-0 text-muted-foreground transition-colors group-hover:text-destructive" />
+            </button>
+
+            <Button
+                v-if="hayFiltrosActivos && chips.length > 1"
+                variant="ghost"
+                size="xs"
+                class="text-muted-foreground"
+                @click="emit('limpiar')"
+            >
+                Limpiar todo
+            </Button>
+        </div>
     </div>
 </template>

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Resources;
 
+use App\Domain\Catalogo\Enums\Exigencia;
+use App\Domain\Catalogo\Models\Marco;
+use App\Domain\Categorizacion\Enums\OrigenExigencia;
 use App\Domain\Implantacion\Enums\EstadoImplantacion;
 use App\Domain\Implantacion\Enums\NivelMadurez;
 use App\Domain\Implantacion\Models\Implantacion;
@@ -13,6 +16,7 @@ use App\Http\Resources\Definicion\Columna;
 use App\Http\Resources\Definicion\Etiquetas;
 use App\Http\Resources\Definicion\Filtro;
 use App\Http\Resources\Definicion\Opcion;
+use App\Http\Resources\Definicion\ValorEscala;
 use App\Http\Resources\Definicion\ValorEtiquetado;
 use App\Http\Resources\Enums\MetodoAccion;
 use App\Models\User;
@@ -83,38 +87,66 @@ final class ImplantacionRecurso extends Recurso
                     $fila->estado->value,
                 )),
             Columna::booleano('aplica', 'Aplica')->ordenable(),
-            Columna::texto('exigencia', 'Exigencia')
+            Columna::badge('exigencia', 'Exigencia')
                 ->ordenable('exigencia_calculada')
                 ->ayuda('Lo calcula el motor de categorización; no se escribe a mano.')
-                ->formato(fn (Implantacion $fila): ?string => $fila->exigencia_calculada?->valor),
-            Columna::badge('nivel_madurez', 'Madurez')
-                ->ordenable()
-                ->oculta()
-                ->formato(fn (Implantacion $fila): ?ValorEtiquetado => $fila->nivel_madurez === null
+                ->formato(fn (Implantacion $fila): ?ValorEtiquetado => $fila->exigencia_calculada === null
                     ? null
                     : new ValorEtiquetado(
-                        $fila->nivel_madurez->value,
+                        $fila->exigencia_calculada->valor,
+                        $fila->exigencia_calculada->etiqueta(),
+                        $fila->exigencia_calculada->tono(),
+                    )),
+            // La madurez es ordinal, no un estado: lo que se busca al recorrer
+            // la columna es si L4 es más que L2, y un badge no dice eso.
+            Columna::escala('nivel_madurez', 'Madurez')
+                ->ordenable()
+                ->oculta()
+                ->formato(fn (Implantacion $fila): ?ValorEscala => $fila->nivel_madurez === null
+                    ? null
+                    : new ValorEscala(
+                        $fila->nivel_madurez->valor(),
+                        NivelMadurez::L5->valor(),
                         $fila->nivel_madurez->etiqueta(),
-                        null,
+                        $fila->nivel_madurez->name,
                     )),
             Columna::texto('responsable', 'Responsable')
                 ->formato(fn (Implantacion $fila): ?string => $fila->responsable?->name),
             Columna::fecha('fecha_objetivo', 'Fecha objetivo')->ordenable()->oculta(),
-            Columna::texto('marco', 'Marco')
+            Columna::badge('marco', 'Marco')
                 ->oculta()
-                ->formato(fn (Implantacion $fila): ?string => $fila->requisito?->marco?->codigo),
+                ->formato(function (Implantacion $fila): ?ValorEtiquetado {
+                    $codigo = $fila->requisito?->marco?->codigo;
+
+                    return $codigo === null ? null : new ValorEtiquetado($codigo, $codigo, 'marco');
+                }),
             Columna::texto('origen_exigencia', 'Origen')
                 ->oculta()
                 ->ayuda('Por qué se exige: la categoría, la modulación de una dimensión, un perfil o el propio catálogo.')
-                ->formato(fn (Implantacion $fila): ?string => $fila->origen_exigencia?->value),
+                ->formato(fn (Implantacion $fila): ?string => $fila->origen_exigencia?->etiqueta()),
             Columna::texto('justificacion', 'Justificación')->oculta(),
         ];
     }
 
-    /** @return list<Filtro> */
+    /**
+     * La búsqueda cruza el código y el título del requisito, que es por donde
+     * se busca de verdad en esta tabla: nadie recuerda el identificador de una
+     * implantación, pero sí «copias de seguridad» o `mp.info.6`.
+     *
+     * @return list<Filtro>
+     */
     public function filtros(): array
     {
         return [
+            Filtro::busqueda('q', 'Buscar', [
+                'requisitos.codigo' => 'codigo',
+                'requisitos.titulo' => 'requisito',
+            ])->placeholder('Buscar por código o requisito…'),
+            // El código y el título del requisito viven en el catálogo, no
+            // aquí; los filtros pueden apuntar a ellos porque `consulta()` ya
+            // trae el join.
+            Filtro::texto('codigo', 'Código')->campo('requisitos.codigo'),
+            Filtro::texto('requisito', 'Requisito')->campo('requisitos.titulo'),
             Filtro::select('sistema_id', 'Sistema', fn (): array => Sistema::query()
                 ->orderBy('codigo')
                 ->get()
@@ -122,12 +154,12 @@ final class ImplantacionRecurso extends Recurso
                     (string) $sistema->id,
                     "{$sistema->codigo} — {$sistema->nombre}",
                 ))
-                ->all()),
+                ->all())->enColumna('sistema'),
             Filtro::multiSelect('estado', 'Estado', array_map(
                 static fn (EstadoImplantacion $estado): Opcion => new Opcion($estado->value, $estado->etiqueta()),
                 EstadoImplantacion::cases(),
             )),
-            Filtro::booleano('aplica', 'Sólo aplicables'),
+            Filtro::booleano('aplica', 'Aplica'),
             Filtro::multiSelect('nivel_madurez', 'Madurez', array_map(
                 static fn (NivelMadurez $nivel): Opcion => new Opcion($nivel->value, $nivel->etiqueta()),
                 NivelMadurez::cases(),
@@ -136,8 +168,36 @@ final class ImplantacionRecurso extends Recurso
                 ->orderBy('name')
                 ->get()
                 ->map(fn (User $usuario): Opcion => new Opcion((string) $usuario->id, $usuario->name))
-                ->all()),
+                ->all())->enColumna('responsable'),
             Filtro::rangoFechas('fecha_objetivo', 'Fecha objetivo'),
+            // La exigencia no es un conjunto cerrado —los refuerzos `Rn` los
+            // trae el catálogo—, así que las opciones salen de lo que hay.
+            Filtro::select('exigencia', 'Exigencia', fn (): array => Implantacion::query()
+                ->select('exigencia_calculada')
+                ->whereNotNull('exigencia_calculada')
+                ->distinct()
+                ->get()
+                ->map(fn (Implantacion $fila): ?Exigencia => $fila->exigencia_calculada)
+                ->filter()
+                ->sortBy(fn (Exigencia $exigencia): int => $exigencia->peso())
+                ->map(fn (Exigencia $exigencia): Opcion => new Opcion(
+                    $exigencia->valor,
+                    $exigencia->etiqueta(),
+                ))
+                ->values()
+                ->all())->campo('exigencia_calculada'),
+            Filtro::multiSelect('origen_exigencia', 'Origen', array_map(
+                static fn (OrigenExigencia $origen): Opcion => new Opcion($origen->value, $origen->etiqueta()),
+                OrigenExigencia::cases(),
+            )),
+            // Mismo nombre de parámetro que en Sistemas: `filter[marco_id]`
+            // significa lo mismo en toda la aplicación.
+            Filtro::select('marco_id', 'Marco', fn (): array => Marco::query()
+                ->orderBy('nombre')
+                ->get()
+                ->map(fn (Marco $marco): Opcion => new Opcion((string) $marco->id, $marco->nombre))
+                ->all())->campo('requisitos.marco_id')->enColumna('marco'),
+            Filtro::texto('justificacion', 'Justificación'),
         ];
     }
 

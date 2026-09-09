@@ -77,6 +77,41 @@ final readonly class Exigencia implements Stringable
     }
 
     /**
+     * Cómo se lee esta exigencia en la interfaz y en los documentos.
+     *
+     * `R2` no significa nada fuera del Anexo II, y la tabla la lee gente que no
+     * se lo sabe de memoria.
+     */
+    public function etiqueta(): string
+    {
+        $refuerzo = $this->nivelRefuerzo();
+
+        return match (true) {
+            $refuerzo !== null => "Refuerzo {$refuerzo}",
+            $this->valor === self::APLICA => 'Aplica',
+            default => 'No aplica',
+        };
+    }
+
+    /**
+     * El nombre de estado con el que se pinta, no un color: los colores viven
+     * en `resources/css/app.css`.
+     *
+     * Los refuerzos se colapsan en un solo tono a propósito. Su número no está
+     * acotado por el marco —ese es el motivo de que esto no sea un enum—, así
+     * que un tono por nivel obligaría a tocar la interfaz cada vez que el
+     * catálogo incorpora un `R4`.
+     */
+    public function tono(): string
+    {
+        return match (true) {
+            $this->nivelRefuerzo() !== null => 'reforzado',
+            $this->valor === self::APLICA => 'exigible',
+            default => 'no_aplica',
+        };
+    }
+
+    /**
      * Orden de exigencia, para quedarse con la mayor cuando concurren varias
      * fuentes (categoría del sistema, modulación por dimensión y perfil).
      */

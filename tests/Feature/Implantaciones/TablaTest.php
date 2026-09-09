@@ -77,6 +77,59 @@ it('ordena por el orden del catálogo, no por el texto del código', function ()
         );
 });
 
+it('filtra por el título del requisito, que vive en el catálogo y no aquí', function (): void {
+    $escenario = escenarioDeImplantaciones();
+    $escenario['implantaciones']['mp.if.1']->requisito->update(['titulo' => 'Copias de seguridad verificadas']);
+
+    // El filtro apunta a `requisitos.titulo`, y sólo puede porque la consulta
+    // del recurso ya trae ese join.
+    $this->actingAs($escenario['usuario'])
+        ->get('/implantaciones?filter[requisito]=copias de seguridad')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->has('filas', 1)
+            ->where('filas.0.codigo', 'mp.if.1')
+        );
+});
+
+it('filtra por marco a través del requisito', function (): void {
+    $escenario = escenarioDeImplantaciones();
+    $propio = $escenario['implantaciones']['mp.if.1']->requisito?->marco_id;
+
+    $this->actingAs($escenario['usuario'])
+        ->get("/implantaciones?filter[marco_id]={$propio}")
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina->has('filas', 3));
+
+    $ajeno = Marco::factory()->create();
+
+    $this->actingAs($escenario['usuario'])
+        ->get("/implantaciones?filter[marco_id]={$ajeno->id}")
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina->has('filas', 0));
+});
+
+it('serializa madurez, exigencia y origen de forma legible', function (): void {
+    $escenario = escenarioDeImplantaciones();
+
+    $escenario['implantaciones']['op.acc.2']->update([
+        'nivel_madurez' => 'l3',
+        'exigencia_calculada' => 'R2',
+        'origen_exigencia' => 'modulacion_dimension',
+    ]);
+
+    $this->actingAs($escenario['usuario'])
+        ->get('/implantaciones')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            // La madurez es ordinal: viaja el nivel y el máximo, no un badge.
+            ->where('filas.0.nivel_madurez.valor', 3)
+            ->where('filas.0.nivel_madurez.de', 5)
+            ->where('filas.0.nivel_madurez.corta', 'L3')
+            ->where('filas.0.nivel_madurez.etiqueta', 'L3 — Proceso definido')
+            // `R2` no significa nada fuera del Anexo II.
+            ->where('filas.0.exigencia.etiqueta', 'Refuerzo 2')
+            ->where('filas.0.exigencia.tono', 'reforzado')
+            ->where('filas.0.origen_exigencia', 'Modulación por dimensión')
+        );
+});
+
 it('lleva el estado actual y las transiciones posibles en cada fila', function (): void {
     $escenario = escenarioDeImplantaciones();
 

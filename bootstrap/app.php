@@ -11,6 +11,8 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
+use Inertia\Inertia;
+use Symfony\Component\HttpFoundation\Response;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -50,4 +52,34 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        /*
+         * Las páginas de error se pintan con Inertia, no con las plantillas de
+         * Symfony.
+         *
+         * Aquí importa más que en otras aplicaciones: el aislamiento
+         * multi-tenant responde 404 —no 403— cuando alguien pide un recurso de
+         * otra organización, porque decir «existe pero no es tuyo» ya sería
+         * filtrar información. Ese 404 lo va a ver gente real y con frecuencia,
+         * así que tiene que explicar qué ha pasado y llevar a alguna parte.
+         *
+         * Los 500 sólo se maquillan fuera de depuración: en local se quiere la
+         * traza de Laravel, no una pantalla bonita que la esconda.
+         */
+        $exceptions->respond(function (Response $respuesta, Throwable $excepcion, Request $request): Response {
+            $propias = [403, 404, 419, 429, 503];
+            $estado = $respuesta->getStatusCode();
+
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return $respuesta;
+            }
+
+            if (! in_array($estado, $propias, true) && ! (! config('app.debug') && $estado >= 500)) {
+                return $respuesta;
+            }
+
+            return Inertia::render('Error', ['estado' => $estado])
+                ->toResponse($request)
+                ->setStatusCode($estado);
+        });
     })->create();
