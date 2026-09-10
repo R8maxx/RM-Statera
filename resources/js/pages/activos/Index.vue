@@ -11,7 +11,8 @@ const props = defineProps<{
     recurso: App.Http.Resources.Definicion.DefinicionRecurso;
     filas: Fila[];
     meta: App.Http.Resources.Definicion.MetaTabla;
-    indicadores: App.Http.Resources.Panel.IndicadorInventario[];
+    alertas: App.Http.Resources.Panel.IndicadorInventario[];
+    pendientes: App.Http.Resources.Panel.IndicadorInventario[];
     vigentes: number;
 }>();
 
@@ -39,7 +40,8 @@ function masiva(accion: Accion, ids: (number | string)[]): void {
         />
 
         <IndicadoresInventario
-            :indicadores="indicadores"
+            :alertas="alertas"
+            :pendientes="pendientes"
             :vigentes="vigentes"
             :filtros="props.meta.filtros"
         />

@@ -182,11 +182,27 @@ readonly tono: string,
 readonly filtro: string,
 readonly ayuda: string | null,
 };
+export type RepartoInventario = {
+readonly clave: string,
+readonly etiqueta: string,
+readonly valor: number,
+readonly tono: string,
+readonly filtro: string | null,
+};
 export type ResumenEvidencias = {
 readonly total: number,
 readonly caducadas: number,
 readonly porCaducar: number,
 readonly implantadasSinEvidencia: number,
+};
+export type ResumenInventarioPanel = {
+readonly vigentes: number,
+readonly resueltos: number,
+readonly restringidos: number,
+readonly cifrado: App.Http.Resources.Panel.RepartoInventario[],
+readonly copia: App.Http.Resources.Panel.RepartoInventario[],
+readonly porTipo: App.Http.Resources.Panel.RepartoInventario[],
+readonly porCicloDeVida: App.Http.Resources.Panel.RepartoInventario[],
 };
 export type ResumenPanel = {
 readonly sistemas: number,

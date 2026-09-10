@@ -1,23 +1,29 @@
 <script setup lang="ts">
+import Cifra from '@/components/Cifra.vue';
 import { Link } from '@inertiajs/vue3';
+import { CheckCircle2Icon } from '@lucide/vue';
 import { computed } from 'vue';
 
 type Indicador = App.Http.Resources.Panel.IndicadorInventario;
 
 /**
- * Los indicadores de control del inventario, sobre la tabla.
+ * Lo que pide acción sobre el inventario, encima de la tabla.
  *
- * La diferencia con la hoja «Resumen» de una hoja de cálculo es que **cada cifra
- * es un enlace a su lista**. Allí «43 activos sin cifrar» es un callejón sin
- * salida —y ahora búscalos—; aquí se pulsa y la tabla de abajo enseña esos 43.
- * Una cifra que no lleva a la lista no se acciona, se mira.
+ * Antes eran nueve recuentos del mismo tamaño, varios a cero, y mezclaban tres
+ * cosas distintas: incumplimiento real, dato que falta y perfil. Había que
+ * leerse los nueve para saber si algo iba mal.
  *
- * Los que están a cero se atenúan pero **no se ocultan**: que «Sin copia de
- * seguridad» ponga 0 es exactamente la información que se busca, y esconderlo
- * dejaría al lector sin saber si es que está bien o es que no se mide.
+ * Ahora **sólo se pinta lo que no está a cero**. Una tarjeta gastada en decir
+ * «cero» enseña a ignorar la tira entera, y a la tercera vez ya nadie la mira.
+ * Los repartos —qué hay y de qué tipo— se fueron al panel, que es donde se
+ * pregunta cómo va la cosa; aquí se viene a trabajar.
+ *
+ * Lo que sí se conserva es lo mejor que tenía: **cada cifra lleva a su lista**.
+ * Un número que no se puede accionar sólo se mira.
  */
 const props = defineProps<{
-    indicadores: Indicador[];
+    alertas: Indicador[];
+    pendientes: Indicador[];
     vigentes: number;
     /** Los filtros aplicados ahora mismo, para marcar el indicador activo. */
     filtros: Record<string, string | string[]>;
@@ -27,41 +33,68 @@ const tonos: Record<string, string> = {
     caducada: 'text-destructive',
     en_progreso: 'text-estado-en-progreso',
     alta: 'text-primary',
-    implantado: 'text-estado-implantado',
 };
 
+const abiertas = computed(() => props.alertas.filter((alerta) => alerta.valor > 0));
+const porCompletar = computed(() => props.pendientes.filter((pendiente) => pendiente.valor > 0));
 const activos = computed(() => new Set(Object.keys(props.filtros)));
 </script>
 
 <template>
-    <section class="mb-6" aria-label="Indicadores de control del inventario">
-        <div class="mb-2 flex items-baseline justify-between gap-4">
-            <h2 class="text-sm font-medium">Control del inventario</h2>
-            <p class="text-xs text-muted-foreground">
-                Sobre <span class="cifra">{{ vigentes }}</span> activos vigentes. Los retirados no cuentan: no
-                están pendientes, están cerrados.
-            </p>
-        </div>
-
-        <ul class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            <li v-for="indicador in indicadores" :key="indicador.clave">
+    <section class="mb-6" aria-label="Estado del inventario">
+        <ul v-if="abiertas.length > 0" class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            <li v-for="alerta in abiertas" :key="alerta.clave">
                 <Link
-                    :href="`/activos?${indicador.filtro}`"
+                    :href="`/activos?${alerta.filtro}`"
                     class="block h-full rounded-xl border bg-superficie px-3.5 py-3 transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                    :class="activos.has(indicador.clave) ? 'border-primary ring-1 ring-primary/25' : ''"
-                    :title="indicador.ayuda ?? undefined"
+                    :class="activos.has(alerta.clave) ? 'border-primary ring-1 ring-primary/25' : ''"
+                    :title="alerta.ayuda ?? undefined"
                 >
-                    <span
-                        class="cifra block text-xl font-bold tabular-nums"
-                        :class="indicador.valor === 0 ? 'text-muted-foreground' : (tonos[indicador.tono] ?? '')"
-                    >
-                        {{ indicador.valor }}
+                    <span class="flex items-baseline gap-1.5">
+                        <Cifra
+                            class="text-xl font-bold"
+                            :class="tonos[alerta.tono] ?? ''"
+                            :valor="alerta.valor"
+                        />
+                        <!-- El denominador siempre al lado: «2 sin cifrar» sobre
+                             4 es una urgencia y sobre 307 es un martes. -->
+                        <span class="cifra text-xs text-muted-foreground">de <Cifra :valor="vigentes" /></span>
                     </span>
                     <span class="mt-0.5 block text-xs leading-snug text-muted-foreground">
-                        {{ indicador.etiqueta }}
+                        {{ alerta.etiqueta }}
                     </span>
                 </Link>
             </li>
         </ul>
+
+        <!--
+            Sin nada abierto, una línea y no una fila de ceros. Es un estado
+            vacío de verdad: dice que se ha mirado y que no hay nada, en vez de
+            obligar a comprobar nueve casillas para llegar a la misma conclusión.
+        -->
+        <p
+            v-else
+            class="flex items-center gap-2 rounded-xl border border-estado-implantado/40 bg-estado-implantado/5 px-3.5 py-2.5 text-sm text-estado-implantado"
+        >
+            <CheckCircle2Icon class="size-4 shrink-0" aria-hidden="true" />
+            Sin incidencias abiertas sobre
+            <span class="cifra font-medium">{{ vigentes }}</span>
+            activos vigentes.
+        </p>
+
+        <!--
+            Lo que falta por rellenar va en una línea de texto y no en tarjetas:
+            es otra clase de deuda —la ficha está a medias, no hay nada roto— y
+            en tarjetas competía en peso con lo que sí arde.
+        -->
+        <p v-if="porCompletar.length > 0" class="mt-2.5 text-xs text-muted-foreground">
+            Fichas incompletas:
+            <template v-for="(pendiente, indice) in porCompletar" :key="pendiente.clave">
+                <Link :href="`/activos?${pendiente.filtro}`" class="underline-offset-4 hover:underline">
+                    falta {{ pendiente.etiqueta }} en
+                    <Cifra class="font-medium text-foreground" :valor="pendiente.valor" />
+                </Link><span v-if="indice < porCompletar.length - 1">, </span><span v-else>.</span>
+            </template>
+        </p>
     </section>
 </template>

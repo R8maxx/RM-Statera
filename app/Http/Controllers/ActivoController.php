@@ -51,7 +51,8 @@ class ActivoController extends Controller
             // Los indicadores no se recalculan al paginar ni al ordenar, pero sí
             // al filtrar por uno de ellos —cambian cuando alguien arregla algo—,
             // así que viajan como prop normal y no como `once`.
-            'indicadores' => $resumen->indicadores(),
+            'alertas' => $resumen->alertas(),
+            'pendientes' => $resumen->pendientesDeCompletar(),
             'vigentes' => $resumen->vigentes(),
         ]);
     }

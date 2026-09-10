@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import AnilloProgreso from '@/components/AnilloProgreso.vue';
+import Cifra from '@/components/Cifra.vue';
 import BarraSegmentada, { type Segmento } from '@/components/BarraSegmentada.vue';
 import EstadoVacio from '@/components/EstadoVacio.vue';
+import ResumenInventarioPanelCard from '@/components/activo/ResumenInventarioPanel.vue';
 import GraficaBarras, { type Barra } from '@/components/grafica/GraficaBarras.vue';
 import {
     Card,
@@ -36,6 +38,7 @@ const props = defineProps<{
     evidencias: ResumenEvidencias;
     porEstado: SegmentoEstado[];
     porMarco: AvanceMarco[];
+    inventario: App.Http.Resources.Panel.ResumenInventarioPanel;
 }>();
 
 const { variantesEntrada, variantesEscalonado } = useMovimientoReducido();
@@ -96,11 +99,23 @@ const pruebas = computed(() => [
     },
 ]);
 
+/*
+ * El valor viaja como NÚMERO y no como cadena ya formateada: `Cifra` cuenta
+ * hasta él al entrar, y para eso necesita el número. `null` es «no hay dato»,
+ * que no es lo mismo que cero y se pinta como una raya.
+ */
 const metricas = computed(() => [
-    { etiqueta: 'Sistemas en alcance', valor: String(props.resumen.sistemas), apoyo: null as string | null },
-    { etiqueta: 'Requisitos aplicables', valor: String(props.resumen.aplicables), apoyo: null },
-    { etiqueta: 'Pendientes', valor: String(props.resumen.pendientes), apoyo: null },
-    { etiqueta: 'Madurez media', valor: madurez.value.cifra, apoyo: madurez.value.apoyo },
+    { etiqueta: 'Sistemas en alcance', valor: props.resumen.sistemas, prefijo: '', decimales: 0, apoyo: null as string | null },
+    { etiqueta: 'Requisitos aplicables', valor: props.resumen.aplicables, prefijo: '', decimales: 0, apoyo: null },
+    { etiqueta: 'Pendientes', valor: props.resumen.pendientes, prefijo: '', decimales: 0, apoyo: null },
+    {
+        etiqueta: 'Madurez media',
+        valor: props.resumen.madurezMedia,
+        // La madurez del CCN se escribe «L4,2»: la ele va delante del número.
+        prefijo: 'L',
+        decimales: 1,
+        apoyo: madurez.value.apoyo,
+    },
 ]);
 </script>
 
@@ -138,7 +153,13 @@ const metricas = computed(() => [
                                 >
                                     <dt class="text-xs text-muted-foreground">{{ metrica.etiqueta }}</dt>
                                     <dd class="cifra mt-0.5 text-2xl font-semibold tracking-tight">
-                                        {{ metrica.valor }}
+                                        <Cifra
+                                            v-if="metrica.valor !== null"
+                                            :valor="metrica.valor"
+                                            :decimales="metrica.decimales"
+                                            :prefijo="metrica.prefijo"
+                                        />
+                                        <span v-else>—</span>
                                     </dd>
                                     <dd v-if="metrica.apoyo" class="text-xs text-muted-foreground">
                                         {{ metrica.apoyo }}
@@ -189,7 +210,7 @@ const metricas = computed(() => [
                                     class="cifra mt-0.5 text-2xl font-semibold tracking-tight"
                                     :class="prueba.alerta && 'text-destructive'"
                                 >
-                                    {{ prueba.valor }}
+                                    <Cifra :valor="prueba.valor" />
                                 </dd>
                             </div>
                         </dl>
@@ -211,6 +232,11 @@ const metricas = computed(() => [
                         <GraficaBarras :barras="barrasPorMarco" />
                     </CardContent>
                 </Card>
+            </motion.section>
+
+            <!-- ── Inventario ─────────────────────────────────────────────── -->
+            <motion.section v-if="inventario.vigentes > 0" :variants="variantesEntrada">
+                <ResumenInventarioPanelCard :inventario="inventario" />
             </motion.section>
 
             <!-- ── Sistemas ───────────────────────────────────────────────── -->

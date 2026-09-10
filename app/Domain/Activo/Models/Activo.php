@@ -300,6 +300,25 @@ class Activo extends Model
         $query->where('clasificacion', Clasificacion::Restringido->value);
     }
 
+    /**
+     * Retirado o dado de baja sin constancia de qué se hizo con lo que
+     * contenía.
+     *
+     * Es un hallazgo de `mp.si.5`, no un dato incompleto: el soporte sigue por
+     * ahí con la información dentro. Existía por activo —`esperaBorradoSeguro()`—
+     * pero no se contaba en ninguna parte, así que nadie lo veía hasta abrir la
+     * ficha de uno.
+     *
+     * @param  Builder<$this>  $query
+     */
+    public function scopeEsperaBorradoSeguro(Builder $query): void
+    {
+        $query->whereIn('estado_ciclo_vida', [
+            EstadoCicloVida::Retirado->value,
+            EstadoCicloVida::DadoDeBaja->value,
+        ])->whereNull('borrado_seguro_en');
+    }
+
     /** @param  Builder<$this>  $query */
     public function scopeSinSoporte(Builder $query): void
     {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Domain\Activo\ResumenInventario;
 use App\Domain\Implantacion\Enums\EstadoImplantacion;
 use App\Domain\Implantacion\ResumenCumplimiento;
 use App\Domain\Sistema\Models\Sistema;
@@ -24,7 +25,7 @@ use Inertia\Response;
  */
 class PanelController extends Controller
 {
-    public function __invoke(ResumenCumplimiento $resumen): Response
+    public function __invoke(ResumenCumplimiento $resumen, ResumenInventario $inventario): Response
     {
         $sistemas = Sistema::query()
             ->with('marco')
@@ -73,6 +74,10 @@ class PanelController extends Controller
             ),
             'porEstado' => $resumen->porEstado(),
             'porMarco' => $resumen->porMarco(),
+            // El inventario contesta aquí las preguntas de reparto —qué hay y de
+            // qué tipo— y deja en `/activos` sólo lo que pide acción hoy. Un
+            // panel es para saber cómo va la cosa; una tabla, para trabajar.
+            'inventario' => $inventario->paraElPanel(),
         ]);
     }
 }

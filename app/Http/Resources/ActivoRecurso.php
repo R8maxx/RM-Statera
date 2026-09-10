@@ -253,6 +253,7 @@ final class ActivoRecurso extends Recurso
             Filtro::porScope('sin_revisar', 'Sin revisar en 12 meses', 'sinRevisar')->sinColumna(),
             Filtro::porScope('restringida', 'Con información restringida', 'informacionRestringida')->sinColumna(),
             Filtro::porScope('sin_soporte', 'Soporte o garantía vencidos', 'sinSoporte')->sinColumna(),
+            Filtro::porScope('espera_borrado', 'Retirados sin borrado seguro', 'esperaBorradoSeguro')->sinColumna(),
         ];
     }
 

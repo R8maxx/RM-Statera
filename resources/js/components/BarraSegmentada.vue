@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Cifra from '@/components/Cifra.vue';
 import { computed } from 'vue';
 
 /**
@@ -19,6 +20,8 @@ export interface Segmento {
     clave: string;
     etiqueta: string;
     valor: number;
+    /** El color, cuando no coincide con la clave. Un tipo de activo lo declara. */
+    tono?: string;
 }
 
 const props = withDefaults(
@@ -37,13 +40,47 @@ const props = withDefaults(
     { alto: 'normal', leyenda: false },
 );
 
-/* Los colores son los del dominio, declarados en `app.css`. */
+/*
+ * Los colores son los del dominio, declarados en `app.css`.
+ *
+ * Escritos enteros y no compuestos (`bg-${clave}`) porque Tailwind analiza el
+ * fichero como texto: una clase construida en ejecución no se genera y el tramo
+ * sale sin fondo.
+ */
 const fondos: Record<string, string> = {
     implantado: 'bg-estado-implantado',
     en_progreso: 'bg-estado-en-progreso',
     planificado: 'bg-estado-planificado',
     no_iniciado: 'bg-estado-no-iniciado/45',
     no_aplica: 'bg-estado-no-aplica/35',
+
+    /*
+     * `caducada` es el tono con el que el dominio nombra lo que va mal: una
+     * evidencia sin vigencia, un control que dice «no». Los otros tres valores
+     * de un control ya están arriba —«sí» es `implantado`, «por confirmar» es
+     * `en_progreso` y «no aplica» es gris—, porque lo que llega del servidor es
+     * el TONO, no la clave del valor.
+     */
+    caducada: 'bg-destructive',
+
+    /* Tipología de activos, con el prefijo que la separa de los estados. */
+    'tipo:servicios': 'bg-tipo-servicios',
+    'tipo:datos': 'bg-tipo-datos',
+    'tipo:software': 'bg-tipo-software',
+    'tipo:hardware': 'bg-tipo-hardware',
+    'tipo:comunicaciones': 'bg-tipo-comunicaciones',
+    'tipo:soportes': 'bg-tipo-soportes',
+    'tipo:equipamiento_auxiliar': 'bg-tipo-equipamiento-auxiliar',
+    'tipo:instalaciones': 'bg-tipo-instalaciones',
+    'tipo:personal': 'bg-tipo-personal',
+
+    /* Ciclo de vida del activo, sobre los mismos tokens de estado. */
+    en_produccion: 'bg-estado-implantado',
+    en_mantenimiento: 'bg-estado-en-progreso',
+    en_reparacion: 'bg-estado-en-progreso',
+    prestado: 'bg-estado-planificado',
+    retirado: 'bg-estado-no-aplica/60',
+    dado_de_baja: 'bg-estado-no-aplica/35',
 };
 
 const total = computed(() => props.segmentos.reduce((suma, segmento) => suma + segmento.valor, 0));
@@ -54,13 +91,13 @@ const visibles = computed(() =>
         .map((segmento) => ({
             ...segmento,
             porcentaje: total.value === 0 ? 0 : (segmento.valor / total.value) * 100,
-            fondo: fondos[segmento.clave] ?? 'bg-muted-foreground/40',
+            fondo: fondos[segmento.tono ?? segmento.clave] ?? 'bg-muted-foreground/40',
         })),
 );
 
 const descripcion = computed(
     () => visibles.value.map((segmento) => `${segmento.etiqueta}: ${segmento.valor}`).join(', ')
-        || 'Sin requisitos aplicables',
+        || 'Sin datos',
 );
 </script>
 
@@ -89,7 +126,7 @@ const descripcion = computed(
             <li v-for="segmento in visibles" :key="segmento.clave" class="flex items-center gap-1.5 text-xs">
                 <span class="size-2 shrink-0 rounded-full" :class="segmento.fondo" aria-hidden="true" />
                 <span class="text-muted-foreground">{{ segmento.etiqueta }}</span>
-                <span class="cifra font-medium">{{ segmento.valor }}</span>
+                <Cifra class="font-medium" :valor="segmento.valor" />
             </li>
         </ul>
     </div>
