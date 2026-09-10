@@ -483,8 +483,31 @@ function clasePegada(clave: string, capa: 'cabecera' | 'cuerpo'): string | false
 
     return cn(
         'sticky',
-        capa === 'cabecera' ? 'z-30' : 'z-10 bg-inherit',
+        // La cabecera normal es cristal esmerilado —`bg-card/95` con desenfoque—
+        // y ahí está bien: sólo se pega en vertical. Pero la de una columna
+        // anclada se pega en los DOS ejes, y en horizontal el contenido no pasa
+        // desenfocado por debajo: pasa y se ve. Fondo opaco, sin excepción.
+        capa === 'cabecera' ? 'z-30 bg-card backdrop-blur-none' : 'z-10 bg-inherit',
         ultimaPegada.value === clave && 'border-r',
+    );
+}
+
+/**
+ * La celda de acciones, pegada al borde derecho.
+ *
+ * El «⋯» es lo que más se busca en una tabla ancha y estaba al final del
+ * desplazamiento horizontal. No entra en `desplazamientos`, que resuelve el
+ * apilado del bloque IZQUIERDO —cada columna detrás de la anterior—: a la
+ * derecha hay una sola celda y le basta con `right-0`.
+ *
+ * Siempre fija, también cuando la tabla cabe entera: ahí no se distingue, y
+ * encenderlo y apagarlo por ancho haría aparecer y desaparecer el borde al
+ * redimensionar la ventana.
+ */
+function claseAcciones(capa: 'cabecera' | 'cuerpo'): string {
+    return cn(
+        'sticky right-0 border-l',
+        capa === 'cabecera' ? 'z-30 bg-card backdrop-blur-none' : 'z-10 bg-inherit',
     );
 }
 
@@ -754,6 +777,7 @@ const claseFiltro = 'sticky top-10 z-20 border-b bg-card/95 px-2 py-1.5 backdrop
                     :ocultas="ocultas"
                     @alternar="(clave: string) => tabla.getColumn(clave)?.toggleVisibility()"
                     @reordenar="reordenar"
+                    @anclar="anclar"
                     @restablecer="restablecerVista"
                 />
 
@@ -911,7 +935,7 @@ const claseFiltro = 'sticky top-10 z-20 border-b bg-card/95 px-2 py-1.5 backdrop
                                 </div>
                             </th>
 
-                            <th v-if="recurso.accionesFila.length > 0" :class="cn(claseCabecera, 'w-12')">
+                            <th v-if="recurso.accionesFila.length > 0" :class="cn(claseCabecera, claseAcciones('cabecera'), 'w-12')">
                                 <span class="sr-only">Acciones</span>
                             </th>
                         </tr>
@@ -950,7 +974,7 @@ const claseFiltro = 'sticky top-10 z-20 border-b bg-card/95 px-2 py-1.5 backdrop
                                 />
                             </th>
 
-                            <th v-if="recurso.accionesFila.length > 0" :class="claseFiltro" />
+                            <th v-if="recurso.accionesFila.length > 0" :class="cn(claseFiltro, claseAcciones('cabecera'))" />
                         </tr>
                     </thead>
 
@@ -972,7 +996,7 @@ const claseFiltro = 'sticky top-10 z-20 border-b bg-card/95 px-2 py-1.5 backdrop
                                         :class="columna.tipo === 'badge' ? 'w-20 rounded-full' : 'w-full'"
                                     />
                                 </td>
-                                <td v-if="recurso.accionesFila.length > 0" class="border-b px-3 py-2.5">
+                                <td v-if="recurso.accionesFila.length > 0" :class="cn('border-b bg-card px-3 py-2.5', claseAcciones('cuerpo'))">
                                     <Skeleton class="ml-auto size-5 rounded-md" />
                                 </td>
                             </tr>
@@ -1021,11 +1045,16 @@ const claseFiltro = 'sticky top-10 z-20 border-b bg-card/95 px-2 py-1.5 backdrop
                         <tr
                             :class="
                                 cn(
-                                    'transition-colors hover:bg-muted/50 has-[:focus-visible]:bg-muted/50',
-                                    // El fondo va en la fila y las celdas ancladas lo
-                                    // heredan con `bg-inherit`; sin un fondo opaco, el
-                                    // contenido que pasa por debajo se ve a través.
-                                    tabla.getRow(String(fila.id))?.getIsSelected() ? 'bg-accent/40' : 'bg-card',
+                                    'transition-colors hover:bg-fila-hover has-[:focus-visible]:bg-fila-hover',
+                                    // El fondo va en la fila y las celdas pegadas lo
+                                    // heredan con `bg-inherit`, así que NINGUNO de los
+                                    // tres puede llevar alfa: con un `/50` de por medio,
+                                    // el contenido que se desplaza por debajo se ve a
+                                    // través de la columna fija al pasar el puntero.
+                                    // Los tokens son la misma mezcla, ya compuesta.
+                                    tabla.getRow(String(fila.id))?.getIsSelected()
+                                        ? 'bg-fila-seleccionada'
+                                        : 'bg-card',
                                     // Sólo apunta a mano si hay a dónde ir.
                                     recurso.accionPorDefecto !== null && 'cursor-pointer',
                                 )
@@ -1090,7 +1119,7 @@ const claseFiltro = 'sticky top-10 z-20 border-b bg-card/95 px-2 py-1.5 backdrop
                             <td
                                 v-if="recurso.accionesFila.length > 0"
                                 data-sin-doble-clic
-                                :class="cn('border-b text-right', relleno)"
+                                :class="cn('border-b text-right', relleno, claseAcciones('cuerpo'))"
                             >
                                 <DropdownMenu>
                                     <DropdownMenuTrigger as-child>

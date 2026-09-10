@@ -3,7 +3,14 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { ChevronDownIcon, ChevronUpIcon, Columns3Icon, GripVerticalIcon, RotateCcwIcon } from '@lucide/vue';
+import {
+    ChevronDownIcon,
+    ChevronUpIcon,
+    Columns3Icon,
+    GripVerticalIcon,
+    PinIcon,
+    RotateCcwIcon,
+} from '@lucide/vue';
 import { ref } from 'vue';
 
 type Columna = App.Http.Resources.Definicion.Columna;
@@ -39,6 +46,7 @@ const emit = defineEmits<{
     alternar: [clave: string];
     /** Mover `clave` a la posición que ocupa `destino`. */
     reordenar: [clave: string, destino: string];
+    anclar: [clave: string, anclada: boolean];
     restablecer: [];
 }>();
 
@@ -125,7 +133,8 @@ function mover(clave: string, paso: -1 | 1): void {
             <div class="border-b px-3 py-2.5">
                 <p class="text-sm font-medium">Columnas</p>
                 <p class="mt-0.5 text-xs text-muted-foreground">
-                    Arrastra para reordenar. Lo que apagues sigue estando: se consulta desplegando la fila.
+                    Arrastra para reordenar y usa el alfiler para fijar una columna a la izquierda. Lo que
+                    apagues sigue estando: se consulta desplegando la fila.
                 </p>
             </div>
 
@@ -162,6 +171,28 @@ function mover(clave: string, paso: -1 | 1): void {
                     >
                         {{ columna.etiqueta }}
                     </label>
+
+                    <!--
+                        Fijar la columna. Deshabilitado en las que el recurso
+                        declara ancladas —el código, por ejemplo—: son fijas por
+                        diseño, y soltarlas deja la tabla sin ningún punto de
+                        referencia al desplazarse en horizontal.
+                    -->
+                    <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        :disabled="columna.anclada"
+                        :aria-pressed="ancladas.has(columna.clave)"
+                        :aria-label="
+                            ancladas.has(columna.clave)
+                                ? `Soltar ${columna.etiqueta}`
+                                : `Fijar ${columna.etiqueta} a la izquierda`
+                        "
+                        :class="ancladas.has(columna.clave) ? 'text-primary' : 'text-muted-foreground'"
+                        @click="emit('anclar', columna.clave, !ancladas.has(columna.clave))"
+                    >
+                        <PinIcon />
+                    </Button>
 
                     <Button
                         variant="ghost"

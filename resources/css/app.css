@@ -184,6 +184,27 @@
     --tipo-personal: oklch(0.47 0.10 325);
     --tipo-personal-suave: oklch(0.955 0.028 325);
 
+    /*
+     * Fondos de fila de tabla, y el motivo de que sean tokens y no `bg-muted/50`
+     * a secas.
+     *
+     * **Una celda pegada horizontalmente no puede tener alfa en el fondo.** Las
+     * columnas ancladas heredan el fondo de su fila con `bg-inherit`; con un
+     * `/50` de por medio, el contenido que se desplaza por debajo se ve a través
+     * de la columna fija en cuanto el puntero entra en la fila. Pasó, y no se ve
+     * venir leyendo la clase.
+     *
+     * `color-mix` contra `--card` da EXACTAMENTE el color que se veía antes
+     * —muted al 50 % sobre la tarjeta— pero opaco. No hay cambio de aspecto: hay
+     * cambio de cómo se consigue.
+     *
+     * Se declaran una sola vez porque el modo oscuro redefine `--muted`,
+     * `--accent` y `--card` sobre la misma raíz, así que la mezcla se resuelve
+     * sola en los dos temas.
+     */
+    --fila-hover: color-mix(in oklab, var(--muted) 50%, var(--card));
+    --fila-seleccionada: color-mix(in oklab, var(--accent) 40%, var(--card));
+
     /* Sombras teñidas con el hue del fondo. Negro puro sobre claro ensucia. */
     --sombra-1: 0 1px 2px oklch(0.23 0.018 235 / 7%), 0 1px 3px oklch(0.23 0.018 235 / 4%);
     --sombra-2: 0 1px 2px oklch(0.23 0.018 235 / 6%), 0 8px 20px -8px oklch(0.23 0.018 235 / 12%);
@@ -377,6 +398,9 @@
     --color-tipo-instalaciones-suave: var(--tipo-instalaciones-suave);
     --color-tipo-personal: var(--tipo-personal);
     --color-tipo-personal-suave: var(--tipo-personal-suave);
+
+    --color-fila-hover: var(--fila-hover);
+    --color-fila-seleccionada: var(--fila-seleccionada);
 
     --shadow-sombra-1: var(--sombra-1);
     --shadow-sombra-2: var(--sombra-2);
