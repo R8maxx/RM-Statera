@@ -9,6 +9,7 @@ use App\Http\Resources\Definicion\Columna;
 use App\Http\Resources\Definicion\DefinicionRecurso;
 use App\Http\Resources\Definicion\Etiquetas;
 use App\Http\Resources\Definicion\Filtro;
+use App\Http\Resources\Enums\MetodoAccion;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
@@ -102,9 +103,36 @@ abstract class Recurso
         return [];
     }
 
+    /**
+     * La acción que abre el doble clic sobre una fila.
+     *
+     * Se declara y no se adivina en el cliente: en un recurso sin ficha —las
+     * implantaciones se leen en la suya, los sistemas no tienen— la acción que
+     * toca no es la misma, y dejar que el navegador elija «la primera que
+     * parezca de lectura» convierte una convención en una casualidad.
+     *
+     * Devuelve la CLAVE de una acción de fila, o `null` para que el doble clic
+     * no haga nada.
+     */
+    public function accionPorDefecto(): ?string
+    {
+        return 'ver';
+    }
+
+    /** La que abre el doble clic con Ctrl o ⌘. */
+    public function accionAlternativa(): ?string
+    {
+        return 'editar';
+    }
+
     /** Lo que viaja al frontend como prop `recurso`. */
     public function definicion(): DefinicionRecurso
     {
+        // Se resuelven antes de construir: la acción por defecto se busca entre
+        // las PERMITIDAS, y hacerlo con una asignación dentro de la llamada
+        // dejaría el orden de evaluación decidiendo si funciona.
+        $accionesFila = $this->permitidas($this->accionesFila());
+
         return new DefinicionRecurso(
             clave: $this->clave(),
             etiquetas: $this->etiquetas(),
@@ -113,13 +141,48 @@ abstract class Recurso
                 static fn (Filtro $filtro): Filtro => $filtro->resolver(),
                 $this->filtros(),
             ),
-            accionesFila: $this->permitidas($this->accionesFila()),
+            accionesFila: $accionesFila,
             accionesMasivas: $this->permitidas($this->accionesMasivas()),
             accionesGenerales: $this->permitidas($this->accionesGenerales()),
             ordenPorDefecto: $this->ordenPorDefecto(),
             tamanosPagina: $this->tamanosPagina(),
             seleccionable: $this->seleccionable(),
+            accionPorDefecto: $this->navegable($this->accionPorDefecto(), $accionesFila),
+            accionAlternativa: $this->navegable($this->accionAlternativa(), $accionesFila),
         );
+    }
+
+    /**
+     * Comprueba que la acción declarada existe, está permitida y se puede abrir
+     * de un doble clic.
+     *
+     * Tres cribas, y ninguna sobra:
+     *
+     * 1. **Sólo entre las permitidas.** A un auditor, que no tiene `editar`, el
+     *    Ctrl + doble clic le llevaría a un formulario que el servidor le va a
+     *    negar con un 403. Mejor que no haga nada.
+     * 2. **Sólo `GET`.** Un doble clic no puede disparar un `DELETE` ni un
+     *    `POST`. La regla se aplica aquí y se vuelve a aplicar en el cliente,
+     *    porque cuesta dos líneas y lo que evita es irreversible.
+     * 3. **Nunca destructiva.** Redundante con lo anterior mientras `eliminar`
+     *    sea `DELETE`, y a propósito: es la comprobación que sigue en pie el día
+     *    que alguien declare un borrado por `GET`.
+     *
+     * @param  list<Accion>  $permitidas
+     */
+    private function navegable(?string $clave, array $permitidas): ?string
+    {
+        if ($clave === null) {
+            return null;
+        }
+
+        $accion = array_find($permitidas, static fn (Accion $accion): bool => $accion->clave === $clave);
+
+        if ($accion === null || $accion->destructiva || $accion->metodo !== MetodoAccion::Get) {
+            return null;
+        }
+
+        return $accion->clave;
     }
 
     /**

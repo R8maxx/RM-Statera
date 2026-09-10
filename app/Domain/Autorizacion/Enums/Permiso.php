@@ -39,6 +39,9 @@ enum Permiso: string
     case EvidenciasVer = 'evidencias.ver';
     case EvidenciasGestionar = 'evidencias.gestionar';
 
+    case ActivosVer = 'activos.ver';
+    case ActivosGestionar = 'activos.gestionar';
+
     public function etiqueta(): string
     {
         return match ($this) {
@@ -50,6 +53,8 @@ enum Permiso: string
             self::ImplantacionesGestionar => 'Gestionar implantaciones',
             self::EvidenciasVer => 'Ver las evidencias',
             self::EvidenciasGestionar => 'Registrar y vincular evidencias',
+            self::ActivosVer => 'Ver el inventario de activos',
+            self::ActivosGestionar => 'Dar de alta activos y declarar dependencias',
         };
     }
 

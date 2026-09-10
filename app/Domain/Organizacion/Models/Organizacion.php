@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $id
  * @property string $nombre
  * @property ?string $cif
+ * @property ?string $url_base_etiquetas
  * @property bool $sujeto_obligado_ens
  * @property bool $proveedor_sector_publico
  * @property bool $activa
@@ -35,6 +36,7 @@ class Organizacion extends Model
         'nombre',
         'cif',
         'sector',
+        'url_base_etiquetas',
         'sujeto_obligado_ens',
         'proveedor_sector_publico',
         'activa',

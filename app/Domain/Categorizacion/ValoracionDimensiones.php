@@ -124,6 +124,28 @@ final readonly class ValoracionDimensiones
         return $niveles;
     }
 
+    /**
+     * La dimensión a dimensión más alta de las dos.
+     *
+     * Es la operación con la que la valoración sube por el grafo de activos: si
+     * el servicio que se apoya en una base de datos es de nivel alto en
+     * disponibilidad, la base de datos lo es también, se haya valorado como se
+     * haya valorado. Nunca baja nada: elevar es lo único que hace.
+     */
+    public function elevadaCon(self $otra): self
+    {
+        $niveles = [];
+
+        foreach (Dimension::cases() as $dimension) {
+            $propio = $this->nivelDe($dimension);
+            $ajeno = $otra->nivelDe($dimension);
+
+            $niveles[$dimension->value] = $ajeno->peso() > $propio->peso() ? $ajeno : $propio;
+        }
+
+        return self::desdeArray($niveles);
+    }
+
     public function equivale(self $otra): bool
     {
         return $this->aArray() == $otra->aArray();

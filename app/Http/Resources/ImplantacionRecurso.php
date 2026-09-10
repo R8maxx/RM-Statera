@@ -215,6 +215,17 @@ final class ImplantacionRecurso extends Recurso
         ];
     }
 
+    /**
+     * No hay edición en formulario: una implantación se opera desde su ficha,
+     * donde el cambio de estado deja histórico. El doble clic con Ctrl no tiene
+     * a dónde llevar, y decirlo aquí es mejor que dejar que el cliente lo
+     * deduzca de que no encuentra la acción.
+     */
+    public function accionAlternativa(): ?string
+    {
+        return null;
+    }
+
     /** @return list<Accion> */
     public function accionesMasivas(): array
     {

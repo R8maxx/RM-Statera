@@ -57,6 +57,16 @@ final class Filtro
     private ?string $campo = null;
 
     /**
+     * La relación sobre la que filtra, cuando el valor no vive en la tabla.
+     *
+     * @var array{relacion: string, campo: string}|null
+     */
+    private ?array $relacion = null;
+
+    /** El scope del modelo que aplica el filtro, cuando no es una columna. */
+    private ?string $scope = null;
+
+    /**
      * Los campos que cruza una búsqueda.
      *
      * @var list<string>
@@ -130,9 +140,62 @@ final class Filtro
         return $filtro->conOpciones($opciones);
     }
 
+    /**
+     * Filtra por una relación en lugar de por una columna propia.
+     *
+     * Existe para las relaciones N:M, donde un `join` multiplicaría las filas:
+     * un activo declarado en el alcance de dos sistemas saldría dos veces en la
+     * tabla, y la paginación contaría mal. `whereHas` pregunta por la existencia
+     * del vínculo sin traérselo, que es justo lo que hace falta.
+     *
+     * No contradice la regla de que el filtro no inventa joins: aquí no hay
+     * join, hay subconsulta, y la consulta del recurso se queda como estaba.
+     *
+     * @param  list<Opcion>|Closure(): list<Opcion>  $opciones
+     */
+    public static function porRelacion(
+        string $clave,
+        string $etiqueta,
+        string $relacion,
+        string $campo,
+        array|Closure $opciones,
+        bool $multiple = false,
+    ): self {
+        $filtro = new self($clave, $etiqueta, $multiple ? TipoFiltro::MultiSelect : TipoFiltro::Select);
+        $filtro->multiple = $multiple;
+        $filtro->relacion = ['relacion' => $relacion, 'campo' => $campo];
+
+        return $filtro->conOpciones($opciones);
+    }
+
     public static function booleano(string $clave, string $etiqueta): self
     {
         return new self($clave, $etiqueta, TipoFiltro::Booleano);
+    }
+
+    /**
+     * Un interruptor que delega en un scope del modelo.
+     *
+     * Existe para las condiciones que no son una columna: «sin revisar en doce
+     * meses», «soporte vencido», «sin identificador». La alternativa era
+     * denormalizar cada una a un booleano de la tabla y mantenerlo al día con un
+     * observador — tres columnas más que mienten en cuanto alguien escribe por
+     * SQL.
+     *
+     * Que la lógica esté en el scope y no aquí importa: es la MISMA que usa
+     * `ResumenInventario` para contar. Si el indicador dice 12 y el filtro
+     * enseña 9, el panel deja de creerse, y esa es exactamente la forma de
+     * romperlo si cada uno lleva su propia condición.
+     *
+     * Sólo actúa con valor verdadero: `filter[sin_revisar]=0` no significa
+     * «enséñame los revisados», significa que el interruptor está apagado.
+     */
+    public static function porScope(string $clave, string $etiqueta, string $scope): self
+    {
+        $filtro = new self($clave, $etiqueta, TipoFiltro::Booleano);
+        $filtro->scope = $scope;
+
+        return $filtro;
     }
 
     public static function rangoFechas(string $clave, string $etiqueta): self
@@ -184,6 +247,42 @@ final class Filtro
     public function allowedFilter(): AllowedFilter
     {
         $campo = $this->campo ?? $this->clave;
+
+        if ($this->scope !== null) {
+            $scope = $this->scope;
+
+            return AllowedFilter::callback(
+                $this->clave,
+                static function (Builder $query, mixed $valor) use ($scope): void {
+                    if (filter_var($valor, FILTER_VALIDATE_BOOL)) {
+                        $query->{$scope}();
+                    }
+                },
+            );
+        }
+
+        if ($this->relacion !== null) {
+            ['relacion' => $relacion, 'campo' => $campoRelacionado] = $this->relacion;
+
+            return AllowedFilter::callback(
+                $this->clave,
+                static function (Builder $query, mixed $valor) use ($relacion, $campoRelacionado): void {
+                    $valores = array_values(array_filter(
+                        is_array($valor) ? $valor : [$valor],
+                        static fn (mixed $uno): bool => $uno !== '' && $uno !== null,
+                    ));
+
+                    if ($valores === []) {
+                        return;
+                    }
+
+                    $query->whereHas(
+                        $relacion,
+                        static fn (Builder $vinculada) => $vinculada->whereIn($campoRelacionado, $valores),
+                    );
+                },
+            );
+        }
 
         return match ($this->tipo) {
             TipoFiltro::Busqueda => AllowedFilter::callback(

@@ -1,5 +1,13 @@
 declare namespace App {
 namespace Domain {
+namespace Activo {
+namespace Enums {
+export type Clasificacion = 'publico' | 'uso_interno' | 'confidencial' | 'restringido' | 'no_aplica';
+export type EstadoCicloVida = 'planificado' | 'en_stock' | 'en_produccion' | 'en_mantenimiento' | 'en_reparacion' | 'prestado' | 'retirado' | 'dado_de_baja';
+export type EstadoControl = 'si' | 'no' | 'por_confirmar' | 'no_aplica';
+export type TipoActivo = 'servicios' | 'datos' | 'software' | 'hardware' | 'comunicaciones' | 'soportes' | 'equipamiento_auxiliar' | 'instalaciones' | 'personal';
+}
+}
 namespace Auditoria {
 namespace Enums {
 export type AccionAuditada = 'creado' | 'actualizado' | 'eliminado';
@@ -7,7 +15,7 @@ export type AccionAuditada = 'creado' | 'actualizado' | 'eliminado';
 }
 namespace Autorizacion {
 namespace Enums {
-export type Permiso = 'panel.ver' | 'sistemas.ver' | 'sistemas.gestionar' | 'sistemas.valorar' | 'implantaciones.ver' | 'implantaciones.gestionar' | 'evidencias.ver' | 'evidencias.gestionar';
+export type Permiso = 'panel.ver' | 'sistemas.ver' | 'sistemas.gestionar' | 'sistemas.valorar' | 'implantaciones.ver' | 'implantaciones.gestionar' | 'evidencias.ver' | 'evidencias.gestionar' | 'activos.ver' | 'activos.gestionar';
 export type Rol = 'responsable_seguridad' | 'tecnico' | 'auditor';
 }
 }
@@ -78,6 +86,8 @@ readonly accionesGenerales: App.Http.Resources.Definicion.Accion[],
 readonly ordenPorDefecto: string,
 readonly tamanosPagina: number[],
 readonly seleccionable: boolean,
+readonly accionPorDefecto: string | null,
+readonly accionAlternativa: string | null,
 };
 export type Etiquetas = {
 readonly singular: string,
@@ -123,7 +133,8 @@ readonly corta: string | null,
 export type ValorEtiquetado = {
 readonly valor: string | number | null,
 readonly etiqueta: string,
-readonly tono: string | null,
+readonly tono?: string | null,
+readonly icono?: string | null,
 };
 export type ValorProgreso = {
 readonly porcentaje: number,
@@ -162,6 +173,14 @@ readonly codigo: string,
 readonly nombre: string,
 readonly aplicables: number,
 readonly implantadas: number,
+};
+export type IndicadorInventario = {
+readonly clave: string,
+readonly etiqueta: string,
+readonly valor: number,
+readonly tono: string,
+readonly filtro: string,
+readonly ayuda: string | null,
 };
 export type ResumenEvidencias = {
 readonly total: number,

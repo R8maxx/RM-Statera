@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import {
+    CalendarCheckIcon,
     CircleDotIcon,
     ExternalLinkIcon,
     EyeIcon,
     ListChecksIcon,
     PencilIcon,
     PlusIcon,
+    QrCodeIcon,
     SlidersHorizontalIcon,
     Trash2Icon,
 } from '@lucide/vue';
@@ -19,12 +21,14 @@ import { computed, type Component } from 'vue';
  * `Accion` se declaran aquí, y lo que no esté no pinta nada.
  */
 const iconos: Record<string, Component> = {
+    CalendarCheck: CalendarCheckIcon,
     CircleDot: CircleDotIcon,
     ExternalLink: ExternalLinkIcon,
     Eye: EyeIcon,
     ListChecks: ListChecksIcon,
     Pencil: PencilIcon,
     Plus: PlusIcon,
+    QrCode: QrCodeIcon,
     SlidersHorizontal: SlidersHorizontalIcon,
     Trash2: Trash2Icon,
 };

@@ -2,6 +2,7 @@
 import EstadoVacio from '@/components/EstadoVacio.vue';
 import BarraFiltros from '@/components/tabla/BarraFiltros.vue';
 import ConfirmacionAccion from '@/components/tabla/ConfirmacionAccion.vue';
+import FilaDetalle from '@/components/tabla/FilaDetalle.vue';
 import FiltroColumna from '@/components/tabla/FiltroColumna.vue';
 import IconoAccion from '@/components/tabla/IconoAccion.vue';
 import MenuColumna from '@/components/tabla/MenuColumna.vue';
@@ -33,6 +34,8 @@ import {
     DownloadIcon,
     InboxIcon,
     ListFilterIcon,
+    ChevronDownIcon,
+    ChevronRightIcon,
     MoreHorizontalIcon,
     Rows2Icon,
     Rows3Icon,
@@ -256,7 +259,32 @@ const visibles = computed<Columna[]>(() =>
 const ancladas = computed(() => new Set(tabla.atoms.columnPinning?.get()?.start ?? []));
 const ocultas = computed(() => props.recurso.columnas.length - visibles.value.length);
 
+
 const clavesVisibles = computed(() => new Set(visibles.value.map((columna) => columna.clave)));
+
+/**
+ * Todas las columnas en el orden real, ocultas incluidas.
+ *
+ * `visibles` sólo trae las encendidas, y el panel de columnas necesita enseñar
+ * también las apagadas: una lista de la que desaparece lo que desactivas no deja
+ * volver a encenderlo.
+ */
+const todasEnOrden = computed<Columna[]>(() => {
+    // Las ancladas van delante, como en la tabla. `sort` es estable en JS, así
+    // que dentro de cada bloque se conserva el orden guardado.
+    const ancladasPrimero = [...ordenActual()].sort(
+        (una, otra) => Number(!ancladas.value.has(una)) - Number(!ancladas.value.has(otra)),
+    );
+
+    return ancladasPrimero
+        .map((clave) => porClave.value[clave])
+        .filter((columna): columna is Columna => columna !== undefined);
+});
+
+/** Lo declarado pero apagado: exactamente lo que despliega la fila de detalle. */
+const columnasOcultasEnFila = computed<Columna[]>(() =>
+    todasEnOrden.value.filter((columna) => !clavesVisibles.value.has(columna.clave)),
+);
 
 /*
  * Cada filtro se pinta una sola vez: bajo su columna si está a la vista, y en el
@@ -305,6 +333,39 @@ const columnasFiltradas = computed(
 /** Lo buscado, por columna, para marcarlo dentro de la celda. */
 const terminos = computed(() => terminosPorColumna(props.recurso.filtros, filtros.value));
 
+/*
+ * ── Filas desplegadas ──────────────────────────────────────────────────────
+ *
+ * Estado local y no `rowExpandingFeature`: esa característica modela sub-filas
+ * del propio modelo de datos —agrupaciones, jerarquías— y aquí no hay sub-filas.
+ * Hay las mismas columnas de siempre, repartidas de otra manera porque no caben
+ * a lo ancho.
+ */
+const desplegadas = ref(new Set<string>());
+
+function alternarDespliegue(id: number | string): void {
+    const clave = String(id);
+    const siguiente = new Set(desplegadas.value);
+
+    if (!siguiente.delete(clave)) {
+        siguiente.add(clave);
+    }
+
+    desplegadas.value = siguiente;
+}
+
+/* Cambiar de página o de filtro deja abiertas filas que ya no están. */
+watch(
+    () => props.meta,
+    () => (desplegadas.value = new Set()),
+);
+
+/*
+ * Un control que nunca hace nada enseña a ignorar los controles: con todas las
+ * columnas a la vista, la de desplegar no se pinta.
+ */
+const hayQueDesplegar = computed(() => columnasOcultasEnFila.value.length > 0);
+
 const seleccionadas = computed(() => Object.keys(tabla.atoms.rowSelection?.get() ?? {}));
 const todasSeleccionadas = computed(
     () => props.filas.length > 0 && seleccionadas.value.length === props.filas.length,
@@ -315,6 +376,7 @@ const anchoTabla = computed(
     () =>
         visibles.value.length +
         (props.recurso.seleccionable ? 1 : 0) +
+        (hayQueDesplegar.value ? 1 : 0) +
         (props.recurso.accionesFila.length > 0 ? 1 : 0),
 );
 
@@ -328,6 +390,21 @@ const anchoTabla = computed(
  */
 const filaCabecera = ref<HTMLTableRowElement | null>(null);
 const anchos = ref<Record<string, number>>({});
+
+/*
+ * El ancho VISIBLE de la tabla, que no es el suyo: con trece columnas la tabla
+ * mide bastante más que su caja y por eso hay desplazamiento horizontal.
+ *
+ * La fila de detalle lo necesita porque ocupa todas las columnas: repartida a lo
+ * ancho de la tabla real, su tercera columna cae fuera de la pantalla y hay que
+ * desplazarse para leerla — exactamente lo que la fila de detalle venía a
+ * evitar. Se ancla a este ancho y se queda pegada a la izquierda.
+ */
+const contenedor = ref<HTMLElement | null>(null);
+const anchoVisible = ref(0);
+
+useResizeObserver(contenedor, () => (anchoVisible.value = contenedor.value?.clientWidth ?? 0));
+onMounted(() => (anchoVisible.value = contenedor.value?.clientWidth ?? 0));
 
 function medir(): void {
     const celdas = filaCabecera.value?.children;
@@ -362,9 +439,16 @@ const desplazamientos = computed<Record<string, number>>(() => {
 
     let acumulado = 0;
 
+    // El mismo problema que ya tuvo la casilla: sin contarla, la primera columna
+    // anclada se monta encima de ella al desplazar en horizontal.
+    if (hayQueDesplegar.value) {
+        salida.__despliegue = 0;
+        acumulado = anchos.value.__despliegue ?? 0;
+    }
+
     if (props.recurso.seleccionable) {
-        salida.__seleccion = 0;
-        acumulado = anchos.value.__seleccion ?? 0;
+        salida.__seleccion = acumulado;
+        acumulado += anchos.value.__seleccion ?? 0;
     }
 
     for (const columna of visibles.value) {
@@ -457,6 +541,27 @@ function mover(clave: string, paso: -1 | 1): void {
     tabla.setColumnOrder(completo);
 }
 
+/**
+ * Coloca `clave` en la posición que ocupa `destino`, desplazando el resto.
+ *
+ * No es un intercambio como el del menú de la cabecera: arrastrar la última
+ * columna a la primera posición tiene que dejar las once de en medio en su
+ * orden, no mandar la primera al final.
+ */
+function reordenar(clave: string, destino: string): void {
+    const completo = ordenActual();
+    const desde = completo.indexOf(clave);
+    const hasta = completo.indexOf(destino);
+
+    if (desde < 0 || hasta < 0 || desde === hasta) {
+        return;
+    }
+
+    completo.splice(hasta, 0, ...completo.splice(desde, 1));
+
+    tabla.setColumnOrder(completo);
+}
+
 function restablecerVista(): void {
     tabla.setColumnVisibility({ ...visibilidadDeclarada });
     tabla.setColumnOrder([]);
@@ -496,6 +601,52 @@ function ejecutar(accion: Accion, fila: Fila): void {
 
     confirmando.value = null;
     router.visit(url(accion, fila), { method: accion.metodo, preserveScroll: true });
+}
+
+/*
+ * ── Doble clic sobre la fila ───────────────────────────────────────────────
+ *
+ * Es un ACELERADOR, no un camino. No llega por teclado, así que el menú «⋯» se
+ * queda tal cual: sigue siendo el único sitio donde está escrito lo que se puede
+ * hacer con una fila.
+ *
+ * Qué abre lo declara el recurso en el servidor y llega ya cribado —existe, está
+ * permitido y es `GET`—. Aun así se vuelve a comprobar aquí: cuesta dos líneas y
+ * lo que evita —un borrado de dos clics— no se deshace.
+ */
+function accionPorClave(clave: string | null): Accion | null {
+    if (clave === null) {
+        return null;
+    }
+
+    const accion = props.recurso.accionesFila.find((una) => una.clave === clave) ?? null;
+
+    if (accion === null || accion.destructiva || accion.metodo !== 'get') {
+        return null;
+    }
+
+    return accion;
+}
+
+function abrirFila(fila: Fila, evento: MouseEvent): void {
+    // Dentro de la casilla o del menú ya hay un control que hace otra cosa.
+    if ((evento.target as HTMLElement | null)?.closest('[data-sin-doble-clic]') !== null) {
+        return;
+    }
+
+    const conModificador = evento.metaKey || evento.ctrlKey;
+    const accion = accionPorClave(
+        conModificador ? props.recurso.accionAlternativa : props.recurso.accionPorDefecto,
+    );
+
+    if (accion === null) {
+        return;
+    }
+
+    // El doble clic deja media fila seleccionada en azul si no se limpia.
+    window.getSelection()?.removeAllRanges();
+
+    router.visit(url(accion, fila));
 }
 
 function iconoOrden(clave: string) {
@@ -597,8 +748,12 @@ const claseFiltro = 'sticky top-10 z-20 border-b bg-card/95 px-2 py-1.5 backdrop
                 </Tooltip>
 
                 <SelectorColumnas
-                    :columnas="tabla.getAllLeafColumns()"
+                    :columnas="todasEnOrden"
+                    :visibles="clavesVisibles"
+                    :ancladas="ancladas"
                     :ocultas="ocultas"
+                    @alternar="(clave: string) => tabla.getColumn(clave)?.toggleVisibility()"
+                    @reordenar="reordenar"
                     @restablecer="restablecerVista"
                 />
 
@@ -663,10 +818,19 @@ const claseFiltro = 'sticky top-10 z-20 border-b bg-card/95 px-2 py-1.5 backdrop
 
             <!-- `max-h` + cabecera pegajosa: con cien requisitos en pantalla,
                  perder los nombres de columna al bajar deja la tabla ilegible. -->
-            <div class="max-h-[calc(100dvh-19rem)] overflow-auto" :aria-busy="cargando">
+            <div ref="contenedor" class="max-h-[calc(100dvh-19rem)] overflow-auto" :aria-busy="cargando">
                 <table class="w-full caption-bottom border-separate border-spacing-0 text-sm">
                     <thead>
                         <tr ref="filaCabecera">
+                            <th
+                                v-if="hayQueDesplegar"
+                                data-columna="__despliegue"
+                                :class="cn(claseCabecera, 'w-9', clasePegada('__despliegue', 'cabecera'))"
+                                :style="estiloPegada('__despliegue')"
+                            >
+                                <span class="sr-only">Desplegar</span>
+                            </th>
+
                             <th
                                 v-if="recurso.seleccionable"
                                 data-columna="__seleccion"
@@ -757,6 +921,14 @@ const claseFiltro = 'sticky top-10 z-20 border-b bg-card/95 px-2 py-1.5 backdrop
                              desde la barra y la preferencia se recuerda. -->
                         <tr v-if="filaDeFiltros">
                             <th
+                                v-if="hayQueDesplegar"
+                                :class="cn(claseFiltro, clasePegada('__despliegue', 'cabecera'))"
+                                :style="estiloPegada('__despliegue')"
+                            >
+                                <span class="sr-only">Sin filtro</span>
+                            </th>
+
+                            <th
                                 v-if="recurso.seleccionable"
                                 :class="cn(claseFiltro, clasePegada('__seleccion', 'cabecera'))"
                                 :style="estiloPegada('__seleccion')"
@@ -788,6 +960,9 @@ const claseFiltro = 'sticky top-10 z-20 border-b bg-card/95 px-2 py-1.5 backdrop
                              de nada y el contenido saltaba al llegar. -->
                         <template v-if="cargando && filas.length === 0">
                             <tr v-for="n in 6" :key="`esqueleto-${n}`">
+                                <td v-if="hayQueDesplegar" class="border-b px-3 py-2.5">
+                                    <Skeleton class="size-4 rounded-sm" />
+                                </td>
                                 <td v-if="recurso.seleccionable" class="border-b px-3 py-2.5">
                                     <Skeleton class="size-4 rounded-sm" />
                                 </td>
@@ -842,10 +1017,8 @@ const claseFiltro = 'sticky top-10 z-20 border-b bg-card/95 px-2 py-1.5 backdrop
                             </td>
                         </tr>
 
+                        <template v-for="fila in filas" v-else :key="fila.id">
                         <tr
-                            v-for="fila in filas"
-                            v-else
-                            :key="fila.id"
                             :class="
                                 cn(
                                     'transition-colors hover:bg-muted/50 has-[:focus-visible]:bg-muted/50',
@@ -853,11 +1026,37 @@ const claseFiltro = 'sticky top-10 z-20 border-b bg-card/95 px-2 py-1.5 backdrop
                                     // heredan con `bg-inherit`; sin un fondo opaco, el
                                     // contenido que pasa por debajo se ve a través.
                                     tabla.getRow(String(fila.id))?.getIsSelected() ? 'bg-accent/40' : 'bg-card',
+                                    // Sólo apunta a mano si hay a dónde ir.
+                                    recurso.accionPorDefecto !== null && 'cursor-pointer',
                                 )
                             "
+                            @dblclick="(evento: MouseEvent) => abrirFila(fila, evento)"
                         >
                             <td
+                                v-if="hayQueDesplegar"
+                                data-sin-doble-clic
+                                :class="cn('border-b', relleno, clasePegada('__despliegue', 'cuerpo'))"
+                                :style="estiloPegada('__despliegue')"
+                            >
+                                <Button
+                                    variant="ghost"
+                                    size="icon-xs"
+                                    :aria-expanded="desplegadas.has(String(fila.id))"
+                                    :aria-label="
+                                        desplegadas.has(String(fila.id))
+                                            ? 'Ocultar el resto de columnas'
+                                            : 'Ver el resto de columnas'
+                                    "
+                                    @click="alternarDespliegue(fila.id)"
+                                >
+                                    <ChevronDownIcon v-if="desplegadas.has(String(fila.id))" />
+                                    <ChevronRightIcon v-else />
+                                </Button>
+                            </td>
+
+                            <td
                                 v-if="recurso.seleccionable"
+                                data-sin-doble-clic
                                 :class="cn('border-b', relleno, clasePegada('__seleccion', 'cuerpo'))"
                                 :style="estiloPegada('__seleccion')"
                             >
@@ -890,6 +1089,7 @@ const claseFiltro = 'sticky top-10 z-20 border-b bg-card/95 px-2 py-1.5 backdrop
 
                             <td
                                 v-if="recurso.accionesFila.length > 0"
+                                data-sin-doble-clic
                                 :class="cn('border-b text-right', relleno)"
                             >
                                 <DropdownMenu>
@@ -912,6 +1112,18 @@ const claseFiltro = 'sticky top-10 z-20 border-b bg-card/95 px-2 py-1.5 backdrop
                                 </DropdownMenu>
                             </td>
                         </tr>
+
+                        <tr v-if="hayQueDesplegar && desplegadas.has(String(fila.id))">
+                            <td :colspan="anchoTabla" class="border-b bg-card p-0">
+                                <div
+                                    class="sticky left-0"
+                                    :style="anchoVisible > 0 ? { width: `${anchoVisible}px` } : undefined"
+                                >
+                                    <FilaDetalle :columnas="columnasOcultasEnFila" :fila="fila" />
+                                </div>
+                            </td>
+                        </tr>
+                        </template>
                     </tbody>
                 </table>
             </div>

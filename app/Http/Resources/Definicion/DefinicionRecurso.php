@@ -35,5 +35,12 @@ final class DefinicionRecurso
         public readonly string $ordenPorDefecto,
         public readonly array $tamanosPagina,
         public readonly bool $seleccionable,
+        /**
+         * La clave de la acción que abre el doble clic sobre una fila, y la del
+         * doble clic con Ctrl o ⌘. Llegan ya cribadas: existen, están permitidas
+         * para quien mira y se pueden abrir con un `GET`.
+         */
+        public readonly ?string $accionPorDefecto = null,
+        public readonly ?string $accionAlternativa = null,
     ) {}
 }

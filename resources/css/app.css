@@ -151,6 +151,39 @@
     --estado-en-revision: var(--violeta-600);
     --estado-en-revision-suave: var(--violeta-50);
 
+
+    /*
+     * Tipología de activos. Familia APARTE de los estados, y la diferencia no es
+     * decorativa: un estado dice cómo va algo y un tipo dice qué es. Si los dos
+     * usaran la misma paleta, un badge de tipo en verde se leería como
+     * «implantado». Se separan por croma —0.10 aquí, 0.13 en los estados— y por
+     * tono, con ΔE 6.2 en el peor par medido, por encima del suelo de 6.
+     *
+     * Nueve categorías no caben en el hueco que dejan los estados con ΔE 6 entre
+     * ellas: la peor pareja queda en 5.2. Es aceptable porque estos badges nunca
+     * se tocan, siempre llevan texto y **siempre llevan icono** — la identidad
+     * del tipo la carga el icono, el color sólo agrupa. Por eso el icono no es
+     * opcional. Las cifras están medidas, en DESIGN.md §3.
+     */
+    --tipo-servicios: oklch(0.47 0.10 255);
+    --tipo-servicios-suave: oklch(0.955 0.028 255);
+    --tipo-datos: oklch(0.47 0.10 190);
+    --tipo-datos-suave: oklch(0.955 0.028 190);
+    --tipo-software: oklch(0.47 0.10 290);
+    --tipo-software-suave: oklch(0.955 0.028 290);
+    --tipo-hardware: oklch(0.47 0.10 225);
+    --tipo-hardware-suave: oklch(0.955 0.028 225);
+    --tipo-comunicaciones: oklch(0.47 0.10 145);
+    --tipo-comunicaciones-suave: oklch(0.955 0.028 145);
+    --tipo-soportes: oklch(0.47 0.10 70);
+    --tipo-soportes-suave: oklch(0.955 0.028 70);
+    --tipo-equipamiento-auxiliar: oklch(0.47 0.10 115);
+    --tipo-equipamiento-auxiliar-suave: oklch(0.955 0.028 115);
+    --tipo-instalaciones: oklch(0.47 0.10 5);
+    --tipo-instalaciones-suave: oklch(0.955 0.028 5);
+    --tipo-personal: oklch(0.47 0.10 325);
+    --tipo-personal-suave: oklch(0.955 0.028 325);
+
     /* Sombras teñidas con el hue del fondo. Negro puro sobre claro ensucia. */
     --sombra-1: 0 1px 2px oklch(0.23 0.018 235 / 7%), 0 1px 3px oklch(0.23 0.018 235 / 4%);
     --sombra-2: 0 1px 2px oklch(0.23 0.018 235 / 6%), 0 8px 20px -8px oklch(0.23 0.018 235 / 12%);
@@ -223,6 +256,29 @@
     --estado-no-aplica-suave: oklch(0.29 0.008 285);
     --estado-en-revision: var(--violeta-400);
     --estado-en-revision-suave: oklch(0.3 0.06 299);
+
+    /*
+     * Tipos en oscuro: mismos tonos, luminosidad invertida entre texto y fondo.
+     * Contraste peor del conjunto 6.90.
+     */
+    --tipo-servicios: oklch(0.79 0.09 255);
+    --tipo-servicios-suave: oklch(0.3 0.04 255);
+    --tipo-datos: oklch(0.79 0.09 190);
+    --tipo-datos-suave: oklch(0.3 0.04 190);
+    --tipo-software: oklch(0.79 0.09 290);
+    --tipo-software-suave: oklch(0.3 0.04 290);
+    --tipo-hardware: oklch(0.79 0.09 225);
+    --tipo-hardware-suave: oklch(0.3 0.04 225);
+    --tipo-comunicaciones: oklch(0.79 0.09 145);
+    --tipo-comunicaciones-suave: oklch(0.3 0.04 145);
+    --tipo-soportes: oklch(0.79 0.09 70);
+    --tipo-soportes-suave: oklch(0.3 0.04 70);
+    --tipo-equipamiento-auxiliar: oklch(0.79 0.09 115);
+    --tipo-equipamiento-auxiliar-suave: oklch(0.3 0.04 115);
+    --tipo-instalaciones: oklch(0.79 0.09 5);
+    --tipo-instalaciones-suave: oklch(0.3 0.04 5);
+    --tipo-personal: oklch(0.79 0.09 325);
+    --tipo-personal-suave: oklch(0.3 0.04 325);
 
     /* Sobre el fondo oscuro el acento es el 400 (5.55:1). Nunca el 600. */
     --acento: var(--violeta-400);
@@ -303,6 +359,25 @@
     --color-estado-en-revision: var(--estado-en-revision);
     --color-estado-en-revision-suave: var(--estado-en-revision-suave);
 
+    --color-tipo-servicios: var(--tipo-servicios);
+    --color-tipo-servicios-suave: var(--tipo-servicios-suave);
+    --color-tipo-datos: var(--tipo-datos);
+    --color-tipo-datos-suave: var(--tipo-datos-suave);
+    --color-tipo-software: var(--tipo-software);
+    --color-tipo-software-suave: var(--tipo-software-suave);
+    --color-tipo-hardware: var(--tipo-hardware);
+    --color-tipo-hardware-suave: var(--tipo-hardware-suave);
+    --color-tipo-comunicaciones: var(--tipo-comunicaciones);
+    --color-tipo-comunicaciones-suave: var(--tipo-comunicaciones-suave);
+    --color-tipo-soportes: var(--tipo-soportes);
+    --color-tipo-soportes-suave: var(--tipo-soportes-suave);
+    --color-tipo-equipamiento-auxiliar: var(--tipo-equipamiento-auxiliar);
+    --color-tipo-equipamiento-auxiliar-suave: var(--tipo-equipamiento-auxiliar-suave);
+    --color-tipo-instalaciones: var(--tipo-instalaciones);
+    --color-tipo-instalaciones-suave: var(--tipo-instalaciones-suave);
+    --color-tipo-personal: var(--tipo-personal);
+    --color-tipo-personal-suave: var(--tipo-personal-suave);
+
     --shadow-sombra-1: var(--sombra-1);
     --shadow-sombra-2: var(--sombra-2);
     --shadow-sombra-3: var(--sombra-3);
@@ -376,5 +451,39 @@
         animation-iteration-count: 1 !important;
         transition-duration: 1ms !important;
         scroll-behavior: auto !important;
+    }
+}
+
+/*
+ * Impresión
+ * ---------
+ * Sólo hay una pantalla pensada para el papel —la hoja de etiquetas QR— y lo
+ * que estorba ahí es el chrome de trabajo: barra lateral, cabecera y avisos.
+ * Se declara aquí y no en la pantalla porque el chrome es del layout, no suyo,
+ * y porque el día que se imprima la SoA valdrá igual.
+ *
+ * `.no-imprimir` es la puerta para lo que cada pantalla quiera quitar por su
+ * cuenta: botones de acción, migas, contadores.
+ */
+@media print {
+    aside,
+    header,
+    .no-imprimir {
+        display: none !important;
+    }
+
+    /* Sin fondo ni sombras: tinta gastada en nada. */
+    body,
+    main {
+        background: white !important;
+        color: black !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+    }
+
+    /* Márgenes de la propia hoja, no del contenido. */
+    @page {
+        margin: 8mm;
     }
 }

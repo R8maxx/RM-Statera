@@ -140,4 +140,19 @@ final class SistemaRecurso extends Recurso
     {
         return 'codigo';
     }
+
+    /**
+     * Un sistema no tiene ficha propia: lo que se mira de él son sus
+     * implantaciones, y lo que se toca, su formulario. El doble clic abre el
+     * formulario y la alternativa no lleva a ninguna parte.
+     */
+    public function accionPorDefecto(): string
+    {
+        return 'editar';
+    }
+
+    public function accionAlternativa(): ?string
+    {
+        return null;
+    }
 }

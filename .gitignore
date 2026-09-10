@@ -59,3 +59,8 @@ _ide_helper_models.php
 # Sistema operativo
 .DS_Store
 Thumbs.db
+
+# Inventarios y hojas de cálculo de trabajo. Llevan datos reales de clientes
+# —personas, números de serie, hallazgos— y no entran en el repositorio.
+*.xlsx
+*.xls

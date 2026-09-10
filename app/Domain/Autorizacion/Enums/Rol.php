@@ -58,6 +58,8 @@ enum Rol: string
                 Permiso::ImplantacionesGestionar,
                 Permiso::EvidenciasVer,
                 Permiso::EvidenciasGestionar,
+                Permiso::ActivosVer,
+                Permiso::ActivosGestionar,
             ],
 
             self::Auditor => [
@@ -65,6 +67,7 @@ enum Rol: string
                 Permiso::SistemasVer,
                 Permiso::ImplantacionesVer,
                 Permiso::EvidenciasVer,
+                Permiso::ActivosVer,
             ],
         };
     }

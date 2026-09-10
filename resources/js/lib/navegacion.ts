@@ -1,5 +1,7 @@
 import {
+    BoxesIcon,
     ClipboardCheckIcon,
+    ClipboardListIcon,
     LayoutDashboardIcon,
     PaperclipIcon,
     ServerIcon,
@@ -10,9 +12,9 @@ import {
  * El mapa de la aplicación, declarado una sola vez.
  *
  * Lo leen el sidebar, el panel lateral de móvil, las migas de pan y la paleta
- * de comandos. Cuando entre el módulo de activos, se añade aquí y aparece en
- * los cuatro sitios: mantener cuatro listas sincronizadas a mano es lo que
- * termina dejando un módulo fuera del buscador sin que nadie lo note.
+ * de comandos. Un módulo nuevo se añade aquí y aparece en los cuatro sitios:
+ * mantener cuatro listas sincronizadas a mano es lo que termina dejando un
+ * módulo fuera del buscador sin que nadie lo note.
  *
  * Los grupos existen desde ya, con tres entradas, porque la especificación
  * define diecinueve módulos y una lista plana de diecinueve no se recorre.
@@ -62,6 +64,18 @@ export const navegacion: GrupoNavegacion[] = [
                 href: '/sistemas',
                 icono: ServerIcon,
                 alias: ['alcance', 'ens', 'categoria'],
+            },
+            {
+                titulo: 'Activos',
+                href: '/activos',
+                icono: BoxesIcon,
+                alias: ['inventario', 'magerit', 'servidores', 'datos', 'servicios', 'dependencias', 'qr', 'etiquetas'],
+            },
+            {
+                titulo: 'Revisiones',
+                href: '/revisiones',
+                icono: ClipboardListIcon,
+                alias: ['revisión', 'inventario', 'mantenido', 'desviaciones'],
             },
         ],
     },

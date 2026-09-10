@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import IconoTipo from '@/components/IconoTipo.vue';
 import { computed } from 'vue';
 
 type ValorEtiquetado = App.Http.Resources.Definicion.ValorEtiquetado;
@@ -24,6 +25,19 @@ const tonos: Record<string, { badge: string; punto: string | null }> = {
     archivado: { badge: 'bg-estado-no-aplica-suave text-estado-no-aplica', punto: 'bg-estado-no-aplica' },
 
     /*
+     * El ciclo de vida de un activo reutiliza los tokens de estado en vez de
+     * traerse colores nuevos: son las mismas cinco etapas leídas de otra manera
+     * —planificado, vivo, en obras, apagado— y un sexto color no añadiría
+     * información, sólo ruido. `retirado` y `dado_de_baja` comparten tono porque
+     * lo que los distingue —si hay constancia del borrado seguro— se dice con
+     * `caducada` en la propia etiqueta, no con un matiz de gris.
+     */
+    en_produccion: { badge: 'bg-estado-implantado-suave text-estado-implantado', punto: 'bg-estado-implantado' },
+    en_mantenimiento: { badge: 'bg-estado-en-progreso-suave text-estado-en-progreso', punto: 'bg-estado-en-progreso' },
+    retirado: { badge: 'bg-estado-no-aplica-suave text-estado-no-aplica', punto: 'bg-estado-no-aplica' },
+    dado_de_baja: { badge: 'bg-estado-no-aplica-suave text-estado-no-aplica', punto: 'bg-estado-no-aplica' },
+
+    /*
      * La categoría del ENS es ordinal —básica < media < alta—, así que sube en
      * énfasis, no cambia de significado. `alta` estaba en rojo `destructive`, y
      * eso mentía: una categoría alta no es un error, es un sistema que exige
@@ -47,6 +61,31 @@ const tonos: Record<string, { badge: string; punto: string | null }> = {
 
     /* Procedencia, no estado: chip neutro y monoespaciado, sin punto. */
     marco: { badge: 'cifra bg-muted text-muted-foreground', punto: null },
+
+    /*
+     * Tipología de activos. Familia aparte de los estados y con prefijo propio
+     * para que no se mezclen por accidente: un tipo nunca es un estado.
+     *
+     * Las clases van escritas enteras y no compuestas (`bg-tipo-${x}-suave`)
+     * porque Tailwind analiza el fichero como texto: una clase construida en
+     * tiempo de ejecución no se genera y el badge sale sin fondo.
+     *
+     * Sin punto: estos badges llevan el ICONO del tipo, que es lo que carga la
+     * identidad cuando el color no basta para separar nueve categorías
+     * (DESIGN.md §3: la peor pareja queda en ΔE 5.2).
+     */
+    'tipo:servicios': { badge: 'bg-tipo-servicios-suave text-tipo-servicios', punto: null },
+    'tipo:datos': { badge: 'bg-tipo-datos-suave text-tipo-datos', punto: null },
+    'tipo:software': { badge: 'bg-tipo-software-suave text-tipo-software', punto: null },
+    'tipo:hardware': { badge: 'bg-tipo-hardware-suave text-tipo-hardware', punto: null },
+    'tipo:comunicaciones': { badge: 'bg-tipo-comunicaciones-suave text-tipo-comunicaciones', punto: null },
+    'tipo:soportes': { badge: 'bg-tipo-soportes-suave text-tipo-soportes', punto: null },
+    'tipo:equipamiento_auxiliar': {
+        badge: 'bg-tipo-equipamiento-auxiliar-suave text-tipo-equipamiento-auxiliar',
+        punto: null,
+    },
+    'tipo:instalaciones': { badge: 'bg-tipo-instalaciones-suave text-tipo-instalaciones', punto: null },
+    'tipo:personal': { badge: 'bg-tipo-personal-suave text-tipo-personal', punto: null },
 };
 
 const tono = computed(
@@ -66,6 +105,13 @@ const tono = computed(
             punto de color está justificado.
         -->
         <span v-if="tono.punto" class="size-1.5 rounded-full" :class="tono.punto" aria-hidden="true" />
+
+        <!--
+            Y cuando el valor trae icono, va en lugar del punto: es lo que
+            separa nueve tipos de activo que el color solo no llega a separar.
+        -->
+        <IconoTipo v-else-if="valor.icono" :nombre="valor.icono" />
+
         {{ valor.etiqueta }}
     </span>
     <span v-else class="text-muted-foreground" aria-label="sin valor">—</span>

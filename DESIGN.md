@@ -137,6 +137,32 @@ Las cifras salen de ejecutar el validador de paletas sobre los hex de esta tabla
 
 Nunca comunicar un estado sólo con color: color + icono + texto. Aquí un badge mal leído es un hallazgo de auditoría que nadie vio.
 
+### Tipología — activos
+
+Familia **aparte** de los estados, y la separación no es decorativa: un estado dice *cómo va* algo y un tipo dice *qué es*. Compartir paleta haría que un badge de tipo en verde se leyera como «implantado». Se separan por croma —0.10 aquí frente a 0.13 en los estados— y por tono.
+
+| Token | Hex | Fondo suave | Contraste | Icono | Tipo MAGERIT |
+|---|---|---|---|---|---|
+| `tipo-servicios` | `#315C92` | `#E4F2FF` | 5.99 | `Globe` | Servicios |
+| `tipo-datos` | `#006C67` | `#DCF7F4` | 5.58 | `Database` | Datos e información |
+| `tipo-software` | `#5B508F` | `#EFEDFF` | 6.15 | `AppWindow` | Software |
+| `tipo-hardware` | `#006585` | `#DDF5FF` | 5.77 | `HardDrive` | Hardware |
+| `tipo-comunicaciones` | `#326935` | `#E5F6E5` | 5.78 | `Network` | Redes de comunicaciones |
+| `tipo-soportes` | `#7E4F04` | `#FDEDDC` | 6.11 | `Archive` | Soportes de información |
+| `tipo-equipamiento-auxiliar` | `#59610F` | `#EFF3DE` | 5.90 | `Plug` | Equipamiento auxiliar |
+| `tipo-instalaciones` | `#884053` | `#FFE9ED` | 6.22 | `Building2` | Instalaciones |
+| `tipo-personal` | `#774579` | `#FAEAFB` | 6.25 | `Users` | Personal |
+
+En oscuro, mismos tonos con luminosidad invertida entre texto y fondo; el peor contraste del conjunto sube a 6.90.
+
+**Las tres cifras que mandan aquí, medidas:**
+
+- **Contraste 5.58 en el peor caso.** Los nueve pasan AA con margen — más que los propios `--estado-*`, que arrastran tres por debajo de 4.5.
+- **ΔE 6.2 en el peor par tipo↔estado** (`comunicaciones` frente a `implantado`), por encima del suelo de 6. Ningún badge de tipo se confunde con uno de estado.
+- **ΔE 5.2 en el peor par tipo↔tipo**, y eso **no llega al suelo**. Nueve categorías no caben en el hueco que dejan los estados. Es aceptable aquí y no lo sería en una barra por tramos, porque estos badges nunca se tocan, siempre llevan texto y **siempre llevan icono**: la identidad del tipo la carga el icono y el color sólo agrupa. Por eso el icono de la tabla **no es opcional** — quitarlo deja la distinción por debajo del umbral.
+
+Las cifras salen de convertir los `oklch` de `app.css` a sRGB y medir; si se retoca un tono, se vuelven a medir. La misma regla que los semánticos.
+
 ### Degradados
 
 Reservados a portadas de informe y cabeceras de material comercial. **Nunca** en botones, tarjetas, cabeceras de tabla ni sobre el símbolo, que es plano por decisión (§2).

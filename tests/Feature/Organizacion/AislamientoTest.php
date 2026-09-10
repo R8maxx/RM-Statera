@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Domain\Activo\Models\Activo;
+use App\Domain\Activo\RegistrarDependencia;
 use App\Domain\Catalogo\Models\Marco;
 use App\Domain\Catalogo\Models\Requisito;
 use App\Domain\Implantacion\Models\Implantacion;
@@ -44,7 +46,16 @@ beforeEach(function (): void {
             'requisito_id' => $this->requisito->id,
         ]);
 
+        // Un activo con una dependencia declarada por organización: el grafo se
+        // resuelve con SQL crudo, así que es donde antes se cuela una fuga.
+        $servicio = Activo::factory()->de($this->{$clave})->create(['codigo' => 'SRV-'.$clave]);
+        $base = Activo::factory()->de($this->{$clave})->create(['codigo' => 'BBDD-'.$clave]);
+        app(RegistrarDependencia::class)->vincular($servicio, $base);
+
+        $servicio->sistemas()->attach($sistema->id, ['organizacion_id' => $this->{$clave}->id]);
+
         $this->{$clave.'Sistema'} = $sistema;
+        $this->{$clave.'Activo'} = $servicio;
     }
 
     $contexto->olvidar();
@@ -67,6 +78,7 @@ it('el scope global no devuelve filas de otra organización', function (string $
     Sistema::class,
     ValoracionDimension::class,
     Implantacion::class,
+    Activo::class,
 ]);
 
 it('rellena organizacion_id solo al crear', function (): void {
@@ -98,6 +110,15 @@ it('sin contexto no se ve nada', function (): void {
 | un `DB::table()` en crudo. Ésta vive en PostgreSQL.
 |
 */
+
+it('las pivotes tampoco cruzan la frontera', function (string $tabla): void {
+    comoOrganizacion($this->alfa);
+
+    $filas = DB::table($tabla)->get();
+
+    expect($filas)->toHaveCount(1)
+        ->and((int) $filas->first()->organizacion_id)->toBe($this->alfa->id);
+})->with(['activo_dependencias', 'activo_sistema']);
 
 it('una consulta en crudo tampoco ve la otra organización', function (): void {
     comoOrganizacion($this->alfa);

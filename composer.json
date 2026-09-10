@@ -13,6 +13,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.4",
+        "bacon/bacon-qr-code": "^3.0",
         "gotenberg/gotenberg-php": "^2.0",
         "inertiajs/inertia-laravel": "^3.0",
         "laravel/boost": "^2.7",

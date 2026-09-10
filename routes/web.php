@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\ActivoController;
 use App\Http\Controllers\EvidenciaController;
 use App\Http\Controllers\ImplantacionController;
 use App\Http\Controllers\PanelController;
 use App\Http\Controllers\PerfilController;
+use App\Http\Controllers\RevisionInventarioController;
 use App\Http\Controllers\SistemaController;
 use App\Http\Controllers\ValoracionSistemaController;
 use App\Http\Middleware\ExigirDosFactores;
@@ -104,6 +106,70 @@ Route::middleware('auth')->group(function (): void {
             ->name('implantaciones.evidencias.vincular');
         Route::delete('/implantaciones/{implantacion}/evidencias/{evidencia}', [ImplantacionController::class, 'desvincularEvidencia'])
             ->name('implantaciones.evidencias.desvincular');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Activos
+    |--------------------------------------------------------------------------
+    */
+
+    Route::middleware('can:activos.ver')->group(function (): void {
+        Route::get('/activos', [ActivoController::class, 'index'])->name('activos.index');
+
+        // Antes que `{activo}`, para que `crear` y `etiquetas` no se lean como
+        // identificadores de activo.
+        Route::get('/activos/crear', [ActivoController::class, 'create'])
+            ->middleware(['can:activos.gestionar', ExigirDosFactores::class])
+            ->name('activos.create');
+
+        // Las etiquetas sólo se leen y se imprimen: no escriben nada, así que
+        // van con `ver` y sin segundo factor.
+        Route::get('/activos/etiquetas', [ActivoController::class, 'etiquetas'])
+            ->name('activos.etiquetas');
+
+        Route::get('/activos/{activo}', [ActivoController::class, 'show'])->name('activos.show');
+    });
+
+    Route::middleware(['can:activos.gestionar', ExigirDosFactores::class])->group(function (): void {
+        // Antes que `/activos/{activo}` en POST no hace falta —los verbos son
+        // distintos—, pero se declara aquí junto al resto de la escritura.
+        Route::post('/activos/revision', [ActivoController::class, 'marcarRevisados'])
+            ->name('activos.revision');
+
+        Route::post('/activos', [ActivoController::class, 'store'])->name('activos.store');
+        Route::get('/activos/{activo}/editar', [ActivoController::class, 'edit'])->name('activos.edit');
+        Route::put('/activos/{activo}', [ActivoController::class, 'update'])->name('activos.update');
+        Route::delete('/activos/{activo}', [ActivoController::class, 'destroy'])->name('activos.destroy');
+
+        // El grafo se opera desde la ficha del activo, que es donde alguien se
+        // pregunta qué se cae si esto se cae.
+        Route::post('/activos/{activo}/dependencias', [ActivoController::class, 'vincularDependencia'])
+            ->name('activos.dependencias.vincular');
+        Route::delete('/activos/{activo}/dependencias/{dependencia}', [ActivoController::class, 'desvincularDependencia'])
+            ->name('activos.dependencias.desvincular');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Revisiones del inventario
+    |--------------------------------------------------------------------------
+    |
+    | Sin permiso propio: revisar el inventario es gestionarlo, y el enum de
+    | permisos declara dos verbos por módulo a propósito.
+    |
+    */
+
+    Route::middleware('can:activos.ver')->group(function (): void {
+        Route::get('/revisiones', [RevisionInventarioController::class, 'index'])->name('revisiones.index');
+    });
+
+    Route::middleware(['can:activos.gestionar', ExigirDosFactores::class])->group(function (): void {
+        Route::get('/revisiones/crear', [RevisionInventarioController::class, 'create'])->name('revisiones.create');
+        Route::post('/revisiones', [RevisionInventarioController::class, 'store'])->name('revisiones.store');
+        Route::get('/revisiones/{revision}/editar', [RevisionInventarioController::class, 'edit'])->name('revisiones.edit');
+        Route::put('/revisiones/{revision}', [RevisionInventarioController::class, 'update'])->name('revisiones.update');
+        Route::delete('/revisiones/{revision}', [RevisionInventarioController::class, 'destroy'])->name('revisiones.destroy');
     });
 
     /*

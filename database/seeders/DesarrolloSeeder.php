@@ -4,6 +4,13 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Domain\Activo\Enums\Clasificacion;
+use App\Domain\Activo\Enums\EstadoCicloVida;
+use App\Domain\Activo\Enums\EstadoControl;
+use App\Domain\Activo\Enums\TipoActivo;
+use App\Domain\Activo\Models\Activo;
+use App\Domain\Activo\Models\RevisionInventario;
+use App\Domain\Activo\RegistrarDependencia;
 use App\Domain\Autorizacion\Enums\Rol;
 use App\Domain\Autorizacion\SembrarRoles;
 use App\Domain\Catalogo\Enums\Dimension;
@@ -22,6 +29,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Datos con los que arrancar en local.
@@ -101,6 +109,124 @@ class DesarrolloSeeder extends Seeder
         ));
 
         $this->evidenciaDeEjemplo($sistema);
+        $this->inventarioDeEjemplo($sistema);
+    }
+
+    /**
+     * Una cadena de tres saltos, que es lo mínimo para que la propagación de la
+     * valoración se vea sin montarla a mano:
+     *
+     *     SRV-0001 (servicio, disponibilidad alta)
+     *         └── depende de APP-0001 (software, sin valorar)
+     *                 └── depende de BBDD-0001 (datos, confidencialidad media)
+     *
+     * La base de datos hereda «alto» en disponibilidad del servicio que está dos
+     * saltos por encima, y conserva su «medio» propio en confidencialidad. Ese
+     * es exactamente el activo que una hoja de cálculo deja infravalorado.
+     */
+    private function inventarioDeEjemplo(Sistema $sistema): void
+    {
+        $servicio = $this->activo('SRV-0001', 'Sede electrónica interna', TipoActivo::Servicios, [
+            'subtipo' => 'Servicio web',
+            'valor_d' => NivelDimension::Alto->value,
+            'valor_t' => NivelDimension::Bajo->value,
+            'ubicacion' => 'Nube corporativa',
+            'clasificacion' => Clasificacion::UsoInterno->value,
+            'ultima_revision' => Carbon::today()->subMonth()->toDateString(),
+        ]);
+
+        $aplicacion = $this->activo('APP-0001', 'Gestor de expedientes', TipoActivo::Software, [
+            'subtipo' => 'Aplicación web',
+            'ubicacion' => 'Nube corporativa',
+            'sistema_operativo' => 'Ubuntu 24.04 LTS',
+            'fin_soporte_so' => '2029-05-31',
+            'identificador' => 'i-0sintetico00000001',
+            // Nadie lo ha comprobado: es una pregunta abierta, no un
+            // incumplimiento. El indicador los cuenta aparte.
+            'copia_seguridad' => EstadoControl::PorConfirmar->value,
+            'ultima_revision' => Carbon::today()->subMonth()->toDateString(),
+        ]);
+
+        $baseDeDatos = $this->activo('BBDD-0001', 'Base de datos de expedientes', TipoActivo::Datos, [
+            'subtipo' => 'RDS MySQL',
+            'valor_c' => NivelDimension::Medio->value,
+            'ubicacion' => 'Nube corporativa',
+            'identificador' => 'arn:aws:rds:eu-west-1:000000000000:db:sintetica',
+            'clasificacion' => Clasificacion::Confidencial->value,
+            // Sin cifrar y con la información clasificada: el activo que ilumina
+            // dos indicadores a la vez y el que hay que arreglar primero.
+            'cifrado' => EstadoControl::No->value,
+            'copia_seguridad' => EstadoControl::Si->value,
+        ]);
+
+        // Un activo suelto y ya retirado sin constancia del borrado: el caso que
+        // la ficha tiene que señalar como pendiente, no dar por cerrado.
+        $this->activo('HW-0001', 'Portátil de la técnica de sistemas', TipoActivo::Hardware, [
+            'subtipo' => 'Portátil',
+            'estado_ciclo_vida' => EstadoCicloVida::Retirado->value,
+            'fecha_baja' => Carbon::today()->subMonths(2)->toDateString(),
+            'valor_c' => NivelDimension::Bajo->value,
+        ]);
+
+        // Y uno en uso con el sistema operativo fuera de soporte, para que el
+        // aviso de obsolescencia se vea sin tener que fabricarlo.
+        $this->activo('HW-0002', 'Servidor de la sala técnica', TipoActivo::Hardware, [
+            'subtipo' => 'Servidor físico',
+            'marca_modelo' => 'Genérico rack 1U',
+            'sistema_operativo' => 'Ubuntu 20.04 LTS',
+            'fin_soporte_so' => '2025-05-31',
+            'fin_garantia' => Carbon::today()->subMonths(6)->toDateString(),
+            'identificador' => 'SN-SINTETICO-0001',
+            'ubicacion' => 'Sala técnica',
+            'cifrado' => EstadoControl::No->value,
+            'copia_seguridad' => EstadoControl::Si->value,
+            'valor_d' => NivelDimension::Medio->value,
+        ]);
+
+        $vincular = app(RegistrarDependencia::class);
+        $vincular->vincular($servicio, $aplicacion, 'La sede se sirve desde el gestor de expedientes.');
+        $vincular->vincular($aplicacion, $baseDeDatos, 'Toda la información del gestor vive aquí.');
+
+        foreach ([$servicio, $aplicacion, $baseDeDatos] as $activo) {
+            $activo->sistemas()->syncWithoutDetaching([
+                $sistema->id => ['organizacion_id' => $activo->organizacion_id],
+            ]);
+        }
+
+        RevisionInventario::query()->firstOrCreate(
+            ['alcance' => 'Alta inicial del inventario de ejemplo'],
+            [
+                'fecha' => Carbon::today()->subMonth(),
+                'altas' => Activo::query()->count(),
+                'bajas' => 0,
+                'desviaciones' => 'BBDD-0001 sin cifrado en reposo. HW-0002 con el sistema operativo fuera de soporte y la garantía vencida.',
+                'acciones' => 'Plan de cifrado antes del próximo trimestre. Presupuestar la renovación de HW-0002.',
+            ],
+        );
+
+        $this->command->info(sprintf(
+            'Inventario de ejemplo: %d activos, %d dependencias y %d revisión registrada.',
+            Activo::query()->count(),
+            DB::table('activo_dependencias')->count(),
+            RevisionInventario::query()->count(),
+        ));
+    }
+
+    /**
+     * @param  array<string, mixed>  $atributos
+     */
+    private function activo(string $codigo, string $nombre, TipoActivo $tipo, array $atributos = []): Activo
+    {
+        return Activo::query()->firstOrCreate(
+            ['codigo' => $codigo],
+            [
+                'nombre' => $nombre,
+                'tipo' => $tipo->value,
+                'estado_ciclo_vida' => EstadoCicloVida::EnProduccion->value,
+                'fecha_alta' => Carbon::today()->subYear()->toDateString(),
+                ...$atributos,
+            ],
+        );
     }
 
     /** Alta idempotente de un usuario con su rol. Contraseña de desarrollo. */

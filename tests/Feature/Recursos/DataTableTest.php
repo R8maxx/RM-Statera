@@ -2,10 +2,16 @@
 
 declare(strict_types=1);
 
+use App\Domain\Autorizacion\Enums\Rol;
 use App\Domain\Catalogo\Models\Marco;
 use App\Domain\Sistema\Enums\EstadoSistema;
 use App\Domain\Sistema\Models\Sistema;
+use App\Http\Resources\Definicion\Accion;
+use App\Http\Resources\Definicion\Columna;
+use App\Http\Resources\Definicion\Etiquetas;
+use App\Http\Resources\Recurso;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Inertia\Testing\AssertableInertia;
 
 /*
@@ -52,6 +58,120 @@ it('expone la definición del recurso que declara el Resource', function (): voi
             ->has('recurso.filtros', 6)
             ->has('filas', 3)
             ->where('meta.total', 3)
+        );
+});
+
+/*
+|--------------------------------------------------------------------------
+| La acción del doble clic
+|--------------------------------------------------------------------------
+|
+| Se declara en el servidor y llega ya cribada: existe, está permitida para
+| quien mira y se abre con un GET. Las tres cribas importan, y la del método más
+| que ninguna: un doble clic no puede disparar un borrado.
+|
+*/
+
+it('declara qué abre el doble clic sobre una fila', function (): void {
+    $usuario = usuarioConSistemas(1);
+
+    $this->actingAs($usuario)
+        ->get('/sistemas')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            // Un sistema no tiene ficha: lo que se abre es su formulario.
+            ->where('recurso.accionPorDefecto', 'editar')
+            ->where('recurso.accionAlternativa', null)
+        );
+});
+
+it('reparte defecto y alternativa cuando el recurso tiene ficha y edición', function (): void {
+    comoOrganizacion();
+    $usuario = usuarioCon();
+
+    $this->actingAs($usuario)
+        ->get('/activos')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->where('recurso.accionPorDefecto', 'ver')
+            ->where('recurso.accionAlternativa', 'editar')
+        );
+});
+
+it('no ofrece como alternativa una acción que el usuario no puede ejecutar', function (): void {
+    // Al auditor, que no tiene `activos.gestionar`, el Ctrl + doble clic no
+    // puede llevarle a un formulario que el servidor le va a negar con un 403.
+    comoOrganizacion();
+    $auditor = usuarioCon(Rol::Auditor);
+
+    $this->actingAs($auditor)
+        ->get('/activos')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->where('recurso.accionPorDefecto', 'ver')
+            ->where('recurso.accionAlternativa', null)
+        );
+});
+
+it('nunca deja una acción destructiva como acción de doble clic', function (): void {
+    // Es la comprobación que sigue en pie el día que alguien declare un borrado
+    // por GET, o ponga `eliminar` como acción por defecto de un recurso nuevo.
+    $recurso = new class extends Recurso
+    {
+        public function clave(): string
+        {
+            return 'peligroso';
+        }
+
+        public function etiquetas(): Etiquetas
+        {
+            return new Etiquetas(singular: 'Peligro', plural: 'Peligros');
+        }
+
+        public function consulta(): Builder
+        {
+            return Sistema::query();
+        }
+
+        /** @return list<Columna> */
+        public function columnas(): array
+        {
+            return [Columna::texto('codigo', 'Código')];
+        }
+
+        /** @return list<Accion> */
+        public function accionesFila(): array
+        {
+            return [
+                Accion::eliminar('/peligros/{id}', '¿Seguro?'),
+                (new Accion('purgar', 'Purgar', '/peligros/{id}/purgar'))->destructiva(),
+            ];
+        }
+
+        public function accionPorDefecto(): ?string
+        {
+            return 'eliminar';
+        }
+
+        public function accionAlternativa(): ?string
+        {
+            return 'purgar';
+        }
+    };
+
+    $definicion = $recurso->definicion();
+
+    expect($definicion->accionPorDefecto)->toBeNull()
+        ->and($definicion->accionAlternativa)->toBeNull();
+});
+
+it('ignora una acción por defecto que el recurso no declara', function (): void {
+    comoOrganizacion();
+    $usuario = usuarioCon();
+
+    // Evidencias declara `ver` pero no `editar` entre las acciones de fila.
+    $this->actingAs($usuario)
+        ->get('/evidencias')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->where('recurso.accionPorDefecto', 'ver')
+            ->where('recurso.accionAlternativa', null)
         );
 });
 
