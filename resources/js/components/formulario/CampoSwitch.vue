@@ -28,6 +28,7 @@ const descrito = computed(() =>
             <Switch
                 :id="id"
                 v-model="modelo"
+                :data-campo="nombre"
                 :disabled="deshabilitado"
                 :aria-describedby="descrito"
             />

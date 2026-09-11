@@ -1,13 +1,17 @@
 <script setup lang="ts">
 import EtiquetaQr from '@/components/activo/EtiquetaQr.vue';
 import CampoCasillas from '@/components/formulario/CampoCasillas.vue';
+import CampoOpciones from '@/components/formulario/CampoOpciones.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
 import FormularioRecurso from '@/components/formulario/FormularioRecurso.vue';
 import SeccionFormulario from '@/components/formulario/SeccionFormulario.vue';
+import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { conOpcionVacia, SIN_VALOR, type Opcion } from '@/lib/formularios';
+import { barraContextual } from '@/lib/motion';
+import { motion } from 'motion-v';
 import { computed, ref, watch } from 'vue';
 
 interface Activo {
@@ -49,6 +53,11 @@ interface OpcionConAyuda extends Opcion {
     ayuda: string;
 }
 
+interface OpcionTipo extends OpcionConAyuda {
+    /** Si a este tipo le corresponde marca, modelo y sistema operativo. */
+    fichaTecnica: boolean;
+}
+
 interface DimensionDeclarada {
     codigo: string;
     campo: string;
@@ -59,7 +68,7 @@ interface DimensionDeclarada {
 const props = defineProps<{
     activo: Activo | null;
     etiqueta: { svg: string; url: string } | null;
-    tipos: OpcionConAyuda[];
+    tipos: OpcionTipo[];
     estados: Opcion[];
     niveles: Opcion[];
     dimensiones: DimensionDeclarada[];
@@ -116,12 +125,23 @@ const valores = ref<Record<string, string>>(
     Object.fromEntries(
         props.dimensiones.map((dimension) => [
             dimension.campo,
-            (props.activo?.[dimension.campo as keyof Activo] as string | undefined) ?? 'na',
+            /*
+             * Sin preselección en el alta. `na` no es «bajo»: significa que la
+             * dimensión no es de aplicación, y traerla puesta convierte una
+             * decisión de valoración en un descuido que no se ve. Es el mismo
+             * fallo silencioso que tenía el catálogo con `op.exp.7`.
+             */
+            (props.activo?.[dimension.campo as keyof Activo] as string | undefined) ?? '',
         ]),
     ),
 );
 
-const ejemploDelTipo = computed(() => props.tipos.find((uno) => uno.valor === tipo.value)?.ayuda);
+const tipoElegido = computed(() => props.tipos.find((uno) => uno.valor === tipo.value));
+
+const ejemploDelTipo = computed(() => tipoElegido.value?.ayuda);
+
+/** Marca, modelo y sistema operativo no dicen nada de un servicio ni de una persona. */
+const conFichaTecnica = computed(() => tipoElegido.value?.fichaTecnica === true);
 
 const ayudaClasificacion = computed(
     () => props.clasificaciones.find((una) => una.valor === clasificacion.value)?.ayuda,
@@ -129,6 +149,16 @@ const ayudaClasificacion = computed(
 
 /** La baja sólo se pregunta cuando el activo dice estar retirado o dado de baja. */
 const daDeBaja = computed(() => estado.value === 'retirado' || estado.value === 'dado_de_baja');
+
+/*
+ * Tres campos que aparecen a la vez a media pantalla dan un salto seco. Es un
+ * cambio de estado, que es de lo que sí se anima según DESIGN.md §10, y la
+ * variante ya está escrita para esto en `lib/motion.ts`.
+ */
+const { reducido } = useMovimientoReducido();
+const variantesBaja = computed(() =>
+    reducido.value ? { oculto: {}, visible: {} } : barraContextual,
+);
 </script>
 
 <template>
@@ -145,6 +175,7 @@ const daDeBaja = computed(() => estado.value === 'retirado' || estado.value === 
             <SeccionFormulario
                 titulo="Identificación"
                 ayuda="El código es el que se usa en las etiquetas y en el análisis de riesgos: conviene que sea corto y estable. El tipo sigue la tipología de MAGERIT, que es la que espera un auditor del ENS."
+                plegable
             >
                 <div class="grid gap-5 sm:grid-cols-[10rem_1fr]">
                     <CampoTexto
@@ -153,7 +184,7 @@ const daDeBaja = computed(() => estado.value === 'retirado' || estado.value === 
                         :valor-inicial="activo?.codigo"
                         :error="errors.codigo"
                         requerido
-                        autofocus
+                        :autofocus="!edicion"
                     />
 
                     <CampoTexto
@@ -212,9 +243,17 @@ const daDeBaja = computed(() => estado.value === 'retirado' || estado.value === 
                 />
             </SeccionFormulario>
 
+            <!--
+                Plegada cuando el tipo elegido no la necesita, pero nunca fuera
+                del DOM: lo que sale del DOM sale del `FormData`, y como estos
+                campos son `nullable` una edición borraría en silencio el modelo
+                y el fin de soporte de un activo al que le cambiaron el tipo.
+            -->
             <SeccionFormulario
                 titulo="Ficha técnica"
                 ayuda="Marca, modelo y sistema operativo. La fecha de fin de soporte se propone sola al elegir una versión conocida: un sistema sin parches es op.exp.4 y no lo ve nadie hasta que hay un incidente."
+                plegable
+                :plegada-por-defecto="!conFichaTecnica"
             >
                 <div class="grid gap-5 sm:grid-cols-2">
                     <CampoTexto
@@ -265,6 +304,7 @@ const daDeBaja = computed(() => estado.value === 'retirado' || estado.value === 
             <SeccionFormulario
                 titulo="Seguridad"
                 ayuda="La clasificación es la etiqueta que se le pone a la información y se decide (mp.info.2); el nivel del Anexo I, más abajo, se deriva del perjuicio. Conviven. En cifrado y copia, «por confirmar» no es «no»: la ausencia de dato no es ausencia de control, y contarlas igual convierte una duda en un incumplimiento falso."
+                plegable
             >
                 <CampoSelect
                     v-model="clasificacion"
@@ -300,6 +340,7 @@ const daDeBaja = computed(() => estado.value === 'retirado' || estado.value === 
             <SeccionFormulario
                 titulo="Custodia"
                 ayuda="El propietario responde del activo; el custodio lo usa. Cuando un portátil cambia de manos sólo cambia el custodio: el activo conserva su código y la etiqueta pegada en la carcasa sigue valiendo."
+                plegable
             >
                 <div class="grid gap-5 sm:grid-cols-2">
                     <CampoSelect
@@ -330,27 +371,25 @@ const daDeBaja = computed(() => estado.value === 'retirado' || estado.value === 
             <SeccionFormulario
                 titulo="Valoración"
                 ayuda="Las cinco dimensiones del Anexo I, valoradas por el perjuicio que causaría el fallo. «No aplica» no es «bajo»: significa que la dimensión no es de aplicación a este activo."
+                plegable
             >
-                <div
+                <CampoOpciones
                     v-for="dimension in dimensiones"
                     :key="dimension.codigo"
-                    class="grid gap-2"
-                >
-                    <CampoSelect
-                        v-model="valores[dimension.campo]"
-                        :nombre="dimension.campo"
-                        :etiqueta="dimension.nombre"
-                        :opciones="niveles"
-                        :error="errors[dimension.campo]"
-                        :ayuda="dimension.pregunta"
-                        requerido
-                    />
-                </div>
+                    v-model="valores[dimension.campo]"
+                    :nombre="dimension.campo"
+                    :etiqueta="dimension.nombre"
+                    :opciones="niveles"
+                    :error="errors[dimension.campo]"
+                    :ayuda="dimension.pregunta"
+                    requerido
+                />
             </SeccionFormulario>
 
             <SeccionFormulario
                 titulo="Alcance"
                 ayuda="En qué sistemas está declarado este activo. Puede estar en varios: el mismo servidor entra en el alcance del SGSI de ISO y en el del sistema del ENS, y duplicarlo sería volver a mantener dos inventarios."
+                plegable
             >
                 <CampoCasillas
                     v-model="alcance"
@@ -365,6 +404,7 @@ const daDeBaja = computed(() => estado.value === 'retirado' || estado.value === 
             <SeccionFormulario
                 titulo="Ciclo de vida"
                 ayuda="Retirado es que ya no presta servicio. Dado de baja es que además hay constancia de que se borró o destruyó lo que contenía, que es lo que exige mp.si.5. Un disco retirado que sigue en un cajón con los datos dentro es un hallazgo, no un activo cerrado."
+                plegable
             >
                 <CampoSelect
                     v-model="estado"
@@ -375,25 +415,18 @@ const daDeBaja = computed(() => estado.value === 'retirado' || estado.value === 
                     requerido
                 />
 
-                <div class="grid gap-5 sm:grid-cols-2">
-                    <CampoTexto
-                        nombre="fecha_alta"
-                        etiqueta="Fecha de alta"
-                        tipo="date"
-                        :valor-inicial="activo?.fecha_alta ?? ''"
-                        :error="errors.fecha_alta"
-                    />
-
-                    <CampoTexto
-                        v-if="daDeBaja"
-                        nombre="fecha_baja"
-                        etiqueta="Fecha de baja"
-                        tipo="date"
-                        :valor-inicial="activo?.fecha_baja ?? ''"
-                        :error="errors.fecha_baja"
-                        requerido
-                    />
-                </div>
+                <!--
+                    La fecha de baja no comparte rejilla con la de alta: con el
+                    activo vigente desaparece y el `sm:grid-cols-2` dejaba media
+                    fila en blanco.
+                -->
+                <CampoTexto
+                    nombre="fecha_alta"
+                    etiqueta="Fecha de alta"
+                    tipo="date"
+                    :valor-inicial="activo?.fecha_alta ?? ''"
+                    :error="errors.fecha_alta"
+                />
 
                 <CampoTexto
                     nombre="ultima_revision"
@@ -413,7 +446,16 @@ const daDeBaja = computed(() => estado.value === 'retirado' || estado.value === 
                     ayuda="Lo que no cabe en ningún campo y es lo primero que alguien necesita leer."
                 />
 
-                <template v-if="daDeBaja">
+                <motion.div v-if="daDeBaja" :variants="variantesBaja" initial="oculto" animate="visible" class="grid gap-5 overflow-hidden">
+                    <CampoTexto
+                        nombre="fecha_baja"
+                        etiqueta="Fecha de baja"
+                        tipo="date"
+                        :valor-inicial="activo?.fecha_baja ?? ''"
+                        :error="errors.fecha_baja"
+                        requerido
+                    />
+
                     <CampoTexto
                         nombre="borrado_seguro_en"
                         etiqueta="Borrado seguro realizado el"
@@ -431,12 +473,13 @@ const daDeBaja = computed(() => estado.value === 'retirado' || estado.value === 
                         :filas="2"
                         ayuda="El método y quién lo hizo. Es lo que se enseña cuando preguntan qué pasó con los datos."
                     />
-                </template>
+                </motion.div>
             </SeccionFormulario>
             <SeccionFormulario
                 v-if="etiqueta && activo"
                 titulo="Etiqueta QR"
                 ayuda="Sólo para mirar: no es un campo y no se envía con el formulario. El código lo genera el servidor a partir del identificador del activo, así que no cambia aunque cambies el nombre o el custodio."
+                plegable
             >
                 <EtiquetaQr :activo-id="activo.id" :svg="etiqueta.svg" :url="etiqueta.url" />
             </SeccionFormulario>

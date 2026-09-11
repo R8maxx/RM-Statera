@@ -297,7 +297,14 @@ Lo que sigue describe los componentes tal y como están construidos, no como nos
 
 Un solo primario por vista. El texto nombra la acción concreta: «Guardar cambios», «Publicar política», «Cerrar hallazgo». Sin flecha al final.
 
-**Campos.** Alto 36 px, borde `input`, radio `rounded-md`, `shadow-xs`. Foco: borde `ring` y anillo de 3 px en `ring/50`. Etiqueta encima, 13/500. Ayuda debajo, 12 px en `muted-foreground`, presente siempre que el campo tenga reglas, no sólo al fallar. Error: `aria-invalid` pinta borde y anillo en `destructive`, y el mensaje dice qué corregir. Cada campo lleva `label` real y encadena ayuda y error con `aria-describedby`.
+**Campos.** Alto 36 px, borde `input`, radio `rounded-md`, `shadow-xs`. Foco: borde `ring` y anillo de 3 px en `ring/50`. Etiqueta encima, 13/500. Ayuda debajo, 12 px en `muted-foreground`, presente siempre que el campo tenga reglas, no sólo al fallar. Error: `aria-invalid` pinta borde y anillo en `destructive`, y el mensaje dice qué corregir. Cada campo lleva `label` real y encadena ayuda y error con `aria-describedby`. La envoltura que pone todo eso es `CampoBase.vue`, una sola vez.
+
+- **Lo obligatorio se marca en teal, nunca en `destructive`.** Asterisco en `primary` junto a la etiqueta, filete de 2 px en `primary` a la izquierda del campo, y la leyenda «Los campos marcados con * son obligatorios» bajo el título de la pantalla. Pintar el asterisco de rojo —como estaba— hace que un formulario recién abierto se lea como un formulario lleno de errores: *falta* y *está mal* son dos estados distintos y no pueden compartir color. Como el color no puede ser el único portador (§11), el control lleva `aria-required` y la etiqueta un «(obligatorio)» sólo para lector de pantalla.
+- **Lo que falta se cuenta en vivo, y sólo cuando falta.** Cada `SeccionFormulario` dice «2 sin rellenar» junto a su título mientras queden obligatorios vacíos, y no dice nada cuando está completa —una palomita por sección es la fila de ceros del inventario otra vez—. El total va en la nota de `BarraAcciones`. Se lee del `FormData` del propio `<form>` con un único oyente, así que no duplica ni una regla: **el `FormRequest` sigue siendo la única fuente de verdad y el botón de envío nunca se deshabilita.** Un botón muerto que no explica por qué es peor que un intento fallido con su resumen.
+- **Una escala corta se elige de un clic, no en un desplegable** (`CampoOpciones.vue`, sobre `RadioGroupRoot` de Reka). Vale para lo que **ordena**: los niveles del Anexo I, la madurez. Es el mismo argumento que hay más abajo para no pintar la madurez como badge —lo que se pregunta es si esto es más que aquello, y eso lo contesta la posición antes que el texto—, y con las cinco dimensiones a la vista se ve de golpe cuál manda, que es la que decide la categoría. A menos de `sm` se reparte en dos columnas.
+- **Una sección se pliega desde su título**, que es donde se mira y donde se pulsa; el chevron va delante y el estado en `aria-expanded`. El recuento de obligatorios que faltan se queda **fuera de lo que se pliega**, para que plegar no esconda que la sección todavía debe dos campos.
+- **Una sección plegada sigue en el DOM.** Se pliega con `v-show`, no con `v-if` ni con el `Collapsible` de Reka: lo que sale del DOM sale del `FormData`, y con campos `nullable` una edición los borraría en silencio. `display:none` no excluye nada del envío —`FormData` sólo se salta los deshabilitados y los que no tienen `name`—, mientras que el `forceMount` de Reka deja el contenido montado pero **visible**, que no es plegar. Y el resumen de errores abre la sección antes de saltar al campo: dentro de un `display:none` no se puede enfocar ni desplazar nada.
+- **Salir con cambios sin guardar pregunta.** `BarraAcciones` intercepta Cancelar en fase de captura —en burbujeo competiría con el manejador del `<Link>` de Inertia— y registra un `beforeunload`. No se intercepta toda navegación: `router.on('before')` es síncrono y no admite esperar a un diálogo.
 
 **Tarjetas.** `bg-card`, radio `rounded-xl`, `ring-1 ring-foreground/10` en lugar de borde, padding vertical 24. Más de cuatro tarjetas idénticas seguidas suele significar que eso era una tabla.
 
@@ -465,6 +472,7 @@ Frases cortas, verbos activos, tono profesional sin rigidez. Se habla de lo que 
 - [ ] ¿Todo se alinea a la retícula de 4 px?
 - [ ] ¿Los contrastes cumplen 4.5:1 en texto?
 - [ ] ¿Se entiende cada estado sin ver el color?
+- [ ] ¿Se distingue un campo obligatorio de uno que ha fallado?
 - [ ] ¿El foco es visible recorriendo la pantalla con el tabulador?
 - [ ] ¿Lo que se mueve se para con `prefers-reduced-motion: reduce`?
 - [ ] ¿Funciona a 375 px de ancho?

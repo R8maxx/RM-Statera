@@ -56,6 +56,7 @@ const periodicidad = ref(props.evidencia?.periodicidad_renovacion ?? SIN_VALOR);
             <SeccionFormulario
                 titulo="Identificación"
                 ayuda="El título es lo que se lee en la Declaración de Aplicabilidad y en la lista de pruebas que se le entrega al auditor: conviene que diga qué demuestra, no dónde estaba el fichero."
+                plegable
             >
                 <CampoTexto
                     nombre="titulo"
@@ -88,7 +89,8 @@ const periodicidad = ref(props.evidencia?.periodicidad_renovacion ?? SIN_VALOR);
             <SeccionFormulario
                 v-if="!edicion"
                 titulo="La prueba"
-                ayuda="O un fichero o un enlace, exactamente uno. Sin ninguno de los dos no prueba nada; con los dos no se sabe cuál es la prueba."
+                ayuda="Hace falta uno de los dos, y sólo uno: sin ninguno no prueba nada, y con los dos no se sabe cuál es la prueba. Por eso ninguno de los dos lleva marca de obligatorio: lo obligatorio es el par."
+                plegable
             >
                 <CampoFichero
                     nombre="fichero"
@@ -111,6 +113,7 @@ const periodicidad = ref(props.evidencia?.periodicidad_renovacion ?? SIN_VALOR);
                 v-else
                 titulo="La prueba"
                 ayuda="El fichero de una evidencia no se reemplaza: si la prueba cambia, se registra otra. El almacén lleva Object Lock precisamente para que nadie pueda cambiar bajo un registro que ya se entregó."
+                plegable
             >
                 <p v-if="evidencia!.esFichero" class="cifra text-sm">{{ evidencia!.nombre_fichero }}</p>
 
@@ -127,6 +130,7 @@ const periodicidad = ref(props.evidencia?.periodicidad_renovacion ?? SIN_VALOR);
             <SeccionFormulario
                 titulo="Vigencia"
                 ayuda="Una prueba de hace tres años no prueba lo de hoy. Si eliges una periodicidad y dejas la caducidad en blanco, la fecha se calcula sola."
+                plegable
             >
                 <div class="grid gap-5 sm:grid-cols-2">
                     <CampoTexto

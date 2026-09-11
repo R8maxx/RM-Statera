@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
 import BarraAcciones from '@/components/formulario/BarraAcciones.vue';
-import CampoSelect from '@/components/formulario/CampoSelect.vue';
+import CampoOpciones from '@/components/formulario/CampoOpciones.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
 import SeccionFormulario from '@/components/formulario/SeccionFormulario.vue';
 import { Button } from '@/components/ui/button';
@@ -155,7 +155,7 @@ function aplicar(): void {
                     :titulo="dimension.nombre"
                     :ayuda="dimension.pregunta"
                 >
-                    <CampoSelect
+                    <CampoOpciones
                         v-model="previa[`nivel_${dimension.clave}`]"
                         :nombre="`nivel_${dimension.clave}`"
                         etiqueta="Nivel"

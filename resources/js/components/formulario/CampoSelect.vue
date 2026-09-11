@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import MensajeError from '@/components/formulario/MensajeError.vue';
-import { Label } from '@/components/ui/label';
+import CampoBase from '@/components/formulario/CampoBase.vue';
 import {
     Select,
     SelectContent,
@@ -8,14 +7,9 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { computed, useId } from 'vue';
+import type { Opcion } from '@/lib/formularios';
 
-interface Opcion {
-    valor: string;
-    etiqueta: string;
-}
-
-const props = defineProps<{
+defineProps<{
     nombre: string;
     etiqueta: string;
     opciones: Opcion[];
@@ -27,29 +21,27 @@ const props = defineProps<{
 }>();
 
 const modelo = defineModel<string | undefined>();
-
-const id = `${props.nombre}-${useId()}`;
-
-const descrito = computed(() =>
-    [props.ayuda ? `${id}-ayuda` : null, props.error ? `${id}-error` : null].filter(Boolean).join(' ') || undefined,
-);
 </script>
 
 <template>
-    <div class="grid gap-2">
-        <Label :for="id">
-            {{ etiqueta }}
-            <span v-if="requerido" class="text-destructive" aria-hidden="true">*</span>
-        </Label>
-
+    <CampoBase
+        :nombre="nombre"
+        :etiqueta="etiqueta"
+        :error="error"
+        :ayuda="ayuda"
+        :requerido="requerido"
+        #default="{ atributos }"
+    >
         <!--
             Reka pinta un botón, no un <select>, así que el valor viaja en un
-            campo oculto: el componente <Form> de Inertia lee el FormData.
+            campo oculto: el componente <Form> de Inertia lee el FormData. Por
+            eso `atributos` va al disparador y no aquí: un campo oculto no se
+            puede enfocar, y el resumen de errores tiene que poder llevar a él.
         -->
         <input type="hidden" :name="nombre" :value="modelo ?? ''" />
 
         <Select v-model="modelo" :disabled="deshabilitado">
-            <SelectTrigger :id="id" class="w-full" :aria-invalid="error ? true : undefined" :aria-describedby="descrito">
+            <SelectTrigger class="w-full" v-bind="atributos">
                 <SelectValue :placeholder="placeholder ?? 'Selecciona una opción'" />
             </SelectTrigger>
             <SelectContent>
@@ -58,9 +50,5 @@ const descrito = computed(() =>
                 </SelectItem>
             </SelectContent>
         </Select>
-
-        <p v-if="ayuda" :id="`${id}-ayuda`" class="text-xs text-muted-foreground">{{ ayuda }}</p>
-
-        <MensajeError :id="`${id}-error`" :mensaje="error" />
-    </div>
+    </CampoBase>
 </template>

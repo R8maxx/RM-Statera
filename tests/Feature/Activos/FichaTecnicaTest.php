@@ -9,6 +9,7 @@ use App\Domain\Activo\Enums\TipoActivo;
 use App\Domain\Activo\Models\Activo;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia;
 
@@ -185,4 +186,25 @@ it('no avisa cuando no hay nada que avisar', function (): void {
     $this->actingAs($this->usuario)
         ->get("/activos/{$activo->id}")
         ->assertInertia(fn (AssertableInertia $pagina) => $pagina->where('avisoSoporte', null));
+});
+
+it('reserva la ficha técnica a lo que tiene modelo o versión', function (): void {
+    // Software entra sin ser físico: el fin de soporte de la versión es lo que
+    // vigila op.exp.4, y sin él el aviso de obsolescencia no salta nunca.
+    expect(TipoActivo::Hardware->tieneFichaTecnica())->toBeTrue()
+        ->and(TipoActivo::Soportes->tieneFichaTecnica())->toBeTrue()
+        ->and(TipoActivo::Software->tieneFichaTecnica())->toBeTrue()
+        ->and(TipoActivo::Servicios->tieneFichaTecnica())->toBeFalse()
+        ->and(TipoActivo::Datos->tieneFichaTecnica())->toBeFalse()
+        ->and(TipoActivo::Personal->tieneFichaTecnica())->toBeFalse();
+});
+
+it('le dice al formulario qué tipos llevan ficha técnica', function (): void {
+    $this->actingAs($this->usuario)
+        ->get('/activos/crear')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->where('tipos', fn (Collection $tipos): bool => $tipos
+                ->every(fn (array $tipo): bool => array_key_exists('fichaTecnica', $tipo))
+            )
+        );
 });

@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import MensajeError from '@/components/formulario/MensajeError.vue';
+import CampoBase from '@/components/formulario/CampoBase.vue';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { EyeIcon, EyeOffIcon } from '@lucide/vue';
 import { computed, ref, useId } from 'vue';
 
@@ -22,7 +21,7 @@ import { computed, ref, useId } from 'vue';
  * El valor nunca se registra ni se emite: se queda en el `<input>`, que es lo
  * que lee el `FormData` del `<Form>` de Inertia.
  */
-const props = withDefaults(
+withDefaults(
     defineProps<{
         nombre: string;
         etiqueta: string;
@@ -40,17 +39,8 @@ const modelo = defineModel<string | undefined>();
 const visible = ref(false);
 const mayusculas = ref(false);
 
-const id = `${props.nombre}-${useId()}`;
-
-const descrito = computed(() =>
-    [
-        props.ayuda ? `${id}-ayuda` : null,
-        mayusculas.value ? `${id}-mayusculas` : null,
-        props.error ? `${id}-error` : null,
-    ]
-        .filter(Boolean)
-        .join(' ') || undefined,
-);
+const idMayusculas = `mayusculas-${useId()}`;
+const descritoExtra = computed(() => (mayusculas.value ? [idMayusculas] : []));
 
 function comprobarMayusculas(evento: KeyboardEvent): void {
     mayusculas.value = evento.getModifierState?.('CapsLock') ?? false;
@@ -58,24 +48,25 @@ function comprobarMayusculas(evento: KeyboardEvent): void {
 </script>
 
 <template>
-    <div class="grid gap-2">
-        <Label :for="id">
-            {{ etiqueta }}
-            <span v-if="requerido" class="text-destructive" aria-hidden="true">*</span>
-        </Label>
-
+    <CampoBase
+        :nombre="nombre"
+        :etiqueta="etiqueta"
+        :error="error"
+        :ayuda="ayuda"
+        :requerido="requerido"
+        :descrito-extra="descritoExtra"
+        #default="{ atributos }"
+    >
         <div class="relative">
             <Input
-                :id="id"
                 v-model="modelo"
                 :name="nombre"
                 :type="visible ? 'text' : 'password'"
                 :required="requerido"
                 :autocomplete="autocomplete"
                 :autofocus="autofocus"
-                :aria-invalid="error ? true : undefined"
-                :aria-describedby="descrito"
                 class="pr-10"
+                v-bind="atributos"
                 @keyup="comprobarMayusculas"
                 @keydown="comprobarMayusculas"
                 @blur="mayusculas = false"
@@ -86,7 +77,7 @@ function comprobarMayusculas(evento: KeyboardEvent): void {
                 class="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-md text-muted-foreground transition-colors hover:text-foreground"
                 :aria-label="visible ? 'Ocultar la contraseña' : 'Mostrar la contraseña'"
                 :aria-pressed="visible"
-                :aria-controls="id"
+                :aria-controls="atributos.id"
                 @click="visible = !visible"
             >
                 <EyeOffIcon v-if="visible" class="size-4" />
@@ -96,15 +87,11 @@ function comprobarMayusculas(evento: KeyboardEvent): void {
 
         <p
             v-if="mayusculas"
-            :id="`${id}-mayusculas`"
+            :id="idMayusculas"
             class="text-xs font-medium text-estado-en-progreso"
             role="status"
         >
             El bloqueo de mayúsculas está activado.
         </p>
-
-        <p v-if="ayuda" :id="`${id}-ayuda`" class="text-xs text-muted-foreground">{{ ayuda }}</p>
-
-        <MensajeError :id="`${id}-error`" :mensaje="error" />
-    </div>
+    </CampoBase>
 </template>

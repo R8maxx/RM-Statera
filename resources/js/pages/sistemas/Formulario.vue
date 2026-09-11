@@ -50,6 +50,7 @@ const estado = ref(props.sistema?.estado ?? 'borrador');
             <SeccionFormulario
                 titulo="Identificación"
                 ayuda="El código es el que aparecerá en la declaración de aplicabilidad y en las evidencias, así que conviene que no cambie."
+                plegable
             >
                 <div class="grid gap-5 sm:grid-cols-2">
                     <CampoTexto
@@ -102,6 +103,7 @@ const estado = ref(props.sistema?.estado ?? 'borrador');
             <SeccionFormulario
                 titulo="Alcance"
                 ayuda="Los dos campos que un auditor lee antes que ningún otro. Excluir algo sin decir por qué es el motivo de rechazo más habitual."
+                plegable
             >
                 <CampoTextarea
                     nombre="alcance_declarado"

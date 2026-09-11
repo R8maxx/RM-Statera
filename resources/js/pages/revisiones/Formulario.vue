@@ -46,6 +46,7 @@ const hoy = new Date().toISOString().slice(0, 10);
             <SeccionFormulario
                 titulo="Qué se revisó"
                 ayuda="Una revisión parcial es perfectamente válida —el parque de puestos, la cuenta de la nube—, pero tiene que decir qué miró. Una que no lo dice no demuestra nada."
+                plegable
             >
                 <div class="grid gap-5 sm:grid-cols-2">
                     <CampoTexto
@@ -81,6 +82,9 @@ const hoy = new Date().toISOString().slice(0, 10);
                         nombre="altas"
                         etiqueta="Altas"
                         tipo="number"
+                        min="0"
+                        step="1"
+                        inputmode="numeric"
                         :valor-inicial="String(revision?.altas ?? 0)"
                         :error="errors.altas"
                         requerido
@@ -90,6 +94,9 @@ const hoy = new Date().toISOString().slice(0, 10);
                         nombre="bajas"
                         etiqueta="Bajas"
                         tipo="number"
+                        min="0"
+                        step="1"
+                        inputmode="numeric"
                         :valor-inicial="String(revision?.bajas ?? 0)"
                         :error="errors.bajas"
                         requerido
@@ -100,6 +107,7 @@ const hoy = new Date().toISOString().slice(0, 10);
             <SeccionFormulario
                 titulo="Qué salió"
                 ayuda="Esta es la parte que el auditor lee, y la que demuestra que la revisión sirvió para algo más que para poner una fecha. Dejarla en blanco es legítimo si de verdad no había nada; conviene que sea cierto."
+                plegable
             >
                 <CampoTextarea
                     nombre="desviaciones"

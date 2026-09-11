@@ -34,6 +34,10 @@ withDefaults(
 
             <h1 class="text-xl font-semibold tracking-tight">{{ titulo }}</h1>
             <p v-if="descripcion" class="mt-1 max-w-2xl text-sm text-muted-foreground">{{ descripcion }}</p>
+
+            <!-- Para lo que matiza al título sin ser acción: la leyenda de
+                 campos obligatorios de un formulario, por ejemplo. -->
+            <slot />
         </div>
 
         <div v-if="$slots.acciones" class="flex shrink-0 items-center gap-2">

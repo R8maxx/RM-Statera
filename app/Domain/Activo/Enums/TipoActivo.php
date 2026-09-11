@@ -80,6 +80,23 @@ enum TipoActivo: string
         };
     }
 
+    /**
+     * Si al activo le corresponde ficha técnica: marca, modelo, garantía,
+     * especificaciones y sistema operativo con su fin de soporte.
+     *
+     * Una sede electrónica no tiene número de serie ni versión de sistema
+     * operativo, y un administrador de sistemas menos. Son cinco campos que en
+     * la mayoría de las altas sólo estorban, porque el tipo por defecto de un
+     * activo nuevo es `servicios`.
+     *
+     * `Software` entra aunque no sea físico: el fin de soporte de la versión es
+     * justamente lo que vigila `op.exp.4`.
+     */
+    public function tieneFichaTecnica(): bool
+    {
+        return $this->esFisico() || $this === self::Software;
+    }
+
     /** Un ejemplo de cada tipo, para que el desplegable no obligue a adivinar. */
     public function ejemplo(): string
     {

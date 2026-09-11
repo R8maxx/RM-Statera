@@ -1,10 +1,8 @@
 <script setup lang="ts">
-import MensajeError from '@/components/formulario/MensajeError.vue';
-import { Label } from '@/components/ui/label';
+import CampoBase from '@/components/formulario/CampoBase.vue';
 import { Textarea } from '@/components/ui/textarea';
-import { computed, useId } from 'vue';
 
-const props = withDefaults(
+withDefaults(
     defineProps<{
         nombre: string;
         etiqueta: string;
@@ -20,24 +18,18 @@ const props = withDefaults(
 );
 
 const modelo = defineModel<string | undefined>();
-
-const id = `${props.nombre}-${useId()}`;
-
-/* El control apunta a su ayuda y a su error; si no hay ninguno, no apunta nada. */
-const descrito = computed(() =>
-    [props.ayuda ? `${id}-ayuda` : null, props.error ? `${id}-error` : null].filter(Boolean).join(' ') || undefined,
-);
 </script>
 
 <template>
-    <div class="grid gap-2">
-        <Label :for="id">
-            {{ etiqueta }}
-            <span v-if="requerido" class="text-destructive" aria-hidden="true">*</span>
-        </Label>
-
+    <CampoBase
+        :nombre="nombre"
+        :etiqueta="etiqueta"
+        :error="error"
+        :ayuda="ayuda"
+        :requerido="requerido"
+        #default="{ atributos }"
+    >
         <Textarea
-            :id="id"
             v-model="modelo"
             :name="nombre"
             :rows="filas"
@@ -45,12 +37,7 @@ const descrito = computed(() =>
             :disabled="deshabilitado"
             :placeholder="placeholder"
             :default-value="valorInicial"
-            :aria-invalid="error ? true : undefined"
-            :aria-describedby="descrito"
+            v-bind="atributos"
         />
-
-        <p v-if="ayuda" :id="`${id}-ayuda`" class="text-xs text-muted-foreground">{{ ayuda }}</p>
-
-        <MensajeError :id="`${id}-error`" :mensaje="error" />
-    </div>
+    </CampoBase>
 </template>

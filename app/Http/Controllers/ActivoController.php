@@ -419,6 +419,7 @@ class ActivoController extends Controller
                     'valor' => $tipo->value,
                     'etiqueta' => $tipo->etiqueta(),
                     'ayuda' => $tipo->ejemplo(),
+                    'fichaTecnica' => $tipo->tieneFichaTecnica(),
                 ],
                 TipoActivo::cases(),
             ),

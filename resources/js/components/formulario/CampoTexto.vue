@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import MensajeError from '@/components/formulario/MensajeError.vue';
+import CampoBase from '@/components/formulario/CampoBase.vue';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { computed, useId } from 'vue';
 
 // Los atributos no declarados (inputmode, maxlength, pattern…) van al <input>,
 // no al contenedor.
@@ -14,7 +12,7 @@ defineOptions({ inheritAttrs: false });
  * Funciona con el componente `<Form>` de Inertia (sin `v-model`: basta `nombre`,
  * porque el formulario lee el `FormData`) y con `useForm` (con `v-model`).
  */
-const props = withDefaults(
+withDefaults(
     defineProps<{
         nombre: string;
         etiqueta: string;
@@ -33,24 +31,18 @@ const props = withDefaults(
 );
 
 const modelo = defineModel<string | number | undefined>();
-
-const id = `${props.nombre}-${useId()}`;
-
-/* El control apunta a su ayuda y a su error; si no hay ninguno, no apunta nada. */
-const descrito = computed(() =>
-    [props.ayuda ? `${id}-ayuda` : null, props.error ? `${id}-error` : null].filter(Boolean).join(' ') || undefined,
-);
 </script>
 
 <template>
-    <div class="grid gap-2">
-        <Label :for="id">
-            {{ etiqueta }}
-            <span v-if="requerido" class="text-destructive" aria-hidden="true">*</span>
-        </Label>
-
+    <CampoBase
+        :nombre="nombre"
+        :etiqueta="etiqueta"
+        :error="error"
+        :ayuda="ayuda"
+        :requerido="requerido"
+        #default="{ atributos }"
+    >
         <Input
-            :id="id"
             v-model="modelo"
             :name="nombre"
             :type="tipo"
@@ -61,13 +53,7 @@ const descrito = computed(() =>
             :autocomplete="autocomplete"
             :autofocus="autofocus"
             :default-value="valorInicial"
-            :aria-invalid="error ? true : undefined"
-            :aria-describedby="descrito"
-            v-bind="$attrs"
+            v-bind="{ ...atributos, ...$attrs }"
         />
-
-        <p v-if="ayuda" :id="`${id}-ayuda`" class="text-xs text-muted-foreground">{{ ayuda }}</p>
-
-        <MensajeError :id="`${id}-error`" :mensaje="error" />
-    </div>
+    </CampoBase>
 </template>
