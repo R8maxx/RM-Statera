@@ -7,6 +7,93 @@
 @source '../js/**/*.{ts,vue}';
 
 /*
+ * Las dos tipografías de DESIGN.md §4, autoalojadas.
+ *
+ * Estaban declaradas en `--font-sans` y `--font-mono` desde el principio y no
+ * las servía nadie: sin `@font-face` ni enlace externo, toda la interfaz se
+ * pintaba con la fuente del sistema y la marca sólo existía en el papel. Las dos
+ * son OFL, así que redistribuirlas es legítimo (licencias en `resources/fonts/`).
+ *
+ * **Los mismos ficheros los usa el PDF.** `AssetsDocumento` los lee en crudo de
+ * `resources/fonts/` y los mete en el multipart de Gotenberg, porque PDF/A-3b
+ * exige toda fuente embebida y la copia de `public/build/assets/` lleva hash de
+ * contenido: cambia en cada `npm run build` y rompería la generación.
+ *
+ * Subconjunto latino, que cubre el castellano —tildes, eñe, signos de apertura—
+ * y las comillas latinas «» que usa toda la copia de interfaz.
+ *
+ * `swap`: antes que un texto invisible mientras carga, el texto con la fuente
+ * de respaldo. Esta herramienta se lee, no se contempla.
+ */
+@font-face {
+    font-family: 'Instrument Sans';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('../fonts/instrument-sans-400.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Instrument Sans';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('../fonts/instrument-sans-500.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Instrument Sans';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('../fonts/instrument-sans-600.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Instrument Sans';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('../fonts/instrument-sans-700.woff2') format('woff2');
+}
+
+/*
+ * Las itálicas entraron con el editor de textos de los documentos: sin cara
+ * propia, una cursiva cae a la itálica de otra familia.
+ */
+@font-face {
+    font-family: 'Instrument Sans';
+    font-style: italic;
+    font-weight: 400;
+    font-display: swap;
+    src: url('../fonts/instrument-sans-400-italic.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Instrument Sans';
+    font-style: italic;
+    font-weight: 600;
+    font-display: swap;
+    src: url('../fonts/instrument-sans-600-italic.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'JetBrains Mono';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('../fonts/jetbrains-mono-400.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'JetBrains Mono';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('../fonts/jetbrains-mono-500.woff2') format('woff2');
+}
+
+/*
  * Statera — un producto de RM Technology.
  *
  * Tailwind v4 se configura aquí, no en un `tailwind.config.js`: ese fichero no
@@ -423,10 +510,14 @@
         scroll-behavior: smooth;
     }
 
+    /*
+     * Sin `font-feature-settings: 'cv11','ss01'` ni `font-variation-settings:
+     * 'opsz' 32`: venían del esqueleto de Laravel, que usa Inter, y son ajustes
+     * de Inter. Instrument Sans no tiene eje `opsz` ni esos alternativos, así
+     * que no hacían nada salvo sugerir que sí.
+     */
     body {
         @apply bg-background text-foreground;
-        font-feature-settings: 'cv11', 'ss01';
-        font-variation-settings: 'opsz' 32;
     }
 
     /*

@@ -71,6 +71,39 @@ function uniforme(NivelDimension $nivel): ValoracionDimensiones
 
 /*
 |--------------------------------------------------------------------------
+| Gotenberg
+|--------------------------------------------------------------------------
+|
+| Casi todos los tests de documentos usan el doble `GotenbergFalso`: probar el
+| HTML es probar el documento, y Gotenberg sólo es la impresora. El único que
+| habla con el contenedor de verdad es el de integración, y se salta si no está
+| levantado para que la suite corra en cualquier máquina.
+|
+*/
+
+function gotenbergDisponible(): bool
+{
+    $url = (string) config('services.gotenberg.url');
+
+    $socket = @fsockopen(
+        (string) (parse_url($url, PHP_URL_HOST) ?: '127.0.0.1'),
+        (int) (parse_url($url, PHP_URL_PORT) ?: 3000),
+        $errno,
+        $error,
+        0.3,
+    );
+
+    if ($socket === false) {
+        return false;
+    }
+
+    fclose($socket);
+
+    return true;
+}
+
+/*
+|--------------------------------------------------------------------------
 | Contexto de organización
 |--------------------------------------------------------------------------
 |

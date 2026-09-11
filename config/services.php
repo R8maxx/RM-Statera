@@ -18,6 +18,17 @@ return [
 
     'gotenberg' => [
         'url' => env('GOTENBERG_URL', 'http://127.0.0.1:3000'),
+
+        /*
+         * Segundo eslabón de una cadena que tiene que quedar en este orden:
+         *
+         *     --api-timeout=120s  <  este cliente  <  timeout del job (300 s)
+         *
+         * Con el cliente HTTP que se descubre por defecto (30 s), una SoA grande
+         * falla de forma intermitente y el error apunta a Gotenberg, que no
+         * tiene ninguna culpa.
+         */
+        'timeout' => (int) env('GOTENBERG_TIMEOUT', 180),
     ],
 
     /*

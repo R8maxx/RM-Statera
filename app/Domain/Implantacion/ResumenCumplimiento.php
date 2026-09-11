@@ -154,6 +154,11 @@ final class ResumenCumplimiento
      * caducada deja sin prueba al requisito que sostenía, así que cuenta como
      * incumplimiento aunque el estado siga diciendo «implantado».
      *
+     * **Estas tres son de la organización entera**, y con motivo: el repositorio
+     * de pruebas es compartido y una misma evidencia prueba requisitos de varios
+     * sistemas y de varios marcos a la vez (invariante 6). Repartirla entre
+     * sistemas la contaría dos veces o la dejaría fuera de uno de ellos.
+     *
      * @return array{total: int, caducadas: int, porCaducar: int}
      */
     public function evidencias(): array

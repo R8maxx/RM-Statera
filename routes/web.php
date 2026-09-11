@@ -3,10 +3,13 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\ActivoController;
+use App\Http\Controllers\DocumentoController;
+use App\Http\Controllers\DocumentoTextoController;
 use App\Http\Controllers\EvidenciaController;
 use App\Http\Controllers\ImplantacionController;
 use App\Http\Controllers\PanelController;
 use App\Http\Controllers\PerfilController;
+use App\Http\Controllers\PlantillaDocumentoController;
 use App\Http\Controllers\RevisionInventarioController;
 use App\Http\Controllers\SistemaController;
 use App\Http\Controllers\ValoracionSistemaController;
@@ -199,5 +202,97 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/evidencias/{evidencia}/editar', [EvidenciaController::class, 'edit'])->name('evidencias.edit');
         Route::put('/evidencias/{evidencia}', [EvidenciaController::class, 'update'])->name('evidencias.update');
         Route::delete('/evidencias/{evidencia}', [EvidenciaController::class, 'destroy'])->name('evidencias.destroy');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Documentos
+    |--------------------------------------------------------------------------
+    */
+
+    Route::middleware('can:documentos.ver')->group(function (): void {
+        Route::get('/documentos', [DocumentoController::class, 'index'])->name('documentos.index');
+
+        // Antes que `{documento}`, para que `crear` no se lea como un id.
+        Route::get('/documentos/crear', [DocumentoController::class, 'create'])
+            ->middleware(['can:documentos.generar', ExigirDosFactores::class])
+            ->name('documentos.create');
+
+        Route::get('/documentos/{documento}', [DocumentoController::class, 'show'])->name('documentos.show');
+
+        /*
+         * `scopeBindings()` acota la versión a su documento: sin él, `{version}`
+         * se resolvería globalmente y una versión de OTRO documento se
+         * descargaría desde una URL que no le corresponde. RLS sigue tapando el
+         * cruce entre organizaciones; esto tapa el cruce dentro de la misma.
+         */
+        Route::get('/documentos/{documento}/versiones/{version}/descargar', [DocumentoController::class, 'descargar'])
+            ->scopeBindings()
+            ->name('documentos.versiones.descargar');
+
+        /*
+         * El mismo documento en Word, como copia de trabajo. El entregable
+         * archivable sigue siendo el PDF/A: esto no se almacena ni se versiona.
+         */
+        Route::get('/documentos/{documento}/versiones/{version}/word', [DocumentoController::class, 'word'])
+            ->scopeBindings()
+            ->name('documentos.versiones.word');
+    });
+
+    Route::middleware(['can:documentos.generar', ExigirDosFactores::class])->group(function (): void {
+        Route::post('/documentos', [DocumentoController::class, 'store'])->name('documentos.store');
+        Route::get('/documentos/{documento}/editar', [DocumentoController::class, 'edit'])->name('documentos.edit');
+        Route::put('/documentos/{documento}', [DocumentoController::class, 'update'])->name('documentos.update');
+        Route::delete('/documentos/{documento}', [DocumentoController::class, 'destroy'])->name('documentos.destroy');
+
+        // Encola: generar una SoA de noventa y tres controles nunca pasa por el
+        // ciclo de petición.
+        Route::post('/documentos/{documento}/generar', [DocumentoController::class, 'generar'])
+            ->name('documentos.generar');
+
+        // Emitir es entregar, y a partir de ahí la versión es inmutable.
+        Route::post('/documentos/{documento}/emitir', [DocumentoController::class, 'emitir'])
+            ->name('documentos.emitir');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Los textos de un documento
+    |--------------------------------------------------------------------------
+    |
+    | Redactar no es lo mismo que generar: el técnico que prepara el documento
+    | escribe su introducción, y quien lo entrega es otro.
+    */
+
+    Route::middleware(['can:documentos.redactar', ExigirDosFactores::class])->group(function (): void {
+        Route::get('/documentos/{documento}/textos', [DocumentoTextoController::class, 'edit'])
+            ->name('documentos.textos.edit');
+        Route::put('/documentos/{documento}/textos', [DocumentoTextoController::class, 'update'])
+            ->name('documentos.textos.update');
+        Route::delete('/documentos/{documento}/textos/{seccion}', [DocumentoTextoController::class, 'restablecer'])
+            ->name('documentos.textos.restablecer');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Plantillas de documento
+    |--------------------------------------------------------------------------
+    |
+    | Los textos base de la organización (§ 4.5). Tocar esto decide cómo empiezan
+    | TODOS los documentos futuros, así que lleva permiso propio.
+    |
+    | `{tipo}` se resuelve con el enum `TipoDocumento`, no con una cadena suelta:
+    | un valor inventado responde 404 sin llegar al controlador.
+    */
+
+    Route::middleware(['can:documentos.plantillas', ExigirDosFactores::class])->group(function (): void {
+        Route::get('/plantillas-documento', [PlantillaDocumentoController::class, 'index'])
+            ->name('plantillas.index');
+        Route::get('/plantillas-documento/{tipo}', [PlantillaDocumentoController::class, 'edit'])
+            ->name('plantillas.edit');
+        Route::put('/plantillas-documento/{tipo}', [PlantillaDocumentoController::class, 'update'])
+            ->name('plantillas.update');
+        Route::delete('/plantillas-documento/{tipo}/{seccion}', [PlantillaDocumentoController::class, 'restablecer'])
+            ->name('plantillas.restablecer');
     });
 });

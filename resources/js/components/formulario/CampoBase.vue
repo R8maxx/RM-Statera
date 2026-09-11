@@ -34,6 +34,14 @@ const props = defineProps<{
      * campo concreto pueda añadir —el bloqueo de mayúsculas de la contraseña—.
      */
     descritoExtra?: string[];
+    /**
+     * Oculta la etiqueta a la vista, no al lector de pantalla.
+     *
+     * Para cuando el título ya lo pone su `SeccionFormulario` y repetirlo justo
+     * debajo sólo añade ruido. El `<label>` sigue existiendo y sigue asociado:
+     * quitarlo dejaría el control sin nombre accesible.
+     */
+    etiquetaOculta?: boolean;
 }>();
 
 const id = `${props.nombre}-${useId()}`;
@@ -63,7 +71,7 @@ registrarCampoObligatorio(props.nombre, () => props.requerido === true);
         class="grid gap-2"
         :class="requerido ? 'border-l-2 border-primary pl-3' : undefined"
     >
-        <Label :for="id">
+        <Label :for="id" :class="etiquetaOculta ? 'sr-only' : undefined">
             {{ etiqueta }}
             <span v-if="requerido" class="text-primary" aria-hidden="true">*</span>
             <span v-if="requerido" class="sr-only">(obligatorio)</span>

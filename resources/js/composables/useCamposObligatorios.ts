@@ -58,6 +58,9 @@ function tieneValor(valor: FormDataEntryValue): boolean {
  */
 export function proveerObligatorios(formulario: Ref<HTMLFormElement | null>): {
     pendientes: ComputedRef<number>;
+    /** Si el formulario tiene ALGÚN campo obligatorio. Un formulario que no los
+     *  tiene no debe anunciar que los asteriscos significan algo. */
+    hayObligatorios: ComputedRef<boolean>;
     sucio: Ref<boolean>;
 } {
     const registrados = ref(new Map<string, string | null>());
@@ -140,7 +143,11 @@ export function proveerObligatorios(formulario: Ref<HTMLFormElement | null>): {
         formulario.value?.removeEventListener('change', alCambiar);
     });
 
-    return { pendientes: computed(() => faltantes.value.size), sucio };
+    return {
+        pendientes: computed(() => faltantes.value.size),
+        hayObligatorios: computed(() => registrados.value.size > 0),
+        sucio,
+    };
 }
 
 /**

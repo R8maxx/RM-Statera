@@ -61,13 +61,18 @@ return [
     | Application Timezone
     |--------------------------------------------------------------------------
     |
-    | Here you may specify the default timezone for your application, which
-    | will be used by the PHP date and date-time functions. The timezone
-    | is set to "UTC" by default as it is suitable for most use cases.
+    | Hora peninsular española, no UTC, y es funcional: en este dominio las
+    | fechas tienen consecuencias. Un documento generado a las 00:30 en España
+    | se fecharía el día anterior, y una fecha que no cuadra con su registro es
+    | un hallazgo barato de encontrar. Cuando llegue el módulo de incidentes
+    | (§ 4.10), los plazos de notificación al CCN-CERT se cuentan en hora local.
+    |
+    | Se fija ahora, con pocos datos, y no cuando ya haya años de traza: cambiar
+    | la zona reinterpreta todas las marcas de tiempo ya guardadas.
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => env('APP_TIMEZONE', 'Europe/Madrid'),
 
     /*
     |--------------------------------------------------------------------------

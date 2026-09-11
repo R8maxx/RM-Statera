@@ -44,6 +44,15 @@ enum Rol: string
      * exige a la organización, y quien lo hace responde de ello. El auditor no
      * escribe nada, porque alterar lo que audita invalida la auditoría.
      *
+     * Tampoco emite documentos el técnico: emitir una versión es entregarla, y
+     * quien la firma es el responsable de seguridad. Leerlos sí, los dos: un
+     * auditor que no pudiera abrir la Declaración de Aplicabilidad no podría
+     * auditar nada.
+     *
+     * Redactar los textos de un documento sí lo hace el técnico —es trabajo de
+     * quien lo está preparando—, pero la plantilla de la organización no: eso
+     * decide cómo van a empezar todos los documentos futuros.
+     *
      * @return list<Permiso>
      */
     public function permisos(): array
@@ -60,6 +69,8 @@ enum Rol: string
                 Permiso::EvidenciasGestionar,
                 Permiso::ActivosVer,
                 Permiso::ActivosGestionar,
+                Permiso::DocumentosVer,
+                Permiso::DocumentosRedactar,
             ],
 
             self::Auditor => [
@@ -68,6 +79,7 @@ enum Rol: string
                 Permiso::ImplantacionesVer,
                 Permiso::EvidenciasVer,
                 Permiso::ActivosVer,
+                Permiso::DocumentosVer,
             ],
         };
     }

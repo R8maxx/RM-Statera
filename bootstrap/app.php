@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domain\Catalogo\Console\ImportarCatalogoCommand;
+use App\Domain\Documento\Console\GenerarDocumentoCommand;
 use App\Domain\Implantacion\Console\GenerarImplantacionesCommand;
 use App\Http\Middleware\EstablecerContextoOrganizacion;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -26,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // app/Console/Commands, así que hay que registrarlos aquí.
         ImportarCatalogoCommand::class,
         GenerarImplantacionesCommand::class,
+        GenerarDocumentoCommand::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         // El orden importa y no es el que sale por defecto.

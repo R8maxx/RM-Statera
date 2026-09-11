@@ -1,0 +1,441 @@
+/*
+ * Hoja de estilos de los documentos generados (SoA, DdA y lo que venga detrás).
+ *
+ * Viaja a Gotenberg como un fichero más del multipart, así que aquí no hay
+ * Tailwind, ni tokens de `app.css`, ni `oklch`. Los hex son la conversión a sRGB
+ * de los mismos tokens, tabulada en DESIGN.md §3: si se retoca la paleta, se
+ * recalculan, no se estiman.
+ *
+ * Tres desvíos deliberados del lenguaje de forma de DESIGN.md §6, y el motivo:
+ *
+ * 1. **Sin sombras.** En papel imprimen como manchas grises.
+ * 2. **Radio 0 en superficies.** Un `rounded-xl` en una tabla de noventa y tres
+ *    filas partida en cinco páginas sólo produce esquinas sueltas a mitad de
+ *    tabla.
+ * 3. **Siempre tema claro.** Se imprime.
+ *
+ * Lo que NO se desvía: el color, la tipografía y la regla de que ningún estado
+ * se comunica sólo con color.
+ *
+ * La familia la decide `AssetsDocumento`, que antepone los `@font-face` de las
+ * fuentes que realmente viajan y define `--fuente-documento`. Si no hay fuentes
+ * embebidas, cae a la genérica y el documento sigue saliendo.
+ */
+
+:root {
+    /* Marca. */
+    --marca-600: #007E81;
+    --marca-700: #006467;
+    --marca-100: #D5F4F4;
+
+    /* Acento. Una sola aparición: el filete de la portada. */
+    --violeta-400: #A781E9;
+
+    /* Neutros (DESIGN.md §3). */
+    --card: #FFFFFF;
+    --superficie: #F2F7F8;
+    --muted: #ECF2F4;
+    --border: #DAE1E3;
+    --texto: #151E24;
+    --texto-suave: #5D6C72;
+
+    /* Estados del dominio. Semántica, no decoración: no se retocan. */
+    --estado-implantado: #007E46;
+    --estado-implantado-suave: #DAF7E3;
+    --estado-planificado: #036EAE;
+    --estado-planificado-suave: #DFF1FF;
+    --estado-en-progreso: #BB7400;
+    --estado-en-progreso-suave: #FFF0D4;
+    --estado-no-iniciado: #80878F;
+    --estado-no-iniciado-suave: #ECEFF2;
+    --estado-no-aplica: #7F7F86;
+    --estado-no-aplica-suave: #F0F0F3;
+}
+
+/*
+ * Los márgenes los fija PHP con `margins()`, no `@page`: mezclar las dos cosas
+ * hace que la cabecera y el pie desaparezcan sin ningún error visible.
+ * Tampoco se usa `preferCssPageSize()`, por lo mismo.
+ */
+@page {
+    size: A4 landscape;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+/*
+ * Sólo para mirar el documento en un navegador con `documentos:generar --html`,
+ * que es donde se hace el noventa por ciento del trabajo de plantilla. En papel
+ * los márgenes los pone Gotenberg con `margins()`, y `@media print` deja esto
+ * fuera para que no se sumen dos veces.
+ */
+@media screen {
+    body {
+        max-width: 11.7in;
+        margin: 0 auto;
+        padding: 0.71in;
+    }
+}
+
+body {
+    margin: 0;
+    font-family: var(--fuente-documento);
+    font-size: 8.5pt;
+    line-height: 1.45;
+    color: var(--texto);
+    background: var(--card);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+/* ---------------------------------------------------------------- Tipografía */
+
+h1, h2, h3, h4 {
+    margin: 0 0 0.4em;
+    font-weight: 600;
+    line-height: 1.2;
+    /* Un encabezado nunca se queda solo al pie de una página. */
+    break-after: avoid;
+}
+
+h1 { font-size: 21pt; letter-spacing: -0.02em; }
+h2 { font-size: 13pt; letter-spacing: -0.01em; }
+h3 { font-size: 10pt; }
+h4 { font-size: 8.5pt; color: var(--texto-suave); text-transform: uppercase; letter-spacing: 0.06em; }
+
+p {
+    margin: 0 0 0.6em;
+    orphans: 3;
+    widows: 3;
+}
+
+.suave { color: var(--texto-suave); }
+.pequeno { font-size: 7.5pt; }
+
+.cifra {
+    font-family: var(--fuente-cifra);
+    font-variant-numeric: tabular-nums;
+}
+
+/* La huella entera, partida sin guiones para que se pueda copiar del PDF. */
+.huella {
+    font-family: var(--fuente-cifra);
+    font-size: 7pt;
+    word-break: break-all;
+    color: var(--texto-suave);
+}
+
+/* ------------------------------------------------------------------ Secciones */
+
+.seccion {
+    break-before: page;
+    padding: 0;
+}
+
+/* La primera no salta: ya está al principio. */
+.seccion:first-of-type {
+    break-before: auto;
+}
+
+.seccion > h2 {
+    padding-bottom: 0.35em;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0.8em;
+}
+
+/* --------------------------------------------------------------------- Portada */
+
+.portada {
+    display: flex;
+    flex-direction: column;
+    min-height: 6.6in;
+}
+
+/*
+ * El filete de acento. Es la ÚNICA aparición del violeta en todo el documento:
+ * repartido por más sitios deja de ser acento (DESIGN.md §3).
+ */
+.portada__filete {
+    width: 3.2in;
+    height: 3px;
+    background: var(--violeta-400);
+    margin-bottom: 0.32in;
+}
+
+.portada__marca {
+    font-size: 9pt;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--marca-600);
+    margin-bottom: 0.1in;
+}
+
+.portada__titulo { font-size: 26pt; margin-bottom: 0.06in; }
+.portada__subtitulo { font-size: 12pt; color: var(--texto-suave); margin-bottom: 0.3in; }
+.portada__pie { margin-top: auto; padding-top: 0.25in; border-top: 1px solid var(--border); }
+
+/* --------------------------------------------------------------- Fichas de dato */
+
+.ficha {
+    display: grid;
+    grid-template-columns: 1.5in 1fr;
+    gap: 0.06in 0.18in;
+    margin: 0 0 0.2in;
+}
+
+.ficha__clave {
+    font-size: 7.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--texto-suave);
+    padding-top: 0.02in;
+}
+
+.ficha__valor { font-size: 9pt; }
+
+/* ----------------------------------------------------------------------- Cajas */
+
+.caja {
+    border: 1px solid var(--border);
+    background: var(--superficie);
+    padding: 0.14in 0.16in;
+    margin: 0 0 0.16in;
+    break-inside: avoid;
+}
+
+.caja--marca {
+    border-left: 3px solid var(--marca-600);
+    background: var(--card);
+}
+
+.caja > :last-child { margin-bottom: 0; }
+
+/* --------------------------------------------------------------------- Cifras */
+
+.cifras {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.18in;
+    margin: 0 0 0.2in;
+}
+
+.cifras__dato {
+    flex: 1 1 1.3in;
+    border: 1px solid var(--border);
+    padding: 0.1in 0.12in;
+}
+
+.cifras__valor {
+    font-family: var(--fuente-cifra);
+    font-variant-numeric: tabular-nums;
+    font-size: 16pt;
+    font-weight: 600;
+    line-height: 1.1;
+}
+
+/* Toda cifra va con su denominador: «2 de 4» y «2 de 307» no dicen lo mismo. */
+.cifras__de { font-size: 9pt; font-weight: 400; color: var(--texto-suave); }
+.cifras__etiqueta { font-size: 7.5pt; color: var(--texto-suave); text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* --------------------------------------------------------------------- Tablas */
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 7.5pt;
+}
+
+/*
+ * Sin esto, una tabla de noventa y tres filas pierde la cabecera a partir de la
+ * segunda página y deja de poder leerse.
+ */
+thead {
+    display: table-header-group;
+}
+
+th, td {
+    border: 1px solid var(--border);
+    padding: 0.05in 0.06in;
+    text-align: left;
+    vertical-align: top;
+    /* Sobre `tbody` no es fiable en Chromium; sobre la fila y la celda, sí. */
+    break-inside: avoid;
+}
+
+th {
+    background: var(--muted);
+    font-weight: 600;
+    font-size: 7pt;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--texto-suave);
+}
+
+td.codigo {
+    font-family: var(--fuente-cifra);
+    white-space: nowrap;
+}
+
+tr.grupo th {
+    background: var(--marca-100);
+    color: var(--marca-700);
+    font-size: 7.5pt;
+    letter-spacing: 0.05em;
+}
+
+.tabla--fija { table-layout: fixed; }
+.tabla--fija td { overflow-wrap: break-word; }
+
+/* --------------------------------------------------------------------- Badges */
+
+/*
+ * Lo único que conserva la forma de la interfaz, porque el color tiene que
+ * sobrevivir. Y NUNCA sólo color: DESIGN.md §3 deja tres estados por debajo de
+ * 4.5:1 y en papel es peor, así que el badge lleva siempre punto + texto, y toda
+ * tabla con badges lleva su leyenda.
+ */
+.badge {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 0.012in 0.06in;
+    font-size: 6.5pt;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/*
+ * El punto se DIBUJA, no se escribe.
+ *
+ * Con `content: '\25CF'` el glifo no está en el subconjunto latino de la
+ * tipografía y Chromium tiene que ir a buscarlo a otra fuente, que además acaba
+ * embebida en el PDF/A sólo para pintar un círculo. Una caja redonda no depende
+ * de ninguna fuente y mide siempre lo mismo.
+ */
+.badge::before {
+    content: '';
+    display: inline-block;
+    width: 0.42em;
+    height: 0.42em;
+    border-radius: 50%;
+    background: currentColor;
+    margin-right: 0.4em;
+    vertical-align: 0.05em;
+}
+
+.badge--implantado { background: var(--estado-implantado-suave); color: var(--estado-implantado); }
+.badge--planificado { background: var(--estado-planificado-suave); color: var(--estado-planificado); }
+.badge--en_progreso { background: var(--estado-en-progreso-suave); color: var(--estado-en-progreso); }
+.badge--no_iniciado { background: var(--estado-no-iniciado-suave); color: var(--estado-no-iniciado); }
+.badge--no_aplica { background: var(--estado-no-aplica-suave); color: var(--estado-no-aplica); }
+
+/* Procedencia, no estado: chip neutro y sin punto. */
+.badge--neutro { background: var(--muted); color: var(--texto-suave); }
+.badge--neutro::before { content: none; }
+
+.leyenda {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.06in 0.14in;
+    margin: 0.1in 0 0.18in;
+    font-size: 7pt;
+    color: var(--texto-suave);
+}
+
+/* ------------------------------------------------------- Texto de la organización */
+
+/*
+ * Lo que redacta la organización. Llega ya saneado de `MarkdownDocumento`, con
+ * los encabezados bajados a h3/h4 para no competir con el `<h2>` de la sección
+ * ni con el título de la portada.
+ */
+.narrativa {
+    margin: 0 0 0.18in;
+    max-width: 7.2in; /* Una línea de 40 palabras no se lee; ésta ronda las 90 letras. */
+}
+
+.narrativa > :last-child { margin-bottom: 0; }
+
+.narrativa p { margin: 0 0 0.55em; }
+
+.narrativa ul,
+.narrativa ol {
+    margin: 0 0 0.6em;
+    padding-left: 1.2em;
+}
+
+.narrativa li { margin-bottom: 0.25em; }
+
+.narrativa h3 {
+    font-size: 10pt;
+    margin: 0.9em 0 0.35em;
+}
+
+/*
+ * El `h4` general del documento es versalita gris de etiqueta de ficha. Como
+ * subtítulo de un texto redactado se leería como una etiqueta, no como un
+ * encabezado, así que aquí se devuelve a lo que es.
+ */
+.narrativa h4 {
+    font-size: 9pt;
+    color: var(--texto);
+    text-transform: none;
+    letter-spacing: 0;
+    margin: 0.8em 0 0.3em;
+}
+
+/*
+ * En papel, un enlace sin su URL no es un enlace: es texto subrayado. Se imprime
+ * la dirección detrás, en gris y pequeña.
+ */
+.narrativa a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    color: var(--texto-suave);
+    font-size: 0.9em;
+    word-break: break-all;
+}
+
+/*
+ * Un código escrito por el usuario se ve igual que los del resto del documento.
+ * El editor no ofrece el botón, pero quien escriba acentos graves a mano espera
+ * esto y no un bloque de código de página web.
+ */
+.narrativa code {
+    font-family: var(--fuente-cifra);
+    font-size: 0.94em;
+}
+
+/* Dentro del bloque de limitaciones hereda su fondo; no lleva el suyo. */
+.limitaciones.narrativa { margin-bottom: 0; }
+
+/* -------------------------------------------------------------------- Gráficas */
+
+.grafica { margin: 0 0 0.18in; }
+.grafica svg { display: block; }
+
+/* ------------------------------------------------------------------ Avisos */
+
+/*
+ * Las limitaciones del documento. Se imprimen y no se esconden: un auditor
+ * respeta una limitación declarada y suspende una inventada.
+ */
+.limitaciones {
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--estado-en-progreso);
+    background: var(--estado-en-progreso-suave);
+    padding: 0.14in 0.16in;
+    break-inside: avoid;
+}
+
+.limitaciones ul { margin: 0; padding-left: 1.1em; }
+.limitaciones li { margin-bottom: 0.35em; }
+.limitaciones li:last-child { margin-bottom: 0; }
+
+.vacio {
+    padding: 0.14in;
+    border: 1px dashed var(--border);
+    color: var(--texto-suave);
+    text-align: center;
+}

@@ -16,6 +16,8 @@ use App\Domain\Autorizacion\SembrarRoles;
 use App\Domain\Catalogo\Enums\Dimension;
 use App\Domain\Catalogo\Models\Marco;
 use App\Domain\Categorizacion\Enums\NivelDimension;
+use App\Domain\Documento\Enums\TipoDocumento;
+use App\Domain\Documento\Models\Documento;
 use App\Domain\Evidencia\Enums\PeriodicidadRenovacion;
 use App\Domain\Evidencia\Enums\TipoEvidencia;
 use App\Domain\Evidencia\Models\Evidencia;
@@ -91,12 +93,29 @@ class DesarrolloSeeder extends Seeder
             ],
         );
 
-        // Cinco dimensiones en bajo: categoría básica, que es el objetivo de la
-        // fase actual.
+        /*
+         * Cinco dimensiones en bajo: categoría básica, que es el objetivo de la
+         * fase actual.
+         *
+         * Con justificación, y no por adorno: la Declaración de Aplicabilidad
+         * del ENS imprime la derivación dimensión a dimensión, y una demo con
+         * cinco «Sin justificar» enseña justamente lo que un auditor rechaza.
+         */
+        $justificaciones = [
+            'C' => 'Datos de carácter personal de categoría básica; no hay categorías especiales.',
+            'I' => 'Una alteración obligaría a rehacer trámites, sin efectos sobre terceros.',
+            'D' => 'El servicio admite una interrupción de un día laborable sin perjuicio apreciable.',
+            'A' => 'La identidad se verifica en el alta presencial; el trámite no produce efectos jurídicos.',
+            'T' => 'Se registra la actividad para poder reconstruir un trámite a petición del interesado.',
+        ];
+
         foreach (Dimension::cases() as $dimension) {
             ValoracionDimension::query()->updateOrCreate(
                 ['sistema_id' => $sistema->id, 'dimension' => $dimension->value],
-                ['nivel' => NivelDimension::Bajo->value],
+                [
+                    'nivel' => NivelDimension::Bajo->value,
+                    'justificacion' => $justificaciones[$dimension->value],
+                ],
             );
         }
 
@@ -110,6 +129,34 @@ class DesarrolloSeeder extends Seeder
 
         $this->evidenciaDeEjemplo($sistema);
         $this->inventarioDeEjemplo($sistema);
+        $this->documentoDeEjemplo($sistema);
+    }
+
+    /**
+     * El registro de la Declaración de Aplicabilidad, sin generar.
+     *
+     * Se deja sin versiones a propósito: generar el PDF necesita el contenedor
+     * de Gotenberg levantado y el disco de documentos accesible, y un seeder que
+     * falle porque falta un servicio de apoyo no sirve para arrancar el entorno.
+     * El botón «Generar borrador» de la ficha es el siguiente paso, y es
+     * justamente lo que conviene ver funcionar.
+     */
+    private function documentoDeEjemplo(Sistema $sistema): void
+    {
+        $documento = Documento::query()->firstOrCreate(
+            ['codigo' => 'DDA-ENS-01'],
+            [
+                'sistema_id' => $sistema->id,
+                'titulo' => 'Declaración de Aplicabilidad',
+                'tipo' => TipoDocumento::DdaEns->value,
+            ],
+        );
+
+        $this->command->info(sprintf(
+            'Documento %s listo para generar (php artisan documentos:generar %s --sync).',
+            $documento->codigo,
+            $documento->codigo,
+        ));
     }
 
     /**

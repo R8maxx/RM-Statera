@@ -2,7 +2,9 @@ import {
     BoxesIcon,
     ClipboardCheckIcon,
     ClipboardListIcon,
+    FileTextIcon,
     LayoutDashboardIcon,
+    LayoutTemplateIcon,
     PaperclipIcon,
     ServerIcon,
     type LucideIcon,
@@ -54,6 +56,14 @@ export const navegacion: GrupoNavegacion[] = [
                 icono: PaperclipIcon,
                 alias: ['pruebas', 'adjuntos', 'capturas', 'soporte'],
             },
+            {
+                titulo: 'Documentos',
+                href: '/documentos',
+                icono: FileTextIcon,
+                // `soa` y `dda` no son opcionales: es lo que la gente teclea en
+                // la paleta cuando busca la Declaración de Aplicabilidad.
+                alias: ['soa', 'dda', 'declaración de aplicabilidad', 'pdf', 'informes', 'documentación', 'entregables'],
+            },
         ],
     },
     {
@@ -76,6 +86,22 @@ export const navegacion: GrupoNavegacion[] = [
                 href: '/revisiones',
                 icono: ClipboardListIcon,
                 alias: ['revisión', 'inventario', 'mantenido', 'desviaciones'],
+            },
+        ],
+    },
+    {
+        /*
+         * Grupo nuevo, con una sola entrada de momento. Se irá llenando con
+         * personas (§ 4.8) y proveedores (§ 4.9), que son de la organización y
+         * no del cumplimiento ni del alcance.
+         */
+        titulo: 'Organización',
+        entradas: [
+            {
+                titulo: 'Plantillas de documento',
+                href: '/plantillas-documento',
+                icono: LayoutTemplateIcon,
+                alias: ['textos', 'plantilla', 'narrativa', 'introducción', 'metodología', 'modelo', 'base'],
             },
         ],
     },

@@ -68,6 +68,29 @@ return [
         // desde su fecha de obtención (§6 de stack-gestor-cumplimiento.md).
         // Bucket privado; el acceso va siempre por URL firmada de corta
         // duración, y el SHA-256 del fichero se guarda en base de datos.
+        // Los documentos generados: la SoA, la DdA y lo que venga detrás. Bucket
+        // propio y no el de evidencias, y el motivo es concreto: en producción
+        // el Object Lock se aplica sólo al prefijo `emitidas/`, porque un
+        // borrador necesita poder reescribirse y una versión emitida no debe
+        // poder hacerlo nunca. Un bloqueo sobre el bucket entero rompería la
+        // regeneración del borrador, que es la operación normal del módulo.
+        'documentos' => [
+            'driver' => 's3',
+            'key' => env('AWS_ACCESS_KEY_ID'),
+            'secret' => env('AWS_SECRET_ACCESS_KEY'),
+            'region' => env('AWS_DEFAULT_REGION'),
+            'bucket' => env('AWS_BUCKET_DOCUMENTOS', 'statera-documentos'),
+            'url' => env('AWS_URL'),
+            'endpoint' => env('AWS_ENDPOINT'),
+            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'visibility' => 'private',
+            // Un `put` que fallara en silencio dejaría una versión marcada como
+            // «generada» sin fichero detrás, y el fallo aparecería semanas
+            // después, al intentar descargarla delante del auditor.
+            'throw' => true,
+            'report' => false,
+        ],
+
         'evidencias' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

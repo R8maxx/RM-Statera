@@ -92,7 +92,7 @@ El orden importa: el catálogo y el motor son la parte más específica del domi
 3. ✅ Generación de implantaciones desde el motor, con transiciones y recálculo.
 4. ✅ Capa de recursos genérica (`Recurso` + `DataTable` + formularios), validada con Sistemas (CRUD) e Implantaciones (lectura y acción masiva).
 5. ✅ Primer módulo completo de punta a punta: inventario de activos.
-6. ⬜ Primer documento con Gotenberg: la SoA.
+6. ✅ Primeros documentos con Gotenberg: la SoA de ISO y la DdA del ENS.
 
 ## El catálogo
 
@@ -171,6 +171,93 @@ Los props se reparten en dos mitades porque cambian a ritmos distintos: `recurso
 **Un valor que llega por la query string no puede reventar la consulta.** Los extremos de un rango de fechas se comprueban antes de usarse: PostgreSQL responde a `whereDate(..., '>=', '2026')` con un error de sintaxis, y eso era un 500 en una URL que la gente guarda y comparte. Mismo criterio que el escapado de comodines: lo que no se entiende se ignora, no se aplica a ciegas ni se convierte en un error.
 
 **La vista de cada tabla se guarda en el navegador** (`statera.tabla.<clave>.vista`): visibilidad, orden y anclado de columnas, densidad y fila de filtros. Es preferencia de un puesto, no un dato de la organización, y por eso no viaja al servidor ni cruza la frontera del tenant. Una vista guardada nunca resucita una columna que el recurso ya no declara, y una columna nueva del recurso no se queda fuera por una vista vieja: se coloca al final. La puerta de vuelta es «Restablecer la vista», en el desplegable de columnas.
+
+## Los documentos
+
+Viven en `app/Domain/Documento/`. Una clase por tipo de documento —`DeclaracionAplicabilidadIso`,
+`DeclaracionAplicabilidadEns`— sobre una tubería común que renderiza, llama a Gotenberg, calcula el
+hash, almacena y registra la versión. El sexto documento cuesta una clase y una plantilla.
+
+```sh
+php artisan documentos:generar SOA-SGSI-01 --html   # vuelca el HTML, sin Gotenberg
+php artisan documentos:generar SOA-SGSI-01 --sync   # genera el PDF en este proceso
+php artisan documentos:generar SOA-SGSI-01          # lo encola en «documentos»
+```
+
+**`--html` es la opción que más se usa**: el noventa por ciento del trabajo de plantilla se hace
+mirando el HTML en un navegador, no abriendo PDFs.
+
+`documentos` es la **serie** —«la SoA del SGSI»— y `documento_versiones` es **cada entrega**. La
+especificación (§2.2) describe una sola tabla con `version`, `estado` y `fichero` dentro; una fila
+no sostiene un histórico, y la propia especificación pide versionado.
+
+**`numero IS NULL` es el borrador** —hay uno como mucho por documento, lo garantiza un índice único
+parcial— y se regenera cuantas veces haga falta. **Con número, la fila es inmutable**, y eso lo
+impone un trigger de PostgreSQL, no la buena voluntad: si el documento entregado se pudiera cambiar
+desde PHP, no habría forma de demostrar qué se firmó. Emitir mueve además el PDF de `borradores/` a
+`emitidas/`, que es el prefijo que en producción lleva Object Lock.
+
+La `instantanea` en JSONB **no es redundante con el PDF**: un PDF no se puede consultar, y sin ella
+no se contesta «¿qué cambió entre la v3 y la v4?». Por eso el contrato del generador es que la
+plantilla recibe arrays y value objects y **nunca modelos de Eloquent**: lo que se pinta y lo que se
+congela son literalmente lo mismo.
+
+**Los dos documentos no son el mismo con otras columnas.** En ISO la aplicabilidad es una *decisión*
+que hay que justificar —de ahí las dos columnas de justificación, la de inclusión y la de
+exclusión—; en el ENS es un *cálculo* del motor que hay que poder rastrear, y de ahí la exigencia, el
+refuerzo, el origen y la dimensión moduladora, más la derivación de la categoría impresa en portada.
+
+**Los dos declaran por escrito lo que no pueden afirmar.** Que no hay análisis de riesgos, que no hay
+aprobación formal, que los roles ENS están pendientes de designación, que el texto normativo de ISO
+no se reproduce por derechos de autor, y las dos brechas conocidas del Anexo II. Un auditor respeta
+una limitación declarada y suspende una inventada.
+
+**La SoA justifica la inclusión sin inventarse un riesgo.** Mientras no exista el módulo de riesgos
+(§4.3), cada control aplicable dice «Anexo A» y, cuando el mapeo cruzado lo encuentra, «exigido por
+el ENS (op.acc.2)» —que es un requisito **legal** y una justificación de inclusión legítima para
+ISO—. Es el mapeo cruzado tapando parte del hueco, y de paso el argumento del producto impreso en el
+entregable.
+
+---
+
+## Los textos de un documento
+
+Un documento tiene dos mitades y sólo una se edita. **Las tablas, las cifras y la derivación de la
+categoría se calculan desde `implantaciones` y no se tocan a mano** —el invariante sigue intacto—;
+**el envoltorio narrativo lo redacta la organización**. Si hay que corregir una justificación, se
+corrige en su requisito, que es donde vive.
+
+Es el § 4.5 de la especificación, «plantillas base personalizables por organización», que hasta ahora
+no estaba implementado: todo el aparato narrativo era literal en Blade o en PHP y **el usuario no podía
+escribir ni un carácter que saliera en el PDF**.
+
+**Once huecos, catálogo cerrado** (`SeccionNarrativa`). De ese enum salen a la vez el formulario, las
+reglas del `FormRequest`, el `CHECK` de las dos tablas y las claves que acepta el resolutor: **no hay
+forma de nombrar un hueco que no exista**, ni por la interfaz ni llamando a la ruta a mano. Ésa es la
+primera de las tres capas que impiden tocar las limitaciones del sistema; las otras dos son el `CHECK`
+y que el Blade de esos bloques no llama al parcial de narrativa.
+
+**La cadena de lectura tiene tres eslabones y gana el primero que EXISTA:**
+
+```
+documento_secciones  →  documento_plantilla_secciones  →  TextosDeFabrica
+```
+
+**Incluida la cadena vacía.** Una fila vacía dice «aquí no va nada, lo he decidido yo» y una fila
+ausente dice «vale lo que venga de más atrás». Sin esa distinción, borrar un texto lo resucitaría en
+la siguiente generación. Y es lo que hace que **no haya hecho falta ninguna migración de datos**: los
+documentos que ya existían no tienen filas, resuelven hasta fábrica y su PDF sale idéntico.
+
+**Un documento materializado no se entera si la plantilla cambia después**, y es deliberado: lo que
+dice un documento es un hecho del documento, no el resultado de un join que cambie bajo los pies. Es
+el mismo razonamiento que hay detrás de `instantanea`. La pantalla de plantillas lo avisa, porque sin
+ese aviso cualquiera daría por hecho que acaba de cambiar su SoA.
+
+```sh
+php artisan documentos:generar SOA-SGSI-01 --html    # sigue siendo el bucle rápido
+```
+
+---
 
 ## Desvíos vigentes respecto al stack
 
@@ -272,6 +359,210 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
 - **`spatie/laravel-medialibrary` se retiró.** Venía instalado en el esqueleto con su migración `media` y no lo usaba nadie: ni un `HasMedia`, ni `config/media-library.php` publicado. Y su tabla `media` no lleva `organizacion_id`, así que meter ahí los ficheros de las evidencias las habría dejado fuera de las tres capas de aislamiento; incluirla exigía modelo propio, migración, RLS y global scope sobre una tabla que no controlamos. Las evidencias guardan `disco`, `ruta`, `mime`, `tamano` y `hash_sha256` en columnas propias sobre el disco `evidencias`, que es exactamente lo que ya describía el comentario de `config/filesystems.php`. Si algún día hacen falta conversiones de imagen o adjuntos de documentos, se vuelve a valorar entonces.
 
 - **`laravel/passport` se retiró.** Venía en el esqueleto inicial junto con sus seis migraciones OAuth. No hay API pública que autenticar (§12 del stack descarta la SPA con API separada) y la autenticación va por Fortify. Si algún día hace falta OAuth para integraciones, se vuelve a valorar entonces.
+
+- **`ContextoOrganizacion` se registra como `scoped`, no como `singleton`.** El worker de la cola es
+  un proceso largo que atiende jobs de organizaciones distintas: con `singleton`, la organización del
+  job A sigue puesta al empezar el job B. Y no basta con eso — `set_config(..., false)` es de SESIÓN
+  y vive en la conexión que el worker reutiliza; quien la devuelve a «denegar por defecto» es el
+  `finally` de `paraOrganizacion()`. **Hacen falta las dos cosas.**
+
+- **Un job en cola fija su organización con `ConContextoDeOrganizacion`**, el middleware de job que
+  hace en la cola lo que `EstablecerContextoOrganizacion` hace en HTTP. Sin él no hay petición, no
+  hay usuario y por tanto no hay contexto: el scope no devuelve nada y RLS deniega por defecto, así
+  que **el job no revienta, sencillamente no ve nada**. Tres consecuencias que no se ven leyendo el
+  job: se pasan **escalares y nunca `SerializesModels`** —ese trait reconsulta el modelo al
+  deserializar, *antes* de cualquier middleware, y muere con un `ModelNotFoundException` que no
+  menciona la palabra «organización»—; **`failed()` NO pasa por el middleware** y necesita su propio
+  envoltorio o la versión se queda «generando» para siempre; y la traza de auditoría registra sin
+  autor, que es el motivo de que `documento_versiones.generada_por_id` exista.
+  `tests/Feature/Documentos/ContextoEnColaTest.php` fija las cuatro cosas.
+
+- **Disco `documentos` aparte del de `evidencias`.** No es simetría: en producción el Object Lock se
+  aplica **sólo al prefijo `emitidas/`**, porque un borrador tiene que poder reescribirse y una
+  versión entregada no debe poder hacerlo nunca. Bloqueado el bucket entero, regenerar un borrador
+  falla. Y regenerar escribe **una clave nueva** (ULID en el nombre), nunca sobre la anterior.
+
+- **`pdfua()` está apagado a propósito.** Gotenberg rechaza la petición **entera** si el documento no
+  es conforme, así que encenderlo antes de que las plantillas lleven `lang`, `<th scope>`, jerarquía
+  de encabezados y `<title>` en cada SVG convierte la generación en algo que falla por sorpresa.
+  `generateTaggedPdf()` sí va: es su prerrequisito y no rompe nada. PDF/A-3b sí está activo.
+
+- **La cadena de tiempos de Gotenberg es `--api-timeout=120s` < Guzzle 180 s < timeout del job 300 s,
+  en ese orden.** Por eso `GotenbergHttp` construye un `GuzzleHttp\Client` explícito en vez de dejar
+  que `Psr18ClientDiscovery` encuentre uno: el de por defecto trae 30 s y una SoA grande falla de
+  forma intermitente con un error que apunta a Gotenberg, que no tiene ninguna culpa.
+
+- **Las fuentes del documento van incrustadas en el CSS como `data:`, no como ficheros del
+  multipart.** Chromium trata una fuente como recurso sujeto a CORS y el documento se renderiza desde
+  un `file://`, que es un origen opaco: la petición se bloquea **en silencio**, sin error de carga que
+  `failOnResourceLoadingFailed()` pueda cazar. Un `data:` no se descarga, así que no hay origen que
+  comparar. Cuesta unos 150 kB en el CSS, que no sale del contenedor.
+
+- **Y por eso la allow-list de Gotenberg es `^(file:///tmp/|data:).*` y no sólo `file:///tmp/`.** La
+  allow-list **deniega todo lo que no case**, `data:` incluido. Sigue sin entrar ningún `http(s)://`,
+  que es de lo que protege: Gotenberg descarga las URL que se le pasen.
+
+- **La conversión a PDF/A **resustituye** las fuentes, y eso no se puede evitar desde aquí.** Chromium
+  embebe Instrument Sans y JetBrains Mono correctamente —comprobado generando sin `pdfa()`—, y el paso
+  a PDF/A-3b las reemplaza por Noto Sans y Arial. El PDF resultante es **conforme y con texto
+  seleccionable**, que es lo que exige el archivado; lo que se pierde es la tipografía de marca. Se
+  acepta a conciencia: el stack §4 pide PDF/A-3b «para todo documento de cumplimiento archivable», y
+  la conservación a largo plazo manda sobre la tipografía.
+
+  **Cómo se comprueba, porque a simple vista no se ve**: los `/BaseFont` del PDF. Un documento con
+  Arial dentro tiene exactamente la misma pinta que uno con la fuente correcta.
+
+- **Las caras itálicas se envían desde que la narrativa es editable.** Antes no: ninguna plantilla
+  usaba cursiva, precisamente porque sin cara propia un `<em>` cae a la itálica de otra familia y mete
+  una fuente de más en el PDF. El editor de textos ofrece cursiva, así que ahora viajan
+  `instrument-sans-400-italic` y `-600-italic`. **En el texto fijo de las plantillas se sigue sin usar
+  cursiva**: donde hace falta énfasis van las comillas latinas o la negrita, que es lo que ya está
+  escrito y no hay motivo para cambiar.
+
+- **`AssetsDocumento` genera el `@font-face` desde lo que hay en `resources/fonts/`**, que es el mismo
+  juego de ficheros que carga la interfaz: **dejar los `.woff2` ahí basta para que el documento pase a
+  usarlos, sin tocar una línea**. Lo que el PDF no puede hacer es apuntar a la copia de
+  `public/build/assets/`, donde el nombre lleva hash de contenido y cambia en cada `npm run build`.
+
+- **La cabecera y el pie del PDF son documentos HTML autónomos.** Chromium los renderiza en un
+  contexto aparte que **no carga recursos externos, no hereda el CSS de la página y no hereda las
+  fuentes**; además, lo que no lleve `font-size` explícito sale minúsculo, y el ancho útil es la hoja
+  entera, así que el padding lateral replica a mano los márgenes. No es preferencia: es la limitación
+  que se lleva una tarde por delante.
+
+- **El documento aplana el lenguaje de forma de DESIGN.md §6, y conserva el de color.** Sin sombras
+  —en papel imprimen como manchas grises—, radio 0 en las superficies —un `rounded-xl` en una tabla
+  de noventa y tres filas partida en cinco páginas sólo deja esquinas sueltas a mitad de tabla— y
+  siempre tema claro. Lo único que conserva forma son los badges, porque el color tiene que
+  sobrevivir. `documento.css` usa **hex sRGB**, nunca `oklch`: un color que dependa de la gestión de
+  color del navegador no es archivable. Los hex de los neutros se añadieron a DESIGN.md §3 antes de
+  usarlos, y salen de convertir los `oklch` de `app.css`, no de estimarlos.
+
+- **La variante `acento` del botón ya tiene su primer uso: «Emitir versión».** Era la que DESIGN.md
+  reservaba a los flujos de revisión y auditoría, y entregar un documento al auditor es exactamente
+  eso. Con ella en pantalla, «Generar borrador» baja a `outline`: **dos botones de color lleno a la
+  vez y no manda ninguno**.
+
+- **`Documento::resolveChildRouteBinding()` está escrito a mano.** `scopeBindings()` deduce la
+  relación pluralizando el nombre del parámetro **en inglés** —`version` → `versions`— y aquí el
+  dominio se nombra en español. Sin eso, `/documentos/{documento}/versiones/{version}/descargar`
+  responde 500 con un «Call to undefined method» que no dice nada de la causa. Lo cazó
+  `tests/Feature/Documentos/AislamientoTest.php`, y es la pieza que impide descargar la versión de
+  otro documento desde una URL que no le corresponde.
+
+- **La migración del trigger usa `CREATE OR REPLACE FUNCTION`.** `migrate:fresh` tira las TABLAS, no
+  las funciones, así que la función sobrevive a un refresco de la base y la segunda pasada chocaría.
+  Lo descubrió la suite, no una revisión.
+
+- **Las cifras de versión del `DocumentoRecurso` llegan por subconsulta, no por `join`.** Un `join`
+  contra `documento_versiones` multiplicaría las filas —un documento con cuatro entregas saldría
+  cuatro veces— y la paginación contaría mal. Es el mismo razonamiento que llevó a
+  `Filtro::porRelacion()` en activos. Esas subconsultas van en SQL crudo y **no pasan por el scope de
+  Eloquent**: ahí quien filtra es RLS, que es justo el caso para el que existe la tercera capa.
+
+- **El aviso de «generando…» va con `usePoll` de Inertia v3**, acotado a dos minutos y con
+  `keepAlive: false`. `Inertia::defer()` no sirve —resuelve en **una** petición de seguimiento y no
+  reintenta: responde a «carga lo lento después de pintar», no a «espera a un trabajo en segundo
+  plano»—, y el flash tampoco, porque pertenece a la petición que lo provoca y el worker corre en
+  otro proceso sin sesión. El servidor anuncia lo que hizo («generación encolada») y el cliente
+  anuncia lo que vio («el borrador está listo»). Un poll infinito contra una cola atascada es un
+  bucle caliente, y por eso se rinde y ofrece «Comprobar».
+
+- **Las cifras de un documento se cuentan sobre las filas que ese documento lista**, no sobre las
+  implantaciones del sistema. Acotar por sistema —que es lo que hacía `ResumenCumplimiento::deSistema()`,
+  ya retirado— seguía sin bastar: un sistema de ISO lleva, además de los 93 controles del Anexo A, las
+  cláusulas 4 a 10, que son el sistema de gestión y que el documento no enseña. **La barra decía 122 y
+  la tabla que tenía debajo decía 93.** Una gráfica que contradice a su propia tabla no es un detalle
+  de maquetación: es el documento desmintiéndose solo delante del auditor. Mismo criterio que ya regía
+  en el panel de inventario — cada cifra se cuenta con el alcance de lo que enseña al lado.
+
+- **La DdA imprime cuántas medidas tiene el Anexo II, no sólo cuántas se exigen.** A un sistema de
+  categoría básica se le exigen 52 de 73, y una tabla que enseñe 52 sin denominador se lee como si el
+  Anexo II tuviera 52. Que falten veintiuna es una consecuencia correcta de la categorización, pero el
+  auditor tiene que poder **verla**, no deducirla. Mismo criterio que «toda cifra con su denominador».
+
+- **`CorrespondenciasCruzadas::paraRequisitos()` existe por la Declaración de Aplicabilidad.** Llamar
+  a `paraRequisito()` en un bucle sobre los noventa y tres controles del Anexo A son ciento ochenta y
+  seis consultas. La versión en bloque resuelve todo en dos.
+
+- **La fecha de extracción del documento lleva la zona horaria escrita.** La aplicación trabaja en
+  UTC y quien lee el documento no tiene por qué: sin la marca, un documento generado a las 00:30 en
+  España aparece fechado el día anterior, y una fecha que no cuadra con su registro es un hallazgo
+  barato de encontrar.
+
+- **Guardar la plantilla sin tocarla no deja fila.** `GuardarPlantilla` borra la fila cuando el texto
+  coincide con el de fábrica, y no es una optimización: sin eso bastaría con abrir la pantalla y darle
+  a guardar para que las once secciones quedaran congeladas y esa organización dejara de recibir
+  cualquier mejora futura del texto de Statera, sin haberlo decidido y sin enterarse. **«No lo he
+  tocado» y «no hay fila» tienen que ser lo mismo.** En el documento es al revés: ahí las filas se
+  materializan todas a propósito, porque son una copia congelada.
+
+- **El texto se guarda en Markdown, nunca en HTML.** Es lo diffeable —«¿qué frase cambió entre la v3 y
+  la v4?» se contesta con un diff de texto plano—, lo que cabe en la instantánea sin inflarla y lo que
+  no tiene superficie de inyección. `paraInstantanea()` congela el Markdown; el HTML es una función
+  determinista de él y el PDF entregado ya está almacenado.
+
+- **`MarkdownDocumento` NO usa `Str::markdown()`.** Ese helper monta un `GithubFlavoredMarkdownConverter`
+  y trae tablas —y aquí los datos se calculan, no se escriben—, autoenlaces y listas de tareas. Se monta
+  el convertidor a mano con `CommonMarkCoreExtension`, `html_input => 'escape'`, `allow_unsafe_links =>
+  false` y un tope de anidamiento, más `NormalizarNarrativa`, que poda el árbol ya parseado.
+
+- **Hay DOS renderizadores de Markdown, y el que alimenta al editor no baja los encabezados.** El
+  desplazamiento `#`/`##` → `h3` y `###` → `h4` es maquetación del PDF: mantiene la jerarquía que exige
+  PDF/UA y evita competir con el `<h2>` que pone la plantilla. Si el editor cargara el HTML del
+  documento, un «Título» bajaría un nivel **en cada guardado** hasta tocar fondo. Lo que se almacena es
+  `##`; lo que se imprime es `<h3>`.
+
+- **`NormalizarNarrativa` elimina las imágenes, y eso no es cosmética.** `failOnResourceLoadingFailed()`
+  está encendido y la allow-list de Gotenberg es `^(file:///tmp/|data:).*`: un `![](https://…)` escrito
+  por cualquiera tumbaría la generación del PDF entero con un error que apunta a Gotenberg, que no
+  tiene ninguna culpa. Un `<a href>` sí pasa: un enlace no se descarga al imprimir.
+
+- **La regla `SinHtml` RECHAZA en vez de escapar en silencio.** Escapar dejaría un `<b>hola</b>`
+  impreso tal cual en el PDF del auditor y quien lo escribió no sabría de dónde ha salido. El patrón
+  exige que parezca una etiqueta entera —`<`, nombre y su `>`—: con uno más laxo caía prosa legítima
+  como «el riesgo residual < bajo».
+
+- **`realce()` y el Markdown conviven, y la frontera es quién escribió el texto.** Literal de PHP →
+  `realce()`, que es un patrón y no un parser; texto de la organización → CommonMark restringido. Las
+  cadenas de las limitaciones están llenas de códigos entre acentos graves que un parser convertiría en
+  `<code>` y de guiones que leería como listas. De paso, `realce()` ahora convierte esos acentos graves
+  en `<span class="cifra">`: **salían impresos en el PDF**, y el documento que se le entregaba al
+  auditor decía «(`op.acc.1`)» con las comillas dentro.
+
+- **El editor es TipTap 3 + `prosemirror-markdown`, y el argumento no es que sea popular.** En
+  ProseMirror **el esquema del documento ES la lista blanca**: lo que no está declarado no se puede
+  crear, ni escribiendo, ni pegando, ni arrastrando. No hay saneado de HTML pegado en cliente, que es
+  justo la clase de código que no se quiere en una herramienta que entra en el alcance de su propio
+  SGSI. Y el serializador se declara a mano —`lib/markdownEditor.ts`— porque ese mapa **es la lista
+  blanca escrita otra vez en el camino de escritura**; un paquete que «detecta» el Markdown hace lo
+  contrario. Pesa **170 kB gzip** y va en su propio chunk con `defineAsyncComponent`: el bundle
+  principal no se movió ni un kilobyte. Mismo criterio que `@number-flow/vue`.
+
+- **`CampoBase` gana `etiquetaOculta`, y `FormularioRecurso` deja de anunciar asteriscos que no hay.**
+  Lo primero, porque el título ya lo pone la `SeccionFormulario` y repetirlo justo debajo es ruido —el
+  `<label>` sigue existiendo y asociado: quitarlo dejaría el control sin nombre accesible—. Lo segundo,
+  porque la pantalla de textos no tiene ni un campo obligatorio y la leyenda seguía apareciendo.
+
+- **El `.docx` es una copia de trabajo, no la entrega, y se construye desde `instantanea`.** El
+  entregable archivable es el PDF/A-3b con su huella. **Construirlo desde una consulta nueva sería el
+  fallo más caro del módulo**: el Word de una versión emitida en marzo enseñaría los datos de octubre y
+  contradiría al PDF que lo acompaña, con la huella de ese PDF impresa dentro. De ahí
+  `ContenidoDocumento::desdeInstantanea()`, que además deja la instantánea **rehidratable** y habilita
+  mañana una pantalla de diff entre versiones.
+
+  No se almacena ni se versiona: `documento_versiones` existe para demostrar qué se entregó, sus
+  `CHECK` acoplan la fila a **un** fichero con su hash, y el trigger de inmutabilidad no dejaría
+  adjuntarlo a una versión emitida. Va marcado en tres sitios que sobreviven a un reenvío —el pie de
+  cada página, las propiedades del fichero con la huella del PDF, y el nombre—.
+
+- **`phpoffice/phpword` es LGPL-3.0 en un repositorio MIT.** Compatible como dependencia de Composer sin
+  modificar y cargada en ejecución, pero queda escrito para que no lo descubra nadie más adelante. Y
+  emite avisos de obsolescencia con PHP 8.4 que sólo se ven con `E_ALL` —`tinker`—: no afectan al
+  fichero, que sale válido.
+
+- **Los anchos del `.docx` van en twips ENTEROS.** `Converter::cmToTwip()` devuelve decimales y salían
+  al XML como `w:w="1583.3333333333333"`. Lo cazó Larastan, no una revisión.
 
 ## Fuera de alcance
 

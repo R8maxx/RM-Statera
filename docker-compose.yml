@@ -48,15 +48,23 @@ services:
   # app corre en el host; en producción va en la red privada, sin puerto
   # publicado y sin salida a internet.
   #
-  # La allow-list restringe Chromium a los ficheros que el propio Gotenberg
-  # deja en /tmp, es decir: solo se renderiza el HTML y los assets que le
-  # enviamos en el multipart. Ninguna URL remota, ni nuestra ni ajena.
+  # La allow-list restringe Chromium a dos cosas y sólo dos: los ficheros que el
+  # propio Gotenberg deja en /tmp —el HTML y los assets que le enviamos en el
+  # multipart— y los `data:`, que no son una descarga sino contenido incrustado.
+  # Ninguna URL remota, ni nuestra ni ajena: la allow-list DENIEGA todo lo que no
+  # case, así que ningún `http(s)://` entra por aquí.
+  #
+  # `data:` hace falta porque las fuentes del documento van incrustadas en el
+  # CSS: Chromium trata una fuente como recurso sujeto a CORS y desde un
+  # documento `file://` —origen opaco— la bloquea EN SILENCIO, sin error de carga
+  # que `failOnResourceLoadingFailed()` pueda cazar. El PDF sale con Arial y con
+  # pinta de correcto, y sólo se ve mirando los `/BaseFont` del fichero.
   gotenberg:
     image: gotenberg/gotenberg:8.9.1
     container_name: statera-gotenberg
     command:
       - "gotenberg"
-      - "--chromium-allow-list=^file:///tmp/.*"
+      - "--chromium-allow-list=^(file:///tmp/|data:).*"
       - "--api-timeout=120s"
     ports:
       - "127.0.0.1:3000:3000"

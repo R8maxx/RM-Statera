@@ -112,6 +112,21 @@ Hue 196, y esto es funcional, no estético: los estados del dominio ocupan 245, 
 
 Los grises llevan una gota del hue frío (215–235) en lugar de azul-pizarra. Una paleta fría coherente lee como una sola decisión; dos familias de gris en la misma pantalla se notan aunque nadie sepa decir por qué. Se consumen por rol, no por escala: `background`, `card`, `superficie`, `muted`, `border`, `input`, `foreground`, `muted-foreground`.
 
+En pantalla se leen del token `oklch` y no hace falta el hex. Se tabulan aquí porque **los documentos PDF no pueden usar `oklch`**: un color que dependa de la gestión de color del navegador no es archivable, y la conversión a PDF/A se comporta mejor con sRGB plano. Estos son los valores que consume `resources/documentos/documento.css`, y salen de convertir los `oklch` de `app.css`, no de estimarlos.
+
+| Rol | Hex (tema claro) | `oklch` |
+|---|---|---|
+| `background` | `#F9FCFC` | `0.988 0.003 215` |
+| `card` | `#FFFFFF` | `1 0 0` |
+| `superficie` | `#F2F7F8` | `0.972 0.005 215` |
+| `muted` | `#ECF2F4` | `0.958 0.007 215` |
+| `border` | `#DAE1E3` | `0.905 0.008 215` |
+| `muted-foreground` | `#5D6C72` | `0.52 0.02 225` |
+| `secondary-foreground` | `#26323A` | `0.31 0.022 235` |
+| `foreground` | `#151E24` | `0.23 0.018 235` |
+
+El documento se pinta **siempre en tema claro**: se imprime, y un PDF que se adapte al tema del lector no existe.
+
 ### Semánticos
 
 Los estados del dominio. Se declaran una vez en `app.css` como `--estado-*` con su pareja `-suave`, y los consumen `CeldaBadge` y `BarraSegmentada`. **No se retocan al cambiar la marca**: son semántica, no decoración.
@@ -182,7 +197,9 @@ No es una inversión automática. Sólo cambian los roles.
 
 ## 4. Tipografía
 
-**Instrument Sans** para la interfaz. Pesos 400 (cuerpo), 500 (interfaz y etiquetas), 600 (títulos), 700 (cifras destacadas del panel). Autoalojada con `bunny()` desde `vite.config.ts`, `font-display: swap`, sólo esos cuatro pesos.
+**Instrument Sans** para la interfaz. Pesos 400 (cuerpo), 500 (interfaz y etiquetas), 600 (títulos), 700 (cifras destacadas del panel). Autoalojada, `font-display: swap`, sólo esos cuatro pesos.
+
+Los `.woff2` viven en `resources/fonts/` y el `@font-face` está en `app.css`. **Un solo juego de ficheros para dos consumidores**: Vite emite su copia con hash para el navegador, y `AssetsDocumento` lee los mismos ficheros en crudo para incrustarlos en el CSS de los documentos PDF, donde PDF/A-3b exige toda fuente embebida. Antes esto lo hacía `bunny()` desde `vite.config.ts`, que descargaba las familias y emitía un `fonts-*.css` **que no enlazaba nadie**: la interfaz se pintó con la fuente del sistema hasta que se corrigió. Las dos familias son OFL y sus licencias están junto a los ficheros.
 
 **JetBrains Mono** para lo que es código y para lo que se compara en vertical: identificadores de control (`op.acc.4`), referencias de norma, contadores, porcentajes, hashes. Se aplica con la clase `.cifra`, que además activa `tabular-nums` y `zero`.
 

@@ -19,6 +19,16 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * dimensiones sí. Es la decisión que redefine el alcance del cumplimiento
  * entero, y no es la misma persona quien la toma.
  *
+ * `documentos.generar` cubre crear el registro, generar el borrador y emitir la
+ * versión, que es lo mismo que hacer y entregar. `documentos.aprobar` llegará
+ * con el flujo de aprobación, que es cuando la diferencia existirá de verdad.
+ *
+ * Y `documentos.redactar` está separado de `documentos.plantillas` por lo mismo:
+ * retocar la introducción de UN documento y redefinir el texto base de la
+ * organización no son la misma decisión. Lo segundo afecta a todos los
+ * documentos que se creen a partir de entonces, que es la misma clase de
+ * consecuencia que tiene `sistemas.valorar`.
+ *
  * OJO: esto NO son los roles ENS de personas —responsable de la información,
  * del servicio, de seguridad, del sistema y administrador de la seguridad—, que
  * son datos del módulo de personas (§ 4.8) y tienen sus propias
@@ -42,6 +52,11 @@ enum Permiso: string
     case ActivosVer = 'activos.ver';
     case ActivosGestionar = 'activos.gestionar';
 
+    case DocumentosVer = 'documentos.ver';
+    case DocumentosGenerar = 'documentos.generar';
+    case DocumentosRedactar = 'documentos.redactar';
+    case DocumentosPlantillas = 'documentos.plantillas';
+
     public function etiqueta(): string
     {
         return match ($this) {
@@ -55,6 +70,10 @@ enum Permiso: string
             self::EvidenciasGestionar => 'Registrar y vincular evidencias',
             self::ActivosVer => 'Ver el inventario de activos',
             self::ActivosGestionar => 'Dar de alta activos y declarar dependencias',
+            self::DocumentosVer => 'Ver los documentos y descargar sus versiones',
+            self::DocumentosGenerar => 'Generar documentos y emitir versiones',
+            self::DocumentosRedactar => 'Redactar los textos de un documento',
+            self::DocumentosPlantillas => 'Definir los textos base de la organización',
         };
     }
 

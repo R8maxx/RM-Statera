@@ -47,7 +47,7 @@ onMounted(() => {
     formulario.value = ancla.value?.closest('form') ?? null;
 });
 
-const { pendientes, sucio } = proveerObligatorios(formulario);
+const { pendientes, hayObligatorios, sucio } = proveerObligatorios(formulario);
 
 const leyendaObligatorios = computed(() =>
     pendientes.value === 0
@@ -107,7 +107,10 @@ function irAlCampo(nombre: string): void {
 
         <motion.div :variants="variantesEntrada" initial="oculto" animate="visible">
             <CabeceraPagina :titulo="titulo" :descripcion="descripcion">
-                <p class="mt-2 text-xs text-muted-foreground">{{ leyendaObligatorios }}</p>
+                <!-- Un formulario sin campos obligatorios no anuncia asteriscos. -->
+                <p v-if="hayObligatorios" class="mt-2 text-xs text-muted-foreground">
+                    {{ leyendaObligatorios }}
+                </p>
             </CabeceraPagina>
 
             <div
