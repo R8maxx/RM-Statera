@@ -6,12 +6,14 @@ namespace App\Domain\Aviso;
 
 use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Tarea\Models\Tarea;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Carbon;
 
 /**
  * Qué vence en la organización activa.
+ *
+ * **Quién construye cada fila es `CalendarioVencimientos`**, que es el único
+ * sitio donde se decide qué es un vencimiento: si cada uno consultara por su
+ * cuenta, el correo y el calendario acabarían discrepando y el que se mira menos
+ * es el que se queda mal. Aquí sólo se eligen los cuatro grupos.
  *
  * **Se cuenta con los mismos scopes que usan el panel y los filtros de cada
  * tabla** —`Evidencia::caducadas()`, `porCaducar()`, `Tarea::vencidas()`,
@@ -35,44 +37,16 @@ final readonly class ResumenVencimientos
      */
     public const DIAS = 30;
 
+    public function __construct(private CalendarioVencimientos $calendario) {}
+
     public function __invoke(int $dias = self::DIAS): Vencimientos
     {
         return new Vencimientos(
-            evidenciasCaducadas: $this->filas(Evidencia::query()->caducadas()->orderBy('fecha_caducidad'), 'fecha_caducidad'),
-            evidenciasPorCaducar: $this->filas(Evidencia::query()->porCaducar($dias)->orderBy('fecha_caducidad'), 'fecha_caducidad'),
-            tareasVencidas: $this->filas(Tarea::query()->vencidas()->orderBy('fecha_limite'), 'fecha_limite'),
-            tareasPorVencer: $this->filas(Tarea::query()->porVencer($dias)->orderBy('fecha_limite'), 'fecha_limite'),
+            evidenciasCaducadas: $this->calendario->deEvidencias(Evidencia::query()->caducadas()),
+            evidenciasPorCaducar: $this->calendario->deEvidencias(Evidencia::query()->porCaducar($dias)),
+            tareasVencidas: $this->calendario->deTareas(Tarea::query()->vencidas()),
+            tareasPorVencer: $this->calendario->deTareas(Tarea::query()->porVencer($dias)),
             dias: $dias,
         );
-    }
-
-    /**
-     * @param  Builder<Evidencia>|Builder<Tarea>  $consulta
-     * @return list<Vencimiento>
-     */
-    private function filas(Builder $consulta, string $columna): array
-    {
-        $hoy = Carbon::today();
-
-        return $consulta
-            ->with('responsable:id,name')
-            ->get()
-            ->map(function (Model $fila) use ($hoy, $columna): Vencimiento {
-                /** @var ?Carbon $fecha */
-                $fecha = $fila->getAttribute($columna);
-
-                return new Vencimiento(
-                    id: (int) $fila->getKey(),
-                    titulo: (string) $fila->getAttribute('titulo'),
-                    fecha: $fecha?->format('d/m/Y') ?? '—',
-                    // Con signo: `diffInDays` sin más devuelve siempre positivo y
-                    // algo vencido hace cuatro días parecería vencer dentro de
-                    // cuatro, que es lo contrario de lo que pasa.
-                    dias: $fecha === null ? 0 : (int) $hoy->diffInDays($fecha, false),
-                    responsable: $fila->getRelationValue('responsable')?->getAttribute('name'),
-                );
-            })
-            ->values()
-            ->all();
     }
 }

@@ -6,14 +6,19 @@ import {
     DatabaseIcon,
     GlobeIcon,
     HardDriveIcon,
+    ListTodoIcon,
     NetworkIcon,
+    PaperclipIcon,
     PlugIcon,
     UsersIcon,
 } from '@lucide/vue';
 import { computed, type Component } from 'vue';
 
 /**
- * El icono de un tipo de activo, resuelto por nombre.
+ * El icono de un tipo, resuelto por nombre.
+ *
+ * Lo usan la tipología de activos y las fuentes de un vencimiento. El nombre lo
+ * decide el servidor —el enum— y aquí sólo se resuelve.
  *
  * Mapa explícito, como `IconoAccion`: importar `@lucide/vue` entero para
  * resolver el nombre en tiempo de ejecución arrastraría el paquete al bundle.
@@ -33,6 +38,12 @@ const iconos: Record<string, Component> = {
     Network: NetworkIcon,
     Plug: PlugIcon,
     Users: UsersIcon,
+
+    // Las fuentes de un vencimiento en el calendario: ahí el icono hace el mismo
+    // trabajo que aquí —distinguir de qué es cada cosa cuando el color agrupa—,
+    // y § 4.16 irá añadiendo las suyas.
+    ListTodo: ListTodoIcon,
+    Paperclip: PaperclipIcon,
 };
 
 const props = withDefaults(defineProps<{ nombre?: string | null; clase?: string }>(), {

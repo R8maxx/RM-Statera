@@ -224,6 +224,7 @@ Route::middleware('auth')->group(function (): void {
          * Van antes que `{tarea}` para que no se lean como identificadores.
          */
         Route::get('/tareas/tablero', [TareaController::class, 'tablero'])->name('tareas.tablero');
+        Route::get('/tareas/calendario', [TareaController::class, 'calendario'])->name('tareas.calendario');
 
         // Antes que `{tarea}`, para que `crear` no se lea como un id.
         Route::get('/tareas/crear', [TareaController::class, 'create'])

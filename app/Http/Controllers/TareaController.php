@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Domain\Aviso\CalendarioVencimientos;
+use App\Domain\Aviso\RejillaMes;
 use App\Domain\Implantacion\Models\Implantacion;
 use App\Domain\Tarea\CambiarEstadoTarea;
 use App\Domain\Tarea\CrearTarea;
@@ -165,6 +167,37 @@ class TareaController extends Controller
             // tarjeta la ofrece y el diálogo pide el motivo.
             'descartable' => $tarea->estado->permite(EstadoTarea::Descartada),
         ];
+    }
+
+    /**
+     * El calendario: qué cae esta semana.
+     *
+     * **Enseña vencimientos, no tareas.** Una tarea que vence y una evidencia
+     * que caduca son la misma pregunta para quien mira el mes —«¿qué tengo que
+     * atender?»— y separarlas en dos calendarios obliga a mirar dos. § 4.16
+     * —calendario de obligaciones— incluye literalmente la caducidad de
+     * evidencias, así que esto es su primera pieza: cuando lleguen la revisión
+     * por la dirección o la auditoría interna, se cuelgan de `Fuente` y esta
+     * pantalla no se entera.
+     *
+     * El mes vive en la URL para que se pueda enlazar y compartir, y lo que no
+     * se entienda es el mes de hoy: un 500 en una dirección que alguien guarda
+     * es peor que enseñar otro mes.
+     */
+    public function calendario(Request $request, CalendarioVencimientos $calendario): Response
+    {
+        $rejilla = RejillaMes::de($request->string('mes')->toString());
+
+        return Inertia::render('tareas/Calendario', [
+            'rejilla' => $rejilla,
+            // Se consulta por los extremos de la REJILLA y no por los del mes:
+            // las casillas de relleno son días de verdad y lo que caiga en ellas
+            // también hay que atenderlo.
+            'vencimientos' => $calendario->entre(
+                Carbon::parse($rejilla->primerDia),
+                Carbon::parse($rejilla->ultimoDia),
+            ),
+        ]);
     }
 
     public function create(Request $request): Response

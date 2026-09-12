@@ -19,6 +19,21 @@ export type Permiso = 'panel.ver' | 'sistemas.ver' | 'sistemas.gestionar' | 'sis
 export type Rol = 'responsable_seguridad' | 'tecnico' | 'auditor';
 }
 }
+namespace Aviso {
+export type Fuente = 'tarea' | 'evidencia';
+export type Vencimiento = {
+readonly url: string,
+readonly icono: string,
+readonly id: number,
+readonly fuente: App.Domain.Aviso.Fuente,
+readonly titulo: string,
+readonly dia: string,
+readonly fecha: string,
+readonly dias: number,
+readonly responsable: string | null,
+readonly tono: string,
+};
+}
 namespace Catalogo {
 namespace Enums {
 export type CategoriaEns = 'basica' | 'media' | 'alta';
