@@ -12,9 +12,13 @@ it('sabe qué marco le corresponde a cada declaración', function (): void {
     expect(TipoDocumento::DdaEns->marcoEsperado())->toBe('ENS-RD311-2022');
 });
 
-it('apunta a una plantilla que existe', function (TipoDocumento $tipo): void {
-    expect(view()->exists($tipo->plantilla()))->toBeTrue();
-})->with(TipoDocumento::cases());
+it('se pinta con el único Blade que queda', function (): void {
+    // Ya no hay una plantilla por tipo: el documento entero sale de
+    // `RenderizadorCuerpo` y `documentos.layout` es sólo el `<head>`.
+    expect(view()->exists('documentos.layout'))->toBeTrue()
+        ->and(view()->exists('documentos.cabecera'))->toBeTrue()
+        ->and(view()->exists('documentos.pie'))->toBeTrue();
+});
 
 it('distingue el trabajo vivo del terminado', function (): void {
     expect(EstadoGeneracion::Encolada->enCurso())->toBeTrue();

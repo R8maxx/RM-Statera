@@ -75,6 +75,21 @@ it('no se descarga la versión de un documento ajeno', function (): void {
         ->assertNotFound();
 });
 
+/**
+ * «Ver el PDF» del editor abre la misma versión que la descarga, sólo que en
+ * línea. Comparten la comprobación y el `scopeBindings()`, y este test es lo que
+ * impide que se retiren de una y no de la otra: una ruta de lectura nueva sobre
+ * un fichero que contiene la Declaración de Aplicabilidad entera de una
+ * organización tiene que estar tan cerrada como la que ya había.
+ */
+it('tampoco se ve en línea la versión de un documento ajeno', function (): void {
+    ['usuario' => $usuario, 'ajeno' => $ajeno, 'versionAjena' => $version] = dosOrganizacionesConDocumentos();
+
+    $this->actingAs($usuario)
+        ->get("/documentos/{$ajeno->id}/versiones/{$version->id}/ver")
+        ->assertNotFound();
+});
+
 it('no se descarga una versión que pertenece a OTRO documento de la misma organización', function (): void {
     $marco = Marco::factory()->create(['codigo' => 'ISO-SINTETICO']);
     $organizacion = comoOrganizacion();
@@ -88,6 +103,10 @@ it('no se descarga una versión que pertenece a OTRO documento de la misma organ
     // globalmente y se descargaría desde una URL que no le corresponde.
     $this->actingAs(usuarioCon())
         ->get("/documentos/{$uno->id}/versiones/{$version->id}/descargar")
+        ->assertNotFound();
+
+    $this->actingAs(usuarioCon())
+        ->get("/documentos/{$uno->id}/versiones/{$version->id}/ver")
         ->assertNotFound();
 });
 

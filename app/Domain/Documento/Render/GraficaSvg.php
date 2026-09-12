@@ -98,7 +98,7 @@ final class GraficaSvg
         $titulo = e($descripcion);
 
         return <<<SVG
-            <svg class="grafica__barra" viewBox="0 0 700 18" width="100%" height="18"
+            <svg viewBox="0 0 700 18" width="100%" height="18"
                  role="img" aria-label="{$titulo}" xmlns="http://www.w3.org/2000/svg">
                 <title>{$titulo}</title>
                 {$contenido}

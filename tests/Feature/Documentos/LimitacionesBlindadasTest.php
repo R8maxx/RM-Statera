@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Domain\Autorizacion\Enums\Rol;
 use App\Domain\Catalogo\Models\Marco;
 use App\Domain\Documento\Contenido\DeclaracionAplicabilidadIso;
 use App\Domain\Documento\Models\Documento;
-use App\Domain\Documento\Models\DocumentoSeccion;
 use App\Domain\Documento\Models\DocumentoVersion;
 use App\Domain\Documento\Narrativa\GuardarNarrativa;
 use App\Domain\Documento\Narrativa\MaterializarSecciones;
@@ -71,22 +71,14 @@ it('las propias van en su propio bloque, debajo y separadas', function (): void 
         ->toContain('oficinas comerciales');
 });
 
-it('no se puede escribir en un hueco que no existe, ni por la ruta', function (): void {
-    $this->actingAs($this->usuario)
-        ->put("/documentos/{$this->documento->id}/textos", [
-            'limitaciones' => 'Esto no debería entrar.',
-            'limitaciones_sistema' => 'Ni esto.',
-            'inventada' => 'Ni esto tampoco.',
-        ])
-        ->assertRedirect();
-
-    // Las claves no están declaradas en el `FormRequest`, que construye sus
-    // reglas desde el enum: no llegan a `validated()` y no se escriben.
-    expect(DocumentoSeccion::query()->whereIn('seccion', ['limitaciones', 'limitaciones_sistema', 'inventada'])->exists())
-        ->toBeFalse();
-});
-
-it('y la base tampoco las admite', function (): void {
+/**
+ * La ruta que escribía huecos sueltos se retiró con el editor del documento
+ * entero; quien impide inventarse un hueco por la ruta de la plantilla es el
+ * `FormRequest`, que construye sus reglas desde el enum, y eso lo fija
+ * `PlantillaNarrativaTest`. Aquí queda la última capa, que es la que no depende
+ * de que ningún PHP se acuerde de comprobarlo.
+ */
+it('la base no admite un hueco inventado', function (): void {
     DB::table('documento_secciones')->insert([
         'organizacion_id' => $this->organizacion->id,
         'documento_id' => $this->documento->id,
@@ -98,16 +90,17 @@ it('y la base tampoco las admite', function (): void {
     ]);
 })->throws(QueryException::class);
 
-it('restablecer una sección inventada responde 404', function (): void {
-    $this->actingAs($this->usuario)
-        ->delete("/documentos/{$this->documento->id}/textos/limitaciones")
+it('restablecer una sección inventada de la plantilla responde 404', function (): void {
+    $this->actingAs(usuarioCon(Rol::ResponsableSeguridad))
+        ->delete('/plantillas-documento/soa_iso/limitaciones')
         ->assertNotFound();
 });
 
 it('rechaza el HTML en vez de escaparlo en silencio', function (): void {
     // Escaparlo dejaría un `<b>` impreso en el PDF del auditor y quien lo
-    // escribió no sabría de dónde ha salido.
-    $this->actingAs($this->usuario)
-        ->put("/documentos/{$this->documento->id}/textos", ['conclusiones' => '<b>hola</b>'])
+    // escribió no sabría de dónde ha salido. La regla `SinHtml` sigue guardando
+    // la puerta que queda: los textos base de la organización.
+    $this->actingAs(usuarioCon(Rol::ResponsableSeguridad))
+        ->put('/plantillas-documento/soa_iso', ['conclusiones' => '<b>hola</b>'])
         ->assertSessionHasErrors('conclusiones');
 });

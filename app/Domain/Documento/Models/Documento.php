@@ -76,17 +76,34 @@ class Documento extends Model
     }
 
     /**
-     * Los textos que la organización ha redactado para este documento.
+     * Los textos que la organización redactó antes de que el documento entero
+     * fuera editable.
      *
-     * Son una copia materializada de la plantilla: si la plantilla cambia
-     * después, esto no se entera. Lo que dice un documento es un hecho del
-     * documento, no el resultado de un join que pueda cambiar bajo los pies.
+     * **Ya no se escriben desde ninguna pantalla.** Quedan como la fuente de la
+     * que se estrena el cuerpo de un documento que nunca haya pasado por el
+     * editor: `ResolverCuerpo::crear()` los hereda a través de
+     * `ContenidoDocumento::$textos`. En cuanto ese cuerpo existe, mandan los
+     * nodos y esta tabla no vuelve a leerse.
+     *
+     * Retirarla exige antes materializar el cuerpo de todos los documentos que
+     * no lo tengan; hasta entonces se queda, porque borrarla sin eso borraría
+     * texto escrito.
      *
      * @return HasMany<DocumentoSeccion, $this>
      */
     public function secciones(): HasMany
     {
         return $this->hasMany(DocumentoSeccion::class);
+    }
+
+    /**
+     * El cuerpo editable: lo que realmente se imprime.
+     *
+     * @return HasOne<DocumentoCuerpo, $this>
+     */
+    public function cuerpo(): HasOne
+    {
+        return $this->hasOne(DocumentoCuerpo::class);
     }
 
     /**

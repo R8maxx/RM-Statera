@@ -6,6 +6,7 @@ namespace App\Domain\Documento;
 
 use App\Domain\Documento\Contenido\ContenidoDocumento;
 use App\Domain\Documento\Contenido\RegistroGeneradores;
+use App\Domain\Documento\Cuerpo\HtmlDocumento;
 use App\Domain\Documento\Enums\EstadoGeneracion;
 use App\Domain\Documento\Excepciones\GeneracionFallida;
 use App\Domain\Documento\Jobs\GenerarDocumentoJob;
@@ -13,7 +14,6 @@ use App\Domain\Documento\Models\Documento;
 use App\Domain\Documento\Models\DocumentoVersion;
 use App\Domain\Documento\Render\AssetsDocumento;
 use App\Domain\Documento\Render\ClienteGotenberg;
-use App\Domain\Documento\Render\GraficaSvg;
 use App\Domain\Documento\Render\SolicitudPdf;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -38,7 +38,7 @@ final readonly class GenerarDocumento
         private RegistroGeneradores $generadores,
         private ClienteGotenberg $gotenberg,
         private AssetsDocumento $assets,
-        private GraficaSvg $graficas,
+        private HtmlDocumento $html,
     ) {}
 
     /**
@@ -110,18 +110,26 @@ final readonly class GenerarDocumento
             $version->parametros,
         );
 
-        $pdf = $this->gotenberg->pdf($this->solicitud($documento, $version, $contenido));
+        // Se resuelve UNA vez y se usa dos: para el PDF y para la instantánea.
+        // Resolverlo dos veces abriría la puerta a que el fichero entregado y
+        // lo que se congela no fueran el mismo documento.
+        $cuerpo = $this->html->cuerpo($documento, $contenido);
 
-        $this->almacenar($version, $documento, $contenido, $pdf);
+        $pdf = $this->gotenberg->pdf($this->solicitud($documento, $version, $contenido, $cuerpo));
+
+        $this->almacenar($version, $documento, $contenido, $cuerpo, $pdf);
     }
 
     /**
+     * @param  array<string, mixed>  $cuerpo
+     *
      * @throws GeneracionFallida
      */
     private function almacenar(
         DocumentoVersion $version,
         Documento $documento,
         ContenidoDocumento $contenido,
+        array $cuerpo,
         string $pdf,
     ): void {
         $huella = hash('sha256', $pdf);
@@ -159,7 +167,14 @@ final readonly class GenerarDocumento
             'mime' => 'application/pdf',
             'tamano' => strlen($pdf),
             'hash_sha256' => $huella,
-            'instantanea' => $contenido->paraInstantanea(),
+            /*
+             * El cuerpo entero, además de lo que ya se congelaba. Es lo que
+             * convierte la instantánea en un documento reconstruible: sin él,
+             * una versión emitida sabría qué datos tenía pero no cómo estaba
+             * redactada, y un documento que se puede editar entero necesita las
+             * dos cosas para poder contestar «¿qué cambió entre la v3 y la v4?».
+             */
+            'instantanea' => [...$contenido->paraInstantanea(), 'cuerpo' => $cuerpo],
             'total_requisitos' => $totales['requisitos'],
             'total_excluidos' => $totales['excluidos'],
             'total_implantados' => $totales['implantados'],
@@ -167,19 +182,15 @@ final readonly class GenerarDocumento
         ]);
     }
 
-    private function solicitud(Documento $documento, DocumentoVersion $version, ContenidoDocumento $contenido): SolicitudPdf
+    /**
+     * @param  array<string, mixed>  $cuerpo
+     */
+    private function solicitud(Documento $documento, DocumentoVersion $version, ContenidoDocumento $contenido, array $cuerpo): SolicitudPdf
     {
         $portada = $contenido->portada;
 
         return new SolicitudPdf(
-            html: View::make($documento->tipo->plantilla(), [
-                'contenido' => $contenido,
-                // La gráfica se pinta aquí, en SVG y desde PHP: en un documento
-                // que va a PDF/A no debe ejecutarse JavaScript, porque un canvas
-                // entra como mapa de bits y se lleva por delante el texto
-                // seleccionable.
-                'barra' => $this->graficas->barraPorEstado($contenido->resumen['segmentos']),
-            ])->render(),
+            html: $this->html->conCuerpo($contenido, $cuerpo),
 
             cabecera: View::make('documentos.cabecera', [
                 'organizacion' => $portada['organizacion'] ?? '',

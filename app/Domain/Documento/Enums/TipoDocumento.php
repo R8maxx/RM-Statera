@@ -60,14 +60,13 @@ enum TipoDocumento: string
         };
     }
 
-    /** La vista Blade que lo pinta. */
-    public function plantilla(): string
-    {
-        return match ($this) {
-            self::SoaIso => 'documentos.soa-iso',
-            self::DdaEns => 'documentos.dda-ens',
-        };
-    }
+    /*
+     * Aquí había un `plantilla()` que devolvía la Blade de cada tipo. Ya no hay
+     * una por tipo: el documento entero sale de `RenderizadorCuerpo` sobre el
+     * cuerpo editable, y `documentos.layout` es el único Blade que queda. Lo
+     * que cambia entre la SoA y la DdA vive en `CuerpoDeFabrica` y en
+     * `ColumnasTabla`, que es donde se puede leer de un vistazo.
+     */
 
     /** Chip neutro: un tipo de documento no es un estado y no se colorea como tal. */
     public function tono(): string

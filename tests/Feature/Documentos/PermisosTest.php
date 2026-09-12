@@ -63,17 +63,30 @@ it('el responsable de seguridad sí genera y emite', function (): void {
     $usuario = usuarioCon(Rol::ResponsableSeguridad);
 
     $this->actingAs($usuario)->get('/documentos/crear')->assertOk();
+
+    // Generar vuelve a donde se pidió: la ficha si se pidió desde la ficha, y el
+    // editor si se pidió con «Ver el PDF».
     $this->actingAs($usuario)
+        ->from("/documentos/{$this->documento->id}")
         ->post("/documentos/{$this->documento->id}/generar")
         ->assertRedirect("/documentos/{$this->documento->id}");
+
+    $this->actingAs($usuario)
+        ->from("/documentos/{$this->documento->id}/cuerpo")
+        ->post("/documentos/{$this->documento->id}/generar")
+        ->assertRedirect("/documentos/{$this->documento->id}/cuerpo");
 });
 
-it('el técnico redacta los textos pero no toca la plantilla', function (): void {
+it('el técnico redacta el documento pero no toca la plantilla', function (): void {
     $usuario = usuarioCon(Rol::Tecnico);
+
+    // El editor del cuerpo necesita una versión de la que construir el
+    // contenido: sin ella no hay de dónde sacar las cifras del documento.
+    DocumentoVersion::factory()->delDocumento($this->documento->id)->create();
 
     // Redactar es trabajo de quien prepara el documento; la plantilla decide
     // cómo empiezan TODOS los futuros, y eso es otra decisión.
-    $this->actingAs($usuario)->get("/documentos/{$this->documento->id}/textos")->assertOk();
+    $this->actingAs($usuario)->get("/documentos/{$this->documento->id}/cuerpo")->assertOk();
     $this->actingAs($usuario)->get('/plantillas-documento')->assertForbidden();
     $this->actingAs($usuario)->get('/plantillas-documento/soa_iso')->assertForbidden();
 });
@@ -81,7 +94,7 @@ it('el técnico redacta los textos pero no toca la plantilla', function (): void
 it('el auditor no redacta nada', function (): void {
     $usuario = usuarioCon(Rol::Auditor);
 
-    $this->actingAs($usuario)->get("/documentos/{$this->documento->id}/textos")->assertForbidden();
+    $this->actingAs($usuario)->get("/documentos/{$this->documento->id}/cuerpo")->assertForbidden();
     $this->actingAs($usuario)->get('/plantillas-documento')->assertForbidden();
 });
 

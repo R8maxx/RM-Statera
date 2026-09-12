@@ -34,23 +34,12 @@ use Throwable;
 final readonly class GotenbergHttp implements ClienteGotenberg
 {
     /**
-     * A4 apaisado, en pulgadas, que es la unidad que espera el cliente.
+     * El tamaño de la hoja y sus márgenes viven en `GeometriaPagina`.
      *
-     * Apaisado porque la tabla de la SoA tiene diez columnas y varias llevan
-     * justificaciones de tres líneas: en 210 mm no caben, y encogerlas hasta que
-     * quepan produce un documento que el auditor no lee.
+     * Estaban aquí, que es donde nacieron, y salieron cuando el editor pasó a
+     * dibujar la misma hoja debajo del cursor: dos sitios que tienen que estar
+     * de acuerdo no pueden tener cada uno su copia.
      */
-    private const ANCHO = '11.7';
-
-    private const ALTO = '8.27';
-
-    /** Arriba y abajo hay que dejar hueco para la cabecera y el pie, o no se pintan. */
-    private const MARGEN_SUPERIOR = '0.87';
-
-    private const MARGEN_INFERIOR = '0.71';
-
-    private const MARGEN_LATERAL = '0.71';
-
     public function __construct(
         private string $url,
         private int $timeout,
@@ -59,8 +48,13 @@ final readonly class GotenbergHttp implements ClienteGotenberg
     public function pdf(SolicitudPdf $solicitud): string
     {
         $peticion = Gotenberg::chromium($this->url)->pdf()
-            ->paperSize(self::ANCHO, self::ALTO)
-            ->margins(self::MARGEN_SUPERIOR, self::MARGEN_INFERIOR, self::MARGEN_LATERAL, self::MARGEN_LATERAL)
+            ->paperSize(GeometriaPagina::ANCHO, GeometriaPagina::ALTO)
+            ->margins(
+                GeometriaPagina::MARGEN_SUPERIOR,
+                GeometriaPagina::MARGEN_INFERIOR,
+                GeometriaPagina::MARGEN_LATERAL,
+                GeometriaPagina::MARGEN_LATERAL,
+            )
             ->printBackground()
 
             // Prerrequisito de PDF/UA y, de paso, lo que hace que un lector de

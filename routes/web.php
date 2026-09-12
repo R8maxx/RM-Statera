@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\ActivoController;
 use App\Http\Controllers\DocumentoController;
-use App\Http\Controllers\DocumentoTextoController;
+use App\Http\Controllers\DocumentoCuerpoController;
 use App\Http\Controllers\EvidenciaController;
 use App\Http\Controllers\ImplantacionController;
 use App\Http\Controllers\PanelController;
@@ -231,6 +231,15 @@ Route::middleware('auth')->group(function (): void {
             ->name('documentos.versiones.descargar');
 
         /*
+         * El mismo PDF, para mirarlo dentro de la aplicación en vez de bajarlo.
+         * Lo usa «Ver el PDF» del editor: la paginación real es lo único que la
+         * hoja del editor no puede enseñar.
+         */
+        Route::get('/documentos/{documento}/versiones/{version}/ver', [DocumentoController::class, 'ver'])
+            ->scopeBindings()
+            ->name('documentos.versiones.ver');
+
+        /*
          * El mismo documento en Word, como copia de trabajo. El entregable
          * archivable sigue siendo el PDF/A: esto no se almacena ni se versiona.
          */
@@ -257,20 +266,23 @@ Route::middleware('auth')->group(function (): void {
 
     /*
     |--------------------------------------------------------------------------
-    | Los textos de un documento
+    | El cuerpo del documento
     |--------------------------------------------------------------------------
     |
     | Redactar no es lo mismo que generar: el técnico que prepara el documento
     | escribe su introducción, y quien lo entrega es otro.
+    |
+    | Aquí había además `documentos.textos.*`, que editaba once huecos narrativos
+    | sueltos. Se retiró: desde que el documento entero es editable no quedaba
+    | ningún enlace a esa pantalla, pero seguía alcanzable por URL y escribía en
+    | una tabla que la generación ya no lee.
     */
 
     Route::middleware(['can:documentos.redactar', ExigirDosFactores::class])->group(function (): void {
-        Route::get('/documentos/{documento}/textos', [DocumentoTextoController::class, 'edit'])
-            ->name('documentos.textos.edit');
-        Route::put('/documentos/{documento}/textos', [DocumentoTextoController::class, 'update'])
-            ->name('documentos.textos.update');
-        Route::delete('/documentos/{documento}/textos/{seccion}', [DocumentoTextoController::class, 'restablecer'])
-            ->name('documentos.textos.restablecer');
+        Route::get('/documentos/{documento}/cuerpo', [DocumentoCuerpoController::class, 'edit'])
+            ->name('documentos.cuerpo.edit');
+        Route::put('/documentos/{documento}/cuerpo', [DocumentoCuerpoController::class, 'update'])
+            ->name('documentos.cuerpo.update');
     });
 
     /*

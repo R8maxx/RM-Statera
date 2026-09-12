@@ -351,64 +351,45 @@ tr.grupo th {
  * los encabezados bajados a h3/h4 para no competir con el `<h2>` de la sección
  * ni con el título de la portada.
  */
-.narrativa {
-    margin: 0 0 0.18in;
-    max-width: 7.2in; /* Una línea de 40 palabras no se lee; ésta ronda las 90 letras. */
-}
+/*
+ * Antes esto colgaba de `.narrativa`, el `<div>` con el que la plantilla Blade
+ * envolvía lo que redactaba la organización. Ese envoltorio desapareció cuando
+ * el documento entero pasó a ser editable: **ahora todo el cuerpo es narrativa**,
+ * y las reglas se cuelgan de la sección.
+ *
+ * Se conservan las tres que eran diseño y no maquetación de un `div`:
+ */
 
-.narrativa > :last-child { margin-bottom: 0; }
+/* Una línea de 40 palabras no se lee; ésta ronda las 90 letras. Importa sobre
+   todo en la DdA, que va apaisada: sin tope, un párrafo cruza los 10 pulgadas
+   de página entera. */
+.seccion p,
+.seccion ul,
+.seccion ol { max-width: 7.2in; }
 
-.narrativa p { margin: 0 0 0.55em; }
+/* El estado vacío es una caja centrada y ocupa lo que le den. */
+.seccion p.vacio { max-width: none; }
 
-.narrativa ul,
-.narrativa ol {
+.seccion ul,
+.seccion ol {
     margin: 0 0 0.6em;
     padding-left: 1.2em;
 }
 
-.narrativa li { margin-bottom: 0.25em; }
+.seccion li { margin-bottom: 0.25em; }
 
-.narrativa h3 {
-    font-size: 10pt;
-    margin: 0.9em 0 0.35em;
-}
-
-/*
- * El `h4` general del documento es versalita gris de etiqueta de ficha. Como
- * subtítulo de un texto redactado se leería como una etiqueta, no como un
- * encabezado, así que aquí se devuelve a lo que es.
- */
-.narrativa h4 {
-    font-size: 9pt;
-    color: var(--texto);
-    text-transform: none;
-    letter-spacing: 0;
-    margin: 0.8em 0 0.3em;
-}
+.seccion h3 { margin: 0.9em 0 0.35em; }
 
 /*
  * En papel, un enlace sin su URL no es un enlace: es texto subrayado. Se imprime
  * la dirección detrás, en gris y pequeña.
  */
-.narrativa a[href^="http"]::after {
+a[href^="http"]::after {
     content: " (" attr(href) ")";
     color: var(--texto-suave);
     font-size: 0.9em;
     word-break: break-all;
 }
-
-/*
- * Un código escrito por el usuario se ve igual que los del resto del documento.
- * El editor no ofrece el botón, pero quien escriba acentos graves a mano espera
- * esto y no un bloque de código de página web.
- */
-.narrativa code {
-    font-family: var(--fuente-cifra);
-    font-size: 0.94em;
-}
-
-/* Dentro del bloque de limitaciones hereda su fondo; no lleva el suyo. */
-.limitaciones.narrativa { margin-bottom: 0; }
 
 /* -------------------------------------------------------------------- Gráficas */
 

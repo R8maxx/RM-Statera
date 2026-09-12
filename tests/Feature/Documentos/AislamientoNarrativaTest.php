@@ -83,8 +83,8 @@ it('la pantalla de textos de un documento ajeno responde 404, no 403', function 
     ['usuario' => $usuario, 'ajeno' => $ajeno] = narrativaDeDosOrganizaciones();
 
     // Decir «existe pero no es tuyo» ya sería filtrar.
-    $this->actingAs($usuario)->get("/documentos/{$ajeno->id}/textos")->assertNotFound();
-    $this->actingAs($usuario)->put("/documentos/{$ajeno->id}/textos", [])->assertNotFound();
+    $this->actingAs($usuario)->get("/documentos/{$ajeno->id}/cuerpo")->assertNotFound();
+    $this->actingAs($usuario)->put("/documentos/{$ajeno->id}/cuerpo", [])->assertNotFound();
 });
 
 it('sin contexto no se ve ninguna fila: RLS deniega por defecto', function (): void {

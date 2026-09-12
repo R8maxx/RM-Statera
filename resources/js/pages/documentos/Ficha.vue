@@ -42,7 +42,7 @@ const props = defineProps<{
     };
     versionEnCurso: VersionEnCurso | null;
     versiones: Version[];
-    textos: { total: number; retocados: number; masNuevosQueElBorrador: boolean };
+    cuerpoMasNuevoQueElBorrador: boolean;
 }>();
 
 const generar = useForm({});
@@ -139,9 +139,9 @@ const kb = (bytes: number | null | undefined): string =>
         <CabeceraPagina :titulo="documento.titulo" :descripcion="documento.tipoEtiqueta">
             <template #acciones>
                 <Button as-child variant="outline">
-                    <Link :href="`/documentos/${documento.id}/textos`">
+                    <Link :href="`/documentos/${documento.id}/cuerpo`">
                         <TypeIcon class="size-4" />
-                        Editar textos
+                        Editar documento
                     </Link>
                 </Button>
                 <Button as-child variant="outline">
@@ -193,12 +193,12 @@ const kb = (bytes: number | null | undefined): string =>
                     </p>
 
                     <!--
-                        El PDF en disco es anterior a la última edición de textos.
-                        Sin decirlo, alguien edita, descarga, no ve su texto y
-                        concluye que el módulo no funciona.
+                        El PDF en disco es anterior a la última edición del
+                        documento. Sin decirlo, alguien edita, descarga, no ve su
+                        texto y concluye que el módulo no funciona.
                     -->
-                    <p v-if="textos.masNuevosQueElBorrador" class="text-sm text-estado-en-progreso">
-                        El borrador es anterior a la última edición de textos. Regenéralo para verlos.
+                    <p v-if="cuerpoMasNuevoQueElBorrador" class="text-sm text-estado-en-progreso">
+                        El borrador es anterior a la última edición del documento. Regenéralo para verla.
                     </p>
 
                     <div class="flex flex-wrap gap-2">
@@ -290,18 +290,6 @@ const kb = (bytes: number | null | undefined): string =>
                     <div>
                         <div class="text-muted-foreground">Responsable</div>
                         <div>{{ documento.responsable ?? 'Sin asignar' }}</div>
-                    </div>
-                    <div>
-                        <div class="text-muted-foreground">Textos</div>
-                        <div>
-                            {{ textos.retocados }} de {{ textos.total }} retocados
-                            <Link
-                                :href="`/documentos/${documento.id}/textos`"
-                                class="ms-1 text-primary underline-offset-4 hover:underline"
-                            >
-                                Editar
-                            </Link>
-                        </div>
                     </div>
                     <div v-if="documento.notas">
                         <div class="text-muted-foreground">Notas</div>

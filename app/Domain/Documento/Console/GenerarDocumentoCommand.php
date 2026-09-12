@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace App\Domain\Documento\Console;
 
 use App\Domain\Documento\Contenido\RegistroGeneradores;
+use App\Domain\Documento\Cuerpo\HtmlDocumento;
 use App\Domain\Documento\GenerarDocumento;
 use App\Domain\Documento\Models\Documento;
-use App\Domain\Documento\Render\GraficaSvg;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\View;
 
 /**
  * Genera un documento desde la consola.
@@ -33,7 +32,7 @@ final class GenerarDocumentoCommand extends Command
         ContextoOrganizacion $contexto,
         GenerarDocumento $generar,
         RegistroGeneradores $generadores,
-        GraficaSvg $graficas,
+        HtmlDocumento $html,
     ): int {
         /*
          * Un comando tampoco pasa por `EstablecerContextoOrganizacion`: sin
@@ -51,11 +50,11 @@ final class GenerarDocumentoCommand extends Command
             return self::FAILURE;
         }
 
-        return $contexto->paraOrganizacion($documento->organizacion_id, function () use ($documento, $generar, $generadores, $graficas): int {
+        return $contexto->paraOrganizacion($documento->organizacion_id, function () use ($documento, $generar, $generadores, $html): int {
             $documento->refresh();
 
             if ($this->option('html')) {
-                $this->volcarHtml($documento, $generar, $generadores, $graficas);
+                $this->volcarHtml($documento, $generar, $generadores, $html);
 
                 return self::SUCCESS;
             }
@@ -83,15 +82,12 @@ final class GenerarDocumentoCommand extends Command
         Documento $documento,
         GenerarDocumento $generar,
         RegistroGeneradores $generadores,
-        GraficaSvg $graficas,
+        HtmlDocumento $html,
     ): void {
         $version = $generar->encolar($documento);
 
         $contenido = $generadores->para($documento->tipo)->construir($documento, $version, []);
 
-        $this->output->writeln(View::make($documento->tipo->plantilla(), [
-            'contenido' => $contenido,
-            'barra' => $graficas->barraPorEstado($contenido->resumen['segmentos']),
-        ])->render());
+        $this->output->writeln($html($documento, $contenido));
     }
 }

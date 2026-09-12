@@ -7,7 +7,6 @@ namespace App\Http\Controllers;
 use App\Domain\Documento\Contenido\ContenidoDocumento;
 use App\Domain\Documento\EmitirVersion;
 use App\Domain\Documento\Enums\ClasificacionDocumental;
-use App\Domain\Documento\Enums\OrigenTexto;
 use App\Domain\Documento\Enums\TipoDocumento;
 use App\Domain\Documento\GenerarDocumento;
 use App\Domain\Documento\Models\Documento;
@@ -77,19 +76,13 @@ class DocumentoController extends Controller
 
         return Inertia::render('documentos/Ficha', [
             'documento' => $this->serializar($documento),
-            'textos' => [
-                'total' => $documento->secciones()->count(),
-                'retocados' => $documento->secciones()
-                    ->where('origen', OrigenTexto::Propio->value)
-                    ->count(),
-                /*
-                 * Si se editaron los textos DESPUÉS de generar el borrador, el
-                 * PDF que hay en disco es anterior y no los lleva. Sin este
-                 * aviso, alguien edita, descarga, no ve su texto y da el módulo
-                 * por roto.
-                 */
-                'masNuevosQueElBorrador' => $this->textosPosterioresAlBorrador($documento),
-            ],
+            /*
+             * Si el documento se editó DESPUÉS de generar el borrador, el PDF
+             * que hay en disco es anterior y no lleva esos cambios. Sin este
+             * aviso, alguien edita, descarga, no ve su texto y da el módulo por
+             * roto.
+             */
+            'cuerpoMasNuevoQueElBorrador' => $this->cuerpoPosteriorAlBorrador($documento),
             /*
              * Estos dos props son los que recarga el poll mientras el trabajo
              * está vivo, y van sueltos —no dentro de `documento`— porque una
@@ -173,7 +166,13 @@ class DocumentoController extends Controller
 
         Inertia::flash('exito', 'Generación encolada. El borrador aparecerá aquí en cuanto termine.');
 
-        return to_route('documentos.show', $documento);
+        /*
+         * Vuelve a donde se pidió, y no siempre a la ficha: generar se pide
+         * también desde el editor, con «Ver el PDF», y mandar allí a la ficha
+         * saca a alguien de un documento a medio redactar para enseñarle una
+         * pantalla que no ha pedido. Desde la ficha, `back()` es la ficha.
+         */
+        return back();
     }
 
     /**
@@ -238,21 +237,50 @@ class DocumentoController extends Controller
      */
     public function descargar(Documento $documento, DocumentoVersion $version): SymfonyRedirect
     {
+        return $this->haciaElFichero($version, 'attachment');
+    }
+
+    /**
+     * El mismo PDF, pero para mirarlo dentro de la aplicación.
+     *
+     * El editor pinta la hoja con la misma hoja de estilos que se imprime, pero
+     * la paginación, las viudas, la cabecera de tabla repetida y el pie con su
+     * número de página sólo los sabe Chromium. Esto es lo que se comprueba antes
+     * de emitir, y bajar el fichero para mirarlo y borrarlo es la fricción que
+     * hace que nadie lo compruebe.
+     *
+     * Todo lo demás —`scopeBindings()` en la ruta, la comprobación del fichero,
+     * la URL temporal— es lo mismo que la descarga: lo único que cambia es la
+     * disposición, para que el visor del navegador lo pinte en vez de bajarlo.
+     */
+    public function ver(Documento $documento, DocumentoVersion $version): SymfonyRedirect
+    {
+        return $this->haciaElFichero($version, 'inline');
+    }
+
+    private function haciaElFichero(DocumentoVersion $version, string $disposicion): SymfonyRedirect
+    {
         abort_unless($version->tieneFichero(), 404);
 
         return redirect()->away(
             Storage::disk((string) $version->disco)->temporaryUrl(
                 (string) $version->ruta,
                 now()->addMinutes(5),
-                ['ResponseContentDisposition' => 'attachment; filename="'.$version->nombre_fichero.'"'],
+                ['ResponseContentDisposition' => $disposicion.'; filename="'.$version->nombre_fichero.'"'],
             )
         );
     }
 
     /**
-     * Si hay textos tocados después de generar el borrador que hay en disco.
+     * Si el documento se ha editado después de generar el borrador que hay en disco.
+     *
+     * Miraba `documento_secciones`, y desde que el documento entero es editable
+     * **ahí no escribe nadie**: el aviso no volvía a saltar nunca. Alguien
+     * editaba, descargaba el borrador de antes, no veía su texto y daba el
+     * módulo por roto — que es exactamente lo que este aviso existe para evitar.
+     * Ahora mira el cuerpo, que es donde se escribe.
      */
-    private function textosPosterioresAlBorrador(Documento $documento): bool
+    private function cuerpoPosteriorAlBorrador(Documento $documento): bool
     {
         $borrador = $documento->borrador()->first();
 
@@ -260,9 +288,9 @@ class DocumentoController extends Controller
             return false;
         }
 
-        $ultimoTexto = $documento->secciones()->max('updated_at');
+        $cuerpo = $documento->cuerpo()->first();
 
-        return $ultimoTexto !== null && $ultimoTexto > $borrador->updated_at;
+        return $cuerpo?->updated_at !== null && $cuerpo->updated_at > $borrador->updated_at;
     }
 
     /**
