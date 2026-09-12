@@ -73,6 +73,7 @@ Por defecto un asistente genera aquí código obsoleto. Estos tres puntos son lo
 | Vista | Inertia 3 + Vue 3 + TypeScript |
 | Estilos / componentes | Tailwind CSS 4 + shadcn-vue (sobre Reka UI) |
 | Tablas | TanStack Table 9.2.4, versión exacta |
+| Arrastrar y soltar | `@atlaskit/pragmatic-drag-and-drop` 3.1.0, versión exacta. Sólo el tablero, y siempre con el menú detrás |
 | PDF | Gotenberg 8.9.1 en contenedor |
 | Colas | Redis + Horizon (`documentos`, `importadores`, `notificaciones`, `default`) |
 | Evidencias | S3 con versionado y Object Lock; disco `evidencias` |
@@ -676,6 +677,70 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
   pregunta cómo se prueba. Y de ahí sale el único camino que hoy produce tareas con origen trazable:
   `/tareas/crear?implantacion={id}`, que preselecciona el origen y **no lo deja cambiar** —preguntarlo
   invita a cambiarlo—.
+
+- **El plan de acción tiene tres pantallas y cada una es una ruta**: `/tareas`, `/tareas/tablero` y
+  `/tareas/calendario`. No son pestañas: el servidor manda datos distintos en cada una —el tablero
+  agrupa, el calendario acota por mes— y así se pueden enlazar y compartir. Precedente: `activos.etiquetas`.
+  El conmutador **no guarda nada en el navegador**: el estado es la URL, porque un conmutador que
+  recuerda la última vista hace que el enlace que alguien pega en un correo abra otra pantalla.
+
+- **El tablero tiene cuatro columnas y no cinco.** `descartada` no tiene columna porque descartar exige
+  motivo y eso no cabe en un gesto, y porque una columna de descartadas crece para siempre sin que nadie
+  la mire; se descarta desde el menú de la tarjeta, con su diálogo. En «Hecha» sólo entra lo cerrado en
+  los últimos catorce días: el tablero enseña el trabajo en curso, y una columna con las trescientas
+  cerradas desde enero deja de decir nada. Cada columna lleva tope y su cuenta real, con un «y N más»
+  que enlaza a la tabla — quinientas tarjetas en el DOM no son un tablero.
+
+- **Se arrastra con `@atlaskit/pragmatic-drag-and-drop`, y el menú de la tarjeta es el mecanismo
+  canónico.** La librería entró porque es agnóstica de framework —sólo APIs del DOM, y CLAUDE.md apuesta
+  a que la capa de presentación sea desechable— y porque se apoya en el arrastre nativo del navegador en
+  vez de reimplementarlo. Lo que **no** da, y ninguna da, es teclado ni táctil: DESIGN.md § 11 exige que
+  todo sea accionable por teclado, así que el menú se construye igual y ofrece exactamente los mismos
+  destinos. Va pinada a versión exacta, como TanStack Table: que una librería de interacción cambie de
+  comportamiento bajo los pies no lo caza ningún test.
+
+- **La columna prohibida se marca DURANTE el arrastre, leyendo `transiciones` de la tarjeta.** El
+  servidor las manda con cada tarjeta justamente para eso. Aceptar el soltado y fallar después se explica
+  mucho peor que no dejar soltar. El servidor lo vuelve a comprobar igual —`CambiarEstadoTarea` es quien
+  manda—: esto es para que el gesto no mienta, no para fiarse del navegador.
+
+- **El calendario enseña vencimientos, no tareas.** Una tarea que vence y una evidencia que caduca son la
+  misma pregunta para quien mira el mes, y § 4.16 —calendario de obligaciones— incluye literalmente la
+  caducidad de evidencias. Por eso `CalendarioVencimientos` vive en `app/Domain/Aviso/` y no en `Tarea/`:
+  es su primera pieza, y cuando lleguen la revisión por la dirección o la auditoría interna se cuelgan de
+  `Fuente` sin mudar nada. Es además **el único sitio donde se decide qué es un vencimiento**: el resumen
+  diario que sale por correo se apoya en él, porque si cada uno consultara por su cuenta acabarían
+  discrepando y el que se mira menos es el que se queda mal.
+
+- **La rejilla del mes se calcula en el servidor (`RejillaMes`), no en el navegador.** No es preferencia:
+  aquí hay con qué probarla —meses de 28, 30 y 31 días, bisiestos, meses que empiezan en domingo, cambios
+  de año— y en `resources/js` no hay runner de tests. La aritmética de fechas es justo donde un fallo se
+  ve tarde y mal. **Seis semanas siempre**, aunque el mes quepa en cinco: una rejilla que cambia de alto
+  al pasar de mes hace saltar la página bajo el cursor. Y **un mes que no se entiende es el de hoy**,
+  mismo criterio que los extremos de un rango de fechas: un 500 en una URL que alguien comparte es peor
+  que enseñar otro mes. No entró ninguna librería de fechas, ni el `Calendar` de Reka UI: ése es un
+  **selector**, no una rejilla de eventos.
+
+- **`IndicadorInventario` y `RepartoInventario` pasaron a `Indicador` y `Reparto`**, y la tira que los
+  pinta a `components/TiraIndicadores.vue`. La forma era genérica y el nombre mentía; duplicarlos por
+  módulo es el «cuatro dialectos distintos para el sexto» que la capa de recursos existe para evitar. El
+  indicador lleva `base` —`/activos`, `/tareas`— para que quien lo pinta no tenga que saber de qué tabla
+  salió.
+
+- **La tarjeta del plan en el panel no lleva anillo de progreso, a diferencia del inventario.** Allí el
+  denominador es estable —los activos vigentes— y el porcentaje mide cuánto está decidido. Aquí crece cada
+  vez que alguien apunta trabajo: «porcentaje de tareas hechas» baja al ser honesto y sube al cerrar cosas
+  pequeñas, así que mide actividad y no salud. **Un indicador que castiga por apuntar lo que falta enseña
+  a no apuntarlo.** Lo que abre la tarjeta es cuántas quedan abiertas, con su denominador.
+
+- **El plazo y el tono de prioridad viven en el dominio** (`Tarea\Plazo`, `PrioridadTarea::tono()`), no en
+  `TareaRecurso`. Los leen la tabla, el tablero y el calendario: con la regla escrita tres veces, la tabla
+  dice «Vencida» y el tablero «En plazo» el día que una cambie.
+
+- **El tablero y el calendario no tienen barra de filtros, y es deuda anotada.** `useTablaServidor` está
+  acoplado a `MetaTabla` y a la paginación, y `RespondeConRecurso` sólo emite `recurso`/`filas`/`meta`:
+  compartir la barra entera pide una refactorización que no cabía aquí. El tablero enseña lo abierto y el
+  calendario el mes.
 
 ## Fuera de alcance
 
