@@ -28,6 +28,28 @@ enum PrioridadTarea: string
         };
     }
 
+    /**
+     * El tono del dominio con el que se pinta, que no es un color.
+     *
+     * La prioridad es ordinal —baja < media < alta < crítica—, así que sube en
+     * énfasis en vez de cambiar de significado. Mismo criterio que la categoría
+     * del ENS en `CeldaBadge`: `alta` estaba en rojo y eso mentía, porque una
+     * prioridad alta no es un error.
+     *
+     * **Y sin rojo**: el rojo es del plazo. Si además la prioridad lo llevara,
+     * una tabla se pondría roja por dos motivos distintos y el plazo dejaría de
+     * saltar a la vista.
+     */
+    public function tono(): string
+    {
+        return match ($this) {
+            self::Baja => 'basica',
+            self::Media => 'exigible',
+            self::Alta => 'media',
+            self::Critica => 'alta',
+        };
+    }
+
     /** Para ordenar: lo que más corre, primero. */
     public function peso(): int
     {

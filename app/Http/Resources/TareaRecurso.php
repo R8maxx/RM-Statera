@@ -9,6 +9,7 @@ use App\Domain\Tarea\Enums\EstadoTarea;
 use App\Domain\Tarea\Enums\OrigenTarea;
 use App\Domain\Tarea\Enums\PrioridadTarea;
 use App\Domain\Tarea\Models\Tarea;
+use App\Domain\Tarea\Plazo;
 use App\Http\Resources\Definicion\Accion;
 use App\Http\Resources\Definicion\Columna;
 use App\Http\Resources\Definicion\Etiquetas;
@@ -19,7 +20,6 @@ use App\Http\Resources\Enums\MetodoAccion;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Carbon;
 
 /**
  * El plan de acción.
@@ -75,13 +75,17 @@ final class TareaRecurso extends Recurso
             Columna::badge('plazo', 'Plazo')
                 ->ordenable('fecha_limite')
                 ->ayuda('Una tarea sin fecha límite no es que no corra prisa: es que nadie ha dicho para cuándo.')
-                ->formato(fn (Tarea $tarea): ValorEtiquetado => $this->plazo($tarea)),
+                ->formato(function (Tarea $tarea): ValorEtiquetado {
+                    $plazo = Plazo::de($tarea);
+
+                    return new ValorEtiquetado($plazo->fecha, $plazo->etiqueta, $plazo->tono);
+                }),
             Columna::badge('prioridad', 'Prioridad')
                 ->ordenable()
                 ->formato(fn (Tarea $tarea): ValorEtiquetado => new ValorEtiquetado(
                     $tarea->prioridad->value,
                     $tarea->prioridad->etiqueta(),
-                    $this->tonoPrioridad($tarea->prioridad),
+                    $tarea->prioridad->tono(),
                 )),
             Columna::texto('responsable', 'Responsable')
                 ->ayuda('Una tarea sin responsable no la hace nadie: es la primera columna que se mira cuando algo lleva meses abierto.')
@@ -216,56 +220,5 @@ final class TareaRecurso extends Recurso
                 $modelo->estado->transicionesPermitidas(),
             ),
         ];
-    }
-
-    /**
-     * Cuatro situaciones, y «sin plazo» es una de ellas a propósito: no es lo
-     * mismo que ir sobrado, y colapsarlas escondería justo las que nadie ha
-     * fechado nunca.
-     */
-    private function plazo(Tarea $tarea): ValorEtiquetado
-    {
-        if ($tarea->estado->esCerrada()) {
-            return new ValorEtiquetado(
-                $tarea->fecha_cierre?->toDateString(),
-                'Cerrada',
-                'no_aplica',
-            );
-        }
-
-        if ($tarea->fecha_limite === null) {
-            return new ValorEtiquetado(null, 'Sin plazo', 'no_iniciado');
-        }
-
-        if ($tarea->haVencido()) {
-            return new ValorEtiquetado($tarea->fecha_limite->toDateString(), 'Vencida', 'caducada');
-        }
-
-        $dias = (int) Carbon::today()->diffInDays($tarea->fecha_limite, absolute: false);
-
-        return new ValorEtiquetado(
-            $tarea->fecha_limite->toDateString(),
-            match (true) {
-                $dias === 0 => 'Vence hoy',
-                $dias <= 7 => "Vence en {$dias} días",
-                default => 'En plazo',
-            },
-            $dias <= 7 ? 'en_progreso' : 'implantado',
-        );
-    }
-
-    /**
-     * La prioridad es ordinal, así que sube en énfasis en vez de cambiar de
-     * significado. Mismo criterio que la categoría del ENS en `CeldaBadge`: y sin
-     * rojo, que es del plazo.
-     */
-    private function tonoPrioridad(PrioridadTarea $prioridad): string
-    {
-        return match ($prioridad) {
-            PrioridadTarea::Baja => 'basica',
-            PrioridadTarea::Media => 'exigible',
-            PrioridadTarea::Alta => 'media',
-            PrioridadTarea::Critica => 'alta',
-        };
     }
 }

@@ -214,6 +214,17 @@ Route::middleware('auth')->group(function (): void {
     Route::middleware('can:tareas.ver')->group(function (): void {
         Route::get('/tareas', [TareaController::class, 'index'])->name('tareas.index');
 
+        /*
+         * Las otras dos presentaciones del mismo plan, cada una con su ruta.
+         *
+         * No son pestañas de `/tareas`: el servidor manda datos distintos en
+         * cada una —el tablero agrupa, el calendario acota por mes— y así se
+         * pueden enlazar y compartir. Mismo criterio que `activos.etiquetas`.
+         *
+         * Van antes que `{tarea}` para que no se lean como identificadores.
+         */
+        Route::get('/tareas/tablero', [TareaController::class, 'tablero'])->name('tareas.tablero');
+
         // Antes que `{tarea}`, para que `crear` no se lea como un id.
         Route::get('/tareas/crear', [TareaController::class, 'create'])
             ->middleware(['can:tareas.gestionar', ExigirDosFactores::class])

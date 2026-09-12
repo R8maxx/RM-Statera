@@ -152,26 +152,11 @@ final class ResumenPlanDeAccion
                 clave: $prioridad->value,
                 etiqueta: $prioridad->etiqueta(),
                 valor: $conteos[$prioridad->value] ?? 0,
-                tono: $this->tonoDePrioridad($prioridad),
+                tono: $prioridad->tono(),
                 filtro: "filter[prioridad]={$prioridad->value}",
             ),
             $prioridades,
         ));
-    }
-
-    /**
-     * La prioridad es ordinal, así que sube en énfasis en vez de cambiar de
-     * significado. Mismo criterio que la categoría del ENS, y sin rojo: el rojo
-     * es del plazo.
-     */
-    private function tonoDePrioridad(PrioridadTarea $prioridad): string
-    {
-        return match ($prioridad) {
-            PrioridadTarea::Baja => 'basica',
-            PrioridadTarea::Media => 'exigible',
-            PrioridadTarea::Alta => 'media',
-            PrioridadTarea::Critica => 'alta',
-        };
     }
 
     /**

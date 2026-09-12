@@ -2,6 +2,7 @@
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
 import DataTable, { type Fila } from '@/components/tabla/DataTable.vue';
+import ConmutadorVista from '@/components/tarea/ConmutadorVista.vue';
 import TiraIndicadores from '@/components/TiraIndicadores.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -80,10 +81,11 @@ function confirmar(): void {
 
 <template>
     <AppLayout :titulo="recurso.etiquetas.plural">
-        <CabeceraPagina
-            :titulo="recurso.etiquetas.plural"
-            :descripcion="recurso.etiquetas.descripcion"
-        />
+        <CabeceraPagina :titulo="recurso.etiquetas.plural" :descripcion="recurso.etiquetas.descripcion">
+            <template #acciones>
+                <ConmutadorVista />
+            </template>
+        </CabeceraPagina>
 
         <TiraIndicadores
             :alertas="alertas"
