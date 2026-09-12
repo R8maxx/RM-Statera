@@ -154,7 +154,7 @@ final class EvidenciaRecurso extends Recurso
     private function vigencia(Evidencia $evidencia): ValorEtiquetado
     {
         if ($evidencia->fecha_caducidad === null) {
-            return new ValorEtiquetado(null, 'Sin caducidad', 'no_iniciado');
+            return new ValorEtiquetado(null, 'Sin caducidad', 'no_iniciado', 'CircleHelp');
         }
 
         if ($evidencia->haCaducado()) {
@@ -162,6 +162,7 @@ final class EvidenciaRecurso extends Recurso
                 $evidencia->fecha_caducidad->toDateString(),
                 'Caducada',
                 'caducada',
+                'TriangleAlert',
             );
         }
 
@@ -171,6 +172,7 @@ final class EvidenciaRecurso extends Recurso
             $evidencia->fecha_caducidad->toDateString(),
             $dias <= 30 ? "Caduca en {$dias} días" : 'Vigente',
             $dias <= 30 ? 'en_progreso' : 'implantado',
+            $dias <= 30 ? 'Clock' : 'CircleCheck',
         );
     }
 }

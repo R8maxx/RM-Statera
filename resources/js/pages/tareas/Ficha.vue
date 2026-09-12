@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
 import EstadoVacio from '@/components/EstadoVacio.vue';
+import BotonEstado from '@/components/BotonEstado.vue';
 import CeldaBadge from '@/components/tabla/celdas/CeldaBadge.vue';
 import ListaComprobacion, { type Paso } from '@/components/tarea/ListaComprobacion.vue';
 import { Button } from '@/components/ui/button';
@@ -54,7 +55,7 @@ const props = defineProps<{
     };
     vinculos: Vinculo[];
     historico: Transicion[];
-    transiciones: { valor: string; etiqueta: string }[];
+    transiciones: { valor: string; etiqueta: string; tono: string; icono: string }[];
     subtareas: Paso[];
     maximoSubtareas: number;
     puedeGestionar: boolean;
@@ -246,17 +247,18 @@ function mover(estado: string): void {
                             />
                         </div>
 
+                        <!--
+                            Cada botón se parece al badge que vas a obtener al
+                            pulsarlo, para no tener que leerlos uno a uno.
+                        -->
                         <div class="flex flex-wrap gap-2">
-                            <Button
+                            <BotonEstado
                                 v-for="paso in transiciones"
                                 :key="paso.valor"
-                                variant="outline"
-                                size="sm"
-                                :disabled="enviando"
+                                :destino="paso"
+                                :deshabilitado="enviando"
                                 @click="mover(paso.valor)"
-                            >
-                                {{ paso.etiqueta }}
-                            </Button>
+                            />
                         </div>
 
                         <div v-if="exigeNota" class="space-y-2">

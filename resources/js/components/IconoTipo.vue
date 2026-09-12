@@ -2,48 +2,104 @@
 import {
     AppWindowIcon,
     ArchiveIcon,
+    ArrowRightLeftIcon,
+    BanIcon,
     Building2Icon,
+    CalendarClockIcon,
+    CheckIcon,
+    ChevronDownIcon,
+    ChevronUpIcon,
+    ChevronsUpIcon,
+    CircleIcon,
+    CircleCheckIcon,
+    CircleDotDashedIcon,
+    CircleHelpIcon,
+    CircleSlashIcon,
+    ClockIcon,
     DatabaseIcon,
+    EqualIcon,
+    FileCheckIcon,
     GlobeIcon,
+    HammerIcon,
     HardDriveIcon,
+    LayoutTemplateIcon,
     ListTodoIcon,
+    LoaderCircleIcon,
+    LockIcon,
+    MinusIcon,
     NetworkIcon,
+    PackageIcon,
     PaperclipIcon,
+    PenLineIcon,
     PlugIcon,
+    ShieldAlertIcon,
+    Trash2Icon,
+    TriangleAlertIcon,
     UsersIcon,
+    WrenchIcon,
+    XIcon,
 } from '@lucide/vue';
 import { computed, type Component } from 'vue';
 
 /**
- * El icono de un tipo, resuelto por nombre.
+ * El icono de un concepto del dominio, resuelto por nombre.
  *
- * Lo usan la tipología de activos y las fuentes de un vencimiento. El nombre lo
- * decide el servidor —el enum— y aquí sólo se resuelve.
+ * Lo usan los badges de estado, la tipología de activos, las fuentes de un
+ * vencimiento y los botones que llevan a un estado. **El nombre lo decide el
+ * dominio** —`EstadoTarea::icono()` y compañía—; aquí sólo se resuelve.
  *
- * Mapa explícito, como `IconoAccion`: importar `@lucide/vue` entero para
- * resolver el nombre en tiempo de ejecución arrastraría el paquete al bundle.
+ * Mapa explícito, y no un `import *`: importar `@lucide/vue` entero para
+ * resolver el nombre en ejecución arrastraría el paquete al bundle.
  *
- * Este icono **no es decoración**. Nueve tipos no caben en el hueco de tono que
- * dejan los estados manteniendo ΔE 6 entre ellos —la peor pareja queda en 5.2,
- * medido en DESIGN.md §3—, así que el color agrupa y el icono identifica.
- * Quitarlo deja la distinción por debajo del umbral.
+ * **Este icono no es decoración.** DESIGN.md §3 lo dice de los estados —«nunca
+ * comunicar un estado sólo con color: color + icono + texto»— y de los tipos de
+ * activo, donde la peor pareja queda en ΔE 5.2 y es el icono el que carga con la
+ * identidad. Los dos grises del dominio, `no_iniciado` y `no_aplica`, están a
+ * ΔE 2.3 con protanopía: sin icono, son el mismo badge.
+ *
+ * Resuelve a nada si el nombre no está en el mapa, que es un fallo silencioso.
+ * Lo cierra `tests/Unit/Diseno/IconosTest.php`, que comprueba que todo nombre
+ * que el servidor puede emitir está aquí — y que aquí no sobra ninguno.
  */
 const iconos: Record<string, Component> = {
     AppWindow: AppWindowIcon,
     Archive: ArchiveIcon,
+    ArrowRightLeft: ArrowRightLeftIcon,
+    Ban: BanIcon,
     Building2: Building2Icon,
+    CalendarClock: CalendarClockIcon,
+    Check: CheckIcon,
+    ChevronDown: ChevronDownIcon,
+    ChevronUp: ChevronUpIcon,
+    ChevronsUp: ChevronsUpIcon,
+    Circle: CircleIcon,
+    CircleCheck: CircleCheckIcon,
+    CircleDotDashed: CircleDotDashedIcon,
+    CircleHelp: CircleHelpIcon,
+    CircleSlash: CircleSlashIcon,
+    Clock: ClockIcon,
     Database: DatabaseIcon,
+    Equal: EqualIcon,
+    FileCheck: FileCheckIcon,
     Globe: GlobeIcon,
+    Hammer: HammerIcon,
     HardDrive: HardDriveIcon,
-    Network: NetworkIcon,
-    Plug: PlugIcon,
-    Users: UsersIcon,
-
-    // Las fuentes de un vencimiento en el calendario: ahí el icono hace el mismo
-    // trabajo que aquí —distinguir de qué es cada cosa cuando el color agrupa—,
-    // y § 4.16 irá añadiendo las suyas.
+    LayoutTemplate: LayoutTemplateIcon,
     ListTodo: ListTodoIcon,
+    LoaderCircle: LoaderCircleIcon,
+    Lock: LockIcon,
+    Minus: MinusIcon,
+    Network: NetworkIcon,
+    Package: PackageIcon,
     Paperclip: PaperclipIcon,
+    PenLine: PenLineIcon,
+    Plug: PlugIcon,
+    ShieldAlert: ShieldAlertIcon,
+    Trash2: Trash2Icon,
+    TriangleAlert: TriangleAlertIcon,
+    Users: UsersIcon,
+    Wrench: WrenchIcon,
+    X: XIcon,
 };
 
 const props = withDefaults(defineProps<{ nombre?: string | null; clase?: string }>(), {

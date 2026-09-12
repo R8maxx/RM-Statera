@@ -217,15 +217,27 @@
      * módulo. Estos hues son semántica, no decoración: no se retocan al cambiar
      * el color de marca.
      */
-    --estado-no-iniciado: oklch(0.62 0.015 255);
+    /*
+     * Tres de estos cinco estaban por debajo del 4.5:1 que pide DESIGN.md §11
+     * —3.14, 3.32 y 3.47 sobre su propio fondo suave— y era deuda anotada. Se
+     * bajó la luminosidad del tono de TEXTO, sin tocar el hue ni el croma, que
+     * es como el documento decía que había que arreglarlo.
+     *
+     * De propina, bajar el ámbar separó `implantado` de `en_progreso` bajo
+     * protanopía: ΔE 5.9 antes, 7.6 ahora, por encima del suelo de 6. Lo mide
+     * `tests/Unit/Diseno/PaletaTest.php`, que es el validador que DESIGN.md
+     * citaba y no existía: si se retoca un `--estado-*`, el test lo vuelve a
+     * medir y falla si se cae.
+     */
+    --estado-no-iniciado: oklch(0.525 0.015 255);
     --estado-no-iniciado-suave: oklch(0.95 0.006 255);
     --estado-planificado: oklch(0.52 0.13 245);
     --estado-planificado-suave: oklch(0.95 0.03 245);
-    --estado-en-progreso: oklch(0.62 0.14 70);
+    --estado-en-progreso: oklch(0.535 0.14 70);
     --estado-en-progreso-suave: oklch(0.96 0.04 80);
     --estado-implantado: oklch(0.52 0.13 155);
     --estado-implantado-suave: oklch(0.95 0.04 155);
-    --estado-no-aplica: oklch(0.6 0.01 285);
+    --estado-no-aplica: oklch(0.53 0.01 285);
     --estado-no-aplica-suave: oklch(0.955 0.004 285);
 
     /*

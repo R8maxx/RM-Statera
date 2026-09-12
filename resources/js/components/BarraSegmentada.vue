@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Cifra from '@/components/Cifra.vue';
+import { tono } from '@/lib/tonos';
 import { computed } from 'vue';
 
 /**
@@ -41,48 +42,14 @@ const props = withDefaults(
 );
 
 /*
- * Los colores son los del dominio, declarados en `app.css`.
+ * Los colores son los del dominio y viven en `lib/tonos.ts`, una sola vez para
+ * todo el producto. Se usa `tramo` y no `relleno`: en una barra, los dos grises
+ * van más apagados a propósito —son el hueco que queda por llenar y a plena
+ * saturación pesan tanto como lo que sí se ha hecho—.
  *
- * Escritos enteros y no compuestos (`bg-${clave}`) porque Tailwind analiza el
- * fichero como texto: una clase construida en ejecución no se genera y el tramo
- * sale sin fondo.
+ * Los tramos a cero no se pintan: un tramo invisible sigue ocupando su hueco de
+ * separación y deja la barra con agujeros.
  */
-const fondos: Record<string, string> = {
-    implantado: 'bg-estado-implantado',
-    en_progreso: 'bg-estado-en-progreso',
-    planificado: 'bg-estado-planificado',
-    no_iniciado: 'bg-estado-no-iniciado/45',
-    no_aplica: 'bg-estado-no-aplica/35',
-
-    /*
-     * `caducada` es el tono con el que el dominio nombra lo que va mal: una
-     * evidencia sin vigencia, un control que dice «no». Los otros tres valores
-     * de un control ya están arriba —«sí» es `implantado`, «por confirmar» es
-     * `en_progreso` y «no aplica» es gris—, porque lo que llega del servidor es
-     * el TONO, no la clave del valor.
-     */
-    caducada: 'bg-destructive',
-
-    /* Tipología de activos, con el prefijo que la separa de los estados. */
-    'tipo:servicios': 'bg-tipo-servicios',
-    'tipo:datos': 'bg-tipo-datos',
-    'tipo:software': 'bg-tipo-software',
-    'tipo:hardware': 'bg-tipo-hardware',
-    'tipo:comunicaciones': 'bg-tipo-comunicaciones',
-    'tipo:soportes': 'bg-tipo-soportes',
-    'tipo:equipamiento_auxiliar': 'bg-tipo-equipamiento-auxiliar',
-    'tipo:instalaciones': 'bg-tipo-instalaciones',
-    'tipo:personal': 'bg-tipo-personal',
-
-    /* Ciclo de vida del activo, sobre los mismos tokens de estado. */
-    en_produccion: 'bg-estado-implantado',
-    en_mantenimiento: 'bg-estado-en-progreso',
-    en_reparacion: 'bg-estado-en-progreso',
-    prestado: 'bg-estado-planificado',
-    retirado: 'bg-estado-no-aplica/60',
-    dado_de_baja: 'bg-estado-no-aplica/35',
-};
-
 const total = computed(() => props.segmentos.reduce((suma, segmento) => suma + segmento.valor, 0));
 
 const visibles = computed(() =>
@@ -91,7 +58,7 @@ const visibles = computed(() =>
         .map((segmento) => ({
             ...segmento,
             porcentaje: total.value === 0 ? 0 : (segmento.valor / total.value) * 100,
-            fondo: fondos[segmento.tono ?? segmento.clave] ?? 'bg-muted-foreground/40',
+            fondo: tono(segmento.tono ?? segmento.clave).tramo,
         })),
 );
 

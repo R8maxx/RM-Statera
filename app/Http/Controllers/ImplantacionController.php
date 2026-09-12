@@ -103,6 +103,12 @@ class ImplantacionController extends Controller
                 'dimension' => $implantacion->dimension_moduladora?->nombre(),
                 'excluibleAMano' => $aplicabilidad->esExcluibleAMano($implantacion),
             ],
+            /*
+             * Aquí el cambio de estado es un formulario —desplegable, nota y
+             * enviar— y no cuatro botones como en una tarea, así que las
+             * opciones van con lo que un `Opcion` lleva y nada más. El badge del
+             * estado actual sí gana su icono, por el respaldo de `lib/tonos.ts`.
+             */
             'transicionesPermitidas' => array_map(
                 static fn (EstadoImplantacion $estado): array => [
                     'valor' => $estado->value,

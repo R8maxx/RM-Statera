@@ -32,6 +32,19 @@ enum EstadoGeneracion: string
         };
     }
 
+    /**
+     * El icono con el que se reconoce sin leer la etiqueta.
+     */
+    public function icono(): string
+    {
+        return match ($this) {
+            self::Encolada => 'Clock',
+            self::Generando => 'LoaderCircle',
+            self::Generada => 'FileCheck',
+            self::Fallida => 'TriangleAlert',
+        };
+    }
+
     public function tono(): string
     {
         return match ($this) {

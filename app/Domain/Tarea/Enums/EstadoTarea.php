@@ -67,6 +67,26 @@ enum EstadoTarea: string
     }
 
     /**
+     * El icono con el que se reconoce sin leer la etiqueta.
+     *
+     * El nombre es de `@lucide/vue` y lo resuelve `IconoTipo` en el cliente. Va
+     * en el enum y no en el mapa de tonos porque el tono se comparte: el azul de
+     * `planificado` es «Planificado» en una implantación y «Bloqueada» en una
+     * tarea, y un icono por tono mentiría en una de las dos.
+     */
+    public function icono(): string
+    {
+        return match ($this) {
+            self::Pendiente => 'Circle',
+            self::EnCurso => 'CircleDotDashed',
+            // Parada por algo que no depende de quien la tiene.
+            self::Bloqueada => 'Ban',
+            self::Hecha => 'CircleCheck',
+            self::Descartada => 'CircleSlash',
+        };
+    }
+
+    /**
      * El tono del dominio con el que se pinta, que no es un color.
      *
      * Se reutiliza el vocabulario de `--estado-*` que ya existe: una tarea en

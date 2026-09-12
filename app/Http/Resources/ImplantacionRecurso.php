@@ -85,7 +85,8 @@ final class ImplantacionRecurso extends Recurso
                 ->formato(fn (Implantacion $fila): ValorEtiquetado => new ValorEtiquetado(
                     $fila->estado->value,
                     $fila->estado->etiqueta(),
-                    $fila->estado->value,
+                    $fila->estado->tono(),
+                    $fila->estado->icono(),
                 )),
             Columna::booleano('aplica', 'Aplica')->ordenable(),
             Columna::badge('exigencia', 'Exigencia')

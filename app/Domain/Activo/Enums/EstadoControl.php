@@ -35,6 +35,23 @@ enum EstadoControl: string
         };
     }
 
+    /**
+     * El icono con el que se reconoce sin leer la etiqueta.
+     *
+     * «Por confirmar» lleva interrogación y no un aviso: es una pregunta
+     * abierta, no un incumplimiento. Es la distinción que justifica que este
+     * enum tenga cuatro casos y no tres.
+     */
+    public function icono(): string
+    {
+        return match ($this) {
+            self::Si => 'Check',
+            self::No => 'X',
+            self::PorConfirmar => 'CircleHelp',
+            self::NoAplica => 'Minus',
+        };
+    }
+
     /** El tono del badge. Sólo `No` es rojo: lo demás no va mal, falta saberlo. */
     public function tono(): string
     {

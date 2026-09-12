@@ -135,22 +135,50 @@ Los estados del dominio. Se declaran una vez en `app.css` como `--estado-*` con 
 |---|---|---|---|---|
 | `estado-implantado` | `#007E46` | `#DAF7E3` | 4.53 | Implantado · Conforme |
 | `estado-planificado` | `#036EAE` | `#DFF1FF` | 4.73 | Planificado |
-| `estado-en-progreso` | `#BB7400` | `#FFF0D4` | 3.32 ⚠ | En progreso |
-| `estado-no-iniciado` | `#80878F` | `#ECEFF2` | 3.14 ⚠ | No iniciado |
-| `estado-no-aplica` | `#7F7F86` | `#F0F0F3` | 3.47 ⚠ | No aplica |
+| `estado-en-progreso` | `#9F5B00` | `#FFF0D4` | **4.70** | En progreso |
+| `estado-no-iniciado` | `#656B73` | `#ECEFF2` | **4.66** | No iniciado |
+| `estado-no-aplica` | `#6B6B72` | `#F0F0F3` | **4.64** | No aplica |
 | `estado-en-revision` | `#7B45C4` | `#F7F2FF` | 5.50 | En revisión *(declarado, sin flujo todavía)* |
 
-⚠ **Deuda conocida:** tres estados quedan por debajo del 4.5:1 que pide §11 para texto normal. El hue de cada uno es correcto y no se toca; lo que hay que bajar es la luminosidad del tono de texto. Pendiente.
+**Deuda saldada.** Tres de estos tonos —`en-progreso`, `no-iniciado` y `no-aplica`— estaban en 3.32, 3.14 y 3.47, por debajo del 4.5:1 que pide §11 para texto normal. Se bajó la luminosidad del tono de texto sin tocar el hue ni el croma, que es como este documento decía que había que arreglarlo. El disparador fue el botón de transición: en cuanto un tono de estado pinta la etiqueta de un control, deja de ser un matiz y pasa a ser texto que hay que poder leer.
 
-⚠ **Y una segunda, medida:** `estado-implantado` y `estado-en-progreso` **no se distinguen entre sí con protanopia** — ΔE 5.7 en OKLab, por debajo del suelo de 6. El verde y el ámbar son vocabulario del dominio y no se cambian, así que la separación se resuelve en el uso, no en la paleta:
+**Y con ello, la segunda deuda.** `estado-implantado` y `estado-en-progreso` no se distinguían con protanopia — ΔE 5.7, por debajo del suelo de 6. Bajar el ámbar los separa hasta **7.6**. Aun así, las tres reglas de uso siguen en pie, porque el margen es estrecho y porque el color nunca puede cargar solo con la identidad:
 
-- En una barra por tramos, el azul de `planificado` va **entre** los dos. Con ese orden la peor pareja contigua sube a ΔE 14.0. Lo fija `ResumenCumplimiento::porEstado()` en el servidor, con el motivo escrito, para que el panel y el informe usen el mismo.
+- En una barra por tramos, el azul de `planificado` va **entre** los dos. Lo fija `ResumenCumplimiento::porEstado()` en el servidor, con el motivo escrito, para que el panel y el informe usen el mismo.
 - Tramos separados por 2 px de superficie y con los extremos redondeados: pegados se leen como una mancha.
-- Leyenda siempre que haya dos tramos o más, y badge con punto + texto en la tabla. La identidad nunca depende sólo del color.
+- Leyenda siempre que haya dos tramos o más, e **icono + texto** en el badge.
 
-Las cifras salen de ejecutar el validador de paletas sobre los hex de esta tabla, no de estimarlas. Si se retoca un `--estado-*`, se vuelve a medir.
+**Lo que sigue sin llegar al suelo es la pareja de grises**, `no-iniciado` y `no-aplica`: ΔE 2.3 con protanopia. Es a propósito —no son grados de lo mismo y no compiten por un hueco de color— y los separan el icono y la palabra.
+
+Las cifras salen de ejecutar el validador de paletas sobre los tokens de `app.css`, no de estimarlas. **El validador es `tests/Unit/Diseno/PaletaTest.php`**: lee el CSS que de verdad pinta, mide contraste y distancia con protanopia, y falla si alguien retoca un `--estado-*` y se lleva por delante cualquiera de las dos. Antes esta frase era una promesa sin nada detrás.
 
 Nunca comunicar un estado sólo con color: color + icono + texto. Aquí un badge mal leído es un hallazgo de auditoría que nadie vio.
+
+### Cómo se orienta a alguien
+
+Un estado se comunica por **tres canales a la vez**, y ninguno de los tres es opcional:
+
+| Canal | Qué hace | Por sí solo |
+|---|---|---|
+| **Color** | Agrupa. Dice de qué familia es esto. | No basta: hay quien no distingue este verde de este ámbar, y hay pantallas mal calibradas y modo oscuro. |
+| **Icono** | Identifica. Dice qué es exactamente. | No basta: dos iconos parecidos a 14 px se confunden. |
+| **Texto** | Manda. Es lo único que no depende de ver bien, de la resolución ni del tema. | Basta, pero obliga a leer — y una tabla de noventa filas no se lee, se recorre. |
+
+Juntos, el estado se reconoce sin leerlo y se comprueba leyéndolo. Es la diferencia entre una tabla que se recorre y una que se descifra.
+
+**Las cuatro consecuencias:**
+
+1. **Un badge de estado lleva los tres.** El icono lo declara el dominio —`EstadoTarea::icono()`, `EstadoCicloVida::icono()`— y no el CSS, porque el mismo tono significa cosas distintas en módulos distintos: el azul de `planificado` es «Planificado» en una implantación y «Bloqueada» en una tarea. El punto de color queda como respaldo para lo que llegue sin icono, que es lo que siempre fue.
+
+2. **El rojo es de lo que ya va mal, y de nada más.** Una tarea vencida, una evidencia caducada, un control que dice «no». Ni prioridad crítica, ni categoría alta, ni «bloqueada»: si el rojo sale por tres motivos, deja de avisar de ninguno.
+
+3. **Un control que lleva a un estado se pinta como ese estado.** El botón «Hecha» se parece al badge «Hecha»: pulsa el que se parece al que quieres. A intensidad de badge —fondo suave y texto del tono, como el botón destructivo— y **nunca de relleno**, porque un solo primario por vista y dos botones de color lleno hacen que no mande ninguno.
+
+4. **Un solo juego de iconos: `@lucide/vue`.** Ni emojis ni una segunda librería. Un emoji se dibuja distinto en cada sistema operativo, no hereda el color del estado ni el tema oscuro, el lector de pantalla lo anuncia antes que la etiqueta y se cuela en el PDF que se le entrega al auditor. Lo que un emoji promete —que se reconozca sin leer— lo da un icono de línea sin romper nada de lo anterior.
+
+El vocabulario de tono → clases vive en `resources/js/lib/tonos.ts`, **una sola vez**, y de ahí leen el badge, la barra por tramos, la gráfica, el chip del calendario, la cabecera del tablero y el botón de transición. Cuando estaba copiado en cinco sitios, el mismo estado se pintaba distinto según la pantalla.
+
+---
 
 ### Tipología — activos
 
@@ -264,7 +292,7 @@ Bordes: 1 px en `--border`. El borde es el separador principal; la sombra se res
 
 `@lucide/vue`. Trazo lineal, extremos redondeados, retícula de 24. Tamaños: 16 px en línea de texto y en botones, 20 px en menús, 24 px en navegación, 40 px en estados vacíos.
 
-Color por defecto en interfaz: `muted-foreground`. `text-primary` cuando es marca o acción activa; el token de estado correspondiente cuando acompaña un estado. Un solo estilo de icono por pantalla, y un solo grosor de trazo en toda la aplicación.
+Color por defecto en interfaz: `muted-foreground`. `text-primary` cuando es marca o acción activa; el token de estado correspondiente cuando acompaña un estado. Un solo estilo de icono por pantalla, y un solo grosor de trazo en toda la aplicación: **ni emojis ni una segunda librería** (§3). El nombre del icono de un estado lo decide el dominio y lo resuelve `IconoTipo.vue`, con un mapa explícito para no arrastrar el paquete entero al bundle.
 
 Iconos fijos de los cinco pilares, y no se cambian una vez publicados:
 
@@ -345,7 +373,7 @@ Un solo primario por vista. El texto nombra la acción concreta: «Guardar cambi
 - **Filtros, orden y página viven en la URL** y se resuelven en el servidor; lo que se aplicó de verdad vuelve en `MetaTabla`, no lo que se pidió.
 - La exportación a CSV es de **la página visible con sus columnas visibles**, y el botón lo dice. Los documentos archivables del SGSI no salen de aquí: se generan con Gotenberg y se almacenan firmados.
 
-**Badges de estado.** `rounded-full`, alto 20 px, 12/500, fondo suave del semántico y texto en su versión oscura, con punto o icono delante. Vocabulario cerrado y usado igual en todo el producto: *Implantado · En progreso · Planificado · No iniciado · No aplica*, y *En revisión* cuando llegue ese flujo.
+**Badges de estado.** `rounded-full`, alto 20 px, 12/500, fondo suave del semántico y texto en su versión oscura, **con su icono delante** —el punto sólo cuando el tono llega sin icono; §3 «Cómo se orienta a alguien» manda sobre esta línea—. Vocabulario cerrado y usado igual en todo el producto: *Implantado · En progreso · Planificado · No iniciado · No aplica*, y *En revisión* cuando llegue ese flujo.
 
 **Qué se pinta con color y qué no.** El color de una celda dice algo o no se pone. El criterio, columna a columna:
 
@@ -398,7 +426,7 @@ El listón para que algo se anime es que comunique jerarquía, narrativa, feedba
 
 Una web de ISO 27001 y ENS que falla accesibilidad se contradice a sí misma, y en contratación pública el EN 301 549 no es opcional.
 
-- Texto normal ≥ 4.5:1, texto grande y componentes ≥ 3:1. Sobre blanco, `marca-600` da 4.87 y `violeta-600` 6.03; `marca-400` (2.45) y `violeta-400` (3.02) son decorativos sobre claro y no valen como texto. Las cifras salen de convertir los `oklch` de `app.css` a sRGB, no de estimarlas: cada retoque de la paleta obliga a recalcularlas.
+- Texto normal ≥ 4.5:1, texto grande y componentes ≥ 3:1. **Lo comprueba `tests/Unit/Diseno/PaletaTest.php` sobre los tokens de `app.css`**, no la buena voluntad. Sobre blanco, `marca-600` da 4.87 y `violeta-600` 6.03; `marca-400` (2.45) y `violeta-400` (3.02) son decorativos sobre claro y no valen como texto. Las cifras salen de convertir los `oklch` de `app.css` a sRGB, no de estimarlas: cada retoque de la paleta obliga a recalcularlas.
 - Foco siempre visible: `outline-ring outline-2 outline-offset-2`, en el teal de marca. El anillo **no** es violeta, y no se elimina el outline sin sustituto.
 - Objetivos táctiles de 44 × 44 px mínimo en móvil.
 - Todo accionable por teclado, en orden lógico. Los modales atrapan el foco y lo devuelven al cerrar.
@@ -488,7 +516,7 @@ Frases cortas, verbos activos, tono profesional sin rigidez. Se habla de lo que 
 - [ ] ¿El violeta se queda en torno al 10 % de la superficie?
 - [ ] ¿Todo se alinea a la retícula de 4 px?
 - [ ] ¿Los contrastes cumplen 4.5:1 en texto?
-- [ ] ¿Se entiende cada estado sin ver el color?
+- [ ] ¿Se entiende cada estado sin ver el color? ¿Lleva su icono, y no sólo un punto?
 - [ ] ¿Se distingue un campo obligatorio de uno que ha fallado?
 - [ ] ¿El foco es visible recorriendo la pantalla con el tabulador?
 - [ ] ¿Lo que se mueve se para con `prefers-reduced-motion: reduce`?

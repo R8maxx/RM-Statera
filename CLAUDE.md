@@ -285,7 +285,7 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
 
 - **`DESIGN.md` se corrigió al código, no al revés.** El documento venía describiendo otra marca: un símbolo en cinta con degradado teal→violeta, teal en hue 212, neutros `ink-*` y Montserrat. Nada de eso estaba implementado y las tres decisiones del código tenían motivo escrito, así que ganaron ellas: **la balanza** (§2), **hue 196** (§3) e **Instrument Sans** (§4). Lo único que se tomó del documento tal cual fue el violeta de acento. Los hex y los contrastes de §3 son conversión calculada de los `oklch` de `app.css`: si se retoca la paleta, se recalculan, no se estiman.
 
-- **El color de marca es teal petróleo, hue 196** (`oklch(0.52 0.10 196)` en claro, `oklch(0.78 0.11 196)` en oscuro). No es preferencia estética: la paleta de estados del dominio ocupa 245 (`planificado`), 155 (`implantado`), 70 (`en_progreso`) y 27 (`destructive`), y el teal es el hue libre más alejado de todos ellos. Un botón primario en verde o en ámbar se confundiría con un badge de estado. Los tokens `--estado-*` son semántica del dominio y **no se retocan** al cambiar la marca.
+- **El color de marca es teal petróleo, hue 196** (`oklch(0.52 0.13 196)` en claro, `oklch(0.8 0.12 196)` en oscuro; los valores de `app.css`, que es quien manda). No es preferencia estética: la paleta de estados del dominio ocupa 245 (`planificado`), 155 (`implantado`), 70 (`en_progreso`) y 27 (`destructive`), y el teal es el hue libre más alejado de todos ellos. Un botón primario en verde o en ámbar se confundiría con un badge de estado. Los tokens `--estado-*` son semántica del dominio y **no se retocan** al cambiar la marca.
 
 - **`--acento` (violeta de marca) y `--accent` (superficie de hover de shadcn) son cosas distintas y tienen nombres distintos a propósito.** `--accent` es el teal pálido que pintan el ítem activo del sidebar, el menú, el desplegable y el select; unificarlo con el acento de marca los rompe todos a la vez. El violeta vive en `--acento`, `--acento-suave`, `--acento-borde` y la escala `--violeta-*`.
 
@@ -795,6 +795,50 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
 
 - **Marcar todos los pasos no cierra la tarea.** Cerrarla es una decisión con su transición, su fecha y
   su autor; deducirla de una casilla dejaría el histórico contando algo que nadie decidió.
+
+- **Un estado se comunica con tres canales: color, icono y texto.** Lo pedía `DESIGN.md` § 3 desde el
+  principio —«nunca comunicar un estado sólo con color»— y los badges se conformaban con un punto, que
+  no identifica nada: es el mismo círculo para «Implantado» que para «Bloqueada». Ahora **el icono lo
+  declara el dominio** (`EstadoTarea::icono()` y once enums más) y no el mapa de CSS, porque el mismo
+  tono significa cosas distintas según el módulo: el azul de `planificado` es «Planificado» en una
+  implantación y «Bloqueada» en una tarea, y un icono por tono mentiría en una de las dos.
+
+  `IconoTipo` **no pinta nada si el nombre no está en su mapa** —falla en silencio—, así que
+  `tests/Unit/Diseno/IconosTest.php` comprueba que todo nombre que el servidor puede emitir está en el
+  cliente, que no sobra ninguno, y que dos estados del mismo tono no comparten icono.
+
+- **Ni emojis ni una segunda librería de iconos.** Se valoró y se descartó: un emoji se dibuja distinto
+  en cada sistema operativo, no hereda el color del estado ni el tema oscuro, el lector de pantalla lo
+  anuncia antes que la etiqueta y acaba en el PDF que se le entrega al auditor. § 7 ya pedía «un solo
+  estilo de icono y un solo grosor de trazo en toda la aplicación». Lo que un emoji promete —que se
+  reconozca sin leer— lo da un icono de línea sin romper nada.
+
+- **`lib/tonos.ts` es el único mapa de tono → clases.** Estaba copiado en cinco sitios —`CeldaBadge`,
+  `ColumnaTablero`, `Calendario`, `BarraSegmentada` y `GraficaBarras`— y cinco copias del mismo
+  vocabulario es cómo se acaba con un «implantado» verde en una pantalla y gris en otra. Lleva `badge`,
+  `punto`, `relleno`, `tramo` e `icono` de respaldo. **`tramo` no es `relleno`**: en una barra por
+  tramos los dos grises van más apagados a propósito, porque son el hueco que queda por llenar y a plena
+  saturación pesan tanto como lo que sí se ha hecho.
+
+- **Los botones de transición se pintan como el estado al que llevan** (`BotonEstado.vue`). Pulsa el que
+  se parece al que quieres. A intensidad de badge —fondo suave y texto del tono, como ya hace la variante
+  `destructive`— y **nunca de relleno**: un solo primario por vista, y dos botones de color lleno hacen
+  que no mande ninguno. En implantaciones el cambio de estado es un formulario con desplegable y nota,
+  no cuatro botones, así que ahí se queda como está.
+
+- **La deuda de contraste de los estados está saldada, y con ella la de protanopía.**
+  `en-progreso`, `no-iniciado` y `no-aplica` daban 3.32, 3.14 y 3.47 sobre su fondo suave, por debajo
+  del 4.5:1 que pide § 11. El disparador fue el botón de transición: en cuanto un tono pinta la etiqueta
+  de un control, deja de ser un matiz y pasa a ser texto que hay que poder leer. Se bajó la luminosidad
+  del tono de texto sin tocar hue ni croma, que es como `DESIGN.md` decía que había que arreglarlo, y de
+  paso `implantado` y `en_progreso` pasaron de ΔE 5.9 a 7.6 con protanopía.
+
+  **Y el «validador de paletas» que `DESIGN.md` citaba no existía**: las cifras estaban escritas y no
+  había forma de comprobarlas. Ahora es `tests/Unit/Diseno/PaletaTest.php`, que lee los `oklch` de
+  `app.css` —no una copia—, los convierte a sRGB, mide contraste y distancia con simulación de
+  protanopía (Viénot 1999), y **reproduce las cifras que el documento tenía anotadas**. Vive en `tests/`
+  y no en `app/` porque el producto no lo ejecuta nunca. La pareja de grises `no-iniciado`/`no-aplica`
+  sigue a ΔE 2.3 a propósito y está declarada como separada por el icono.
 
 ## Fuera de alcance
 

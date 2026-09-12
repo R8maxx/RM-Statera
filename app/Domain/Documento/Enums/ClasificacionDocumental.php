@@ -33,6 +33,19 @@ enum ClasificacionDocumental: string
         };
     }
 
+    /**
+     * El icono con el que se reconoce sin leer la etiqueta. El mismo que la
+     * clasificación de un activo: es la misma idea sobre otra cosa.
+     */
+    public function icono(): string
+    {
+        return match ($this) {
+            self::Publico => 'Globe',
+            self::UsoInterno => 'Building2',
+            self::Confidencial => 'Lock',
+        };
+    }
+
     /** Cómo se imprime en el pie: en versales y sin adornos. */
     public function sello(): string
     {

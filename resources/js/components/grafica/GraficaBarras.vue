@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Cifra from '@/components/Cifra.vue';
+import { tono } from '@/lib/tonos';
 import { computed } from 'vue';
 
 /**
@@ -31,33 +32,12 @@ export interface Barra {
 
 const props = defineProps<{ barras: Barra[] }>();
 
-/*
- * Escritos enteros y no compuestos, como en `BarraSegmentada`: Tailwind lee el
- * fichero como texto y una clase construida en ejecución no se genera.
- */
-const fondos: Record<string, string> = {
-    'tipo:servicios': 'bg-tipo-servicios',
-    'tipo:datos': 'bg-tipo-datos',
-    'tipo:software': 'bg-tipo-software',
-    'tipo:hardware': 'bg-tipo-hardware',
-    'tipo:comunicaciones': 'bg-tipo-comunicaciones',
-    'tipo:soportes': 'bg-tipo-soportes',
-    'tipo:equipamiento_auxiliar': 'bg-tipo-equipamiento-auxiliar',
-    'tipo:instalaciones': 'bg-tipo-instalaciones',
-    'tipo:personal': 'bg-tipo-personal',
-    implantado: 'bg-estado-implantado',
-    en_progreso: 'bg-estado-en-progreso',
-    planificado: 'bg-estado-planificado',
-    no_iniciado: 'bg-estado-no-iniciado/45',
-    no_aplica: 'bg-estado-no-aplica/45',
-};
-
 const filas = computed(() =>
     props.barras.map((barra) => ({
         ...barra,
         porcentaje: barra.de === 0 ? 0 : Math.round((barra.valor / barra.de) * 100),
         // Sin tono declarado se comporta como siempre: teal de marca.
-        fondo: barra.tono === undefined ? 'bg-primary' : (fondos[barra.tono] ?? 'bg-primary'),
+        fondo: barra.tono === undefined ? 'bg-primary' : tono(barra.tono).tramo,
     })),
 );
 </script>

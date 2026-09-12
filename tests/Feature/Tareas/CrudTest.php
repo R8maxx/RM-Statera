@@ -299,3 +299,42 @@ it('el filtro de vencidas cuenta lo mismo que el scope', function (): void {
 
     expect(Tarea::query()->vencidas()->count())->toBe(2);
 });
+
+/**
+ * Cada destino viaja con su tono y su icono para que el botón se pinte como el
+ * badge al que lleva. Sin esto, los cuatro botones vuelven a ser cuatro
+ * rectángulos grises que hay que leer uno a uno.
+ */
+it('las transiciones de la ficha llevan su tono y su icono', function (): void {
+    $tarea = Tarea::factory()->create();
+
+    $this->actingAs($this->usuario)
+        ->get("/tareas/{$tarea->id}")
+        ->assertInertia(function (AssertableInertia $pagina): void {
+            $transiciones = $pagina->toArray()['props']['transiciones'];
+
+            expect($transiciones)->not->toBeEmpty();
+
+            foreach ($transiciones as $destino) {
+                $estado = EstadoTarea::from($destino['valor']);
+
+                expect($destino['tono'])->toBe($estado->tono())
+                    ->and($destino['icono'])->toBe($estado->icono())
+                    ->and($destino['etiqueta'])->toBe($estado->etiqueta());
+            }
+        });
+});
+
+/** El badge de la tabla también: color, icono y texto, los tres canales. */
+it('el badge de estado de la tabla lleva icono', function (): void {
+    Tarea::factory()->create();
+
+    $this->actingAs($this->usuario)
+        ->get('/tareas')
+        ->assertInertia(function (AssertableInertia $pagina): void {
+            $fila = $pagina->toArray()['props']['filas'][0];
+
+            expect($fila['estado']['icono'])->toBe(EstadoTarea::Pendiente->icono())
+                ->and($fila['estado']['tono'])->toBe(EstadoTarea::Pendiente->tono());
+        });
+});

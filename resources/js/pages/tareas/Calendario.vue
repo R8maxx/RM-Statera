@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useFiltrosServidor } from '@/composables/useFiltrosServidor';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { formatoFecha } from '@/lib/celdas';
+import { tono } from '@/lib/tonos';
 import { Link } from '@inertiajs/vue3';
 import { CalendarDaysIcon, ChevronLeftIcon, ChevronRightIcon } from '@lucide/vue';
 import { computed, toRef } from 'vue';
@@ -113,20 +114,9 @@ function fondoDe(dia: Dia): string {
 
 /*
  * El color dice QUÉ es la cosa, y el rojo dice que se pasó de fecha. Las clases
- * van escritas enteras: Tailwind analiza el fichero como texto y una compuesta
- * en ejecución no se genera.
+ * salen de `lib/tonos.ts`, que es donde vive el vocabulario entero.
  */
-const tonos: Record<string, string> = {
-    caducada: 'bg-destructive/10 text-destructive',
-    no_iniciado: 'bg-estado-no-iniciado-suave text-estado-no-iniciado',
-    en_progreso: 'bg-estado-en-progreso-suave text-estado-en-progreso',
-    planificado: 'bg-estado-planificado-suave text-estado-planificado',
-    implantado: 'bg-estado-implantado-suave text-estado-implantado',
-    no_aplica: 'bg-estado-no-aplica-suave text-estado-no-aplica',
-};
-
-const claseDe = (vencimiento: Vencimiento): string =>
-    tonos[vencimiento.estadoTono] ?? tonos.no_iniciado;
+const claseDe = (vencimiento: Vencimiento): string => tono(vencimiento.estadoTono).badge;
 
 /**
  * Lo que se lee en voz alta y lo que sale al pasar el ratón.
@@ -290,7 +280,7 @@ const fechaLarga = (dia: string): string => formatoFecha.format(new Date(`${dia}
                     :key="tramo.tono"
                     class="flex items-center gap-1.5 text-xs text-muted-foreground"
                 >
-                    <span class="size-2.5 rounded-sm" :class="tonos[tramo.tono] ?? tonos.no_iniciado" />
+                    <span class="size-2.5 rounded-sm" :class="tono(tramo.tono).badge" />
                     {{ tramo.etiqueta }}
                 </li>
             </ul>

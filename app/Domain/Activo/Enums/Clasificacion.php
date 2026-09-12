@@ -46,6 +46,23 @@ enum Clasificacion: string
     }
 
     /**
+     * El icono con el que se reconoce sin leer la etiqueta.
+     *
+     * Sube en cierre según sube la sensibilidad: mundo abierto, edificio,
+     * candado, escudo.
+     */
+    public function icono(): string
+    {
+        return match ($this) {
+            self::Publico => 'Globe',
+            self::UsoInterno => 'Building2',
+            self::Confidencial => 'Lock',
+            self::Restringido => 'ShieldAlert',
+            self::NoAplica => 'Minus',
+        };
+    }
+
+    /**
      * Sube en énfasis, como la categoría del ENS: es ordinal, no categórico.
      * `Restringido` es lo único que se marca en rojo, y no porque vaya mal sino
      * porque es lo que hay que vigilar de cerca.

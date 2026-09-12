@@ -57,6 +57,35 @@ enum EstadoImplantacion: string
         return $this === self::Implantado;
     }
 
+    /**
+     * El tono del dominio con el que se pinta, que no es un color.
+     *
+     * No existía: los valores de este enum coinciden con las claves del mapa de
+     * `CeldaBadge`, así que se venía pasando `->value` como si fuera un tono y
+     * colaba por casualidad. Ahora lo dice el dominio, como en el resto.
+     */
+    public function tono(): string
+    {
+        return $this->value;
+    }
+
+    /**
+     * El icono con el que se reconoce sin leer la etiqueta.
+     *
+     * Nombre de `@lucide/vue`, que resuelve `IconoTipo` en el cliente.
+     */
+    public function icono(): string
+    {
+        return match ($this) {
+            self::NoIniciado => 'Circle',
+            // Tiene fecha puesta, todavía no ha empezado.
+            self::Planificado => 'CalendarClock',
+            self::EnProgreso => 'CircleDotDashed',
+            self::Implantado => 'CircleCheck',
+            self::NoAplica => 'CircleSlash',
+        };
+    }
+
     public function etiqueta(): string
     {
         return match ($this) {

@@ -2,6 +2,7 @@
 import TarjetaTarea, { type Tarjeta } from '@/components/tarea/TarjetaTarea.vue';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Link } from '@inertiajs/vue3';
+import { tono } from '@/lib/tonos';
 import { dropTargetForElements } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 
@@ -24,19 +25,6 @@ const emit = defineEmits<{
     mover: [id: number, estado: string];
     descartar: [id: number, titulo: string];
 }>();
-
-/*
- * Escritas enteras y nunca compuestas: Tailwind analiza el fichero como texto,
- * y una clase construida en ejecución —`bg-estado-${tono}`— no se genera y el
- * punto sale sin color. Misma regla que en `CeldaBadge`.
- */
-const puntos: Record<string, string> = {
-    no_iniciado: 'bg-estado-no-iniciado',
-    en_progreso: 'bg-estado-en-progreso',
-    planificado: 'bg-estado-planificado',
-    implantado: 'bg-estado-implantado',
-    no_aplica: 'bg-estado-no-aplica',
-};
 
 const elemento = ref<HTMLElement>();
 
@@ -114,7 +102,7 @@ onBeforeUnmount(() => limpiar?.());
             <h2 class="flex items-center gap-2 text-sm font-medium">
                 <span
                     class="size-1.5 rounded-full"
-                    :class="puntos[columna.tono] ?? 'bg-muted-foreground'"
+                    :class="tono(columna.tono).relleno"
                     aria-hidden="true"
                 />
                 {{ columna.etiqueta }}

@@ -29,6 +29,23 @@ enum PrioridadTarea: string
     }
 
     /**
+     * El icono con el que se reconoce sin leer la etiqueta.
+     *
+     * La prioridad es ordinal, así que los iconos también: una flecha que sube
+     * más cuanto más corre. Es lo que hace que se lea el orden sin leer la
+     * palabra.
+     */
+    public function icono(): string
+    {
+        return match ($this) {
+            self::Baja => 'ChevronDown',
+            self::Media => 'Equal',
+            self::Alta => 'ChevronUp',
+            self::Critica => 'ChevronsUp',
+        };
+    }
+
+    /**
      * El tono del dominio con el que se pinta, que no es un color.
      *
      * La prioridad es ordinal —baja < media < alta < crítica—, así que sube en

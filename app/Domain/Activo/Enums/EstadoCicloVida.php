@@ -43,6 +43,28 @@ enum EstadoCicloVida: string
         };
     }
 
+    /**
+     * El icono con el que se reconoce sin leer la etiqueta.
+     *
+     * Ocho etapas no caben en cinco tonos —tres comparten `en_progreso` y dos
+     * `no_aplica`—, así que aquí el icono no es refuerzo: es lo único que separa
+     * «en mantenimiento» de «en reparación» o «retirado» de «dado de baja».
+     */
+    public function icono(): string
+    {
+        return match ($this) {
+            self::Planificado => 'CalendarClock',
+            self::EnStock => 'Package',
+            self::EnProduccion => 'CircleCheck',
+            self::EnMantenimiento => 'Wrench',
+            self::EnReparacion => 'Hammer',
+            self::Prestado => 'ArrowRightLeft',
+            self::Retirado => 'Archive',
+            // Lo que además tiene constancia de borrado seguro.
+            self::DadoDeBaja => 'Trash2',
+        };
+    }
+
     /** El tono del badge. Reutiliza los `--estado-*`; no hay familia nueva. */
     public function tono(): string
     {

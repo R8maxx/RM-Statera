@@ -109,6 +109,7 @@ final class ActivoRecurso extends Recurso
                     $activo->clasificacion->value,
                     $activo->clasificacion->etiqueta(),
                     $activo->clasificacion->tono(),
+                    $activo->clasificacion->icono(),
                 )),
             Columna::badge('cifrado', 'Cifrado')
                 ->ordenable()
@@ -117,6 +118,7 @@ final class ActivoRecurso extends Recurso
                     $activo->cifrado->value,
                     $activo->cifrado->etiqueta(),
                     $activo->cifrado->tono(),
+                    $activo->cifrado->icono(),
                 )),
             Columna::badge('copia_seguridad', 'Copia')
                 ->ordenable()
@@ -124,6 +126,7 @@ final class ActivoRecurso extends Recurso
                     $activo->copia_seguridad->value,
                     $activo->copia_seguridad->etiqueta(),
                     $activo->copia_seguridad->tono(),
+                    $activo->copia_seguridad->icono(),
                 )),
             Columna::badge('estado_ciclo_vida', 'Estado')
                 ->ordenable()
@@ -133,6 +136,9 @@ final class ActivoRecurso extends Recurso
                         ? $activo->estado_ciclo_vida->etiqueta().', sin borrado seguro'
                         : $activo->estado_ciclo_vida->etiqueta(),
                     $activo->esperaBorradoSeguro() ? 'caducada' : $activo->estado_ciclo_vida->tono(),
+                    // Un disco retirado con los datos dentro es un hallazgo, no
+                    // un activo cerrado: se pinta como lo que es.
+                    $activo->esperaBorradoSeguro() ? 'TriangleAlert' : $activo->estado_ciclo_vida->icono(),
                 )),
             // Cuántas piezas se caen con él. Es la cifra que se mira antes de
             // tocar nada en producción, y la que ordena el análisis de impacto.

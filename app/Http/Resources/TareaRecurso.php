@@ -75,6 +75,7 @@ final class TareaRecurso extends Recurso
                     $tarea->estado->value,
                     $tarea->estado->etiqueta(),
                     $tarea->estado->tono(),
+                    $tarea->estado->icono(),
                 )),
             Columna::badge('plazo', 'Plazo')
                 ->ordenable('fecha_limite')
@@ -90,6 +91,7 @@ final class TareaRecurso extends Recurso
                     $tarea->prioridad->value,
                     $tarea->prioridad->etiqueta(),
                     $tarea->prioridad->tono(),
+                    $tarea->prioridad->icono(),
                 )),
             Columna::texto('responsable', 'Responsable')
                 ->ayuda('Una tarea sin responsable no la hace nadie: es la primera columna que se mira cuando algo lleva meses abierto.')

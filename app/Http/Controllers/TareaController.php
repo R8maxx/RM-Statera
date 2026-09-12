@@ -356,10 +356,17 @@ class TareaController extends Controller
                     'nota' => $transicion->nota,
                 ])
                 ->all(),
+            /*
+             * Cada destino viaja con su tono y su icono: el botón se pinta como
+             * el badge que vas a obtener al pulsarlo, y quien decide ese tono es
+             * el dominio, no la plantilla.
+             */
             'transiciones' => array_map(
                 static fn (EstadoTarea $estado): array => [
                     'valor' => $estado->value,
                     'etiqueta' => $estado->etiqueta(),
+                    'tono' => $estado->tono(),
+                    'icono' => $estado->icono(),
                 ],
                 $tarea->estado->transicionesPermitidas(),
             ),
