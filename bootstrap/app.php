@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\Aviso\Console\EnviarAvisosCommand;
 use App\Domain\Catalogo\Console\ImportarCatalogoCommand;
 use App\Domain\Documento\Console\GenerarDocumentoCommand;
 use App\Domain\Implantacion\Console\GenerarImplantacionesCommand;
@@ -28,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ImportarCatalogoCommand::class,
         GenerarImplantacionesCommand::class,
         GenerarDocumentoCommand::class,
+        EnviarAvisosCommand::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         // El orden importa y no es el que sale por defecto.

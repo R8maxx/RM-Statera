@@ -609,6 +609,28 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
      `EsquemaEnDosIdiomasTest` compara PHP con TypeScript, pero nadie compara `FUENTES` contra las
      ramas del `match`.
 
+- **Los avisos son un resumen diario por organización, y de momento sólo por correo.** `avisos:enviar`
+  recorre las organizaciones con `ContextoOrganizacion::paraOrganizacion()`, una cada vez: un comando
+  programado no tiene petición ni usuario, así que sin contexto el scope no devuelve nada y RLS
+  deniega por defecto — **no falla, no ve nada**, y un aviso que no salta es indistinguible de no
+  tener nada que avisar. Nada de `withoutGlobalScopes()` ni de `comoMantenimiento()`: esto no cruza
+  organizaciones. La notificación lleva **escalares y ningún modelo**, por lo mismo que los jobs.
+
+  **Un resumen, no una alerta por evidencia**: dice cómo está la cosa hoy, así que repetirlo mañana no
+  es spam y no hace falta una tabla de «ya avisado» para evitar duplicados. Si no hay nada que decir no
+  se envía: un correo diario que casi siempre dice «todo en orden» se filtra a una carpeta en dos
+  semanas y deja de verse el día que importa.
+
+  **No hay tabla de avisos y es a propósito.** Una bandeja en la interfaz necesitaría tabla propia con
+  `organizacion_id` y RLS; la tabla `notifications` de Laravel no lleva organización, que es
+  exactamente el motivo por el que se retiró `spatie/laravel-medialibrary`. Y `ResumenVencimientos` usa
+  **los mismos scopes que cuenta el panel** (`Evidencia::caducadas()`, `porCaducar()`): con la
+  condición escrita dos veces, el día que cambie una el correo dirá 12 y la pantalla enseñará 9.
+
+- **`lang/es.json` existe por el correo.** Las cadenas de la plantilla de notificaciones de Laravel
+  —«If you're having trouble clicking…», «All rights reserved.»— van por `__()` y salían en inglés en
+  el primer correo que manda el producto, con todo lo demás en español.
+
 ## Fuera de alcance
 
 Facturación y suscripciones, onboarding self-service, panel de superadministración, white-labeling, integraciones con SIEM o escáneres, aplicación móvil. Los flujos de auditoría formal ENS de categoría media y alta **se modelan pero no se implementan**. NIS2 todavía no se carga, pero el modelo de marcos tiene que permitir añadirla sin cambios estructurales.
