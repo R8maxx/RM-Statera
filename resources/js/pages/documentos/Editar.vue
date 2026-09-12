@@ -56,6 +56,15 @@ const cuerpo = shallowRef<Record<string, unknown>>(props.cuerpo);
 const sucio = ref(false);
 const guardando = ref(false);
 
+/**
+ * El árbol ya normalizado por Tiptap, al cargar. Es lo que se enviará al
+ * guardar, pero **no** es una edición: marcarlo sucio aquí hacía que «Ver el
+ * PDF» guardase siempre, y ese guardado sella `editado_en`.
+ */
+function normalizado(arbol: Record<string, unknown>): void {
+    cuerpo.value = arbol;
+}
+
 function cambio(nuevo: Record<string, unknown>): void {
     cuerpo.value = nuevo;
     sucio.value = true;
@@ -227,7 +236,13 @@ const etiquetaPdf = computed(() => {
             Este documento ya se ha editado a mano, y lo dice en su portada y en sus limitaciones.
         </p>
 
-        <EditorCuerpo :cuerpo="cuerpo" :geometria="geometria" :margenes="margenes" @cambio="cambio" />
+        <EditorCuerpo
+            :cuerpo="cuerpo"
+            :geometria="geometria"
+            :margenes="margenes"
+            @normalizado="normalizado"
+            @cambio="cambio"
+        />
 
         <p class="mt-3 text-sm text-muted-foreground">
             <span v-if="sucio">Hay cambios sin guardar.</span>

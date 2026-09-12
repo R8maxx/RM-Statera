@@ -80,10 +80,6 @@ it('el responsable de seguridad sí genera y emite', function (): void {
 it('el técnico redacta el documento pero no toca la plantilla', function (): void {
     $usuario = usuarioCon(Rol::Tecnico);
 
-    // El editor del cuerpo necesita una versión de la que construir el
-    // contenido: sin ella no hay de dónde sacar las cifras del documento.
-    DocumentoVersion::factory()->delDocumento($this->documento->id)->create();
-
     // Redactar es trabajo de quien prepara el documento; la plantilla decide
     // cómo empiezan TODOS los futuros, y eso es otra decisión.
     $this->actingAs($usuario)->get("/documentos/{$this->documento->id}/cuerpo")->assertOk();

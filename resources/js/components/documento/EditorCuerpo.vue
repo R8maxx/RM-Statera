@@ -65,7 +65,21 @@ const props = defineProps<{
     };
 }>();
 
-const emit = defineEmits<{ cambio: [Record<string, unknown>] }>();
+/**
+ * `normalizado` y `cambio` son dos cosas distintas a propósito.
+ *
+ * Tiptap normaliza el árbol al cargarlo —rellena atributos por defecto, ordena
+ * las marcas— y el padre necesita ese JSON, porque es el que se enviará al
+ * guardar. Pero eso NO es una edición: emitirlo como `cambio` marcaba el
+ * documento sucio nada más abrirlo, y el guardado que eso provocaba sellaba
+ * `editado_en`. Un documento acababa declarando en portada que se había editado
+ * a mano por el hecho de abrirlo, que es justo lo que la procedencia existe para
+ * impedir.
+ */
+const emit = defineEmits<{
+    normalizado: [Record<string, unknown>];
+    cambio: [Record<string, unknown>];
+}>();
 
 const editor = shallowRef<Editor>();
 const version = shallowRef(0);
@@ -93,7 +107,7 @@ editor.value = new Editor({
     },
 });
 
-emit('cambio', editor.value.getJSON() as Record<string, unknown>);
+emit('normalizado', editor.value.getJSON() as Record<string, unknown>);
 
 let desmontarHoja: (() => void) | null = null;
 

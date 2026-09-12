@@ -49,6 +49,32 @@ return Application::configure(basePath: dirname(__DIR__))
                 HandleInertiaRequests::class,
             ],
         );
+
+        /*
+         * El cuerpo de un documento no se recorta.
+         *
+         * `TrimStrings` recorta TODA cadena de la petición, y el cuerpo del
+         * editor viaja como un árbol de nodos donde cada trozo de texto es una
+         * cadena suelta. Un espacio al principio de un nodo no es relleno: es la
+         * separación entre ese trozo y el anterior. Recortarlo soldaba las
+         * palabras —«no es una entrega.Este PDF se regenera»— en el PDF que se le
+         * entrega al auditor, y además hacía que guardar sin tocar nada cambiara
+         * el documento y lo sellara como editado a mano.
+         *
+         * `ConvertEmptyStringsToNull` va detrás por lo mismo: un nodo cuyo texto
+         * es un solo espacio acabaría en `null` y reventaría el renderizador.
+         *
+         * `Str::is` entiende el comodín, así que `cuerpo.*` cubre el árbol
+         * entero a cualquier profundidad.
+         */
+        $middleware->trimStrings(except: ['cuerpo', 'cuerpo.*']);
+
+        // Estos dos corren ANTES de resolver la ruta, así que aquí no hay
+        // `routeIs()` que valga: se mira el camino.
+        $middleware->convertEmptyStringsToNull(except: [
+            fn (Request $request): bool => $request->isMethod('PUT')
+                && $request->is('documentos/*/cuerpo'),
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

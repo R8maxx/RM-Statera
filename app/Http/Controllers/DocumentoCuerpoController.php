@@ -8,6 +8,7 @@ use App\Domain\Documento\Contenido\RegistroGeneradores;
 use App\Domain\Documento\Cuerpo\GuardarCuerpo;
 use App\Domain\Documento\Cuerpo\ResolverCuerpo;
 use App\Domain\Documento\Models\Documento;
+use App\Domain\Documento\Models\DocumentoVersion;
 use App\Domain\Documento\Render\GeometriaPagina;
 use App\Http\Requests\GuardarCuerpoDocumentoRequest;
 use Illuminate\Http\RedirectResponse;
@@ -34,9 +35,7 @@ class DocumentoCuerpoController extends Controller
         ResolverCuerpo $resolver,
         RegistroGeneradores $generadores,
     ): Response {
-        $version = $documento->borrador()->first() ?? $documento->versiones()->latest('id')->first();
-
-        abort_if($version === null, 404);
+        $version = $this->versionVigente($documento);
 
         $contenido = $generadores->para($documento->tipo)->construir($documento, $version, []);
         $fila = $resolver->fila($documento, $contenido);
@@ -94,6 +93,24 @@ class DocumentoCuerpoController extends Controller
     }
 
     /**
+     * La versión sobre la que se redacta.
+     *
+     * Un documento se puede redactar antes de generar nada, y hasta ese momento
+     * no tiene ninguna fila en `documento_versiones`: la primera la crea
+     * `GenerarDocumento::encolar()`. Por eso el último recurso es una versión
+     * **en memoria y sin guardar** —`etiqueta()` ya dice «Borrador» con `numero`
+     * nulo— y no una fila creada al vuelo: `documento_versiones` es el registro
+     * de lo que se ha entregado, y meter ahí un documento que alguien abrió una
+     * vez le quita a la tabla el único significado que tiene.
+     */
+    private function versionVigente(Documento $documento): DocumentoVersion
+    {
+        return $documento->borrador()->first()
+            ?? $documento->versiones()->latest('id')->first()
+            ?? new DocumentoVersion(['documento_id' => $documento->id]);
+    }
+
+    /**
      * @return array<string, mixed>|null
      */
     private function borrador(Documento $documento): ?array
@@ -121,9 +138,7 @@ class DocumentoCuerpoController extends Controller
         GuardarCuerpo $guardar,
         RegistroGeneradores $generadores,
     ): RedirectResponse {
-        $version = $documento->borrador()->first() ?? $documento->versiones()->latest('id')->first();
-
-        abort_if($version === null, 404);
+        $version = $this->versionVigente($documento);
 
         $contenido = $generadores->para($documento->tipo)->construir($documento, $version, []);
         $fila = $resolver->fila($documento, $contenido);
