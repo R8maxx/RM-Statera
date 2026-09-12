@@ -217,3 +217,31 @@ it('la tarea de otra organización tampoco cruza', function (): void {
     expect($vencimientos->tareasVencidas)->toHaveCount(1)
         ->and($vencimientos->tareasVencidas[0]->titulo)->toBe('Tarea propia');
 });
+
+/**
+ * Explicar que una evidencia caducada no prueba nada en un correo donde todo lo
+ * que hay son tareas es ruido, y de los que enseñan a no leer el primer párrafo.
+ */
+it('la entradilla habla de lo que hay en ese correo', function (): void {
+    Tarea::factory()->vencida()->create();
+
+    $soloTareas = (string) json_encode(
+        (new VencimientosDelDia('Pruebas', app(ResumenVencimientos::class)()))
+            ->toMail($this->responsable)
+            ->toArray(),
+    );
+
+    expect($soloTareas)
+        ->toContain('Hay tareas vencidas')
+        ->not->toContain('Una evidencia caducada no prueba nada');
+
+    Evidencia::factory()->create(['fecha_caducidad' => Carbon::today()->subDay()]);
+
+    $lasDos = (string) json_encode(
+        (new VencimientosDelDia('Pruebas', app(ResumenVencimientos::class)()))
+            ->toMail($this->responsable)
+            ->toArray(),
+    );
+
+    expect($lasDos)->toContain('pruebas caducadas y trabajo sin hacer');
+});

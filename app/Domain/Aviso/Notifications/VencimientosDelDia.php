@@ -52,9 +52,7 @@ final class VencimientosDelDia extends Notification implements ShouldQueue
             ->subject($this->asunto())
             ->greeting('Lo que vence — '.$this->organizacion);
 
-        $correo->line($this->vencimientos->pasados() > 0
-            ? 'Hay cosas que ya se han pasado de fecha. Una evidencia caducada no prueba nada: el requisito que sostenía se queda sin prueba hasta que se renueve.'
-            : 'Nada pasado de fecha todavía. Esto es lo que vence dentro de los próximos '.$this->vencimientos->dias.' días.');
+        $correo->line($this->entradilla());
 
         $this->bloque($correo, 'Evidencias caducadas', $this->vencimientos->evidenciasCaducadas, 'caduca', 'caducó');
         $this->bloque($correo, 'Tareas vencidas', $this->vencimientos->tareasVencidas);
@@ -64,6 +62,30 @@ final class VencimientosDelDia extends Notification implements ShouldQueue
         return $correo
             ->action('Abrir Statera', url('/panel'))
             ->salutation('Statera — un producto de RM Technology');
+    }
+
+    /**
+     * La primera frase dice lo que hay **en este correo**.
+     *
+     * Explicar que una evidencia caducada no prueba nada en un correo donde
+     * todo lo que hay son tareas es ruido, y de los que enseñan a no leer el
+     * primer párrafo.
+     */
+    private function entradilla(): string
+    {
+        if ($this->vencimientos->pasados() === 0) {
+            return 'Nada pasado de fecha todavía. Esto es lo que vence dentro de los próximos '
+                .$this->vencimientos->dias.' días.';
+        }
+
+        $caducadas = $this->vencimientos->evidenciasCaducadas !== [];
+        $vencidas = $this->vencimientos->tareasVencidas !== [];
+
+        return match (true) {
+            $caducadas && $vencidas => 'Hay pruebas caducadas y trabajo sin hacer. Una evidencia caducada deja sin prueba al requisito que sostenía, y una tarea vencida es una fecha que se comprometió y pasó.',
+            $caducadas => 'Hay evidencias caducadas. Una evidencia caducada no prueba nada: el requisito que sostenía se queda sin prueba hasta que se renueve.',
+            default => 'Hay tareas vencidas: fechas que se comprometieron y han pasado.',
+        };
     }
 
     /**
