@@ -10,7 +10,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Link } from '@inertiajs/vue3';
-import { EllipsisVerticalIcon, GripVerticalIcon, PaperclipIcon } from '@lucide/vue';
+import { CheckSquareIcon, EllipsisVerticalIcon, GripVerticalIcon, PaperclipIcon } from '@lucide/vue';
 import { draggable } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 
@@ -24,6 +24,8 @@ export interface Tarjeta {
     responsable: string | null;
     plazo: { etiqueta: string; tono: string; fecha: string | null };
     requisitos: number;
+    pasos: number;
+    pasosHechos: number;
     /** A qué columnas puede ir esta tarjeta. Lo decide el dominio, no el cliente. */
     transiciones: string[];
     descartable: boolean;
@@ -137,6 +139,16 @@ onBeforeUnmount(() => limpiar?.());
             <span v-if="tarjeta.requisitos > 0" class="flex shrink-0 items-center gap-1">
                 <PaperclipIcon class="size-3" aria-hidden="true" />
                 {{ tarjeta.requisitos }}
+            </span>
+
+            <!-- Con cero pasos no se pinta nada: un «0/0» es ruido. -->
+            <span
+                v-if="tarjeta.pasos > 0"
+                class="cifra flex shrink-0 items-center gap-1"
+                :title="`${tarjeta.pasosHechos} de ${tarjeta.pasos} pasos hechos`"
+            >
+                <CheckSquareIcon class="size-3" aria-hidden="true" />
+                {{ tarjeta.pasosHechos }}/{{ tarjeta.pasos }}
             </span>
         </p>
     </article>

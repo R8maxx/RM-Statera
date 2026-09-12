@@ -30,6 +30,7 @@ use App\Domain\Sistema\Models\ValoracionDimension;
 use App\Domain\Tarea\CrearTarea;
 use App\Domain\Tarea\Enums\OrigenTarea;
 use App\Domain\Tarea\Enums\PrioridadTarea;
+use App\Domain\Tarea\GuardarSubtareas;
 use App\Domain\Tarea\Models\Tarea;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -365,6 +366,18 @@ class DesarrolloSeeder extends Seeder
             'prioridad' => PrioridadTarea::Alta->value,
             'fecha_limite' => Carbon::today()->subDays(6),
         ], null, $accesos);
+
+        // Una con lista de comprobación, para que se vea el «2/4» sin montarlo
+        // a mano cada vez que se refresca la base.
+        app(GuardarSubtareas::class)(
+            Tarea::query()->where('titulo', 'like', 'Revisar la política%')->firstOrFail(),
+            [
+                ['titulo' => 'Revisar la longitud mínima y la caducidad', 'hecha' => true],
+                ['titulo' => 'Pasarla por el comité', 'hecha' => true],
+                ['titulo' => 'Publicarla en la intranet', 'hecha' => false],
+                ['titulo' => 'Registrar el acuse de lectura', 'hecha' => false],
+            ],
+        );
 
         $crear([
             'titulo' => 'Contratar la revisión anual del proveedor de correo',

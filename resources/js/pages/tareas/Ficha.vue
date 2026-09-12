@@ -2,6 +2,7 @@
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
 import EstadoVacio from '@/components/EstadoVacio.vue';
 import CeldaBadge from '@/components/tabla/celdas/CeldaBadge.vue';
+import ListaComprobacion, { type Paso } from '@/components/tarea/ListaComprobacion.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
@@ -54,6 +55,9 @@ const props = defineProps<{
     vinculos: Vinculo[];
     historico: Transicion[];
     transiciones: { valor: string; etiqueta: string }[];
+    subtareas: Paso[];
+    maximoSubtareas: number;
+    puedeGestionar: boolean;
 }>();
 
 const { variantesEntrada } = useMovimientoReducido();
@@ -167,6 +171,30 @@ function mover(estado: string): void {
                                 <p class="mt-1 text-sm text-muted-foreground">{{ vinculo.titulo }}</p>
                             </li>
                         </ul>
+                    </CardContent>
+                </Card>
+
+                <!--
+                    La lista de comprobación va antes que el histórico: es lo que
+                    se toca cada día. Y va en la columna ancha porque se escribe,
+                    no sólo se lee.
+                -->
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Lista de comprobación</CardTitle>
+                        <CardDescription>
+                            Los pasos de esta tarea. No son tareas: no tienen responsable ni plazo, y no cuentan
+                            en el panel ni en los avisos — la tarea sigue siendo la unidad.
+                        </CardDescription>
+                    </CardHeader>
+
+                    <CardContent>
+                        <ListaComprobacion
+                            :tarea-id="tarea.id"
+                            :pasos="subtareas"
+                            :maximo="maximoSubtareas"
+                            :editable="puedeGestionar"
+                        />
                     </CardContent>
                 </Card>
 

@@ -248,6 +248,11 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/tareas/{tarea}/estado', [TareaController::class, 'transicion'])
             ->name('tareas.transicion');
 
+        // La lista de comprobación llega entera: añadir, renombrar, marcar,
+        // reordenar y borrar son la misma operación.
+        Route::put('/tareas/{tarea}/subtareas', [TareaController::class, 'subtareas'])
+            ->name('tareas.subtareas');
+
         Route::post('/tareas/{tarea}/implantaciones', [TareaController::class, 'vincular'])
             ->name('tareas.implantaciones.vincular');
         Route::delete('/tareas/{tarea}/implantaciones/{implantacion}', [TareaController::class, 'desvincular'])

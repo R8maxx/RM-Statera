@@ -57,7 +57,11 @@ final class TareaRecurso extends Recurso
     {
         return Tarea::query()
             ->with('responsable')
-            ->withCount('implantaciones as requisitos_count');
+            ->withCount([
+                'implantaciones as requisitos_count',
+                'subtareas as pasos_count',
+                'subtareas as pasos_hechos_count' => fn (Builder $consulta) => $consulta->whereNotNull('hecha_en'),
+            ]);
     }
 
     /** @return list<Columna> */
@@ -101,6 +105,14 @@ final class TareaRecurso extends Recurso
                     $tarea->origen->etiqueta(),
                     'marco',
                 )),
+            // Oculta por defecto: es un dato de la ficha, no algo que se recorra
+            // en una lista. Y a cero no dice nada, así que se pinta vacía.
+            Columna::texto('pasos', 'Pasos')
+                ->oculta()
+                ->ayuda('Los pasos hechos de su lista de comprobación. No son tareas: no cuentan en el panel ni en los avisos.')
+                ->formato(fn (Tarea $tarea): ?string => (int) $tarea->getAttribute('pasos_count') === 0
+                    ? null
+                    : $tarea->getAttribute('pasos_hechos_count').'/'.$tarea->getAttribute('pasos_count')),
             Columna::fecha('fecha_limite', 'Fecha límite')->ordenable()->oculta(),
             Columna::fecha('fecha_cierre', 'Cerrada')->ordenable()->oculta(),
             Columna::numero('coste_estimado', 'Coste estimado')

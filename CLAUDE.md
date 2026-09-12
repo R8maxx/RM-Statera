@@ -737,10 +737,64 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
   `TareaRecurso`. Los leen la tabla, el tablero y el calendario: con la regla escrita tres veces, la tabla
   dice «Vencida» y el tablero «En plazo» el día que una cambie.
 
-- **El tablero y el calendario no tienen barra de filtros, y es deuda anotada.** `useTablaServidor` está
-  acoplado a `MetaTabla` y a la paginación, y `RespondeConRecurso` sólo emite `recurso`/`filas`/`meta`:
-  compartir la barra entera pide una refactorización que no cabía aquí. El tablero enseña lo abierto y el
-  calendario el mes.
+- **Los filtros ya no están atados a la paginación.** `ConsultaRecurso::consultaFiltrada()` aplica los
+  `allowedFilters` y devuelve la consulta **sin ordenar ni paginar**; `paginador()` le encadena lo suyo.
+  En el cliente, `useFiltrosServidor` guarda el estado de los filtros y `useTablaServidor` es el
+  envoltorio que le añade `sort`, `page` y `por_pagina`. La barra (`BarraFiltros.vue`) y `lib/filtros.ts`
+  nunca supieron nada de páginas: se reutilizan tal cual. **Nada de fabricar un `MetaTabla` con ceros**
+  para una pantalla que no pagina — `useTablaServidor` lo leería y se lo devolvería al servidor.
+
+- **`RespondeConRecurso::filtros()` no usa `Inertia::once()`, a diferencia de `tabla()`.** La clave de
+  `tabla()` es `recurso:{clave}` y la comparten las tres pantallas del mismo recurso: si el tablero
+  emitiera ahí su lista recortada, ganaría la primera pantalla visitada y la otra vería filtros que no
+  le sirven. La lista pesa poco y, como no va en el `only` de las recargas parciales, se queda en el
+  cliente igual.
+
+- **El tablero no ofrece `estado` ni `bloqueadas`.** Las columnas **son** el estado: filtrar por él
+  vacía tres de las cuatro y deja un tablero que parece roto. Se declara en
+  `TareaController::FILTROS_QUE_SOBRAN`, no escondiéndolo en el cliente.
+
+- **El calendario declara sus propios filtros y no hereda los de tareas.** Enseña vencimientos: la mitad
+  de lo que sale son evidencias, que no tienen prioridad ni origen. Filtrar por «prioridad crítica» o
+  dejaría las evidencias intactas —el filtro mintiendo— o las haría desaparecer sin explicación. Los
+  tres de `FiltrosVencimiento` —fuente, responsable, sólo lo vencido— significan lo mismo para las dos
+  fuentes, y seguirán valiendo cuando § 4.16 traiga el resto de lo periódico.
+
+- **En el calendario el color dice QUÉ es la cosa, y el rojo que se pasó de fecha.** `Vencimiento` lleva
+  dos pares de campos y no uno: `tono` es distancia temporal y lo lee el **correo diario**;
+  `estadoTono`/`estadoEtiqueta` son el estado —de la tarea, o la vigencia de la evidencia— y los lee el
+  calendario. Reinterpretar `tono` habría cambiado el asunto del correo sin querer. **Lo vencido gana
+  siempre** y es el único rojo de la pantalla; hay un test que recorre los estados comprobando que
+  ninguno se lo gasta. Y el estado viaja **también en texto**, porque § 11 no deja que dependa del color.
+
+- **Los días del calendario se distinguen con cuatro fondos sólidos**, no con alfa. Antes eran
+  `bg-muted/40` y `bg-muted/20` sobre `bg-card` —dos transparencias casi idénticas y, peor, las dos en
+  el mismo atributo, así que decidía el orden en que Tailwind emite las clases y no el código—. Es el
+  mismo fallo que ya está documentado para las celdas ancladas de la tabla. Hoy lleva además la barra de
+  2 px del ítem activo del sidebar: `accent` es un teal demasiado pálido para cargar solo con eso.
+
+- **Tope de tres vencimientos por día, con su «y N más».** Un día con doce estiraba la fila entera y el
+  mes dejaba de caber en la pantalla. Mismo patrón que el tope por columna del tablero.
+
+- **Una subtarea es un paso de una lista de comprobación, no una tarea.** No está en `tareas` con un
+  `parent_id` y el motivo es aritmético: **hoy hay trece sitios que cuentan tareas** —panel,
+  indicadores, repartos, columnas del tablero, calendario y aviso diario— y con las subtareas como filas
+  de `tareas` cada uno tendría que decidir si suma la madre, las hijas o las dos. El día que uno se
+  despiste, el panel dice doce abiertas donde hay cuatro cosas que hacer. **Contar de más es el fallo
+  caro, y aquí se evita no dando la ocasión**; hay un test que lo fija comparando todas las cifras antes
+  y después de trocear las tareas.
+
+  Lo que se pierde —asignar un paso o ponerle fecha— se resuelve con una tarea de pleno derecho
+  vinculada al mismo requisito, no con una subtarea con más campos.
+
+- **La lista se guarda entera, en una sola ruta.** Añadir, renombrar, marcar, reordenar y borrar van
+  juntos en una lista de comprobación, y el orden llega implícito en la posición del array, así que
+  reordenar no necesita ni campo ni gesto propio. `hecha_en` **no se vuelve a sellar** si ya estaba
+  marcado: la fecha es cuándo se hizo el paso, no cuándo se guardó la lista. Y un `id` que no es de esa
+  tarea se trata como un paso nuevo — lo que llega del cliente no manda sobre a quién pertenece una fila.
+
+- **Marcar todos los pasos no cierra la tarea.** Cerrarla es una decisión con su transición, su fecha y
+  su autor; deducirla de una casilla dejaría el histórico contando algo que nadie decidió.
 
 ## Fuera de alcance
 

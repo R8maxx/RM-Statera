@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Domain\Autorizacion\Enums\Permiso;
 use App\Domain\Aviso\CalendarioVencimientos;
 use App\Domain\Aviso\FiltrosVencimiento;
 use App\Domain\Aviso\Fuente;
@@ -15,6 +16,8 @@ use App\Domain\Tarea\Enums\EstadoTarea;
 use App\Domain\Tarea\Enums\OrigenTarea;
 use App\Domain\Tarea\Enums\PrioridadTarea;
 use App\Domain\Tarea\Excepciones\TransicionDeTareaNoPermitida;
+use App\Domain\Tarea\GuardarSubtareas;
+use App\Domain\Tarea\Models\Subtarea;
 use App\Domain\Tarea\Models\Tarea;
 use App\Domain\Tarea\Models\TareaTransicion;
 use App\Domain\Tarea\Plazo;
@@ -22,6 +25,7 @@ use App\Domain\Tarea\ResumenPlanDeAccion;
 use App\Domain\Tarea\VincularTarea;
 use App\Http\Requests\CambiarEstadoTareaRequest;
 use App\Http\Requests\CambiarEstadoTareasRequest;
+use App\Http\Requests\GuardarSubtareasRequest;
 use App\Http\Requests\GuardarTareaRequest;
 use App\Http\Requests\VincularTareaRequest;
 use App\Http\Resources\Concerns\RespondeConRecurso;
@@ -126,7 +130,11 @@ class TareaController extends Controller
                     fn (Builder $q) => $q->whereDate('fecha_cierre', '>=', Carbon::today()->subDays(self::DIAS_HECHAS)),
                 )
                 ->with('responsable')
-                ->withCount('implantaciones as requisitos_count')
+                ->withCount([
+                    'implantaciones as requisitos_count',
+                    'subtareas as pasos_count',
+                    'subtareas as pasos_hechos_count' => fn (Builder $q) => $q->whereNotNull('hecha_en'),
+                ])
                 ->orderByRaw('fecha_limite NULLS LAST')
                 ->orderBy('id');
 
@@ -178,6 +186,9 @@ class TareaController extends Controller
             'responsable' => $tarea->responsable?->name,
             'plazo' => ['etiqueta' => $plazo->etiqueta, 'tono' => $plazo->tono, 'fecha' => $plazo->fecha],
             'requisitos' => (int) $tarea->getAttribute('requisitos_count'),
+            // Con cero pasos no se pinta nada: un «0/0» es ruido.
+            'pasos' => (int) $tarea->getAttribute('pasos_count'),
+            'pasosHechos' => (int) $tarea->getAttribute('pasos_hechos_count'),
             'transiciones' => array_values(array_filter(
                 array_map(
                     static fn (EstadoTarea $estado): string => $estado->value,
@@ -319,13 +330,14 @@ class TareaController extends Controller
     /**
      * La ficha: qué hace avanzar esta tarea y qué le ha pasado.
      */
-    public function show(Tarea $tarea): Response
+    public function show(Request $request, Tarea $tarea): Response
     {
         $tarea->load([
             'responsable',
             'implantaciones.requisito.marco',
             'implantaciones.sistema',
             'transiciones.usuario',
+            'subtareas',
         ]);
 
         return Inertia::render('tareas/Ficha', [
@@ -351,6 +363,21 @@ class TareaController extends Controller
                 ],
                 $tarea->estado->transicionesPermitidas(),
             ),
+            'subtareas' => $tarea->subtareas
+                ->map(fn (Subtarea $paso): array => [
+                    'id' => $paso->id,
+                    'titulo' => $paso->titulo,
+                    'hecha' => $paso->estaHecha(),
+                    'hechaEn' => $paso->hecha_en?->toIso8601String(),
+                ])
+                ->all(),
+            'maximoSubtareas' => GuardarSubtareasRequest::MAXIMO,
+            /*
+             * Quién puede tocar la lista lo decide el servidor, como con las
+             * acciones de la tabla. Un auditor viendo casillas que van a
+             * responder 403 al pulsarlas es peor que no verlas.
+             */
+            'puedeGestionar' => $request->user()?->can(Permiso::TareasGestionar->value) ?? false,
         ]);
     }
 
@@ -370,6 +397,25 @@ class TareaController extends Controller
         Inertia::flash('exito', "Tarea «{$tarea->titulo}» actualizada.");
 
         return to_route('tareas.show', $tarea);
+    }
+
+    /**
+     * La lista de comprobación de una tarea, entera.
+     *
+     * Añadir, renombrar, marcar, reordenar y borrar son la misma petición: en
+     * una lista de comprobación esos gestos van juntos, y una ruta por gesto
+     * obligaría a orquestar cinco desde el cliente.
+     */
+    public function subtareas(
+        GuardarSubtareasRequest $request,
+        Tarea $tarea,
+        GuardarSubtareas $guardar,
+    ): RedirectResponse {
+        $guardar($tarea, $request->pasos());
+
+        Inertia::flash('exito', 'Lista de comprobación guardada.');
+
+        return back();
     }
 
     public function destroy(Tarea $tarea): RedirectResponse

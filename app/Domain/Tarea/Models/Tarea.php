@@ -82,6 +82,20 @@ class Tarea extends Model
             ->withPivot(['vinculada_por_id', 'created_at']);
     }
 
+    /**
+     * La lista de comprobación: los pasos de esta tarea.
+     *
+     * No son tareas y **no cuentan como tales en ningún sitio**: ni en el panel,
+     * ni en los indicadores, ni en el tablero, ni en el calendario, ni en el
+     * aviso diario. La tarea sigue siendo la unidad.
+     *
+     * @return HasMany<Subtarea, $this>
+     */
+    public function subtareas(): HasMany
+    {
+        return $this->hasMany(Subtarea::class)->orderBy('orden')->orderBy('id');
+    }
+
     /** @return HasMany<TareaTransicion, $this> */
     public function transiciones(): HasMany
     {
