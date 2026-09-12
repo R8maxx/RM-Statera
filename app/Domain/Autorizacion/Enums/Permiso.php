@@ -52,6 +52,9 @@ enum Permiso: string
     case ActivosVer = 'activos.ver';
     case ActivosGestionar = 'activos.gestionar';
 
+    case TareasVer = 'tareas.ver';
+    case TareasGestionar = 'tareas.gestionar';
+
     case DocumentosVer = 'documentos.ver';
     case DocumentosGenerar = 'documentos.generar';
     case DocumentosRedactar = 'documentos.redactar';
@@ -70,6 +73,8 @@ enum Permiso: string
             self::EvidenciasGestionar => 'Registrar y vincular evidencias',
             self::ActivosVer => 'Ver el inventario de activos',
             self::ActivosGestionar => 'Dar de alta activos y declarar dependencias',
+            self::TareasVer => 'Ver el plan de acción',
+            self::TareasGestionar => 'Crear tareas, asignarlas y moverlas de estado',
             self::DocumentosVer => 'Ver los documentos y descargar sus versiones',
             self::DocumentosGenerar => 'Generar documentos y emitir versiones',
             self::DocumentosRedactar => 'Redactar los textos de un documento',

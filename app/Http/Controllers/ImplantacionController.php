@@ -16,6 +16,7 @@ use App\Domain\Implantacion\Excepciones\ExclusionNoPermitida;
 use App\Domain\Implantacion\Excepciones\TransicionNoPermitida;
 use App\Domain\Implantacion\Models\Implantacion;
 use App\Domain\Implantacion\Models\ImplantacionTransicion;
+use App\Domain\Tarea\Models\Tarea;
 use App\Http\Requests\CambiarEstadoImplantacionesRequest;
 use App\Http\Requests\CambiarEstadoImplantacionRequest;
 use App\Http\Requests\GuardarImplantacionRequest;
@@ -55,6 +56,7 @@ class ImplantacionController extends Controller
             'responsable',
             'transiciones.usuario',
             'evidencias',
+            'tareas.responsable',
         ]);
 
         $requisito = $implantacion->requisito;
@@ -133,6 +135,25 @@ class ImplantacionController extends Controller
                     'nota' => $evidencia->getRelationValue('pivot')?->getAttribute('nota'),
                 ])
                 ->all(),
+            /*
+             * Lo que se está haciendo para cumplirlo. Va en la ficha del
+             * requisito porque es ahí donde alguien se pregunta qué falta, igual
+             * que las evidencias están donde alguien se pregunta cómo lo prueba.
+             */
+            'tareas' => $implantacion->tareas
+                ->map(fn (Tarea $tarea): array => [
+                    'id' => $tarea->id,
+                    'titulo' => $tarea->titulo,
+                    'estado' => $tarea->estado->value,
+                    'estadoEtiqueta' => $tarea->estado->etiqueta(),
+                    'tono' => $tarea->estado->tono(),
+                    'prioridad' => $tarea->prioridad->etiqueta(),
+                    'responsable' => $tarea->responsable?->name,
+                    'fecha_limite' => $tarea->fecha_limite?->toDateString(),
+                    'haVencido' => $tarea->haVencido(),
+                ])
+                ->all(),
+
             // Sólo viaja cuando el desplegable de vincular se abre: la ficha no
             // tiene por qué cargar el repositorio entero para enseñar tres
             // evidencias. `Inertia::optional()` es el sustituto de `lazy()`.

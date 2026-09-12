@@ -51,12 +51,25 @@ const props = defineProps<{
     transicionesPermitidas: Opcion[];
     historico: Transicion[];
     evidencias: EvidenciaVinculada[];
+    tareas: TareaVinculada[];
     /** Prop opcional: sólo llega cuando el diálogo de adjuntar la pide. */
     evidenciasDisponibles?: Opcion[];
     correspondencias: Correspondencia[];
     responsables: Opcion[];
     niveles: Opcion[];
 }>();
+
+interface TareaVinculada {
+    id: number;
+    titulo: string;
+    estado: string;
+    estadoEtiqueta: string;
+    tono: string;
+    prioridad: string;
+    responsable: string | null;
+    fecha_limite: string | null;
+    haVencido: boolean;
+}
 
 const { variantesEntrada } = useMovimientoReducido();
 
@@ -275,6 +288,61 @@ function cambiarEstado(): void {
                             :disponibles="evidenciasDisponibles"
                         />
                     </CardContent>
+                </Card>
+
+                <!--
+                    El plan de acción va aquí, y no sólo en su tabla: es donde
+                    alguien se pregunta qué falta para cumplir esto. Lo mismo que
+                    las evidencias están donde se pregunta cómo se prueba.
+                -->
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Qué se está haciendo</CardTitle>
+                        <CardDescription>
+                            Las tareas del plan de acción que hacen avanzar este requisito. Una tarea puede servir a
+                            requisitos de varios marcos a la vez.
+                        </CardDescription>
+                    </CardHeader>
+
+                    <CardContent>
+                        <p v-if="tareas.length === 0" class="text-sm text-muted-foreground">
+                            No hay ninguna tarea abierta sobre este requisito.
+                        </p>
+
+                        <ul v-else class="divide-y divide-border">
+                            <li v-for="tarea in tareas" :key="tarea.id" class="py-3 first:pt-0 last:pb-0">
+                                <Link
+                                    :href="`/tareas/${tarea.id}`"
+                                    class="group flex flex-wrap items-center gap-x-3 gap-y-1.5"
+                                >
+                                    <span class="text-sm font-medium group-hover:underline">{{ tarea.titulo }}</span>
+                                    <CeldaBadge
+                                        :valor="{
+                                            valor: tarea.estado,
+                                            etiqueta: tarea.estadoEtiqueta,
+                                            tono: tarea.tono,
+                                        }"
+                                    />
+                                </Link>
+
+                                <p class="mt-1 text-sm text-muted-foreground">
+                                    {{ tarea.responsable ?? 'Sin responsable' }}
+                                    <template v-if="tarea.fecha_limite">
+                                        ·
+                                        <span :class="tarea.haVencido ? 'text-destructive font-medium' : ''">
+                                            {{ tarea.haVencido ? 'venció el' : 'para el' }} {{ tarea.fecha_limite }}
+                                        </span>
+                                    </template>
+                                </p>
+                            </li>
+                        </ul>
+                    </CardContent>
+
+                    <CardFooter class="justify-end">
+                        <Link :href="`/tareas/crear?implantacion=${implantacion.id}`">
+                            <Button variant="outline" size="sm">Nueva tarea</Button>
+                        </Link>
+                    </CardFooter>
                 </Card>
 
                 <Card>

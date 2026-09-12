@@ -27,6 +27,10 @@ use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Organizacion\Models\Organizacion;
 use App\Domain\Sistema\Models\Sistema;
 use App\Domain\Sistema\Models\ValoracionDimension;
+use App\Domain\Tarea\CrearTarea;
+use App\Domain\Tarea\Enums\OrigenTarea;
+use App\Domain\Tarea\Enums\PrioridadTarea;
+use App\Domain\Tarea\Models\Tarea;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Seeder;
@@ -129,6 +133,7 @@ class DesarrolloSeeder extends Seeder
 
         $this->evidenciaDeEjemplo($sistema);
         $this->inventarioDeEjemplo($sistema);
+        $this->planDeAccionDeEjemplo($sistema);
         $this->documentoDeEjemplo($sistema);
     }
 
@@ -328,5 +333,53 @@ class DesarrolloSeeder extends Seeder
             'Evidencia de ejemplo vinculada a %d requisitos.',
             $implantaciones->count(),
         ));
+    }
+
+    /**
+     * Tres tareas que enseñan lo que hay que ver de un plan de acción: una
+     * vencida, una en curso vinculada a dos requisitos de golpe y una sin
+     * responsable.
+     *
+     * Son las tres situaciones que el panel y el aviso diario tienen que saber
+     * contar, y montarlas a mano cada vez que se refresca la base cuesta más que
+     * escribirlas aquí.
+     */
+    private function planDeAccionDeEjemplo(Sistema $sistema): void
+    {
+        $crear = app(CrearTarea::class);
+
+        $accesos = $sistema->implantaciones()
+            ->whereHas('requisito', fn (Builder $consulta) => $consulta->where('codigo', 'like', 'op.acc.%'))
+            ->limit(2)
+            ->get()
+            ->all();
+
+        if (Tarea::query()->count() > 0) {
+            return;
+        }
+
+        $crear([
+            'titulo' => 'Revisar la política de contraseñas y publicarla',
+            'descripcion' => 'Ajustar longitud mínima y caducidad, y dejarla firmada.',
+            'origen' => OrigenTarea::BrechaImplantacion->value,
+            'prioridad' => PrioridadTarea::Alta->value,
+            'fecha_limite' => Carbon::today()->subDays(6),
+        ], null, $accesos);
+
+        $crear([
+            'titulo' => 'Contratar la revisión anual del proveedor de correo',
+            'origen' => OrigenTarea::Propia->value,
+            'prioridad' => PrioridadTarea::Media->value,
+            'fecha_limite' => Carbon::today()->addDays(12),
+            'coste_estimado' => '1800.00',
+        ]);
+
+        $crear([
+            'titulo' => 'Documentar el procedimiento de alta y baja de personal',
+            'origen' => OrigenTarea::Propia->value,
+            'prioridad' => PrioridadTarea::Baja->value,
+        ]);
+
+        $this->command->info(sprintf('Plan de acción: %d tareas de ejemplo.', Tarea::query()->count()));
     }
 }

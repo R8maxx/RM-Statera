@@ -53,6 +53,10 @@ enum Rol: string
      * quien lo está preparando—, pero la plantilla de la organización no: eso
      * decide cómo van a empezar todos los documentos futuros.
      *
+     * Las tareas las gestiona el técnico entero: apuntar lo que hay que hacer,
+     * cogerlo y cerrarlo es su trabajo diario, y un plan de acción que sólo pueda
+     * tocar el responsable de seguridad se queda sin actualizar a la semana.
+     *
      * @return list<Permiso>
      */
     public function permisos(): array
@@ -69,6 +73,8 @@ enum Rol: string
                 Permiso::EvidenciasGestionar,
                 Permiso::ActivosVer,
                 Permiso::ActivosGestionar,
+                Permiso::TareasVer,
+                Permiso::TareasGestionar,
                 Permiso::DocumentosVer,
                 Permiso::DocumentosRedactar,
             ],
@@ -79,6 +85,7 @@ enum Rol: string
                 Permiso::ImplantacionesVer,
                 Permiso::EvidenciasVer,
                 Permiso::ActivosVer,
+                Permiso::TareasVer,
                 Permiso::DocumentosVer,
             ],
         };

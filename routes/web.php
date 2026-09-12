@@ -12,6 +12,7 @@ use App\Http\Controllers\PerfilController;
 use App\Http\Controllers\PlantillaDocumentoController;
 use App\Http\Controllers\RevisionInventarioController;
 use App\Http\Controllers\SistemaController;
+use App\Http\Controllers\TareaController;
 use App\Http\Controllers\ValoracionSistemaController;
 use App\Http\Middleware\ExigirDosFactores;
 use Illuminate\Support\Facades\Route;
@@ -202,6 +203,43 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/evidencias/{evidencia}/editar', [EvidenciaController::class, 'edit'])->name('evidencias.edit');
         Route::put('/evidencias/{evidencia}', [EvidenciaController::class, 'update'])->name('evidencias.update');
         Route::delete('/evidencias/{evidencia}', [EvidenciaController::class, 'destroy'])->name('evidencias.destroy');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Plan de acción
+    |--------------------------------------------------------------------------
+    */
+
+    Route::middleware('can:tareas.ver')->group(function (): void {
+        Route::get('/tareas', [TareaController::class, 'index'])->name('tareas.index');
+
+        // Antes que `{tarea}`, para que `crear` no se lea como un id.
+        Route::get('/tareas/crear', [TareaController::class, 'create'])
+            ->middleware(['can:tareas.gestionar', ExigirDosFactores::class])
+            ->name('tareas.create');
+
+        Route::get('/tareas/{tarea}', [TareaController::class, 'show'])->name('tareas.show');
+    });
+
+    Route::middleware(['can:tareas.gestionar', ExigirDosFactores::class])->group(function (): void {
+        // Antes que `/tareas/{tarea}`: `estado` no es un identificador.
+        Route::post('/tareas/estado', [TareaController::class, 'estado'])->name('tareas.estado');
+
+        Route::post('/tareas', [TareaController::class, 'store'])->name('tareas.store');
+        Route::get('/tareas/{tarea}/editar', [TareaController::class, 'edit'])->name('tareas.edit');
+        Route::put('/tareas/{tarea}', [TareaController::class, 'update'])->name('tareas.update');
+        Route::delete('/tareas/{tarea}', [TareaController::class, 'destroy'])->name('tareas.destroy');
+
+        // El estado va por su ruta y no por el formulario: es lo que registra la
+        // transición y ajusta la fecha de cierre.
+        Route::post('/tareas/{tarea}/estado', [TareaController::class, 'transicion'])
+            ->name('tareas.transicion');
+
+        Route::post('/tareas/{tarea}/implantaciones', [TareaController::class, 'vincular'])
+            ->name('tareas.implantaciones.vincular');
+        Route::delete('/tareas/{tarea}/implantaciones/{implantacion}', [TareaController::class, 'desvincular'])
+            ->name('tareas.implantaciones.desvincular');
     });
 
     /*

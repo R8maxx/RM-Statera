@@ -14,6 +14,7 @@ use App\Domain\Implantacion\Enums\EstadoImplantacion;
 use App\Domain\Implantacion\Enums\NivelMadurez;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
 use App\Domain\Sistema\Models\Sistema;
+use App\Domain\Tarea\Models\Tarea;
 use App\Models\User;
 use Database\Factories\ImplantacionFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -105,6 +106,22 @@ class Implantacion extends Model
         return $this->belongsToMany(Evidencia::class, 'evidencia_implantacion')
             ->withPivot(['nota', 'vinculada_por_id', 'created_at'])
             ->orderByDesc('evidencias.fecha_obtencion');
+    }
+
+    /**
+     * Lo que se está haciendo para cumplirlo.
+     *
+     * N:M por lo mismo que las evidencias: «revisar la política de contraseñas»
+     * hace avanzar este control de ISO y tres medidas del ENS a la vez.
+     *
+     * @return BelongsToMany<Tarea, $this>
+     */
+    public function tareas(): BelongsToMany
+    {
+        return $this->belongsToMany(Tarea::class, 'implantacion_tarea')
+            ->withPivot(['vinculada_por_id', 'created_at'])
+            ->orderByRaw("CASE WHEN tareas.estado IN ('hecha', 'descartada') THEN 1 ELSE 0 END")
+            ->orderByRaw('tareas.fecha_limite NULLS LAST');
     }
 
     /** @return HasMany<ImplantacionTransicion, $this> */

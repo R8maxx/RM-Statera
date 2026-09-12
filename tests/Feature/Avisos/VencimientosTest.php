@@ -3,11 +3,13 @@
 declare(strict_types=1);
 
 use App\Domain\Autorizacion\Enums\Rol;
-use App\Domain\Aviso\Notifications\EvidenciasQueVencen;
+use App\Domain\Aviso\Notifications\VencimientosDelDia;
 use App\Domain\Aviso\ResumenVencimientos;
 use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Organizacion\Models\Organizacion;
+use App\Domain\Tarea\Enums\EstadoTarea;
+use App\Domain\Tarea\Models\Tarea;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
 
@@ -39,11 +41,11 @@ it('reparte lo caducado de lo que está por caducar', function (): void {
 
     $vencimientos = app(ResumenVencimientos::class)();
 
-    expect($vencimientos->caducadas)->toHaveCount(1)
-        ->and($vencimientos->porCaducar)->toHaveCount(1)
-        ->and($vencimientos->caducadas[0]->titulo)->toBe('Certificado vencido')
-        ->and($vencimientos->caducadas[0]->cuando())->toBe('caducó hace 4 días')
-        ->and($vencimientos->porCaducar[0]->cuando())->toBe('caduca en 10 días');
+    expect($vencimientos->evidenciasCaducadas)->toHaveCount(1)
+        ->and($vencimientos->evidenciasPorCaducar)->toHaveCount(1)
+        ->and($vencimientos->evidenciasCaducadas[0]->titulo)->toBe('Certificado vencido')
+        ->and($vencimientos->evidenciasCaducadas[0]->cuando('caduca', 'caducó'))->toBe('caducó hace 4 días')
+        ->and($vencimientos->evidenciasPorCaducar[0]->cuando('caduca', 'caducó'))->toBe('caduca en 10 días');
 });
 
 it('la que caduca hoy cuenta como por caducar, no como caducada', function (): void {
@@ -51,9 +53,9 @@ it('la que caduca hoy cuenta como por caducar, no como caducada', function (): v
 
     $vencimientos = app(ResumenVencimientos::class)();
 
-    expect($vencimientos->caducadas)->toBeEmpty()
-        ->and($vencimientos->porCaducar)->toHaveCount(1)
-        ->and($vencimientos->porCaducar[0]->cuando())->toBe('caduca hoy');
+    expect($vencimientos->evidenciasCaducadas)->toBeEmpty()
+        ->and($vencimientos->evidenciasPorCaducar)->toHaveCount(1)
+        ->and($vencimientos->evidenciasPorCaducar[0]->cuando('caduca', 'caducó'))->toBe('caduca hoy');
 });
 
 it('avisa al responsable de seguridad y no al técnico', function (): void {
@@ -61,8 +63,8 @@ it('avisa al responsable de seguridad y no al técnico', function (): void {
 
     $this->artisan('avisos:enviar')->assertSuccessful();
 
-    Notification::assertSentTo($this->responsable, EvidenciasQueVencen::class);
-    Notification::assertNotSentTo($this->tecnico, EvidenciasQueVencen::class);
+    Notification::assertSentTo($this->responsable, VencimientosDelDia::class);
+    Notification::assertNotSentTo($this->tecnico, VencimientosDelDia::class);
 });
 
 it('sin nada que vencer no manda nada', function (): void {
@@ -96,7 +98,7 @@ it('la evidencia de una organización no aparece en el aviso de otra', function 
 
     Notification::assertSentTo(
         $this->responsable,
-        fn (EvidenciasQueVencen $aviso): bool => str_contains(
+        fn (VencimientosDelDia $aviso): bool => str_contains(
             (string) json_encode($aviso->toMail($this->responsable)->toArray()),
             'Contrato propio',
         ) && ! str_contains(
@@ -105,7 +107,7 @@ it('la evidencia de una organización no aparece en el aviso de otra', function 
         ),
     );
 
-    Notification::assertSentTo($suyo, EvidenciasQueVencen::class);
+    Notification::assertSentTo($suyo, VencimientosDelDia::class);
 });
 
 /**
@@ -121,7 +123,7 @@ it('ve las evidencias aunque arranque sin contexto de organización', function (
 
     $this->artisan('avisos:enviar')->assertSuccessful();
 
-    Notification::assertSentTo($this->responsable, EvidenciasQueVencen::class);
+    Notification::assertSentTo($this->responsable, VencimientosDelDia::class);
 });
 
 it('el resumen no toca la organización activa al terminar', function (): void {
@@ -140,4 +142,78 @@ it('--dry-run cuenta pero no envía', function (): void {
     $this->artisan('avisos:enviar', ['--dry-run' => true])->assertSuccessful();
 
     Notification::assertNothingSent();
+});
+
+/**
+ * Las tareas entran en el mismo resumen, pero en su propia lista: una evidencia
+ * caducada es una prueba que ya no prueba y una tarea vencida es trabajo que no
+ * se hizo. Se arreglan de formas distintas.
+ */
+it('cuenta las tareas vencidas aparte de las evidencias caducadas', function (): void {
+    Evidencia::factory()->create(['fecha_caducidad' => Carbon::today()->subDays(2), 'titulo' => 'Certificado']);
+    Tarea::factory()->vencida(5)->create(['titulo' => 'Revisar la política']);
+    Tarea::factory()->paraElDia(Carbon::today()->addDays(9))->create(['titulo' => 'Contratar la revisión']);
+
+    $vencimientos = app(ResumenVencimientos::class)();
+
+    expect($vencimientos->evidenciasCaducadas)->toHaveCount(1)
+        ->and($vencimientos->tareasVencidas)->toHaveCount(1)
+        ->and($vencimientos->tareasPorVencer)->toHaveCount(1)
+        ->and($vencimientos->pasados())->toBe(2)
+        ->and($vencimientos->tareasVencidas[0]->cuando())->toBe('venció hace 5 días');
+});
+
+/**
+ * Una tarea cerrada no vence: está cerrada, con su motivo en el histórico. Mismo
+ * criterio con el que el cumplimiento se cuenta sobre lo exigible y el inventario
+ * sobre lo vigente.
+ */
+it('una tarea cerrada con el plazo pasado no se avisa', function (): void {
+    Tarea::factory()
+        ->enEstado(EstadoTarea::Hecha)
+        ->paraElDia(Carbon::today()->subMonth())
+        ->create();
+
+    Tarea::factory()
+        ->enEstado(EstadoTarea::Descartada)
+        ->paraElDia(Carbon::today()->subMonth())
+        ->create();
+
+    expect(app(ResumenVencimientos::class)()->hayAlgo())->toBeFalse();
+});
+
+it('una tarea sin plazo no vence nunca', function (): void {
+    Tarea::factory()->count(3)->create(['fecha_limite' => null]);
+
+    expect(app(ResumenVencimientos::class)()->hayAlgo())->toBeFalse();
+});
+
+it('el correo nombra las dos cosas por separado', function (): void {
+    Evidencia::factory()->create(['fecha_caducidad' => Carbon::today()->subDay(), 'titulo' => 'Captura del IdP']);
+    Tarea::factory()->vencida()->create(['titulo' => 'Redactar el procedimiento']);
+
+    $aviso = new VencimientosDelDia('Organización de pruebas', app(ResumenVencimientos::class)());
+
+    $texto = (string) json_encode($aviso->toMail($this->responsable)->toArray());
+
+    expect($texto)
+        ->toContain('Evidencias caducadas')
+        ->toContain('Captura del IdP')
+        ->toContain('Tareas vencidas')
+        ->toContain('Redactar el procedimiento');
+});
+
+it('la tarea de otra organización tampoco cruza', function (): void {
+    $ajena = Organizacion::factory()->create();
+
+    comoOrganizacion($ajena);
+    Tarea::factory()->vencida()->create(['titulo' => 'Tarea de la otra organización']);
+
+    comoOrganizacion($this->organizacion);
+    Tarea::factory()->vencida()->create(['titulo' => 'Tarea propia']);
+
+    $vencimientos = app(ResumenVencimientos::class)();
+
+    expect($vencimientos->tareasVencidas)->toHaveCount(1)
+        ->and($vencimientos->tareasVencidas[0]->titulo)->toBe('Tarea propia');
 });

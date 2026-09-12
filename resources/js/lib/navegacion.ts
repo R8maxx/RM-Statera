@@ -5,6 +5,7 @@ import {
     FileTextIcon,
     LayoutDashboardIcon,
     LayoutTemplateIcon,
+    ListTodoIcon,
     PaperclipIcon,
     ServerIcon,
     type LucideIcon,
@@ -55,6 +56,12 @@ export const navegacion: GrupoNavegacion[] = [
                 href: '/evidencias',
                 icono: PaperclipIcon,
                 alias: ['pruebas', 'adjuntos', 'capturas', 'soporte'],
+            },
+            {
+                titulo: 'Tareas',
+                href: '/tareas',
+                icono: ListTodoIcon,
+                alias: ['plan de acción', 'plan', 'pendientes', 'acciones', 'kanban', 'to-do', 'deberes'],
             },
             {
                 titulo: 'Documentos',

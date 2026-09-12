@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Aviso\Console;
 
 use App\Domain\Autorizacion\Enums\Rol;
-use App\Domain\Aviso\Notifications\EvidenciasQueVencen;
+use App\Domain\Aviso\Notifications\VencimientosDelDia;
 use App\Domain\Aviso\ResumenVencimientos;
 use App\Domain\Aviso\Vencimientos;
 use App\Domain\Organizacion\ContextoOrganizacion;
@@ -16,7 +16,8 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Notification;
 
 /**
- * El resumen diario de vencimientos, una organización cada vez.
+ * El resumen diario de vencimientos —evidencias que caducan y tareas que vencen—,
+ * una organización cada vez.
  *
  * **Aquí es donde esto se rompe si se escribe deprisa.** Un comando programado
  * no tiene petición ni usuario, así que no hay contexto de organización: el
@@ -58,9 +59,9 @@ final class EnviarAvisosCommand extends Command
             $this->components->twoColumnDetail(
                 $organizacion->nombre,
                 sprintf(
-                    '%d caducada(s), %d por caducar → %d destinatario(s)',
-                    count($vencimientos->caducadas),
-                    count($vencimientos->porCaducar),
+                    '%d pasada(s) de fecha, %d por vencer → %d destinatario(s)',
+                    $vencimientos->pasados(),
+                    $vencimientos->total() - $vencimientos->pasados(),
                     $destinatarios->count(),
                 ),
             );
@@ -71,7 +72,7 @@ final class EnviarAvisosCommand extends Command
 
             Notification::send(
                 $destinatarios,
-                new EvidenciasQueVencen($organizacion->nombre, $vencimientos),
+                new VencimientosDelDia($organizacion->nombre, $vencimientos),
             );
 
             $enviados++;
