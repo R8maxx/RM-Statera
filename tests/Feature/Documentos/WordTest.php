@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 use App\Domain\Catalogo\Models\Marco;
 use App\Domain\Catalogo\Models\Requisito;
+use App\Domain\Documento\Contenido\RegistroGeneradores;
+use App\Domain\Documento\Cuerpo\GuardarCuerpo;
+use App\Domain\Documento\Cuerpo\Nodo;
+use App\Domain\Documento\Cuerpo\ResolverCuerpo;
 use App\Domain\Documento\EmitirVersion;
 use App\Domain\Documento\GenerarDocumento;
 use App\Domain\Documento\Models\Documento;
@@ -144,6 +148,53 @@ it('incluye la narrativa que ha redactado la organización', function (): void {
 
     expect(entradaDelDocx(descargarWord($this->documento->id, $version->id), 'word/document.xml'))
         ->toContain('Conclusión propia del SGSI.');
+});
+
+/**
+ * La copia de trabajo es del documento que se entregó, no del que Statera
+ * generaría hoy.
+ *
+ * Antes esto no se cumplía: el `.docx` montaba una secuencia fija desde
+ * `ContenidoDocumento` y lo redactado en el editor no aparecía por ningún lado.
+ * Quien abriera el Word de una versión emitida vería un documento distinto del
+ * PDF que lleva al lado, con la huella de ese PDF impresa dentro.
+ */
+it('lleva lo que se redactó a mano en el editor', function (): void {
+    $contenido = app(RegistroGeneradores::class)
+        ->para($this->documento->tipo)
+        ->construir($this->documento, new DocumentoVersion(['documento_id' => $this->documento->id]), []);
+
+    $fila = app(ResolverCuerpo::class)->fila($this->documento, $contenido);
+
+    $cuerpo = $fila->cuerpo;
+    $cuerpo['content'][] = Nodo::de('seccion', [], [
+        Nodo::encabezado(2, 'Apartado escrito a mano'),
+        Nodo::parrafo('Esta frase la escribió la organización en el editor.'),
+    ]);
+
+    app(GuardarCuerpo::class)($fila, $cuerpo);
+
+    $version = ($this->emitir)();
+
+    expect(entradaDelDocx(descargarWord($this->documento->id, $version->id), 'word/document.xml'))
+        ->toContain('Apartado escrito a mano')
+        ->toContain('Esta frase la escribió la organización en el editor.');
+});
+
+/**
+ * Y en el orden en que se redactó, no en el que decidía el escritor.
+ */
+it('respeta el orden del documento', function (): void {
+    $version = ($this->emitir)();
+
+    $texto = entradaDelDocx(descargarWord($this->documento->id, $version->id), 'word/document.xml');
+
+    $resumen = strpos($texto, 'Resumen');
+    $limitaciones = strpos($texto, 'Limitaciones de esta declaración');
+    $versiones = strpos($texto, 'Control de versiones');
+
+    expect($resumen)->toBeLessThan($limitaciones)
+        ->and($limitaciones)->toBeLessThan($versiones);
 });
 
 it('una versión sin instantánea no se puede exportar', function (): void {

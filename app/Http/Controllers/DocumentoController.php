@@ -209,7 +209,19 @@ class DocumentoController extends Controller
         EscritorWord $escritor,
         MarkdownDocumento $markdown,
     ): StreamedResponse {
-        abort_if($version->instantanea === [], 404);
+        $cuerpo = $version->instantanea['cuerpo'] ?? null;
+
+        /*
+         * Sin cuerpo congelado no hay copia de trabajo que dar.
+         *
+         * Toda versión generada lleva su árbol dentro de `instantanea` —lo
+         * escribe `GenerarDocumento::almacenar()`—, así que esto sólo se cumple
+         * en una fila a medio hacer. Construirla desde una consulta nueva sería
+         * el fallo más caro del módulo: el Word de una versión de marzo
+         * enseñaría los datos de octubre, con la huella de aquel PDF impresa
+         * dentro.
+         */
+        abort_if($version->instantanea === [] || ! is_array($cuerpo), 404);
 
         $documento->load(['sistema.marco', 'responsable']);
 
@@ -217,6 +229,7 @@ class DocumentoController extends Controller
             $documento,
             $version,
             ContenidoDocumento::desdeInstantanea($version->instantanea, $markdown),
+            $cuerpo,
         );
 
         $nombre = Str::slug($documento->codigo.'-'.$version->etiqueta().'-copia-de-trabajo').'.docx';
