@@ -48,6 +48,59 @@ final readonly class ConsultaRecurso
     }
 
     /**
+     * La consulta con los filtros de la URL aplicados, sin ordenar ni paginar.
+     *
+     * **Existe para las pantallas que no son tablas.** El tablero agrupa por
+     * estado y el calendario acota por mes: ninguno de los dos pagina, pero los
+     * dos tienen que filtrar exactamente igual que la tabla. Con la aplicación
+     * de filtros pegada al `->paginate()`, la única salida era escribir los
+     * filtros por segunda vez, y entonces la tabla enseña doce y el tablero
+     * nueve.
+     *
+     * Lo que no está declarado en el `Recurso` sigue sin filtrar, aquí también.
+     *
+     * @return QueryBuilder<TModel>
+     */
+    public function consultaFiltrada(Request $request): QueryBuilder
+    {
+        return QueryBuilder::for($this->recurso->consulta(), $request)
+            ->allowedFilters(...array_map(
+                static fn (Filtro $filtro) => $filtro->allowedFilter(),
+                $this->recurso->filtros(),
+            ));
+    }
+
+    /**
+     * Qué filtros se aplicaron de verdad, no los que se pidieron.
+     *
+     * Es lo que pinta los chips de la barra, y viaja igual en la tabla, en el
+     * tablero y en el calendario.
+     *
+     * @param  list<Filtro>  $filtros
+     * @return array<string, string|list<string>>
+     */
+    public function filtrosAplicados(Request $request, array $filtros): array
+    {
+        /** @var array<string, mixed> $recibidos */
+        $recibidos = $request->array('filter');
+        $aplicados = [];
+
+        foreach ($filtros as $filtro) {
+            $valor = $recibidos[$filtro->clave] ?? null;
+
+            if ($valor === null || $valor === '' || $valor === []) {
+                continue;
+            }
+
+            $aplicados[$filtro->clave] = is_array($valor)
+                ? array_values(array_map(strval(...), $valor))
+                : (string) $valor;
+        }
+
+        return $aplicados;
+    }
+
+    /**
      * @param  list<Columna>  $columnas
      * @param  list<Filtro>  $filtros
      * @return LengthAwarePaginator<int, TModel>
@@ -59,15 +112,11 @@ final readonly class ConsultaRecurso
             array_filter($columnas, static fn (Columna $columna): bool => $columna->ordenable),
         ));
 
-        $consulta = QueryBuilder::for($this->recurso->consulta(), $request)
-            ->allowedFilters(...array_map(
-                static fn (Filtro $filtro) => $filtro->allowedFilter(),
-                $filtros,
-            ))
+        return $this->consultaFiltrada($request)
             ->allowedSorts(...$ordenables)
-            ->defaultSort($this->ordenPorDefecto($columnas));
-
-        return $consulta->paginate($this->porPagina($request))->withQueryString();
+            ->defaultSort($this->ordenPorDefecto($columnas))
+            ->paginate($this->porPagina($request))
+            ->withQueryString();
     }
 
     /**
@@ -142,30 +191,5 @@ final readonly class ConsultaRecurso
         );
 
         return $existe ? $pedido : $this->recurso->ordenPorDefecto();
-    }
-
-    /**
-     * @param  list<Filtro>  $filtros
-     * @return array<string, string|list<string>>
-     */
-    private function filtrosAplicados(Request $request, array $filtros): array
-    {
-        /** @var array<string, mixed> $recibidos */
-        $recibidos = $request->array('filter');
-        $aplicados = [];
-
-        foreach ($filtros as $filtro) {
-            $valor = $recibidos[$filtro->clave] ?? null;
-
-            if ($valor === null || $valor === '' || $valor === []) {
-                continue;
-            }
-
-            $aplicados[$filtro->clave] = is_array($valor)
-                ? array_values(array_map(strval(...), $valor))
-                : (string) $valor;
-        }
-
-        return $aplicados;
     }
 }

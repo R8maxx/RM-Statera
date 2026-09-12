@@ -32,6 +32,8 @@ readonly fecha: string,
 readonly dias: number,
 readonly responsable: string | null,
 readonly tono: string,
+readonly estadoTono: string,
+readonly estadoEtiqueta: string,
 };
 }
 namespace Catalogo {

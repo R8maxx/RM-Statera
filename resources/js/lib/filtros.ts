@@ -1,6 +1,41 @@
-import type { ValorFiltro } from '@/composables/useTablaServidor';
-
 type Filtro = App.Http.Resources.Definicion.Filtro;
+
+/**
+ * Lo que puede valer un filtro.
+ *
+ * Vive aquí y no en el composable de la tabla porque lo leen tres pantallas y
+ * sólo una de ellas tiene tabla. Tenerlo allí obligaba a `BarraFiltros` a
+ * importar de un composable de paginación que no usa.
+ */
+export type ValorFiltro = string | string[] | null;
+
+/**
+ * Los valores tal y como los devolvió el servidor.
+ *
+ * Es una copia y no una referencia: el estado local de los filtros se toca al
+ * escribir, y el del servidor es lo que se aplicó de verdad.
+ */
+export function normalizar(valores: Record<string, string | string[]>): Record<string, ValorFiltro> {
+    return { ...valores };
+}
+
+/**
+ * spatie/laravel-query-builder espera los valores múltiples separados por comas,
+ * no como `filter[estado][]`.
+ */
+export function aQueryString(valores: Record<string, ValorFiltro>): Record<string, string> {
+    const salida: Record<string, string> = {};
+
+    for (const [clave, valor] of Object.entries(valores)) {
+        if (valor === null || valor === '' || (Array.isArray(valor) && valor.length === 0)) {
+            continue;
+        }
+
+        salida[clave] = Array.isArray(valor) ? valor.join(',') : valor;
+    }
+
+    return salida;
+}
 
 /**
  * La lectura de un valor de filtro, en un solo sitio.

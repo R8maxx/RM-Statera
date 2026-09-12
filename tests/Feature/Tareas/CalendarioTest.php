@@ -28,12 +28,16 @@ beforeEach(function (): void {
 });
 
 /** Los vencimientos que el calendario manda para un mes. */
-function vencimientosDe(string $mes): array
+function vencimientosDe(string $mes, array $filtros = []): array
 {
     $vencimientos = [];
 
+    $query = collect($filtros)
+        ->map(fn (string $valor, string $clave): string => "filter[{$clave}]={$valor}")
+        ->implode('&');
+
     test()->actingAs(test()->usuario)
-        ->get("/tareas/calendario?mes={$mes}")
+        ->get("/tareas/calendario?mes={$mes}".($query === '' ? '' : "&{$query}"))
         ->assertOk()
         ->assertInertia(function (AssertableInertia $pagina) use (&$vencimientos): void {
             $vencimientos = $pagina->toArray()['props']['vencimientos'];
@@ -129,4 +133,145 @@ it('el auditor puede mirarlo', function (): void {
     $this->actingAs(usuarioCon(Rol::Auditor))
         ->get('/tareas/calendario')
         ->assertOk();
+});
+
+/*
+|--------------------------------------------------------------------------
+| Los filtros del calendario
+|--------------------------------------------------------------------------
+|
+| No son los de tareas, y es deliberado: la mitad de lo que sale son evidencias,
+| que no tienen prioridad ni origen. Los tres que hay significan lo mismo para
+| las dos fuentes.
+|
+*/
+
+it('acota por fuente, y eso vale para las dos', function (): void {
+    Tarea::factory()->paraElDia('2026-09-10')->create(['titulo' => 'Una tarea']);
+    Evidencia::factory()->create(['fecha_caducidad' => '2026-09-11', 'titulo' => 'Una evidencia']);
+
+    $soloTareas = vencimientosDe('2026-09', ['fuente' => 'tarea']);
+
+    expect(array_column($soloTareas, 'titulo'))->toBe(['Una tarea']);
+
+    $soloEvidencias = vencimientosDe('2026-09', ['fuente' => 'evidencia']);
+
+    expect(array_column($soloEvidencias, 'titulo'))->toBe(['Una evidencia']);
+});
+
+it('acota por responsable en las dos fuentes a la vez', function (): void {
+    $usuario = usuarioCon();
+
+    Tarea::factory()->de($usuario)->paraElDia('2026-09-10')->create(['titulo' => 'Suya']);
+    Tarea::factory()->paraElDia('2026-09-10')->create(['titulo' => 'De nadie']);
+    Evidencia::factory()->create([
+        'fecha_caducidad' => '2026-09-12',
+        'titulo' => 'Evidencia suya',
+        'responsable_id' => $usuario->id,
+    ]);
+    Evidencia::factory()->create(['fecha_caducidad' => '2026-09-12', 'titulo' => 'Evidencia de nadie']);
+
+    $titulos = array_column(vencimientosDe('2026-09', ['responsable_id' => (string) $usuario->id]), 'titulo');
+
+    expect($titulos)->toHaveCount(2)
+        ->and($titulos)->toContain('Suya')
+        ->and($titulos)->toContain('Evidencia suya');
+});
+
+it('«sólo lo vencido» deja lo pasado de fecha y nada más', function (): void {
+    Carbon::setTestNow('2026-09-15');
+
+    Tarea::factory()->paraElDia('2026-09-10')->create(['titulo' => 'Ya vencida']);
+    Tarea::factory()->paraElDia('2026-09-20')->create(['titulo' => 'En plazo']);
+    Evidencia::factory()->create(['fecha_caducidad' => '2026-09-09', 'titulo' => 'Ya caducada']);
+
+    $titulos = array_column(vencimientosDe('2026-09', ['vencidos' => '1']), 'titulo');
+
+    expect($titulos)->toHaveCount(2)
+        ->and($titulos)->toContain('Ya vencida')
+        ->and($titulos)->toContain('Ya caducada');
+
+    Carbon::setTestNow();
+});
+
+it('lo que vence hoy no cuenta como vencido', function (): void {
+    Carbon::setTestNow('2026-09-15');
+
+    Tarea::factory()->paraElDia('2026-09-15')->create(['titulo' => 'Vence hoy']);
+
+    expect(vencimientosDe('2026-09', ['vencidos' => '1']))->toBeEmpty();
+
+    Carbon::setTestNow();
+});
+
+it('un filtro con basura se ignora en vez de romper', function (): void {
+    Tarea::factory()->paraElDia('2026-09-10')->create();
+
+    $this->actingAs($this->usuario)
+        ->get('/tareas/calendario?mes=2026-09&filter[fuente]=platano&filter[responsable_id]=hola')
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina->has('vencimientos', 1));
+});
+
+/*
+|--------------------------------------------------------------------------
+| El color dice qué es la cosa, y el rojo que se pasó
+|--------------------------------------------------------------------------
+*/
+
+it('lo vencido gana y se pinta en rojo, sea lo que sea', function (): void {
+    Carbon::setTestNow('2026-09-15');
+
+    Tarea::factory()->enEstado(EstadoTarea::EnCurso)->paraElDia('2026-09-10')->create();
+    Evidencia::factory()->create(['fecha_caducidad' => '2026-09-09']);
+
+    foreach (vencimientosDe('2026-09') as $vencimiento) {
+        expect($vencimiento['estadoTono'])->toBe('caducada');
+    }
+
+    Carbon::setTestNow();
+});
+
+it('una tarea en plazo lleva el tono de su estado', function (): void {
+    Carbon::setTestNow('2026-09-01');
+
+    Tarea::factory()->enEstado(EstadoTarea::Bloqueada)->paraElDia('2026-09-20')->create();
+
+    $vencimiento = vencimientosDe('2026-09')[0];
+
+    expect($vencimiento['estadoTono'])->toBe(EstadoTarea::Bloqueada->tono())
+        ->and($vencimiento['estadoEtiqueta'])->toBe('Bloqueada');
+
+    Carbon::setTestNow();
+});
+
+it('una evidencia en plazo está vigente', function (): void {
+    Carbon::setTestNow('2026-09-01');
+
+    Evidencia::factory()->create(['fecha_caducidad' => '2026-09-20']);
+
+    $vencimiento = vencimientosDe('2026-09')[0];
+
+    expect($vencimiento['estadoTono'])->toBe('implantado')
+        ->and($vencimiento['estadoEtiqueta'])->toBe('Vigente');
+
+    Carbon::setTestNow();
+});
+
+/**
+ * El rojo es del plazo y de nada más. Si los estados lo gastaran, el mes se
+ * pondría rojo por dos motivos distintos y lo vencido dejaría de saltar.
+ */
+it('ningún estado que no sea vencido gasta el rojo', function (): void {
+    Carbon::setTestNow('2026-09-01');
+
+    foreach ([EstadoTarea::Pendiente, EstadoTarea::EnCurso, EstadoTarea::Bloqueada] as $estado) {
+        Tarea::factory()->enEstado($estado)->paraElDia('2026-09-20')->create();
+    }
+
+    foreach (vencimientosDe('2026-09') as $vencimiento) {
+        expect($vencimiento['estadoTono'])->not->toBe('caducada');
+    }
+
+    Carbon::setTestNow();
 });

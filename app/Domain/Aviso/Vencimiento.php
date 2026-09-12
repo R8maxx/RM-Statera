@@ -49,8 +49,25 @@ final readonly class Vencimiento
         /** Días hasta la fecha. Negativo si ya pasó. */
         public int $dias,
         public ?string $responsable,
-        /** El tono del dominio con el que se pinta. Nunca un color. */
+        /**
+         * Lo cerca que está la fecha: `caducada`, `en_progreso`, `implantado`.
+         *
+         * Lo lee el correo diario para decidir el asunto. **No es el color del
+         * calendario**: ahí el color dice qué es la cosa, no cuándo vence.
+         */
         public string $tono,
+        /**
+         * Qué es la cosa, en tono del dominio, y en texto.
+         *
+         * Es lo que colorea el calendario. Una tarea trae su estado; una
+         * evidencia, su vigencia. **Y lo vencido gana siempre y se pinta en
+         * rojo**, que es el único uso que DESIGN.md § 3 reserva al rojo.
+         *
+         * Viaja también como texto porque § 11 exige que un estado no dependa
+         * sólo del color.
+         */
+        public string $estadoTono,
+        public string $estadoEtiqueta,
     ) {
         $this->url = $fuente->url($id);
         $this->icono = $fuente->icono();

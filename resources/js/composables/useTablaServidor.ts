@@ -1,11 +1,11 @@
-import { estaActivo } from '@/lib/filtros';
+import { useFiltrosServidor } from '@/composables/useFiltrosServidor';
+import { aQueryString, type ValorFiltro } from '@/lib/filtros';
 import { router } from '@inertiajs/vue3';
-import { computed, ref, watch, type Ref } from 'vue';
+import { computed, ref, type Ref } from 'vue';
 
 type MetaTabla = App.Http.Resources.Definicion.MetaTabla;
 
-/** El valor de un filtro tal y como lo maneja la interfaz. */
-export type ValorFiltro = string | string[] | null;
+export type { ValorFiltro };
 
 interface Opciones {
     meta: Ref<MetaTabla>;
@@ -19,21 +19,13 @@ interface Opciones {
  * guarda una copia del estado: se traduce a query string y se recarga sólo
  * `filas` y `meta`. La definición del recurso viaja como prop `once` y no se
  * vuelve a pedir.
+ *
+ * **Los filtros no viven aquí**, viven en `useFiltrosServidor`: los usan también
+ * el tablero y el calendario, que no paginan ni ordenan. Esto es lo que la tabla
+ * añade encima.
  */
 export function useTablaServidor({ meta, ordenPorDefecto }: Opciones) {
-    const cargando = ref(false);
-
-    /** Los filtros que el usuario está editando, antes de aplicarse. */
-    const filtros = ref<Record<string, ValorFiltro>>(normalizar(meta.value.filtros));
-
-    // La meta que vuelve del servidor manda: si una recarga descarta un filtro
-    // no declarado, la barra tiene que reflejarlo y no mentir.
-    watch(
-        () => meta.value.filtros,
-        (valores) => {
-            filtros.value = normalizar(valores);
-        },
-    );
+    const paginando = ref(false);
 
     const orden = computed(() => {
         const valor = meta.value.orden || ordenPorDefecto;
@@ -44,34 +36,51 @@ export function useTablaServidor({ meta, ordenPorDefecto }: Opciones) {
         };
     });
 
-    const hayFiltrosActivos = computed(() => Object.values(filtros.value).some(estaActivo));
+    /*
+     * Lo que la tabla arrastra en cada recarga y las otras dos pantallas no: sin
+     * esto, filtrar devolvería a la página 1 con el orden por defecto.
+     */
+    const extras = (): Record<string, unknown> => ({
+        sort: meta.value.orden || ordenPorDefecto,
+        page: meta.value.pagina,
+        por_pagina: meta.value.porPagina,
+    });
+
+    const filtrado = useFiltrosServidor({
+        aplicados: computed(() => meta.value.filtros),
+        only: ['filas', 'meta'],
+        extras,
+    });
+
+    // Cambiar un filtro devuelve a la primera página: la séptima de un resultado
+    // que ahora tiene dos sale vacía y parece que el filtro no encontró nada.
+    function aplicarFiltro(clave: string, valor: ValorFiltro): void {
+        filtrado.filtros.value = { ...filtrado.filtros.value, [clave]: valor };
+        consultar({ filter: aQueryString(filtrado.filtros.value), page: 1 });
+    }
+
+    function limpiarFiltros(): void {
+        filtrado.filtros.value = {};
+        consultar({ filter: {}, page: 1 });
+    }
 
     function consultar(cambios: Record<string, unknown>, reemplazarHistorial = true): void {
         router.reload({
             only: ['filas', 'meta'],
             data: {
-                sort: meta.value.orden || ordenPorDefecto,
-                page: meta.value.pagina,
-                por_pagina: meta.value.porPagina,
-                filter: aQueryString(filtros.value),
+                ...extras(),
+                filter: aQueryString(filtrado.filtros.value),
                 ...cambios,
             },
             replace: reemplazarHistorial,
-            onStart: () => (cargando.value = true),
-            onFinish: () => (cargando.value = false),
+            onStart: () => (paginando.value = true),
+            onFinish: () => (paginando.value = false),
         });
     }
 
-    /**
-     * Ordena por una columna. Sin sentido explícito alterna, que es lo que se
-     * espera al pulsar la cabecera; el menú de la columna sí lo fija, porque
-     * ahí se elige «Ascendente», no «lo contrario de lo que hubiera».
-     */
     function ordenarPor(clave: string, descendente?: boolean): void {
         const sentido = descendente ?? (orden.value.clave === clave && !orden.value.descendente);
 
-        // Cambiar el orden con la vista en la página siete no tiene sentido:
-        // el conjunto entero se reordena.
         consultar({ sort: `${sentido ? '-' : ''}${clave}`, page: 1 });
     }
 
@@ -83,47 +92,17 @@ export function useTablaServidor({ meta, ordenPorDefecto }: Opciones) {
         consultar({ por_pagina: porPagina, page: 1 });
     }
 
-    function aplicarFiltro(clave: string, valor: ValorFiltro): void {
-        filtros.value = { ...filtros.value, [clave]: valor };
-        consultar({ filter: aQueryString(filtros.value), page: 1 });
-    }
-
-    function limpiarFiltros(): void {
-        filtros.value = {};
-        consultar({ filter: {}, page: 1 });
-    }
+    const cargando = computed(() => paginando.value || filtrado.cargando.value);
 
     return {
         cargando,
-        filtros,
+        filtros: filtrado.filtros,
         orden,
-        hayFiltrosActivos,
+        hayFiltrosActivos: filtrado.hayFiltrosActivos,
         ordenarPor,
         irAPagina,
         cambiarTamano,
         aplicarFiltro,
         limpiarFiltros,
     };
-}
-
-function normalizar(valores: Record<string, string | string[]>): Record<string, ValorFiltro> {
-    return { ...valores };
-}
-
-/**
- * spatie/laravel-query-builder espera los valores múltiples separados por comas,
- * no como `filter[estado][]`.
- */
-function aQueryString(valores: Record<string, ValorFiltro>): Record<string, string> {
-    const salida: Record<string, string> = {};
-
-    for (const [clave, valor] of Object.entries(valores)) {
-        if (valor === null || valor === '' || (Array.isArray(valor) && valor.length === 0)) {
-            continue;
-        }
-
-        salida[clave] = Array.isArray(valor) ? valor.join(',') : valor;
-    }
-
-    return salida;
 }

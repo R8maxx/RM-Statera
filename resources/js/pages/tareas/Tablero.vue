@@ -12,15 +12,42 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import BarraFiltros from '@/components/tabla/BarraFiltros.vue';
+import { useFiltrosServidor } from '@/composables/useFiltrosServidor';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { router } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, ref, toRef } from 'vue';
+
+type Filtro = App.Http.Resources.Definicion.Filtro;
 
 const props = defineProps<{
     columnas: Columna[];
     /** Cuántos días sigue viéndose en el tablero algo ya cerrado. */
     recientes: number;
+    filtros: Filtro[];
+    filtrosAplicados: Record<string, string | string[]>;
 }>();
+
+/*
+ * Los mismos filtros que la tabla y con la misma declaración, menos los que aquí
+ * no significan nada. Sin columnas que ocupar, todo lo que no sea la búsqueda va
+ * al desplegable.
+ */
+const {
+    filtros: valores,
+    hayFiltrosActivos,
+    aplicarFiltro,
+    limpiarFiltros,
+} = useFiltrosServidor({
+    aplicados: toRef(props, 'filtrosAplicados'),
+    only: ['columnas', 'filtrosAplicados'],
+});
+
+const busqueda = computed<Filtro | null>(
+    () => props.filtros.find((filtro) => filtro.tipo === 'busqueda') ?? null,
+);
+
+const sueltos = computed(() => props.filtros.filter((filtro) => filtro.tipo !== 'busqueda'));
 
 const etiquetas = computed(() =>
     Object.fromEntries(props.columnas.map((columna) => [columna.estado, columna.etiqueta])),
@@ -130,6 +157,18 @@ function confirmarDescarte(): void {
                 <ConmutadorVista />
             </template>
         </CabeceraPagina>
+
+        <BarraFiltros
+            v-if="filtros.length > 0"
+            class="mb-4"
+            :busqueda="busqueda"
+            :sueltos="sueltos"
+            :todos="filtros"
+            :valores="valores"
+            :hay-filtros-activos="hayFiltrosActivos"
+            @aplicar="aplicarFiltro"
+            @limpiar="limpiarFiltros"
+        />
 
         <p aria-live="polite" class="sr-only">{{ anuncio }}</p>
 

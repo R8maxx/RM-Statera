@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Domain\Aviso\CalendarioVencimientos;
+use App\Domain\Aviso\FiltrosVencimiento;
+use App\Domain\Aviso\Fuente;
 use App\Domain\Aviso\RejillaMes;
 use App\Domain\Implantacion\Models\Implantacion;
 use App\Domain\Tarea\CambiarEstadoTarea;
@@ -23,6 +25,9 @@ use App\Http\Requests\CambiarEstadoTareasRequest;
 use App\Http\Requests\GuardarTareaRequest;
 use App\Http\Requests\VincularTareaRequest;
 use App\Http\Resources\Concerns\RespondeConRecurso;
+use App\Http\Resources\ConsultaRecurso;
+use App\Http\Resources\Definicion\Filtro;
+use App\Http\Resources\Definicion\Opcion;
 use App\Http\Resources\TareaRecurso;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -61,6 +66,18 @@ class TareaController extends Controller
     /** Cuánto tiempo sigue viéndose en el tablero algo ya cerrado. */
     private const DIAS_HECHAS = 14;
 
+    /**
+     * Los filtros que en el tablero no tienen sentido.
+     *
+     * Las columnas **son** el estado: filtrar por él vacía tres de las cuatro y
+     * deja un tablero que parece roto. Lo mismo `bloqueadas`, que es un estado
+     * con otro nombre. Todo lo demás —responsable, prioridad, origen, plazo,
+     * búsqueda— sí acota, y es justo para lo que se pide un tablero de verdad.
+     *
+     * @var list<string>
+     */
+    private const FILTROS_QUE_SOBRAN = ['estado', 'bloqueadas'];
+
     public function index(Request $request, ResumenPlanDeAccion $resumen): Response
     {
         return Inertia::render('tareas/Index', [
@@ -89,12 +106,20 @@ class TareaController extends Controller
      * Cada columna trae un tope y su cuenta real, para poder decir «y N más» con
      * enlace a la lista en vez de meter quinientas tarjetas en el DOM.
      */
-    public function tablero(): Response
+    public function tablero(Request $request): Response
     {
+        $recurso = new TareaRecurso;
         $columnas = [];
 
         foreach (self::COLUMNAS as $estado) {
-            $consulta = Tarea::query()
+            /*
+             * Un `QueryBuilder` por columna en vez de uno clonado: los filtros de
+             * spatie se aplican al construirlo, y clonar el mismo cuatro veces
+             * deja cuatro consultas compartiendo estado interno. Construirlo de
+             * nuevo cuesta nada y no hay que ir con cuidado.
+             */
+            $consulta = (new ConsultaRecurso($recurso))
+                ->consultaFiltrada($request)
                 ->where('estado', $estado->value)
                 ->when(
                     $estado === EstadoTarea::Hecha,
@@ -121,6 +146,7 @@ class TareaController extends Controller
         }
 
         return Inertia::render('tareas/Tablero', [
+            ...$this->filtros($recurso, $request, self::FILTROS_QUE_SOBRAN),
             'columnas' => $columnas,
             'recientes' => self::DIAS_HECHAS,
         ]);
@@ -187,6 +213,7 @@ class TareaController extends Controller
     public function calendario(Request $request, CalendarioVencimientos $calendario): Response
     {
         $rejilla = RejillaMes::de($request->string('mes')->toString());
+        $filtros = FiltrosVencimiento::desde($request);
 
         return Inertia::render('tareas/Calendario', [
             'rejilla' => $rejilla,
@@ -196,8 +223,62 @@ class TareaController extends Controller
             'vencimientos' => $calendario->entre(
                 Carbon::parse($rejilla->primerDia),
                 Carbon::parse($rejilla->ultimoDia),
+                $filtros,
             ),
+            'filtros' => $this->filtrosDelCalendario(),
+            'filtrosAplicados' => $this->aplicadosDelCalendario($request),
         ]);
+    }
+
+    /**
+     * Los tres filtros del calendario.
+     *
+     * Se declaran con la misma clase que los de una tabla —`Filtro`— para que
+     * `BarraFiltros` los pinte sin enterarse de que aquí no hay tabla. Lo que no
+     * comparten es la declaración de `TareaRecurso`: ver `FiltrosVencimiento`.
+     *
+     * @return list<Filtro>
+     */
+    private function filtrosDelCalendario(): array
+    {
+        return [
+            Filtro::multiSelect('fuente', 'Qué', array_map(
+                static fn (Fuente $fuente): Opcion => new Opcion($fuente->value, $fuente->etiqueta()),
+                Fuente::cases(),
+            ))->sinColumna(),
+            Filtro::select('responsable_id', 'Responsable', fn (): array => User::query()
+                ->orderBy('name')
+                ->get()
+                ->map(fn (User $usuario): Opcion => new Opcion((string) $usuario->id, $usuario->name))
+                ->all())->sinColumna()->resolver(),
+            Filtro::porScope('vencidos', 'Sólo lo vencido', 'vencidas')->sinColumna(),
+        ];
+    }
+
+    /**
+     * Lo que se aplicó de verdad, para los chips.
+     *
+     * @return array<string, string|list<string>>
+     */
+    private function aplicadosDelCalendario(Request $request): array
+    {
+        /** @var array<string, mixed> $recibidos */
+        $recibidos = $request->array('filter');
+        $aplicados = [];
+
+        foreach (['fuente', 'responsable_id', 'vencidos'] as $clave) {
+            $valor = $recibidos[$clave] ?? null;
+
+            if ($valor === null || $valor === '' || $valor === []) {
+                continue;
+            }
+
+            $aplicados[$clave] = is_array($valor)
+                ? array_values(array_map(strval(...), $valor))
+                : (string) $valor;
+        }
+
+        return $aplicados;
     }
 
     public function create(Request $request): Response
