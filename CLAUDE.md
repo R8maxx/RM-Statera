@@ -564,6 +564,51 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
 - **Los anchos del `.docx` van en twips ENTEROS.** `Converter::cmToTwip()` devuelve decimales y salían
   al XML como `w:w="1583.3333333333333"`. Lo cazó Larastan, no una revisión.
 
+- **El cuerpo del documento está exento de `TrimStrings` y de `ConvertEmptyStringsToNull`**
+  (`bootstrap/app.php`). Los dos son globales y recortan **toda** cadena de la petición; el cuerpo
+  viaja como un árbol de ProseMirror donde cada trozo de texto es una cadena suelta, y el espacio que
+  separa un trozo del anterior **no es relleno, es la separación**. Sin la exención, el PDF que se le
+  entrega al auditor decía «no es una entrega.Este PDF se regenera», y además guardar sin tocar nada
+  cambiaba el documento. `Str::is` entiende el comodín, así que `cuerpo.*` cubre el árbol a cualquier
+  profundidad; el de cadenas vacías va por camino (`documentos/*/cuerpo`) porque **corre antes de
+  resolver la ruta** y ahí no hay `routeIs()` que valga. Lo cazó un test, no una lectura: el síntoma
+  aparece a tres capas de distancia de la causa.
+
+- **`editado_en` significa «alguien guardó desde el editor», no «el contenido cambió».** Es
+  deliberado y hay un test que lo fija (`DocumentoEditadoDeclaraTest`): guardar sin cambiar nada
+  declara el documento mantenido a mano, y a la vez **no** marca ningún bloque calculado como
+  modificado, porque la procedencia se comprueba contra la línea base y no se deduce de que alguien
+  haya pulsado Guardar. De ahí que el editor tenga **dos eventos y no uno**: Tiptap normaliza el árbol
+  al cargarlo y eso llega por `normalizado`; sólo `onUpdate` emite `cambio`. Emitir los dos como
+  `cambio` dejaba el documento sucio nada más abrirse, «Ver el PDF» guardaba solo y el documento
+  acababa declarando en portada que se había editado a mano por el hecho de abrirlo.
+
+- **Se puede redactar antes de generar nada.** Una versión nace en `GenerarDocumento::encolar()`, así
+  que un documento recién creado no tiene ninguna y el editor abortaba con 404 en el camino más corto
+  que hay entre crear un documento y escribir en él. `DocumentoCuerpoController::versionVigente()` cae
+  a una `DocumentoVersion` **en memoria y sin guardar** —`etiqueta()` ya dice «Borrador» con `numero`
+  nulo—. No se crea la fila: `documento_versiones` es el registro de lo que se ha **entregado**, y
+  meter ahí un documento que alguien abrió una vez le quita el único significado que tiene.
+
+- **El `.docx` recorre el cuerpo de la instantánea; `CuerpoAWord` es el hermano de
+  `RenderizadorCuerpo`.** Mismo árbol, mismo vocabulario cerrado de `EsquemaCuerpo`, otro destino.
+  `EscritorWord` se queda con el continente —hoja, estilos, pie de copia de trabajo y propiedades del
+  fichero—. Lo que **no** se traduce es el lenguaje de color y forma: los badges llegan como texto y la
+  barra por tramos como sus cifras. Sin cuerpo en la instantánea se responde 404, igual que sin
+  instantánea. Y ojo con PHPWord: **`TextRun` no tiene estilo de fuente propio y no protesta si se le
+  pide** —un `__call` se traga `setFontStyle()` en silencio—, así que el estilo base baja hasta cada
+  `addText`. Lo cazó Larastan.
+
+- **Dos cabos sueltos anotados del módulo de documentos, que siguen abiertos:**
+  1. `CuerpoRenderizadoTest` monta todo sobre ISO, así que los bloques exclusivos del ENS
+     —`tabla_derivacion`, `notas_anexo_ii` y `tabla_madurez`— no tienen ninguna aserción sobre su HTML
+     materializado. `CuerpoSeguroTest` recorre los dos tipos, pero sobre el **esqueleto** de fábrica,
+     con los huecos sin rellenar.
+  2. `MaterializarCuerpo` cierra su `match` con `default => []`. Una fuente nueva añadida a
+     `EsquemaCuerpo::FUENTES` y olvidada ahí produce un bloque **vacío** en el PDF sin ningún error.
+     `EsquemaEnDosIdiomasTest` compara PHP con TypeScript, pero nadie compara `FUENTES` contra las
+     ramas del `match`.
+
 ## Fuera de alcance
 
 Facturación y suscripciones, onboarding self-service, panel de superadministración, white-labeling, integraciones con SIEM o escáneres, aplicación móvil. Los flujos de auditoría formal ENS de categoría media y alta **se modelan pero no se implementan**. NIS2 todavía no se carga, pero el modelo de marcos tiene que permitir añadirla sin cambios estructurales.
