@@ -8,7 +8,7 @@ use App\Domain\Activo\Enums\EstadoControl;
 use App\Domain\Activo\Enums\TipoActivo;
 use App\Domain\Activo\Models\Activo;
 use App\Domain\Activo\ResumenInventario;
-use App\Http\Resources\Panel\IndicadorInventario;
+use App\Http\Resources\Panel\Indicador;
 use Illuminate\Support\Carbon;
 use Inertia\Testing\AssertableInertia;
 
@@ -37,7 +37,7 @@ beforeEach(function (): void {
 
     $this->valor = function (string $clave): int {
         $indicador = collect([...$this->resumen->alertas(), ...$this->resumen->pendientesDeCompletar()])
-            ->first(fn (IndicadorInventario $uno): bool => $uno->clave === $clave);
+            ->first(fn (Indicador $uno): bool => $uno->clave === $clave);
 
         expect($indicador)->not->toBeNull("No existe el indicador `{$clave}`.");
 

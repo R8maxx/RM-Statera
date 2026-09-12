@@ -190,15 +190,16 @@ readonly nombre: string,
 readonly aplicables: number,
 readonly implantadas: number,
 };
-export type IndicadorInventario = {
+export type Indicador = {
 readonly clave: string,
 readonly etiqueta: string,
 readonly valor: number,
 readonly tono: string,
 readonly filtro: string,
+readonly base: string,
 readonly ayuda: string | null,
 };
-export type RepartoInventario = {
+export type Reparto = {
 readonly clave: string,
 readonly etiqueta: string,
 readonly valor: number,
@@ -215,10 +216,10 @@ export type ResumenInventarioPanel = {
 readonly vigentes: number,
 readonly resueltos: number,
 readonly restringidos: number,
-readonly cifrado: App.Http.Resources.Panel.RepartoInventario[],
-readonly copia: App.Http.Resources.Panel.RepartoInventario[],
-readonly porTipo: App.Http.Resources.Panel.RepartoInventario[],
-readonly porCicloDeVida: App.Http.Resources.Panel.RepartoInventario[],
+readonly cifrado: App.Http.Resources.Panel.Reparto[],
+readonly copia: App.Http.Resources.Panel.Reparto[],
+readonly porTipo: App.Http.Resources.Panel.Reparto[],
+readonly porCicloDeVida: App.Http.Resources.Panel.Reparto[],
 };
 export type ResumenPanel = {
 readonly sistemas: number,
@@ -227,6 +228,14 @@ readonly implantadas: number,
 readonly pendientes: number,
 readonly madurezMedia: number | null,
 readonly madurezEvaluadas: number,
+};
+export type ResumenPlanPanel = {
+readonly total: number,
+readonly abiertas: number,
+readonly vencidas: number,
+readonly sinResponsable: number,
+readonly porEstado: App.Http.Resources.Panel.Reparto[],
+readonly porPrioridad: App.Http.Resources.Panel.Reparto[],
 };
 export type SegmentoEstado = {
 readonly clave: string,

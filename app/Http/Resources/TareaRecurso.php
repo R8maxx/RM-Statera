@@ -145,6 +145,9 @@ final class TareaRecurso extends Recurso
              */
             Filtro::porScope('abiertas', 'Sólo abiertas', 'abiertas'),
             Filtro::porScope('vencidas', 'Vencidas', 'vencidas')->enColumna('plazo'),
+            Filtro::porScope('por_vencer', 'Vence en 30 días', 'porVencer')->enColumna('plazo'),
+            Filtro::porScope('sin_plazo', 'Sin plazo', 'sinPlazo')->enColumna('plazo'),
+            Filtro::porScope('bloqueadas', 'Bloqueadas', 'bloqueadas')->enColumna('estado'),
             Filtro::porScope('sin_responsable', 'Sin responsable', 'sinResponsable')->enColumna('responsable'),
         ];
     }

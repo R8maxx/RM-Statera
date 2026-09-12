@@ -8,7 +8,7 @@ import { Link } from '@inertiajs/vue3';
 import { ChevronRightIcon } from '@lucide/vue';
 import { computed } from 'vue';
 
-type Reparto = App.Http.Resources.Panel.RepartoInventario;
+type Reparto = App.Http.Resources.Panel.Reparto;
 
 /**
  * El inventario, de un vistazo.

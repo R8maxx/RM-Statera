@@ -148,6 +148,34 @@ class Tarea extends Model
         $query->abiertas()->whereNull('responsable_id');
     }
 
+    /**
+     * Alguien la cogió y no puede avanzar.
+     *
+     * Es distinto de que nadie la haya cogido, y por eso se cuenta aparte: una
+     * pide asignarla y la otra pide destrabar algo. Es además la que más cara
+     * sale de no ver, porque no se mueve sola.
+     *
+     * @param  Builder<$this>  $query
+     */
+    public function scopeBloqueadas(Builder $query): void
+    {
+        $query->where('estado', EstadoTarea::Bloqueada->value);
+    }
+
+    /**
+     * Abiertas y sin fecha: nunca van a vencer ni a salir en ningún aviso.
+     *
+     * Mismo caso que una evidencia sin caducidad: no es que no corra prisa, es
+     * que nadie ha dicho para cuándo, y colapsar las dos cosas esconde justo las
+     * que nadie ha fechado nunca.
+     *
+     * @param  Builder<$this>  $query
+     */
+    public function scopeSinPlazo(Builder $query): void
+    {
+        $query->abiertas()->whereNull('fecha_limite');
+    }
+
     /** @return array<string, string> */
     protected function casts(): array
     {

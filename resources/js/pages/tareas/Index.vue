@@ -2,6 +2,7 @@
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
 import DataTable, { type Fila } from '@/components/tabla/DataTable.vue';
+import TiraIndicadores from '@/components/TiraIndicadores.vue';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -19,10 +20,13 @@ import { ref } from 'vue';
 type Accion = App.Http.Resources.Definicion.Accion;
 type EstadoTarea = App.Domain.Tarea.Enums.EstadoTarea;
 
-defineProps<{
+const props = defineProps<{
     recurso: App.Http.Resources.Definicion.DefinicionRecurso;
     filas: Fila[];
     meta: App.Http.Resources.Definicion.MetaTabla;
+    alertas: App.Http.Resources.Panel.Indicador[];
+    pendientes: App.Http.Resources.Panel.Indicador[];
+    abiertas: number;
 }>();
 
 /*
@@ -79,6 +83,14 @@ function confirmar(): void {
         <CabeceraPagina
             :titulo="recurso.etiquetas.plural"
             :descripcion="recurso.etiquetas.descripcion"
+        />
+
+        <TiraIndicadores
+            :alertas="alertas"
+            :pendientes="pendientes"
+            :denominador="abiertas"
+            denominador-etiqueta="tareas abiertas"
+            :filtros="props.meta.filtros"
         />
 
         <DataTable :recurso="recurso" :filas="filas" :meta="meta" @masiva="abrir" />

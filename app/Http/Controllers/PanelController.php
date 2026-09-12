@@ -8,6 +8,7 @@ use App\Domain\Activo\ResumenInventario;
 use App\Domain\Implantacion\Enums\EstadoImplantacion;
 use App\Domain\Implantacion\ResumenCumplimiento;
 use App\Domain\Sistema\Models\Sistema;
+use App\Domain\Tarea\ResumenPlanDeAccion;
 use App\Http\Resources\Panel\ResumenEvidencias;
 use App\Http\Resources\Panel\ResumenPanel;
 use App\Http\Resources\Panel\SistemaResumido;
@@ -25,8 +26,11 @@ use Inertia\Response;
  */
 class PanelController extends Controller
 {
-    public function __invoke(ResumenCumplimiento $resumen, ResumenInventario $inventario): Response
-    {
+    public function __invoke(
+        ResumenCumplimiento $resumen,
+        ResumenInventario $inventario,
+        ResumenPlanDeAccion $plan,
+    ): Response {
         $sistemas = Sistema::query()
             ->with('marco')
             ->withCount([
@@ -78,6 +82,9 @@ class PanelController extends Controller
             // qué tipo— y deja en `/activos` sólo lo que pide acción hoy. Un
             // panel es para saber cómo va la cosa; una tabla, para trabajar.
             'inventario' => $inventario->paraElPanel(),
+            // El plan de acción contesta la otra mitad de «cómo va la cosa»: el
+            // cumplimiento dice qué falta y esto dice quién lo está haciendo.
+            'plan' => $plan->paraElPanel(),
         ]);
     }
 }

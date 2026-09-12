@@ -4,6 +4,7 @@ import Cifra from '@/components/Cifra.vue';
 import BarraSegmentada, { type Segmento } from '@/components/BarraSegmentada.vue';
 import EstadoVacio from '@/components/EstadoVacio.vue';
 import ResumenInventarioPanelCard from '@/components/activo/ResumenInventarioPanel.vue';
+import ResumenPlanPanel from '@/components/tarea/ResumenPlanPanel.vue';
 import GraficaBarras, { type Barra } from '@/components/grafica/GraficaBarras.vue';
 import {
     Card,
@@ -39,6 +40,7 @@ const props = defineProps<{
     porEstado: SegmentoEstado[];
     porMarco: AvanceMarco[];
     inventario: App.Http.Resources.Panel.ResumenInventarioPanel;
+    plan: App.Http.Resources.Panel.ResumenPlanPanel;
 }>();
 
 const { variantesEntrada, variantesEscalonado } = useMovimientoReducido();
@@ -216,6 +218,16 @@ const metricas = computed(() => [
                         </dl>
                     </CardContent>
                 </Card>
+            </motion.section>
+
+            <!-- ── Plan de acción ─────────────────────────────────────────── -->
+            <!--
+                Va antes que el reparto por marco y que el inventario: el
+                cumplimiento dice qué falta y esto dice quién lo está haciendo,
+                que es la pregunta que se hace justo después.
+            -->
+            <motion.section v-if="plan.total > 0" :variants="variantesEntrada">
+                <ResumenPlanPanel :plan="plan" />
             </motion.section>
 
             <!-- ── Por marco ──────────────────────────────────────────────── -->

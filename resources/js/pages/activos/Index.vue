@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
-import IndicadoresInventario from '@/components/activo/IndicadoresInventario.vue';
+import TiraIndicadores from '@/components/TiraIndicadores.vue';
 import DataTable, { type Fila } from '@/components/tabla/DataTable.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { router } from '@inertiajs/vue3';
@@ -11,8 +11,8 @@ const props = defineProps<{
     recurso: App.Http.Resources.Definicion.DefinicionRecurso;
     filas: Fila[];
     meta: App.Http.Resources.Definicion.MetaTabla;
-    alertas: App.Http.Resources.Panel.IndicadorInventario[];
-    pendientes: App.Http.Resources.Panel.IndicadorInventario[];
+    alertas: App.Http.Resources.Panel.Indicador[];
+    pendientes: App.Http.Resources.Panel.Indicador[];
     vigentes: number;
 }>();
 
@@ -39,10 +39,11 @@ function masiva(accion: Accion, ids: (number | string)[]): void {
             :descripcion="recurso.etiquetas.descripcion"
         />
 
-        <IndicadoresInventario
+        <TiraIndicadores
             :alertas="alertas"
             :pendientes="pendientes"
-            :vigentes="vigentes"
+            :denominador="vigentes"
+            denominador-etiqueta="activos vigentes"
             :filtros="props.meta.filtros"
         />
 

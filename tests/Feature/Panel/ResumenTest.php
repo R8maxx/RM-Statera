@@ -7,6 +7,8 @@ use App\Domain\Catalogo\Models\Marco;
 use App\Domain\Catalogo\Models\Requisito;
 use App\Domain\Implantacion\Models\Implantacion;
 use App\Domain\Sistema\Models\Sistema;
+use App\Domain\Tarea\Enums\EstadoTarea;
+use App\Domain\Tarea\Models\Tarea;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia;
 
@@ -131,4 +133,24 @@ it('distingue una madurez sin valorar de una madurez cero', function (): void {
             ->where('resumen.madurezMedia', null)
             ->where('resumen.madurezEvaluadas', 0)
         );
+});
+
+/**
+ * El panel contesta las dos mitades de «cómo va la cosa»: el cumplimiento dice
+ * qué falta y el plan de acción dice quién lo está haciendo.
+ */
+it('lleva el plan de acción, con lo abierto sobre el total', function (): void {
+    ['usuario' => $usuario] = escenarioDePanel();
+
+    Tarea::factory()->count(2)->create();
+    Tarea::factory()->enEstado(EstadoTarea::Hecha)->create();
+    Tarea::factory()->vencida()->create();
+
+    $this->actingAs($usuario)
+        ->get('/panel')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->where('plan.total', 4)
+            ->where('plan.abiertas', 3)
+            ->where('plan.vencidas', 1)
+            ->has('plan.porEstado'));
 });

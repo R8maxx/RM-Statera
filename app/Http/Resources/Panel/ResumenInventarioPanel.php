@@ -13,17 +13,15 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * denominador: «el 50 % tiene los controles decididos» no dice lo mismo sobre
  * cuatro activos que sobre trescientos, y quien lee el panel tiene derecho a
  * saber sobre cuántos se calcula.
- *
- * @phpstan-type Reparto list<RepartoInventario>
  */
 #[TypeScript]
 final class ResumenInventarioPanel
 {
     /**
-     * @param  list<RepartoInventario>  $cifrado
-     * @param  list<RepartoInventario>  $copia
-     * @param  list<RepartoInventario>  $porTipo
-     * @param  list<RepartoInventario>  $porCicloDeVida
+     * @param  list<Reparto>  $cifrado
+     * @param  list<Reparto>  $copia
+     * @param  list<Reparto>  $porTipo
+     * @param  list<Reparto>  $porCicloDeVida
      */
     public function __construct(
         public readonly int $vigentes,

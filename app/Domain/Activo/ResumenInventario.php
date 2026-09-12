@@ -8,8 +8,8 @@ use App\Domain\Activo\Enums\EstadoCicloVida;
 use App\Domain\Activo\Enums\EstadoControl;
 use App\Domain\Activo\Enums\TipoActivo;
 use App\Domain\Activo\Models\Activo;
-use App\Http\Resources\Panel\IndicadorInventario;
-use App\Http\Resources\Panel\RepartoInventario;
+use App\Http\Resources\Panel\Indicador;
+use App\Http\Resources\Panel\Reparto;
 use App\Http\Resources\Panel\ResumenInventarioPanel;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -39,7 +39,7 @@ final class ResumenInventario
      * incumplimientos, y mezclarlos hacía que un campo vacío pesara lo mismo
      * que un disco sin cifrar.
      *
-     * @return list<IndicadorInventario>
+     * @return list<Indicador>
      */
     public function alertas(): array
     {
@@ -89,7 +89,7 @@ final class ResumenInventario
      * roto, hay una ficha a medias. En la interfaz va en una línea de texto y
      * no en tarjetas, para que no compita con lo que sí arde.
      *
-     * @return list<IndicadorInventario>
+     * @return list<Indicador>
      */
     public function pendientesDeCompletar(): array
     {
@@ -149,7 +149,7 @@ final class ResumenInventario
      * resolver, que es la distinción que el enum existe para sostener.
      *
      * @param  'cifrado'|'copia_seguridad'  $columna
-     * @return list<RepartoInventario>
+     * @return list<Reparto>
      */
     public function cobertura(string $columna): array
     {
@@ -157,7 +157,7 @@ final class ResumenInventario
         $filtro = $columna === 'cifrado' ? 'cifrado' : 'copia_seguridad';
 
         return array_map(
-            static fn (EstadoControl $control): RepartoInventario => new RepartoInventario(
+            static fn (EstadoControl $control): Reparto => new Reparto(
                 clave: $control->value,
                 etiqueta: $control->etiqueta(),
                 valor: $conteos[$control->value] ?? 0,
@@ -176,14 +176,14 @@ final class ResumenInventario
      * se pintan: nueve barras de las que seis están vacías no es un reparto, es
      * una lista de tipos.
      *
-     * @return list<RepartoInventario>
+     * @return list<Reparto>
      */
     public function porTipo(): array
     {
         $conteos = $this->contar('tipo');
 
         $filas = array_map(
-            static fn (TipoActivo $tipo): RepartoInventario => new RepartoInventario(
+            static fn (TipoActivo $tipo): Reparto => new Reparto(
                 clave: $tipo->value,
                 etiqueta: $tipo->etiqueta(),
                 valor: $conteos[$tipo->value] ?? 0,
@@ -203,14 +203,14 @@ final class ResumenInventario
      * vigentes no aplica: lo interesante de esta gráfica es precisamente el
      * parque que ya no está en uso y sigue en un armario.
      *
-     * @return list<RepartoInventario>
+     * @return list<Reparto>
      */
     public function porCicloDeVida(): array
     {
         $conteos = $this->contar('estado_ciclo_vida', soloVigentes: false);
 
         $filas = array_map(
-            static fn (EstadoCicloVida $estado): RepartoInventario => new RepartoInventario(
+            static fn (EstadoCicloVida $estado): Reparto => new Reparto(
                 clave: $estado->value,
                 etiqueta: $estado->etiqueta(),
                 valor: $conteos[$estado->value] ?? 0,
@@ -241,12 +241,12 @@ final class ResumenInventario
     }
 
     /**
-     * @param  list<RepartoInventario>  $filas
-     * @return list<RepartoInventario>
+     * @param  list<Reparto>  $filas
+     * @return list<Reparto>
      */
     private function conValor(array $filas): array
     {
-        return array_values(array_filter($filas, static fn (RepartoInventario $fila): bool => $fila->valor > 0));
+        return array_values(array_filter($filas, static fn (Reparto $fila): bool => $fila->valor > 0));
     }
 
     /**
@@ -264,15 +264,16 @@ final class ResumenInventario
         string $tono,
         ?string $ayuda = null,
         bool $sobreVigentes = true,
-    ): IndicadorInventario {
+    ): Indicador {
         $consulta = Activo::query()->when($sobreVigentes, fn (Builder $q) => $q->vigentes());
 
-        return new IndicadorInventario(
+        return new Indicador(
             clave: $clave,
             etiqueta: $etiqueta,
             valor: $consulta->{$scope}()->count(),
             tono: $tono,
             filtro: "filter[{$clave}]=1",
+            base: '/activos',
             ayuda: $ayuda,
         );
     }

@@ -13,6 +13,7 @@ use App\Domain\Tarea\Enums\PrioridadTarea;
 use App\Domain\Tarea\Excepciones\TransicionDeTareaNoPermitida;
 use App\Domain\Tarea\Models\Tarea;
 use App\Domain\Tarea\Models\TareaTransicion;
+use App\Domain\Tarea\ResumenPlanDeAccion;
 use App\Domain\Tarea\VincularTarea;
 use App\Http\Requests\CambiarEstadoTareaRequest;
 use App\Http\Requests\CambiarEstadoTareasRequest;
@@ -37,9 +38,17 @@ class TareaController extends Controller
 {
     use RespondeConRecurso;
 
-    public function index(Request $request): Response
+    public function index(Request $request, ResumenPlanDeAccion $resumen): Response
     {
-        return Inertia::render('tareas/Index', $this->tabla(new TareaRecurso, $request));
+        return Inertia::render('tareas/Index', [
+            ...$this->tabla(new TareaRecurso, $request),
+            // No se recalculan al paginar ni al ordenar, pero sí al filtrar por
+            // uno de ellos —cambian cuando alguien cierra algo—, así que viajan
+            // como prop normal y no como `once`.
+            'alertas' => $resumen->alertas(),
+            'pendientes' => $resumen->pendientesDeCompletar(),
+            'abiertas' => Tarea::query()->abiertas()->count(),
+        ]);
     }
 
     public function create(Request $request): Response
