@@ -22,9 +22,19 @@ use App\Domain\Evidencia\Enums\PeriodicidadRenovacion;
 use App\Domain\Evidencia\Enums\TipoEvidencia;
 use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Evidencia\VincularEvidencia;
+use App\Domain\Implantacion\CambiarEstado;
+use App\Domain\Implantacion\Enums\EstadoImplantacion;
 use App\Domain\Implantacion\GeneradorImplantaciones;
+use App\Domain\Implantacion\Models\Implantacion;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Organizacion\Models\Organizacion;
+use App\Domain\Riesgo\AceptarRiesgo;
+use App\Domain\Riesgo\CrearRiesgo;
+use App\Domain\Riesgo\Enums\DecisionRiesgo;
+use App\Domain\Riesgo\Models\Amenaza;
+use App\Domain\Riesgo\Models\Riesgo;
+use App\Domain\Riesgo\ValorarRiesgo;
+use App\Domain\Riesgo\VincularRiesgo;
 use App\Domain\Sistema\Models\Sistema;
 use App\Domain\Sistema\Models\ValoracionDimension;
 use App\Domain\Tarea\CrearTarea;
@@ -135,7 +145,211 @@ class DesarrolloSeeder extends Seeder
         $this->evidenciaDeEjemplo($sistema);
         $this->inventarioDeEjemplo($sistema);
         $this->planDeAccionDeEjemplo($sistema);
+        $this->analisisDeRiesgosDeEjemplo($sistema);
         $this->documentoDeEjemplo($sistema);
+    }
+
+    /**
+     * Cuatro riesgos, y cada uno enseña una cosa que no se ve con la tabla vacía.
+     *
+     * No se toca la metodología: la organización se queda con la de fábrica y sin
+     * aprobar, que es el estado real de partida de cualquier cliente y el que los
+     * avisos de la ficha tienen que declarar. Guardarla aquí escondería justamente
+     * el aviso que hay que ver.
+     *
+     * Los cuatro:
+     *
+     * - **R-001** por encima del umbral y con el residual **sin respaldo**: se
+     *   declara que baja de 12 a 4 y ninguna salvaguarda está implantada. Es el
+     *   hallazgo que el módulo existe para enseñar, y montarlo a mano cada vez que
+     *   se refresca la base cuesta más que escribirlo aquí.
+     * - **R-002** aceptado y con la reevaluación vencida. Un riesgo firmado sigue
+     *   teniendo que volver a mirarse, y su valoración ya es inmutable: es donde se
+     *   comprueba que el trigger deja jubilarla al revaluar.
+     * - **R-003** sin valorar, que no es lo mismo que valorado en cero.
+     * - **R-004** con amenaza **libre** —lo que MAGERIT no recoge— y decisión de
+     *   transferir, para que no parezca que todo se mitiga.
+     */
+    private function analisisDeRiesgosDeEjemplo(Sistema $sistema): void
+    {
+        if (Riesgo::query()->count() > 0) {
+            return;
+        }
+
+        if (Amenaza::query()->vigentes()->count() === 0) {
+            $this->command->warn('Sin catálogo de amenazas: ejecuta `php artisan catalogo:importar` y repite el seeder.');
+
+            return;
+        }
+
+        $responsable = User::query()->where('email', 'responsable@statera.test')->first();
+        $crear = app(CrearRiesgo::class);
+        $valorar = app(ValorarRiesgo::class);
+        $vinculos = app(VincularRiesgo::class);
+
+        $activo = fn (string $codigo): ?Activo => Activo::query()->where('codigo', $codigo)->first();
+        $amenaza = fn (string $codigo): ?Amenaza => Amenaza::query()->where('codigo', $codigo)->first();
+
+        /*
+         * R-001 — el que hay que ver primero.
+         *
+         * Pesa sobre la base de datos, que está sin cifrar y clasificada como
+         * confidencial. El impacto NO sale de su valoración escrita: sale de la
+         * efectiva, que hereda «alto» en disponibilidad del servicio que está dos
+         * saltos por encima. Ese es el activo que una hoja de cálculo infravalora.
+         */
+        $base = $activo('BBDD-0001');
+
+        if ($base !== null && $amenaza('A.11') !== null) {
+            $riesgo = $crear([
+                'titulo' => 'Acceso no autorizado a la base de datos de expedientes',
+                'amenaza_id' => $amenaza('A.11')->id,
+                'vulnerabilidad' => 'La base no cifra en reposo y las credenciales de administración se comparten entre dos personas.',
+                'propietario_id' => $responsable?->id,
+                'fecha_revision' => Carbon::today()->addMonths(6)->toDateString(),
+            ], [$base], $responsable);
+
+            // Dos controles de acceso apuntados y ninguno implantado: exactamente
+            // lo que hace saltar el aviso de «residual sin respaldo».
+            foreach ($this->implantaciones($sistema, 'op.acc.%', 2) as $implantacion) {
+                $vinculos->salvaguarda(
+                    $riesgo,
+                    $implantacion,
+                    'Previsto para el plan de adecuación; todavía sin implantar.',
+                    $responsable,
+                );
+            }
+
+            $valorar($riesgo->fresh(), [
+                'probabilidad' => 3,
+                'impacto' => 4,
+                'probabilidad_residual' => 2,
+                'impacto_residual' => 2,
+                'justificacion_residual' => 'Con el cifrado en reposo y las cuentas nominativas, la exposición bajaría a un nivel asumible.',
+                'decision' => DecisionRiesgo::Mitigar->value,
+            ], $responsable);
+        }
+
+        /*
+         * R-002 — aceptado, y con la reevaluación pasada de fecha.
+         *
+         * Aquí sí hay una salvaguarda implantada, así que el residual se sostiene.
+         * Aceptar lo vuelve inmutable: es el riesgo con el que comprobar que el
+         * trigger deja jubilar la valoración al revaluar y no deja reescribirla.
+         */
+        $servicio = $activo('SRV-0001');
+
+        if ($servicio !== null && $amenaza('I.6') !== null) {
+            $riesgo = $crear([
+                'titulo' => 'Parada de la sede electrónica por corte de suministro',
+                'amenaza_id' => $amenaza('I.6')->id,
+                'vulnerabilidad' => 'La sala técnica no tiene generador; el SAI aguanta veinte minutos.',
+                'propietario_id' => $responsable?->id,
+                'fecha_revision' => Carbon::today()->subDays(20)->toDateString(),
+                // El servidor de la sala técnica sólo si existe: el corte le afecta
+                // igual, y así el riesgo pesa sobre los dos.
+            ], array_filter([$servicio, $activo('HW-0002')]), $responsable);
+
+            $respaldo = $this->implantaciones($sistema, 'mp.if.%', 1);
+
+            foreach ($respaldo as $implantacion) {
+                app(CambiarEstado::class)(
+                    $implantacion,
+                    EstadoImplantacion::Implantado,
+                    $responsable,
+                    'SAI instalado y probado en la revisión de instalaciones.',
+                );
+
+                $vinculos->salvaguarda($riesgo, $implantacion->fresh(), 'El SAI cubre el apagado ordenado.', $responsable);
+            }
+
+            $valorar($riesgo->fresh(), [
+                'probabilidad' => 2,
+                'impacto' => 5,
+                'probabilidad_residual' => 1,
+                'impacto_residual' => 5,
+                'justificacion_residual' => 'El SAI no evita la parada larga, pero sí la pérdida de datos por apagado brusco.',
+                'decision' => DecisionRiesgo::Mitigar->value,
+                'nota' => 'Pendiente de presupuestar un generador.',
+            ], $responsable);
+
+            if ($responsable !== null) {
+                app(AceptarRiesgo::class)(
+                    $riesgo->fresh()->load('valoracionVigente'),
+                    $responsable,
+                    'Aceptado en el comité de seguridad; se revisa al presupuestar el generador.',
+                );
+            }
+        }
+
+        /*
+         * R-003 — registrado y sin medir.
+         *
+         * Sobre el portátil retirado sin constancia de borrado, que es el activo
+         * que la ficha del inventario ya señala. Sin valorar no cuenta en ninguna
+         * cifra de exposición: no está por encima ni por debajo de ningún umbral,
+         * sencillamente no se sabe.
+         */
+        $portatil = $activo('HW-0001');
+
+        if ($portatil !== null && $amenaza('A.25') !== null) {
+            $crear([
+                'titulo' => 'Sustracción del portátil retirado, con los datos dentro',
+                'amenaza_id' => $amenaza('A.25')->id,
+                'vulnerabilidad' => 'Retirado hace dos meses y sin registro del borrado seguro que exige mp.si.5.',
+            ], [$portatil], $responsable);
+        }
+
+        /*
+         * R-004 — amenaza que no está en MAGERIT, y decisión que no es mitigar.
+         *
+         * «El proveedor cierra» no figura en el catálogo y no tiene por qué: se
+         * escribe en el riesgo y no se añade al catálogo global, que es de todos.
+         */
+        $aplicacion = $activo('APP-0001');
+
+        if ($aplicacion !== null) {
+            $riesgo = $crear([
+                'titulo' => 'Cierre del proveedor del gestor de expedientes',
+                'amenaza_libre' => 'El proveedor del software cesa su actividad',
+                'vulnerabilidad' => 'No hay depósito del código fuente ni contrato de continuidad.',
+                'propietario_id' => $responsable?->id,
+                'fecha_revision' => Carbon::today()->addMonths(3)->toDateString(),
+            ], [$aplicacion], $responsable);
+
+            $valorar($riesgo->fresh(), [
+                'probabilidad' => 2,
+                'impacto' => 4,
+                'probabilidad_residual' => 2,
+                'impacto_residual' => 3,
+                'justificacion_residual' => 'Con el depósito de código en escrow, la migración sería viable en semanas.',
+                'decision' => DecisionRiesgo::Transferir->value,
+            ], $responsable);
+        }
+
+        $this->command->info(sprintf(
+            'Análisis de riesgos: %d riesgos, %d sin valorar, %d con el residual sin respaldo.',
+            Riesgo::query()->count(),
+            Riesgo::query()->sinValorar()->count(),
+            Riesgo::query()->residualSinRespaldo()->count(),
+        ));
+    }
+
+    /**
+     * Las primeras implantaciones del sistema cuyo requisito empieza por un
+     * prefijo. Sirve para colgar salvaguardas de medidas reales del Anexo II sin
+     * escribir ids que cambian en cada `migrate:fresh`.
+     *
+     * @return list<Implantacion>
+     */
+    private function implantaciones(Sistema $sistema, string $prefijo, int $cuantas): array
+    {
+        return $sistema->implantaciones()
+            ->where('aplica', true)
+            ->whereHas('requisito', fn (Builder $consulta) => $consulta->where('codigo', 'like', $prefijo))
+            ->limit($cuantas)
+            ->get()
+            ->all();
     }
 
     /**
