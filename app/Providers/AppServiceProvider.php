@@ -7,6 +7,7 @@ namespace App\Providers;
 use App\Domain\Documento\Render\ClienteGotenberg;
 use App\Domain\Documento\Render\GotenbergHttp;
 use App\Domain\Organizacion\ContextoOrganizacion;
+use App\Domain\Riesgo\MetodologiaVigente;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -32,6 +33,15 @@ class AppServiceProvider extends ServiceProvider
          * Hacen falta las dos cosas.
          */
         $this->app->scoped(ContextoOrganizacion::class);
+
+        /*
+         * `scoped` y no `singleton` por lo mismo, y aquí el fallo sería más
+         * silencioso todavía: la metodología resuelta es la de UNA organización,
+         * y un worker que la arrastrara al job siguiente valoraría los riesgos de
+         * un cliente con la escala de otro. No reventaría nada — devolvería
+         * números plausibles y equivocados.
+         */
+        $this->app->scoped(MetodologiaVigente::class);
 
         /*
          * El cliente de Gotenberg va tras una interfaz para que los tests de

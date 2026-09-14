@@ -57,6 +57,11 @@ enum Rol: string
      * cogerlo y cerrarlo es su trabajo diario, y un plan de acción que sólo pueda
      * tocar el responsable de seguridad se queda sin actualizar a la semana.
      *
+     * Los riesgos los registra y los valora el técnico, y **no los acepta**: quien
+     * conoce la amenaza y sabe qué salvaguardas hay puestas es quien mejor la mide,
+     * pero decidir que la organización convive con una exposición es de dirección.
+     * Es la misma línea que separa redactar un documento de emitirlo.
+     *
      * @return list<Permiso>
      */
     public function permisos(): array
@@ -73,6 +78,8 @@ enum Rol: string
                 Permiso::EvidenciasGestionar,
                 Permiso::ActivosVer,
                 Permiso::ActivosGestionar,
+                Permiso::RiesgosVer,
+                Permiso::RiesgosGestionar,
                 Permiso::TareasVer,
                 Permiso::TareasGestionar,
                 Permiso::DocumentosVer,
@@ -85,6 +92,7 @@ enum Rol: string
                 Permiso::ImplantacionesVer,
                 Permiso::EvidenciasVer,
                 Permiso::ActivosVer,
+                Permiso::RiesgosVer,
                 Permiso::TareasVer,
                 Permiso::DocumentosVer,
             ],

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Catalogo\Importador;
 
+use App\Domain\Activo\Enums\TipoActivo;
 use App\Domain\Catalogo\Excepciones\CatalogoInvalido;
 use App\Domain\Catalogo\Models\AplicabilidadEns;
 use App\Domain\Catalogo\Models\Mapeo;
@@ -12,6 +13,8 @@ use App\Domain\Catalogo\Models\PerfilCumplimiento;
 use App\Domain\Catalogo\Models\Refuerzo;
 use App\Domain\Catalogo\Models\Requisito;
 use App\Domain\Organizacion\ContextoOrganizacion;
+use App\Domain\Riesgo\Enums\GrupoAmenaza;
+use App\Domain\Riesgo\Models\Amenaza;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -41,9 +44,22 @@ final class ImportadorCatalogo
     private const DIMENSIONES = ['C', 'I', 'D', 'A', 'T'];
 
     /**
-     * Ficheros de un directorio en orden seguro de importación: primero los que
-     * definen marcos, después los de mapeos, que necesitan que ambos extremos
-     * existan.
+     * Las claves raíz que identifican un fichero del catálogo, en el orden en que
+     * se comprueban. Es la lista que hace que un tipo nuevo se declare en un solo
+     * sitio en vez de en `leer()`, `tipoDe()` e `importar()` por separado.
+     *
+     * @var list<string>
+     */
+    private const RAICES = ['amenazas', 'mapeos', 'marco'];
+
+    private const ERROR_RAIZ = 'Falta la clave raíz. Se esperaba `marco`, `mapeos` o `amenazas`.';
+
+    /**
+     * Ficheros de un directorio en orden seguro de importación.
+     *
+     * **El orden no es alfabético, aunque lo parezca con los nombres de hoy.**
+     * Primero las amenazas, que no referencian nada; después los que definen
+     * marcos; y al final los mapeos, que necesitan que ambos extremos existan.
      *
      * @return list<string>
      */
@@ -52,20 +68,18 @@ final class ImportadorCatalogo
         $ficheros = glob(rtrim($directorio, '/').'/*.{yaml,yml}', GLOB_BRACE) ?: [];
         sort($ficheros);
 
-        $marcos = [];
-        $mapeos = [];
+        $porTipo = ['amenazas' => [], 'marco' => [], 'mapeos' => []];
 
         foreach ($ficheros as $fichero) {
-            if ($this->tipoDe($fichero) === 'mapeos') {
-                $mapeos[] = $fichero;
+            $tipo = $this->tipoDe($fichero);
 
-                continue;
-            }
-
-            $marcos[] = $fichero;
+            // Un fichero que no se reconoce se deja en la cola de marcos para
+            // que `importar()` sea quien falle, con su mensaje y su ruta: aquí
+            // se está construyendo una lista, no validando.
+            $porTipo[array_key_exists($tipo, $porTipo) ? $tipo : 'marco'][] = $fichero;
         }
 
-        return [...$marcos, ...$mapeos];
+        return [...$porTipo['amenazas'], ...$porTipo['marco'], ...$porTipo['mapeos']];
     }
 
     public function importar(string $fichero, bool $simulacion = false): ResultadoImportacion
@@ -75,9 +89,20 @@ final class ImportadorCatalogo
         DB::beginTransaction();
 
         try {
-            $resultado = array_key_exists('mapeos', $documento)
-                ? $this->importarMapeos($fichero, $documento, $simulacion)
-                : $this->importarMarco($fichero, $documento, $simulacion);
+            /*
+             * Un `match` y no un ternario: con tres tipos de fichero, un ternario
+             * convierte «la clave raíz está mal escrita» en «marco: el campo
+             * codigo es obligatorio», que no menciona la causa y manda a buscar
+             * al sitio equivocado. La rama final no se alcanza —`leer()` ya lo
+             * comprueba— y está para que añadir un cuarto tipo no vuelva a dejar
+             * un camino mudo.
+             */
+            $resultado = match (true) {
+                array_key_exists('amenazas', $documento) => $this->importarAmenazas($fichero, $documento, $simulacion),
+                array_key_exists('mapeos', $documento) => $this->importarMapeos($fichero, $documento, $simulacion),
+                array_key_exists('marco', $documento) => $this->importarMarco($fichero, $documento, $simulacion),
+                default => throw new CatalogoInvalido($fichero, [self::ERROR_RAIZ]),
+            };
 
             if ($simulacion) {
                 DB::rollBack();
@@ -112,8 +137,8 @@ final class ImportadorCatalogo
             throw new CatalogoInvalido($fichero, ['El documento no es un mapa YAML.']);
         }
 
-        if (! array_key_exists('marco', $documento) && ! array_key_exists('mapeos', $documento)) {
-            throw new CatalogoInvalido($fichero, ['Falta la clave raíz `marco` o `mapeos`.']);
+        if (array_intersect(self::RAICES, array_keys($documento)) === []) {
+            throw new CatalogoInvalido($fichero, [self::ERROR_RAIZ]);
         }
 
         return $documento;
@@ -127,7 +152,17 @@ final class ImportadorCatalogo
             return 'desconocido';
         }
 
-        return is_array($documento) && array_key_exists('mapeos', $documento) ? 'mapeos' : 'marco';
+        if (! is_array($documento)) {
+            return 'desconocido';
+        }
+
+        foreach (self::RAICES as $raiz) {
+            if (array_key_exists($raiz, $documento)) {
+                return $raiz;
+            }
+        }
+
+        return 'desconocido';
     }
 
     /**
@@ -549,6 +584,225 @@ final class ImportadorCatalogo
         }
 
         return $importados;
+    }
+
+    /**
+     * El catálogo de amenazas de MAGERIT.
+     *
+     * Mismo contrato que los requisitos y por los mismos motivos: empareja por
+     * clave natural (`codigo`), distingue lo modificado por huella y **no borra**
+     * lo que desaparece de una revisión, porque puede haber riesgos colgando de
+     * ello y el auditor preguntará por esos riesgos.
+     *
+     * Lo que no comparte es la jerarquía: una amenaza no tiene padre ni hijos, así
+     * que no hay nada que aplanar.
+     *
+     * @param  array<string, mixed>  $documento
+     */
+    private function importarAmenazas(string $fichero, array $documento, bool $simulacion): ResultadoImportacion
+    {
+        $crudas = $documento['amenazas'] ?? null;
+
+        if (! is_array($crudas) || $crudas === []) {
+            throw new CatalogoInvalido($fichero, ['amenazas: se esperaba una lista no vacía.']);
+        }
+
+        $grupos = array_map(static fn (GrupoAmenaza $grupo): string => $grupo->value, GrupoAmenaza::cases());
+        $tipos = array_map(static fn (TipoActivo $tipo): string => $tipo->value, TipoActivo::cases());
+
+        $errores = [];
+        $planas = [];
+        $vistos = [];
+
+        foreach (array_values($crudas) as $indice => $amenaza) {
+            $donde = "amenazas[{$indice}]";
+
+            if (! is_array($amenaza)) {
+                $errores[] = "{$donde}: se esperaba un mapa.";
+
+                continue;
+            }
+
+            $validador = Validator::make($amenaza, [
+                'codigo' => ['required', 'string', 'max:255'],
+                'grupo' => ['required', 'string', 'in:'.implode(',', $grupos)],
+                'nombre' => ['required', 'string', 'max:255'],
+                'descripcion' => ['nullable', 'string'],
+                'dimensiones' => ['nullable', 'array'],
+                'dimensiones.*' => ['string', 'in:'.implode(',', self::DIMENSIONES)],
+                'tipos_activo' => ['nullable', 'array'],
+                'tipos_activo.*' => ['string', 'in:'.implode(',', $tipos)],
+                'orden' => ['nullable', 'integer', 'min:0'],
+            ]);
+
+            if ($validador->fails()) {
+                foreach ($validador->errors()->all() as $error) {
+                    $errores[] = "{$donde}: {$error}";
+                }
+
+                continue;
+            }
+
+            $codigo = (string) $amenaza['codigo'];
+
+            if (isset($vistos[$codigo])) {
+                $errores[] = "amenazas: código duplicado [{$codigo}].";
+            }
+
+            $vistos[$codigo] = true;
+
+            /*
+             * Las dos listas se ordenan y se deduplican antes de la huella: que
+             * alguien reordene `[C, I]` a `[I, C]` en el YAML no es un cambio del
+             * catálogo, y sin esto el diff lo contaría como modificación.
+             */
+            $dimensiones = $this->listaOrdenada($amenaza['dimensiones'] ?? []);
+            $tiposActivo = $this->listaOrdenada($amenaza['tipos_activo'] ?? []);
+
+            $planas[] = [
+                'codigo' => $codigo,
+                'grupo' => (string) $amenaza['grupo'],
+                'nombre' => (string) $amenaza['nombre'],
+                'descripcion' => isset($amenaza['descripcion']) ? (string) $amenaza['descripcion'] : null,
+                'dimensiones' => $dimensiones,
+                'tipos_activo' => $tiposActivo,
+                'orden' => isset($amenaza['orden']) ? (int) $amenaza['orden'] : $indice + 1,
+            ];
+        }
+
+        if ($errores !== []) {
+            throw new CatalogoInvalido($fichero, $errores);
+        }
+
+        $resultado = new ResultadoImportacion($fichero, 'amenazas', $simulacion, 'MAGERIT');
+
+        /** @var array<string, Amenaza> $existentes */
+        $existentes = Amenaza::query()->get()->keyBy('codigo')->all();
+
+        $importados = [];
+
+        foreach ($planas as $plana) {
+            $codigo = $plana['codigo'];
+            $huella = hash('sha256', (string) json_encode($plana, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+
+            $atributos = [...$plana, 'huella' => $huella];
+            $existente = $existentes[$codigo] ?? null;
+
+            if ($existente === null) {
+                Amenaza::query()->create([...$atributos, 'vigente' => true, 'retirado_en' => null]);
+                $resultado->nuevos[] = $codigo;
+            } else {
+                if ($existente->huella === $huella && $existente->vigente) {
+                    $resultado->sinCambios++;
+                } else {
+                    if (! $existente->vigente) {
+                        $resultado->reactivados[] = $codigo;
+                    }
+
+                    if ($existente->huella !== $huella) {
+                        $resultado->modificados[] = [
+                            'codigo' => $codigo,
+                            'cambios' => $this->cambiosEnAmenaza($existente, $atributos),
+                        ];
+                    }
+                }
+
+                $existente->fill([...$atributos, 'vigente' => true, 'retirado_en' => null])->save();
+            }
+
+            $importados[$codigo] = true;
+        }
+
+        foreach (array_diff(array_keys($existentes), array_keys($importados)) as $codigo) {
+            $amenaza = $existentes[$codigo];
+
+            if (! $amenaza->vigente) {
+                continue;
+            }
+
+            // No se borra: se marca. Puede haber riesgos colgando de ella.
+            $amenaza->update(['vigente' => false, 'retirado_en' => Carbon::now()]);
+            $resultado->retirados[] = $codigo;
+        }
+
+        $resultado->riesgosAfectados = $this->contarRiesgosAfectados($resultado->retirados, $existentes);
+
+        return $resultado;
+    }
+
+    /**
+     * Una lista de cadenas, ordenada y sin repetidos, lista para la huella.
+     *
+     * @return list<string>
+     */
+    private function listaOrdenada(mixed $crudo): array
+    {
+        if (! is_array($crudo)) {
+            return [];
+        }
+
+        $valores = array_values(array_unique(array_map(
+            static fn (mixed $valor): string => (string) $valor,
+            array_values($crudo),
+        )));
+
+        sort($valores);
+
+        return $valores;
+    }
+
+    /**
+     * @param  array<string, mixed>  $nuevos
+     * @return list<string>
+     */
+    private function cambiosEnAmenaza(Amenaza $existente, array $nuevos): array
+    {
+        $cambios = [];
+
+        foreach (['nombre', 'descripcion', 'orden'] as $campo) {
+            if ($existente->{$campo} != $nuevos[$campo]) {
+                $cambios[] = $campo;
+            }
+        }
+
+        if ($existente->grupo->value !== $nuevos['grupo']) {
+            $cambios[] = 'grupo';
+        }
+
+        foreach (['dimensiones', 'tipos_activo'] as $lista) {
+            if ($this->listaOrdenada($existente->{$lista}) != $nuevos[$lista]) {
+                $cambios[] = $lista;
+            }
+        }
+
+        return $cambios === [] ? ['huella'] : $cambios;
+    }
+
+    /**
+     * A cuántos riesgos afecta retirar estas amenazas.
+     *
+     * Cruza organizaciones por definición —una amenaza del catálogo global la usa
+     * quien quiera—, y por eso pasa por `comoMantenimiento()`, que es la única
+     * puerta que atraviesa las tres capas de aislamiento. Es el mismo caso, y el
+     * mismo permiso, que el recuento de implantaciones afectadas.
+     *
+     * @param  list<string>  $retirados
+     * @param  array<string, Amenaza>  $existentes
+     */
+    private function contarRiesgosAfectados(array $retirados, array $existentes): int
+    {
+        if ($retirados === [] || ! Schema::hasTable('riesgos')) {
+            return 0;
+        }
+
+        $ids = array_values(array_map(
+            static fn (Amenaza $amenaza): int => $amenaza->id,
+            array_intersect_key($existentes, array_flip($retirados)),
+        ));
+
+        return app(ContextoOrganizacion::class)->comoMantenimiento(
+            fn (): int => DB::table('riesgos')->whereIn('amenaza_id', $ids)->count()
+        );
     }
 
     /**

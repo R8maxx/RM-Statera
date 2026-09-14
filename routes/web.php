@@ -7,10 +7,12 @@ use App\Http\Controllers\DocumentoController;
 use App\Http\Controllers\DocumentoCuerpoController;
 use App\Http\Controllers\EvidenciaController;
 use App\Http\Controllers\ImplantacionController;
+use App\Http\Controllers\MetodologiaRiesgoController;
 use App\Http\Controllers\PanelController;
 use App\Http\Controllers\PerfilController;
 use App\Http\Controllers\PlantillaDocumentoController;
 use App\Http\Controllers\RevisionInventarioController;
+use App\Http\Controllers\RiesgoController;
 use App\Http\Controllers\SistemaController;
 use App\Http\Controllers\TareaController;
 use App\Http\Controllers\ValoracionSistemaController;
@@ -203,6 +205,59 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/evidencias/{evidencia}/editar', [EvidenciaController::class, 'edit'])->name('evidencias.edit');
         Route::put('/evidencias/{evidencia}', [EvidenciaController::class, 'update'])->name('evidencias.update');
         Route::delete('/evidencias/{evidencia}', [EvidenciaController::class, 'destroy'])->name('evidencias.destroy');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Análisis de riesgos
+    |--------------------------------------------------------------------------
+    |
+    | Tres verbos y no dos. `riesgos.aceptar` está aparte de `riesgos.gestionar`
+    | porque ISO 27001 6.1.3 f) exige que el propietario del riesgo apruebe el
+    | residual: un técnico que registra y puntúa riesgos no debe poder firmar uno.
+    | Y cubre también la metodología, que es la otra decisión de dirección — fijar
+    | el apetito de riesgo es decidir de antemano qué se va a poder aceptar.
+    |
+    */
+
+    Route::middleware('can:riesgos.ver')->group(function (): void {
+        Route::get('/riesgos', [RiesgoController::class, 'index'])->name('riesgos.index');
+
+        // Antes que `{riesgo}`, para que `metodologia` y `crear` no se lean como
+        // identificadores.
+        Route::get('/riesgos/metodologia', [MetodologiaRiesgoController::class, 'edit'])
+            ->name('riesgos.metodologia.edit');
+
+        Route::get('/riesgos/crear', [RiesgoController::class, 'create'])
+            ->middleware(['can:riesgos.gestionar', ExigirDosFactores::class])
+            ->name('riesgos.create');
+
+        Route::get('/riesgos/{riesgo}', [RiesgoController::class, 'show'])->name('riesgos.show');
+    });
+
+    Route::middleware(['can:riesgos.gestionar', ExigirDosFactores::class])->group(function (): void {
+        Route::post('/riesgos', [RiesgoController::class, 'store'])->name('riesgos.store');
+        Route::get('/riesgos/{riesgo}/editar', [RiesgoController::class, 'edit'])->name('riesgos.edit');
+        Route::put('/riesgos/{riesgo}', [RiesgoController::class, 'update'])->name('riesgos.update');
+        Route::delete('/riesgos/{riesgo}', [RiesgoController::class, 'destroy'])->name('riesgos.destroy');
+
+        // La valoración va por su ruta y no por el formulario del riesgo: es lo
+        // que jubila la anterior y congela la escala con la que se midió.
+        Route::post('/riesgos/{riesgo}/valoracion', [RiesgoController::class, 'valorar'])
+            ->name('riesgos.valorar');
+
+        Route::post('/riesgos/{riesgo}/salvaguardas', [RiesgoController::class, 'vincularSalvaguarda'])
+            ->name('riesgos.salvaguardas.vincular');
+        Route::delete('/riesgos/{riesgo}/salvaguardas/{implantacion}', [RiesgoController::class, 'desvincularSalvaguarda'])
+            ->name('riesgos.salvaguardas.desvincular');
+    });
+
+    Route::middleware(['can:riesgos.aceptar', ExigirDosFactores::class])->group(function (): void {
+        Route::post('/riesgos/{riesgo}/aceptacion', [RiesgoController::class, 'aceptar'])
+            ->name('riesgos.aceptar');
+
+        Route::put('/riesgos/metodologia', [MetodologiaRiesgoController::class, 'update'])
+            ->name('riesgos.metodologia.update');
     });
 
     /*

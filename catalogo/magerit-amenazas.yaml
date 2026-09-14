@@ -1,0 +1,458 @@
+# Catálogo de amenazas — MAGERIT v3, Libro II «Catálogo de Elementos», cap. 5
+#
+# Los cuatro grupos completos, con la numeración original: desastres naturales
+# (N), de origen industrial (I), errores y fallos no intencionados (E) y ataques
+# intencionados (A). Se carga ENTERO aunque una organización pequeña sólo vaya a
+# usar veinte de las cincuenta y cinco, por el mismo motivo por el que el Anexo II
+# del ENS va entero: el coste marginal es un fichero más largo, y el coste de
+# cargarlo a medias es rehacerlo cuando alguien eche en falta la que le importa.
+#
+# ---------------------------------------------------------------------------
+# QUÉ HAY AQUÍ Y QUÉ NO
+#
+# Van el CÓDIGO, el NOMBRE y los atributos que el análisis necesita —dimensiones
+# sobre las que actúa y tipos de activo sobre los que tiene sentido plantearla—.
+#
+# Las descripciones están REDACTADAS PARA STATERA, no copiadas de MAGERIT. Es la
+# misma disciplina que con los controles de ISO 27002, cuya redacción íntegra no
+# se vuelca al repositorio. MAGERIT es una publicación del Ministerio y su
+# reutilización es más laxa que la de una norma ISO, pero el criterio de la casa
+# es no depender de que lo sea: aquí basta con que dos personas distintas elijan
+# la misma amenaza ante el mismo caso.
+#
+# `revisado` está en `false`, y lo que queda por contrastar es esto:
+#
+#   1. Las DIMENSIONES de cada amenaza están asignadas por criterio, no copiadas
+#      celda a celda del Libro II. Son razonables y sirven para proponer, pero no
+#      se han contrastado contra el documento publicado como se hizo con el Anexo
+#      II del ENS. Hasta que se haga, se usan como SUGERENCIA en la interfaz y
+#      nunca para descartar nada: el analista ve todas las amenazas y éstas salen
+#      primero.
+#
+#   2. Los TIPOS DE ACTIVO son más generosos que los del Libro II a propósito.
+#      Ante la duda se incluye el tipo, porque el coste de que sobre una amenaza
+#      en una lista es que alguien la descarte en dos segundos, y el de que falte
+#      es que un riesgo real no se plantee nunca.
+#
+#   3. Faltan las VULNERABILIDADES y las salvaguardas del Libro II. El modelo
+#      guarda la vulnerabilidad como texto libre en cada riesgo, que es lo que
+#      hace falta hoy; un catálogo de vulnerabilidades es otra tabla y otra
+#      decisión.
+# ---------------------------------------------------------------------------
+#
+# Los códigos `N.*` e `I.*` llevan asterisco en el original: son las entradas
+# «otros desastres» de cada grupo y se conservan tal cual para que quien conozca
+# MAGERIT reconozca el catálogo.
+fuente: 'MAGERIT v3 (2012), Libro II — Catálogo de Elementos, capítulo 5. Ministerio de Hacienda y Administraciones Públicas.'
+revisado: false
+
+amenazas:
+  # ---------------------------------------------------------------------------
+  # N — Desastres naturales
+  # Sin autor y sin intención. Sólo se pueden prever y absorber.
+  # ---------------------------------------------------------------------------
+  - codigo: 'N.1'
+    grupo: desastres_naturales
+    nombre: Fuego
+    descripcion: Incendio de origen natural que alcanza las instalaciones o el equipamiento.
+    dimensiones: [D]
+    tipos_activo: [hardware, comunicaciones, soportes, equipamiento_auxiliar, instalaciones]
+
+  - codigo: 'N.2'
+    grupo: desastres_naturales
+    nombre: Daños por agua
+    descripcion: Inundación, crecida o filtración de origen natural que alcanza el equipamiento.
+    dimensiones: [D]
+    tipos_activo: [hardware, comunicaciones, soportes, equipamiento_auxiliar, instalaciones]
+
+  - codigo: 'N.*'
+    grupo: desastres_naturales
+    nombre: Otros desastres naturales
+    descripcion: Terremoto, tormenta, rayo, corrimiento u otro fenómeno natural que daña lo que sostiene el servicio.
+    dimensiones: [D]
+    tipos_activo: [hardware, comunicaciones, soportes, equipamiento_auxiliar, instalaciones, personal]
+
+  # ---------------------------------------------------------------------------
+  # I — De origen industrial
+  # Hay una actividad humana detrás, pero no una intención de hacer daño.
+  # ---------------------------------------------------------------------------
+  - codigo: 'I.1'
+    grupo: origen_industrial
+    nombre: Fuego
+    descripcion: Incendio originado por la actividad humana o por una instalación del propio entorno.
+    dimensiones: [D]
+    tipos_activo: [hardware, comunicaciones, soportes, equipamiento_auxiliar, instalaciones]
+
+  - codigo: 'I.2'
+    grupo: origen_industrial
+    nombre: Daños por agua
+    descripcion: Escape, rotura o vertido de agua por fallo de una instalación o por un error de manipulación.
+    dimensiones: [D]
+    tipos_activo: [hardware, comunicaciones, soportes, equipamiento_auxiliar, instalaciones]
+
+  - codigo: 'I.*'
+    grupo: origen_industrial
+    nombre: Otros desastres de origen industrial
+    descripcion: Explosión, derrumbe, contaminación química o accidente de tráfico que alcanza las instalaciones.
+    dimensiones: [D]
+    tipos_activo: [hardware, comunicaciones, soportes, equipamiento_auxiliar, instalaciones]
+
+  - codigo: 'I.3'
+    grupo: origen_industrial
+    nombre: Contaminación mecánica
+    descripcion: Polvo, suciedad o vibración que degradan el equipamiento hasta dejarlo fuera de servicio.
+    dimensiones: [D]
+    tipos_activo: [hardware, comunicaciones, soportes, equipamiento_auxiliar]
+
+  - codigo: 'I.4'
+    grupo: origen_industrial
+    nombre: Contaminación electromagnética
+    descripcion: Interferencia de un equipo o instalación próxima que altera el funcionamiento del equipamiento.
+    dimensiones: [D]
+    tipos_activo: [hardware, comunicaciones, soportes, equipamiento_auxiliar]
+
+  - codigo: 'I.5'
+    grupo: origen_industrial
+    nombre: Avería de origen físico o lógico
+    descripcion: 'Fallo del equipo o del programa sin causa externa: se estropea por su cuenta.'
+    dimensiones: [D]
+    tipos_activo: [hardware, software, comunicaciones, soportes, equipamiento_auxiliar]
+
+  - codigo: 'I.6'
+    grupo: origen_industrial
+    nombre: Corte del suministro eléctrico
+    descripcion: Falta de corriente que deja sin servicio a todo lo que depende de ella.
+    dimensiones: [D]
+    tipos_activo: [hardware, comunicaciones, soportes, equipamiento_auxiliar, instalaciones]
+
+  - codigo: 'I.7'
+    grupo: origen_industrial
+    nombre: Condiciones inadecuadas de temperatura o humedad
+    descripcion: Fallo de la climatización que saca al equipamiento de su rango de funcionamiento.
+    dimensiones: [D]
+    tipos_activo: [hardware, comunicaciones, soportes, equipamiento_auxiliar, instalaciones]
+
+  - codigo: 'I.8'
+    grupo: origen_industrial
+    nombre: Fallo de servicios de comunicaciones
+    descripcion: Caída del enlace con el exterior, propio o del operador, que aísla el sistema.
+    dimensiones: [D]
+    tipos_activo: [servicios, comunicaciones]
+
+  - codigo: 'I.9'
+    grupo: origen_industrial
+    nombre: Interrupción de otros servicios y suministros esenciales
+    descripcion: Falta de un suministro del que el sistema depende sin que figure en ningún contrato de TI.
+    dimensiones: [D]
+    tipos_activo: [servicios, hardware, equipamiento_auxiliar, instalaciones]
+
+  - codigo: 'I.10'
+    grupo: origen_industrial
+    nombre: Degradación de los soportes de almacenamiento
+    descripcion: El soporte envejece y la información deja de poder leerse, sin que nadie lo note hasta necesitarla.
+    dimensiones: [D, I]
+    tipos_activo: [soportes, hardware]
+
+  - codigo: 'I.11'
+    grupo: origen_industrial
+    nombre: Emanaciones electromagnéticas
+    descripcion: El equipo irradia información recuperable desde fuera sin tocarlo.
+    dimensiones: [C]
+    tipos_activo: [hardware, comunicaciones, soportes, instalaciones]
+
+  # ---------------------------------------------------------------------------
+  # E — Errores y fallos no intencionados
+  # Hay una persona detrás, y no quería. Son las más frecuentes con diferencia.
+  # ---------------------------------------------------------------------------
+  - codigo: 'E.1'
+    grupo: errores_no_intencionados
+    nombre: Errores de los usuarios
+    descripcion: Alguien se equivoca usando el sistema y altera, borra o expone lo que no debía.
+    dimensiones: [C, I, D]
+    tipos_activo: [servicios, datos, software]
+
+  - codigo: 'E.2'
+    grupo: errores_no_intencionados
+    nombre: Errores del administrador
+    descripcion: Quien tiene privilegios se equivoca, y el alcance del error es el de sus privilegios.
+    dimensiones: [C, I, D]
+    tipos_activo: [servicios, datos, software, hardware, comunicaciones]
+
+  - codigo: 'E.3'
+    grupo: errores_no_intencionados
+    nombre: Errores de monitorización
+    descripcion: El registro de actividad no recoge lo que debía, y después no se puede reconstruir qué pasó.
+    dimensiones: [T]
+    tipos_activo: [servicios, datos, software]
+
+  - codigo: 'E.4'
+    grupo: errores_no_intencionados
+    nombre: Errores de configuración
+    descripcion: Un parámetro mal puesto deja el sistema haciendo algo distinto de lo que se cree que hace.
+    dimensiones: [I, C, D]
+    tipos_activo: [servicios, datos, software, hardware, comunicaciones]
+
+  - codigo: 'E.7'
+    grupo: errores_no_intencionados
+    nombre: Deficiencias en la organización
+    descripcion: No está claro quién responde de qué, así que llegado el momento no lo hace nadie.
+    dimensiones: [C, I, D]
+    tipos_activo: [servicios, datos, software, hardware, comunicaciones, soportes, personal]
+
+  - codigo: 'E.8'
+    grupo: errores_no_intencionados
+    nombre: Difusión de software dañino
+    descripcion: Código malicioso que entra y se propaga sin que nadie lo introdujera a propósito.
+    dimensiones: [C, I, D]
+    tipos_activo: [servicios, datos, software, hardware]
+
+  - codigo: 'E.9'
+    grupo: errores_no_intencionados
+    nombre: Errores de encaminamiento
+    descripcion: Un mensaje llega a un destino que no era el suyo por un fallo de la red o de la aplicación.
+    dimensiones: [C]
+    tipos_activo: [servicios, datos, software, comunicaciones]
+
+  - codigo: 'E.10'
+    grupo: errores_no_intencionados
+    nombre: Errores de secuencia
+    descripcion: Los mensajes llegan en un orden distinto del emitido y el resultado deja de ser el previsto.
+    dimensiones: [I]
+    tipos_activo: [servicios, datos, software, comunicaciones]
+
+  - codigo: 'E.15'
+    grupo: errores_no_intencionados
+    nombre: Alteración accidental de la información
+    descripcion: La información cambia sin que nadie lo pretendiera, y se sigue usando como si fuera buena.
+    dimensiones: [I]
+    tipos_activo: [datos, software, soportes, comunicaciones]
+
+  - codigo: 'E.18'
+    grupo: errores_no_intencionados
+    nombre: Destrucción de información
+    descripcion: Se pierde información por accidente y no hay copia de la que recuperarla.
+    dimensiones: [D]
+    tipos_activo: [datos, software, soportes]
+
+  - codigo: 'E.19'
+    grupo: errores_no_intencionados
+    nombre: Fugas de información
+    descripcion: 'La información acaba donde no debía por descuido: un correo, un adjunto o un canal equivocado.'
+    dimensiones: [C]
+    tipos_activo: [datos, servicios, soportes, comunicaciones, personal]
+
+  - codigo: 'E.20'
+    grupo: errores_no_intencionados
+    nombre: Vulnerabilidades de los programas
+    descripcion: Un defecto del propio software abre una vía que nadie puso ahí queriendo.
+    dimensiones: [C, I, D]
+    tipos_activo: [software, servicios]
+
+  - codigo: 'E.21'
+    grupo: errores_no_intencionados
+    nombre: Errores de mantenimiento o actualización de programas
+    descripcion: Una actualización mal aplicada rompe lo que funcionaba o reabre lo que estaba cerrado.
+    dimensiones: [I, D]
+    tipos_activo: [software, servicios]
+
+  - codigo: 'E.23'
+    grupo: errores_no_intencionados
+    nombre: Errores de mantenimiento o actualización de equipos
+    descripcion: Una intervención sobre el equipo lo deja peor de lo que estaba.
+    dimensiones: [D]
+    tipos_activo: [hardware, comunicaciones, soportes, equipamiento_auxiliar]
+
+  - codigo: 'E.24'
+    grupo: errores_no_intencionados
+    nombre: Caída del sistema por agotamiento de recursos
+    descripcion: La carga supera lo que el sistema aguanta y deja de dar servicio sin que nadie lo ataque.
+    dimensiones: [D]
+    tipos_activo: [servicios, software, hardware, comunicaciones]
+
+  - codigo: 'E.25'
+    grupo: errores_no_intencionados
+    nombre: Pérdida de equipos
+    descripcion: Un equipo desaparece, y con él lo que llevara dentro.
+    dimensiones: [C, D]
+    tipos_activo: [hardware, soportes, comunicaciones, equipamiento_auxiliar]
+
+  - codigo: 'E.28'
+    grupo: errores_no_intencionados
+    nombre: Indisponibilidad del personal
+    descripcion: Falta quien sabe hacer algo, por baja, vacaciones o salida de la organización.
+    dimensiones: [D]
+    tipos_activo: [personal, servicios]
+
+  # ---------------------------------------------------------------------------
+  # A — Ataques intencionados
+  # Hay alguien que quiere. Muchas repiten el efecto de un error de la lista
+  # anterior, y se mantienen separadas porque la probabilidad y la salvaguarda no
+  # se parecen en nada.
+  # ---------------------------------------------------------------------------
+  - codigo: 'A.3'
+    grupo: ataques_intencionados
+    nombre: Manipulación de los registros de actividad
+    descripcion: Alguien altera el registro para que no se pueda reconstruir lo que hizo.
+    dimensiones: [T]
+    tipos_activo: [servicios, datos, software]
+
+  - codigo: 'A.4'
+    grupo: ataques_intencionados
+    nombre: Manipulación de la configuración
+    descripcion: Se cambia la configuración a propósito para abrir una vía o para ocultar algo.
+    dimensiones: [C, I, D]
+    tipos_activo: [servicios, datos, software, hardware, comunicaciones]
+
+  - codigo: 'A.5'
+    grupo: ataques_intencionados
+    nombre: Suplantación de la identidad del usuario
+    descripcion: Alguien actúa haciéndose pasar por otro y hereda sus permisos.
+    dimensiones: [C, I, A]
+    tipos_activo: [servicios, datos, software, comunicaciones]
+
+  - codigo: 'A.6'
+    grupo: ataques_intencionados
+    nombre: Abuso de privilegios de acceso
+    descripcion: Quien tiene acceso legítimo lo usa para algo que no le corresponde.
+    dimensiones: [C, I, D]
+    tipos_activo: [servicios, datos, software, hardware, comunicaciones, soportes]
+
+  - codigo: 'A.7'
+    grupo: ataques_intencionados
+    nombre: Uso no previsto
+    descripcion: Los recursos se dedican a fines ajenos a la organización.
+    dimensiones: [C, I, D]
+    tipos_activo: [servicios, software, hardware, comunicaciones, instalaciones]
+
+  - codigo: 'A.8'
+    grupo: ataques_intencionados
+    nombre: Difusión de software dañino
+    descripcion: Código malicioso introducido a propósito para dañar, cifrar o exfiltrar.
+    dimensiones: [C, I, D]
+    tipos_activo: [servicios, datos, software, hardware]
+
+  - codigo: 'A.9'
+    grupo: ataques_intencionados
+    nombre: Reencaminamiento de mensajes
+    descripcion: Se desvía el tráfico hacia un destino elegido por el atacante.
+    dimensiones: [C]
+    tipos_activo: [servicios, software, comunicaciones]
+
+  - codigo: 'A.10'
+    grupo: ataques_intencionados
+    nombre: Alteración de secuencia
+    descripcion: Se reordenan o repiten mensajes para provocar un efecto distinto del previsto.
+    dimensiones: [I]
+    tipos_activo: [servicios, datos, software, comunicaciones]
+
+  - codigo: 'A.11'
+    grupo: ataques_intencionados
+    nombre: Acceso no autorizado
+    descripcion: Alguien entra donde no debe aprovechando un fallo de control de acceso.
+    dimensiones: [C, I]
+    tipos_activo: [servicios, datos, software, hardware, comunicaciones, soportes, instalaciones]
+
+  - codigo: 'A.12'
+    grupo: ataques_intencionados
+    nombre: Análisis de tráfico
+    descripcion: Sin leer el contenido, se deduce información observando quién habla con quién y cuándo.
+    dimensiones: [C]
+    tipos_activo: [comunicaciones, servicios]
+
+  - codigo: 'A.13'
+    grupo: ataques_intencionados
+    nombre: Repudio
+    descripcion: Quien hizo algo niega haberlo hecho y no hay forma de demostrarlo.
+    dimensiones: [T, A]
+    tipos_activo: [servicios, datos]
+
+  - codigo: 'A.14'
+    grupo: ataques_intencionados
+    nombre: Interceptación de información
+    descripcion: Se escucha la comunicación sin alterarla y sin dejar rastro.
+    dimensiones: [C]
+    tipos_activo: [comunicaciones, servicios, datos]
+
+  - codigo: 'A.15'
+    grupo: ataques_intencionados
+    nombre: Modificación deliberada de la información
+    descripcion: Se altera la información a propósito para que el que la use se equivoque.
+    dimensiones: [I]
+    tipos_activo: [datos, software, soportes, comunicaciones]
+
+  - codigo: 'A.18'
+    grupo: ataques_intencionados
+    nombre: Destrucción de información
+    descripcion: Se borra información a propósito, incluidas las copias si se llega a ellas.
+    dimensiones: [D]
+    tipos_activo: [datos, software, soportes]
+
+  - codigo: 'A.19'
+    grupo: ataques_intencionados
+    nombre: Divulgación de información
+    descripcion: Se publica o se entrega a un tercero información que no debía salir.
+    dimensiones: [C]
+    tipos_activo: [datos, servicios, soportes, personal]
+
+  - codigo: 'A.22'
+    grupo: ataques_intencionados
+    nombre: Manipulación de programas
+    descripcion: Se altera el software para que haga algo más de lo que dice hacer.
+    dimensiones: [C, I, D]
+    tipos_activo: [software, servicios]
+
+  - codigo: 'A.23'
+    grupo: ataques_intencionados
+    nombre: Manipulación de los equipos
+    descripcion: Se interviene físicamente un equipo para sacarle información o dejarlo inservible.
+    dimensiones: [C, D]
+    tipos_activo: [hardware, comunicaciones, soportes, equipamiento_auxiliar]
+
+  - codigo: 'A.24'
+    grupo: ataques_intencionados
+    nombre: Denegación de servicio
+    descripcion: Se satura el sistema a propósito hasta que deja de atender a quien tiene derecho.
+    dimensiones: [D]
+    tipos_activo: [servicios, software, hardware, comunicaciones]
+
+  - codigo: 'A.25'
+    grupo: ataques_intencionados
+    nombre: Robo
+    descripcion: Se sustrae un equipo o un soporte, y con él lo que contenga.
+    dimensiones: [C, D]
+    tipos_activo: [hardware, soportes, comunicaciones, equipamiento_auxiliar]
+
+  - codigo: 'A.26'
+    grupo: ataques_intencionados
+    nombre: Ataque destructivo
+    descripcion: Vandalismo, sabotaje o destrucción deliberada de instalaciones o equipamiento.
+    dimensiones: [D]
+    tipos_activo: [hardware, comunicaciones, soportes, equipamiento_auxiliar, instalaciones]
+
+  - codigo: 'A.27'
+    grupo: ataques_intencionados
+    nombre: Ocupación enemiga
+    descripcion: Se pierde el control físico del local y de todo lo que hay dentro.
+    dimensiones: [C, D]
+    tipos_activo: [instalaciones, hardware, soportes, personal]
+
+  - codigo: 'A.28'
+    grupo: ataques_intencionados
+    nombre: Indisponibilidad del personal
+    descripcion: 'Ausencia deliberada del personal: huelga, abandono o bloqueo concertado.'
+    dimensiones: [D]
+    tipos_activo: [personal, servicios]
+
+  - codigo: 'A.29'
+    grupo: ataques_intencionados
+    nombre: Extorsión
+    descripcion: Se presiona a una persona para que haga o permita algo contra la organización.
+    dimensiones: [C, I, D]
+    tipos_activo: [personal, servicios, datos]
+
+  - codigo: 'A.30'
+    grupo: ataques_intencionados
+    nombre: Ingeniería social
+    descripcion: Se engaña a una persona para que entregue información o realice una acción por el atacante.
+    dimensiones: [C, I, D]
+    tipos_activo: [personal, servicios, datos]

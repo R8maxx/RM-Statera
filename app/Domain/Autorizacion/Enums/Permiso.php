@@ -23,6 +23,15 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * versión, que es lo mismo que hacer y entregar. `documentos.aprobar` llegará
  * con el flujo de aprobación, que es cuando la diferencia existirá de verdad.
  *
+ * `riesgos.aceptar` es el tercer verbo del producto, y está por el mismo motivo
+ * que `sistemas.valorar`: aceptar un riesgo es la organización declarando que
+ * conoce una exposición y decide convivir con ella, e ISO 27001 6.1.3 f) exige
+ * que lo apruebe el propietario del riesgo. Un técnico que registra y puntúa
+ * riesgos no debe poder firmar uno — eso no es un matiz de permisos, es la razón
+ * entera por la que la norma pide la aprobación. Cubre también definir la
+ * metodología, que es la otra decisión que toma la dirección: fijar el apetito de
+ * riesgo es decidir de antemano qué se va a poder aceptar.
+ *
  * Y `documentos.redactar` está separado de `documentos.plantillas` por lo mismo:
  * retocar la introducción de UN documento y redefinir el texto base de la
  * organización no son la misma decisión. Lo segundo afecta a todos los
@@ -52,6 +61,10 @@ enum Permiso: string
     case ActivosVer = 'activos.ver';
     case ActivosGestionar = 'activos.gestionar';
 
+    case RiesgosVer = 'riesgos.ver';
+    case RiesgosGestionar = 'riesgos.gestionar';
+    case RiesgosAceptar = 'riesgos.aceptar';
+
     case TareasVer = 'tareas.ver';
     case TareasGestionar = 'tareas.gestionar';
 
@@ -73,6 +86,9 @@ enum Permiso: string
             self::EvidenciasGestionar => 'Registrar y vincular evidencias',
             self::ActivosVer => 'Ver el inventario de activos',
             self::ActivosGestionar => 'Dar de alta activos y declarar dependencias',
+            self::RiesgosVer => 'Ver el análisis de riesgos',
+            self::RiesgosGestionar => 'Registrar riesgos, valorarlos y vincular salvaguardas',
+            self::RiesgosAceptar => 'Aceptar riesgos y definir la metodología',
             self::TareasVer => 'Ver el plan de acción',
             self::TareasGestionar => 'Crear tareas, asignarlas y moverlas de estado',
             self::DocumentosVer => 'Ver los documentos y descargar sus versiones',

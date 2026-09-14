@@ -8,6 +8,7 @@ import {
     PencilIcon,
     PlusIcon,
     QrCodeIcon,
+    ScaleIcon,
     SlidersHorizontalIcon,
     Trash2Icon,
 } from '@lucide/vue';
@@ -29,6 +30,9 @@ const iconos: Record<string, Component> = {
     Pencil: PencilIcon,
     Plus: PlusIcon,
     QrCode: QrCodeIcon,
+    // La balanza: es el símbolo de la marca, y aquí lleva a la metodología, que
+    // es literalmente dónde la organización fija el fiel de su balanza.
+    Scale: ScaleIcon,
     SlidersHorizontal: SlidersHorizontalIcon,
     Trash2: Trash2Icon,
 };

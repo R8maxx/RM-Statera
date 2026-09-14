@@ -37,6 +37,13 @@ final class ResultadoImportacion
 
     public int $implantacionesAfectadas = 0;
 
+    /**
+     * A cuántos riesgos afecta retirar una amenaza del catálogo. Es el equivalente
+     * de `implantacionesAfectadas` para el fichero de MAGERIT: nada se retira en
+     * silencio sin decir a qué arrastra.
+     */
+    public int $riesgosAfectados = 0;
+
     public function __construct(
         public readonly string $fichero,
         public readonly string $tipo,

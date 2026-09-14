@@ -8,6 +8,7 @@ import {
     ListTodoIcon,
     PaperclipIcon,
     ServerIcon,
+    ShieldAlertIcon,
     type LucideIcon,
 } from '@lucide/vue';
 
@@ -56,6 +57,15 @@ export const navegacion: GrupoNavegacion[] = [
                 href: '/evidencias',
                 icono: PaperclipIcon,
                 alias: ['pruebas', 'adjuntos', 'capturas', 'soporte'],
+            },
+            {
+                titulo: 'Riesgos',
+                href: '/riesgos',
+                icono: ShieldAlertIcon,
+                // `magerit` y `amenazas` son lo que se teclea sin saber que el
+                // módulo se llama «Riesgos»; `matriz` y `residual` son lo que se
+                // busca cuando ya se está dentro del análisis.
+                alias: ['análisis de riesgos', 'amenazas', 'magerit', 'matriz', 'residual', 'salvaguardas', 'tratamiento', 'metodología'],
             },
             {
                 titulo: 'Tareas',

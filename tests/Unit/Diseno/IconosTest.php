@@ -11,6 +11,9 @@ use App\Domain\Documento\Enums\ClasificacionDocumental;
 use App\Domain\Documento\Enums\EstadoGeneracion;
 use App\Domain\Documento\Enums\OrigenTexto;
 use App\Domain\Implantacion\Enums\EstadoImplantacion;
+use App\Domain\Riesgo\Enums\DecisionRiesgo;
+use App\Domain\Riesgo\Enums\GrupoAmenaza;
+use App\Domain\Riesgo\Enums\NivelRiesgo;
 use App\Domain\Tarea\Enums\EstadoTarea;
 use App\Domain\Tarea\Enums\PrioridadTarea;
 
@@ -43,6 +46,9 @@ function enumsConIcono(): array
         PrioridadTarea::class,
         TipoActivo::class,
         Fuente::class,
+        NivelRiesgo::class,
+        DecisionRiesgo::class,
+        GrupoAmenaza::class,
     ];
 }
 
@@ -136,4 +142,12 @@ it('dos estados del mismo tono no comparten icono', function (string $enum): voi
             ),
         );
     }
-})->with([EstadoTarea::class, EstadoImplantacion::class, EstadoCicloVida::class, EstadoControl::class, Clasificacion::class]);
+})->with([
+    EstadoTarea::class,
+    EstadoImplantacion::class,
+    EstadoCicloVida::class,
+    EstadoControl::class,
+    Clasificacion::class,
+    NivelRiesgo::class,
+    DecisionRiesgo::class,
+]);

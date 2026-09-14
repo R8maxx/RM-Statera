@@ -7,12 +7,15 @@ namespace App\Domain\Tarea\Enums;
 /**
  * De dónde sale una tarea.
  *
- * **Se declara entero y hoy sólo se cablea uno.** Los cinco primeros son los de
- * § 4.7 y de ésos únicamente existe `BrechaImplantacion`: hallazgo, riesgo,
- * incidente y revisión por la dirección llegan con sus módulos (§ 4.12, § 4.3,
- * § 4.10 y § 4.15). Mismo criterio con el que se carga el Anexo II completo
- * usando el subconjunto de categoría básica: el modelo entero desde el principio
- * y los datos que haya.
+ * **Se declara entero y se van cableando según llegan sus módulos.** Los cinco
+ * primeros son los de § 4.7; hoy existen `BrechaImplantacion` y `Riesgo`, y
+ * hallazgo, incidente y revisión por la dirección siguen esperando a § 4.12,
+ * § 4.10 y § 4.15. Mismo criterio con el que se carga el Anexo II completo usando
+ * el subconjunto de categoría básica: el modelo entero desde el principio y los
+ * datos que haya.
+ *
+ * `disponible()` es un `match` exhaustivo y no una comparación con `||`: era el
+ * único sitio del enum donde olvidarse de un caso nuevo no lo señalaba nadie.
  *
  * `Propia` **no está en la especificación y se añade a conciencia.** Los cinco de
  * § 4.7 dan por supuesto que toda tarea nace de otro registro, y muchas no: «pedir
@@ -51,7 +54,12 @@ enum OrigenTarea: string
      */
     public function disponible(): bool
     {
-        return $this === self::BrechaImplantacion || $this === self::Propia;
+        return match ($this) {
+            self::BrechaImplantacion, self::Propia, self::Riesgo => true,
+            // Hallazgo, incidente y revisión por la dirección siguen esperando a
+            // § 4.12, § 4.10 y § 4.15.
+            self::Hallazgo, self::Incidente, self::RevisionDireccion => false,
+        };
     }
 
     /** @return list<self> */

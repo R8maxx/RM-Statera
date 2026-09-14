@@ -87,6 +87,12 @@ final class ImportarCatalogoCommand extends Command
             return;
         }
 
+        if ($resultado->tipo === 'amenazas') {
+            $this->presentarAmenazas($resultado);
+
+            return;
+        }
+
         $resumen = $resultado->resumen();
 
         $this->components->twoColumnDetail('Requisitos nuevos', (string) $resumen['nuevos']);
@@ -122,6 +128,43 @@ final class ImportarCatalogoCommand extends Command
                 'Implantaciones afectadas',
                 (string) $resultado->implantacionesAfectadas,
             );
+        }
+    }
+
+    /**
+     * El diff del catálogo de amenazas.
+     *
+     * Mismo recuento que el de requisitos, con otros nombres y otro aviso: lo que
+     * arrastra retirar una amenaza no son implantaciones, son riesgos. Sin esa
+     * cifra, quien importa una revisión de MAGERIT no sabe si está a punto de
+     * dejar huérfano medio análisis.
+     */
+    private function presentarAmenazas(ResultadoImportacion $resultado): void
+    {
+        $resumen = $resultado->resumen();
+
+        $this->components->twoColumnDetail('Amenazas nuevas', (string) $resumen['nuevos']);
+        $this->components->twoColumnDetail('Amenazas modificadas', (string) $resumen['modificados']);
+        $this->components->twoColumnDetail('Amenazas retiradas', (string) $resumen['retirados']);
+
+        if ($resumen['reactivados'] > 0) {
+            $this->components->twoColumnDetail('Amenazas reactivadas', (string) $resumen['reactivados']);
+        }
+
+        $this->components->twoColumnDetail('Sin cambios', (string) $resumen['sin_cambios']);
+
+        if ($this->option('diff')) {
+            $this->detallar($resultado);
+        }
+
+        if ($resultado->retirados !== []) {
+            $this->newLine();
+            $this->components->warn(sprintf(
+                '%d amenaza(s) ya no aparecen en el fichero. No se han borrado: quedan marcadas como no vigentes.',
+                count($resultado->retirados),
+            ));
+
+            $this->components->twoColumnDetail('Riesgos afectados', (string) $resultado->riesgosAfectados);
         }
     }
 
