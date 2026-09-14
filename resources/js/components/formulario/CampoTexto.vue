@@ -26,6 +26,13 @@ withDefaults(
         autocomplete?: string;
         autofocus?: boolean;
         valorInicial?: string | number;
+        /**
+         * Para filas repetidas —los escalones de una escala—, donde el título de
+         * la sección ya dice qué son y repetirlo en cada fila es ruido. El
+         * `<label>` sigue existiendo y asociado: quitarlo dejaría el control sin
+         * nombre accesible.
+         */
+        etiquetaOculta?: boolean;
     }>(),
     { tipo: 'text' },
 );
@@ -40,6 +47,7 @@ const modelo = defineModel<string | number | undefined>();
         :error="error"
         :ayuda="ayuda"
         :requerido="requerido"
+        :etiqueta-oculta="etiquetaOculta"
         #default="{ atributos }"
     >
         <Input

@@ -50,7 +50,11 @@ class RiesgoController extends Controller
     {
         return Inertia::render('riesgos/Index', [
             ...$this->tabla($recurso, $request),
-            'indicadores' => $registro->indicadores(),
+
+            // Dos listas y no una: incumplimiento real y trabajo sin hacer no se
+            // leen igual, y `TiraIndicadores` los pinta con pesos distintos.
+            'alertas' => $registro->alertas(),
+            'pendientes' => $registro->pendientes(),
             'total' => $registro->total(),
         ]);
     }
@@ -141,6 +145,8 @@ class RiesgoController extends Controller
                 ],
                 DecisionRiesgo::cases(),
             ),
+
+            'candidatos' => $this->candidatosASalvaguarda($riesgo),
         ]);
     }
 
@@ -315,6 +321,38 @@ class RiesgoController extends Controller
             // valoraciones, y lo que impide que la fila de marzo mienta en octubre.
             'salvaguardas' => $valoracion->salvaguardas,
         ];
+    }
+
+    /**
+     * Los controles que se pueden apoyar contra este riesgo.
+     *
+     * Sólo los **aplicables**: un requisito que el motor de categorización ha
+     * excluido no protege de nada, y ofrecerlo invitaría a montar un tratamiento
+     * sobre algo que a este sistema no se le exige. Y sin los ya vinculados, para
+     * que la lista no repita lo que está justo encima.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function candidatosASalvaguarda(Riesgo $riesgo): array
+    {
+        return Implantacion::query()
+            ->where('aplica', true)
+            ->whereNotIn('id', $riesgo->salvaguardas->pluck('id'))
+            ->with('requisito.marco')
+            ->get()
+            ->sortBy(fn (Implantacion $implantacion): string => (string) $implantacion->requisito?->codigo)
+            ->map(fn (Implantacion $implantacion): array => [
+                'valor' => (string) $implantacion->id,
+                'etiqueta' => trim(sprintf(
+                    '%s — %s',
+                    (string) $implantacion->requisito?->codigo,
+                    (string) $implantacion->requisito?->titulo,
+                )),
+                'marco' => $implantacion->requisito?->marco?->codigo,
+                'estado' => $implantacion->estado->value,
+            ])
+            ->values()
+            ->all();
     }
 
     /**

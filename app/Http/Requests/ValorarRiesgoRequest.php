@@ -6,6 +6,7 @@ namespace App\Http\Requests;
 
 use App\Domain\Riesgo\Enums\DecisionRiesgo;
 use App\Domain\Riesgo\MetodologiaVigente;
+use App\Http\Requests\Concerns\NormalizaSeleccionVacia;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -24,6 +25,8 @@ use Illuminate\Validation\Validator;
  */
 class ValorarRiesgoRequest extends FormRequest
 {
+    use NormalizaSeleccionVacia;
+
     /**
      * @return array<string, mixed>
      */
@@ -95,5 +98,16 @@ class ValorarRiesgoRequest extends FormRequest
             'justificacion_residual' => 'justificación del residual',
             'decision' => 'decisión',
         ];
+    }
+
+    /**
+     * Los dos factores del residual son desplegables opcionales: «todavía no lo he
+     * decidido» tiene que poder elegirse, y Reka no admite un valor vacío.
+     *
+     * @return list<string>
+     */
+    protected function seleccionesOpcionales(): array
+    {
+        return ['probabilidad_residual', 'impacto_residual'];
     }
 }

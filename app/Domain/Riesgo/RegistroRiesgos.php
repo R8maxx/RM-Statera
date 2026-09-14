@@ -20,6 +20,9 @@ use App\Http\Resources\Panel\Indicador;
  * grupo de amenaza— son perfil y no urgencia, y van al panel, que es donde se
  * pregunta cómo va la cosa; es el mismo reparto que se hizo entre `/panel` y
  * `/activos`.
+ *
+ * Y va en dos listas, no en una: `TiraIndicadores` pinta las alertas con más peso
+ * que lo pendiente, y a cero no ocupan tarjeta ninguna de las dos.
  */
 final class RegistroRiesgos
 {
@@ -29,9 +32,15 @@ final class RegistroRiesgos
     }
 
     /**
+     * Lo que va mal de verdad.
+     *
+     * Se separa de lo que está a medias por el mismo motivo que en el inventario:
+     * mezclarlos hace que un riesgo sin valorar —un hueco en el trabajo— pese lo
+     * mismo que uno por encima del umbral que la organización declaró inasumible.
+     *
      * @return list<Indicador>
      */
-    public function indicadores(): array
+    public function alertas(): array
     {
         return [
             $this->indicador(
@@ -39,8 +48,36 @@ final class RegistroRiesgos
                 'Por encima del umbral',
                 'sobreUmbral',
                 'caducada',
-                'Lo que queda después de tratar supera el umbral de aceptación de la organización.',
+                'Lo que queda después de tratar supera el umbral de aceptación de la organización. Se mide sobre el residual cuando lo hay y sobre el intrínseco cuando no.',
             ),
+            $this->indicador(
+                'residual_sin_respaldo',
+                'Residual sin respaldo',
+                'residualSinRespaldo',
+                'caducada',
+                'Se declara que el riesgo baja y ninguna salvaguarda vinculada está implantada. Es lo primero que un auditor pide que se enseñe.',
+            ),
+            $this->indicador(
+                'revision_vencida',
+                'Reevaluación vencida',
+                'revisionVencida',
+                'caducada',
+                'Pasó la fecha en que tocaba volver a mirarlo.',
+            ),
+        ];
+    }
+
+    /**
+     * Trabajo sin hacer, que no es incumplimiento.
+     *
+     * Un riesgo sin valorar no está fuera de conformidad: está sin medir. Y uno
+     * medido sin firmar no es un fallo del análisis, es un paso que le falta.
+     *
+     * @return list<Indicador>
+     */
+    public function pendientes(): array
+    {
+        return [
             $this->indicador(
                 'sin_valorar',
                 'Sin valorar',
@@ -54,20 +91,6 @@ final class RegistroRiesgos
                 'sinAceptar',
                 'en_progreso',
                 'Medidos, con decisión tomada y sin que el propietario del riesgo la haya firmado.',
-            ),
-            $this->indicador(
-                'residual_sin_respaldo',
-                'Residual sin respaldo',
-                'residualSinRespaldo',
-                'caducada',
-                'Se declara que el riesgo baja y ninguna salvaguarda vinculada está implantada.',
-            ),
-            $this->indicador(
-                'revision_vencida',
-                'Reevaluación vencida',
-                'revisionVencida',
-                'caducada',
-                'Pasó la fecha en que tocaba volver a mirarlo.',
             ),
         ];
     }

@@ -105,21 +105,43 @@ final class CalculoRiesgo
      * que cambie una la leyenda dirá una cosa y el badge otra. Un escalón vacío
      * —posible con umbrales muy bajos— no sale en el mapa.
      *
-     * @return array<string, array{desde: int, hasta: int}>
+     * **El tono y el icono viajan con la banda**, no los deduce el cliente. Es la
+     * misma regla que con los estados: el dominio dice de qué color va cada cosa,
+     * porque el mismo tono significa cosas distintas según el módulo.
+     *
+     * @return array<string, array{desde: int, hasta: int, etiqueta: string, tono: string, icono: string}>
      */
     public function bandas(Metodologia $metodologia): array
     {
         [$hastaMuyBajo, $hastaBajo] = $this->cortesDeLaZonaAceptable($metodologia);
 
-        $tramos = [
-            NivelRiesgo::MuyBajo->value => ['desde' => 1, 'hasta' => $hastaMuyBajo],
-            NivelRiesgo::Bajo->value => ['desde' => $hastaMuyBajo + 1, 'hasta' => $hastaBajo],
-            NivelRiesgo::Medio->value => ['desde' => $hastaBajo + 1, 'hasta' => $metodologia->umbralAceptacion - 1],
-            NivelRiesgo::Alto->value => ['desde' => $metodologia->umbralAceptacion, 'hasta' => $metodologia->umbralCritico - 1],
-            NivelRiesgo::MuyAlto->value => ['desde' => $metodologia->umbralCritico, 'hasta' => $metodologia->riesgoMaximo()],
+        $limites = [
+            NivelRiesgo::MuyBajo->value => [1, $hastaMuyBajo],
+            NivelRiesgo::Bajo->value => [$hastaMuyBajo + 1, $hastaBajo],
+            NivelRiesgo::Medio->value => [$hastaBajo + 1, $metodologia->umbralAceptacion - 1],
+            NivelRiesgo::Alto->value => [$metodologia->umbralAceptacion, $metodologia->umbralCritico - 1],
+            NivelRiesgo::MuyAlto->value => [$metodologia->umbralCritico, $metodologia->riesgoMaximo()],
         ];
 
-        return array_filter($tramos, static fn (array $tramo): bool => $tramo['desde'] <= $tramo['hasta']);
+        $tramos = [];
+
+        foreach (NivelRiesgo::cases() as $nivel) {
+            [$desde, $hasta] = $limites[$nivel->value];
+
+            if ($desde > $hasta) {
+                continue;
+            }
+
+            $tramos[$nivel->value] = [
+                'desde' => $desde,
+                'hasta' => $hasta,
+                'etiqueta' => $nivel->etiqueta(),
+                'tono' => $nivel->tono(),
+                'icono' => $nivel->icono(),
+            ];
+        }
+
+        return $tramos;
     }
 
     /**

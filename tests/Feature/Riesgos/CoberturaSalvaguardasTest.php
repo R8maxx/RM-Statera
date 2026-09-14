@@ -156,7 +156,7 @@ it('el indicador y el método de una fila dicen lo mismo', function (): void {
         static fn (Riesgo $riesgo): bool => $riesgo->load('salvaguardas', 'valoracionVigente')->residualSinRespaldo(),
     )->count();
 
-    $indicadores = collect(app(RegistroRiesgos::class)->indicadores())->keyBy('clave');
+    $indicadores = collect(app(RegistroRiesgos::class)->alertas())->keyBy('clave');
 
     expect($indicadores['residual_sin_respaldo']->valor)->toBe($porFila)
         ->and($porFila)->toBe(1);
@@ -165,9 +165,33 @@ it('el indicador y el método de una fila dicen lo mismo', function (): void {
 it('cada indicador apunta al filtro que lo aísla', function (): void {
     comoOrganizacion();
 
-    foreach (app(RegistroRiesgos::class)->indicadores() as $indicador) {
+    $registro = app(RegistroRiesgos::class);
+
+    foreach ([...$registro->alertas(), ...$registro->pendientes()] as $indicador) {
         expect($indicador->filtro)->toBe("filter[{$indicador->clave}]=1")
             ->and($indicador->base)->toBe('/riesgos');
+    }
+});
+
+it('las alertas son lo que va mal y los pendientes lo que falta por hacer', function (): void {
+    // El reparto no es cosmético: mezclarlos hace que un riesgo sin medir pese lo
+    // mismo que uno por encima del umbral que la organización declaró inasumible.
+    comoOrganizacion();
+
+    $registro = app(RegistroRiesgos::class);
+
+    expect(array_column($registro->alertas(), 'clave'))
+        ->toBe(['sobre_umbral', 'residual_sin_respaldo', 'revision_vencida'])
+        ->and(array_column($registro->pendientes(), 'clave'))
+        ->toBe(['sin_valorar', 'sin_aceptar']);
+
+    // Y todas las alertas gastan el rojo; ninguna pendiente lo hace.
+    foreach ($registro->alertas() as $alerta) {
+        expect($alerta->tono)->toBe('caducada');
+    }
+
+    foreach ($registro->pendientes() as $pendiente) {
+        expect($pendiente->tono)->not->toBe('caducada');
     }
 });
 
