@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import Logotipo from '@/components/Logotipo.vue';
 import PaletaComandos from '@/components/PaletaComandos.vue';
+import RecorridoGuiado from '@/components/RecorridoGuiado.vue';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -16,6 +17,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
 import { usePaletaComandos } from '@/composables/usePaletaComandos';
+import { useRecorrido } from '@/composables/useRecorrido';
 import { useTema } from '@/composables/useTema';
 import { entradaDe, esSeccionActiva, navegacion } from '@/lib/navegacion';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
@@ -27,6 +29,7 @@ import {
     MonitorIcon,
     MoonIcon,
     PanelLeftIcon,
+    RouteIcon,
     SearchIcon,
     ShieldCheckIcon,
     SunIcon,
@@ -61,6 +64,16 @@ const menuMovil = ref(false);
 
 const { preferencia, esOscuro, fijar } = useTema();
 const { abrir: abrirPaleta } = usePaletaComandos();
+const { abrir: abrirRecorrido } = useRecorrido();
+
+/**
+ * El ancla que el recorrido guiado busca para cada módulo.
+ *
+ * Se deriva de la ruta en vez de escribirse entrada por entrada: `navegacion.ts`
+ * es el mapa único de la aplicación y un módulo nuevo no tiene que acordarse de
+ * declarar también su ancla. `/implantaciones` → `nav-implantaciones`.
+ */
+const anclaRecorrido = (href: string): string => `nav-${href.replace(/^\//, '').replace(/\//g, '-')}`;
 const { variantesEntrada } = useMovimientoReducido();
 
 /*
@@ -116,7 +129,7 @@ const salir = (): void => router.post('/logout');
                     :class="plegado ? 'w-[4.25rem]' : 'w-60'"
                 >
                     <div class="flex h-16 items-center border-b px-4">
-                        <Link href="/panel" class="flex min-w-0 items-center rounded-md">
+                        <Link href="/panel" class="flex min-w-0 items-center rounded-md" data-recorrido="logotipo">
                             <Logotipo :variante="plegado ? 'simbolo' : 'completo'" :respaldo="!plegado" />
                         </Link>
                     </div>
@@ -134,6 +147,7 @@ const salir = (): void => router.post('/logout');
                                 <TooltipTrigger as-child>
                                     <Link
                                         :href="entrada.href"
+                                        :data-recorrido="anclaRecorrido(entrada.href)"
                                         class="relative flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors duration-150"
                                         :class="[
                                             esSeccionActiva(entrada.href, rutaActual)
@@ -358,6 +372,14 @@ const salir = (): void => router.post('/logout');
                                             Mi cuenta
                                         </Link>
                                     </DropdownMenuItem>
+                                    <!-- El recorrido se ofrece solo una vez; a
+                                         partir de ahí hay que poder encontrarlo,
+                                         y este es el menú donde ya se busca todo
+                                         lo que es del usuario y no del trabajo. -->
+                                    <DropdownMenuItem @select="abrirRecorrido">
+                                        <RouteIcon class="size-4" />
+                                        Recorrido guiado
+                                    </DropdownMenuItem>
                                     <DropdownMenuItem @select="salir">
                                         <LogOutIcon class="size-4" />
                                         Cerrar sesión
@@ -367,19 +389,28 @@ const salir = (): void => router.post('/logout');
                         </div>
                     </header>
 
+                    <!--
+                        `tabindex="-1"` no es para tabular hasta aquí: es lo que
+                        hace que el elemento pueda RECIBIR el foco. Sin él,
+                        «Saltar al contenido» desplaza la página pero deja el
+                        foco donde estaba, y el siguiente tabulador vuelve al
+                        principio de la navegación.
+                    -->
                     <motion.main
                         id="contenido"
+                        tabindex="-1"
                         :key="rutaActual"
                         :variants="variantesEntrada"
                         initial="oculto"
                         animate="visible"
-                        class="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8"
+                        class="min-w-0 flex-1 px-4 py-6 outline-none sm:px-6 lg:px-8"
                     >
                         <slot />
                     </motion.main>
                 </div>
 
                 <PaletaComandos />
+                <RecorridoGuiado />
                 <Toaster position="top-right" rich-colors />
             </div>
         </TooltipProvider>

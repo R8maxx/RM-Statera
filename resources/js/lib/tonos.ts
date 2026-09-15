@@ -120,8 +120,19 @@ const propios: Record<string, Tono> = {
 
 /*
  * Lo ordinal sube en énfasis en vez de cambiar de hue: es lo que hace que se lea
- * el orden. La categoría del ENS y la prioridad de una tarea comparten escalón
- * porque son la misma idea.
+ * el orden.
+ *
+ * **La prioridad de una tarea tiene su propia familia y ya no toma prestada
+ * ésta.** Aquí decía que eran «la misma idea», y el código lo desmentía: la
+ * categoría del ENS tiene TRES escalones (básica, media, alta) y la exigencia
+ * DOS (exigible, reforzado), así que meter cuatro prioridades ahí obligaba a
+ * cruzar las dos escalas —`Baja→basica`, `Media→exigible`— y esas dos claves
+ * comparten relleno. Resultado visible en el panel: Media y Baja salían
+ * idénticas, y en el gris más oscuro de la tira, con lo que la prioridad más
+ * baja pesaba más que la más alta.
+ *
+ * Mismo reparto que ya separó `--tipo-*` de `--estado-*`: una cosa dice CUÁNTO
+ * corre y la otra QUÉ se exige, y con la misma tinta se leen como lo mismo.
  */
 const ordinales: Record<string, Tono> = {
     basica: { badge: 'bg-muted text-muted-foreground', punto: 'bg-muted-foreground', relleno: 'bg-muted-foreground', tramo: 'bg-muted-foreground', icono: null },
@@ -129,6 +140,22 @@ const ordinales: Record<string, Tono> = {
     alta: { badge: 'bg-primary/15 text-primary ring-1 ring-primary/25', punto: 'bg-primary', relleno: 'bg-primary', tramo: 'bg-primary', icono: null },
     exigible: { badge: 'bg-muted text-foreground', punto: 'bg-muted-foreground', relleno: 'bg-muted-foreground', tramo: 'bg-muted-foreground', icono: null },
     reforzado: { badge: 'bg-accent text-accent-foreground', punto: 'bg-primary', relleno: 'bg-primary', tramo: 'bg-primary', icono: null },
+};
+
+/*
+ * Prioridad: cuatro escalones de verdad, y el peso crece con la urgencia.
+ *
+ * Sin rojo a propósito. El rojo tiene tres dueños —una evidencia caducada, una
+ * tarea fuera de plazo y `NivelRiesgo::MuyAlto`— y los tres son «va mal de
+ * verdad», no «es grande». Una tarea crítica recién creada y en plazo no
+ * incumple nada; pintarla de alarma convertiría en fallo algo que la
+ * organización acaba de decidir bien.
+ */
+const prioridades: Record<string, Tono> = {
+    'prioridad-baja': { badge: 'bg-muted text-muted-foreground', punto: 'bg-muted-foreground/50', relleno: 'bg-muted-foreground/35', tramo: 'bg-muted-foreground/35', icono: null },
+    'prioridad-media': { badge: 'bg-muted text-foreground', punto: 'bg-muted-foreground', relleno: 'bg-muted-foreground/70', tramo: 'bg-muted-foreground/70', icono: null },
+    'prioridad-alta': { badge: 'bg-accent text-accent-foreground', punto: 'bg-primary/70', relleno: 'bg-primary/70', tramo: 'bg-primary/70', icono: null },
+    'prioridad-critica': { badge: 'bg-primary/15 text-primary ring-1 ring-primary/25', punto: 'bg-primary', relleno: 'bg-primary', tramo: 'bg-primary', icono: null },
 };
 
 /* Procedencia, no estado: chip monoespaciado y sin punto, porque no tiene grados. */
@@ -216,7 +243,7 @@ const neutro: Tono = {
     icono: null,
 };
 
-const mapa: Record<string, Tono> = { ...estados, ...ordinales, ...procedencia, ...tipos };
+const mapa: Record<string, Tono> = { ...estados, ...ordinales, ...prioridades, ...procedencia, ...tipos };
 
 for (const [nombre, destino] of Object.entries(alias)) {
     mapa[nombre] = mapa[destino];

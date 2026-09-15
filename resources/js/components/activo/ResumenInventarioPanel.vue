@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import AnilloProgreso from '@/components/AnilloProgreso.vue';
 import Cifra from '@/components/Cifra.vue';
 import BarraSegmentada, { type Segmento } from '@/components/BarraSegmentada.vue';
 import GraficaBarras, { type Barra } from '@/components/grafica/GraficaBarras.vue';
@@ -69,12 +68,26 @@ const totalCiclo = computed(() => props.inventario.porCicloDeVida.reduce((suma, 
         </CardHeader>
 
         <CardContent class="space-y-8 pt-0">
-            <div class="flex flex-col gap-8 sm:flex-row sm:items-center sm:gap-10">
-                <AnilloProgreso :valor="porcentaje" :tamano="128" :grosor="9" />
+            <!--
+                Sin anillo, y no por ahorrar sitio.
 
+                El panel tenía DOS: el del cumplimiento arriba —la cifra que
+                define el producto, con un arco del 2 %— y éste, más pequeño,
+                más lleno y con cinco colores debajo. El módulo de apoyo gritaba
+                por encima del titular, que es la jerarquía exactamente al revés.
+                Un panel tiene un anillo, y es el de la pregunta que abre la
+                pantalla.
+
+                No se pierde nada: el porcentaje sigue aquí, con su denominador
+                al lado, que es como el resto del producto da una cifra.
+            -->
+            <div class="flex flex-col gap-8 sm:flex-row sm:items-start sm:gap-10">
                 <div class="min-w-0 flex-1 space-y-5">
                     <p class="text-sm text-muted-foreground">
-                        <span class="cifra font-medium text-foreground">
+                        <span class="cifra text-2xl font-semibold tracking-tight text-foreground">
+                            <Cifra :valor="porcentaje" sufijo=" %" />
+                        </span>
+                        <span class="cifra ml-2 font-medium text-foreground">
                             <Cifra :valor="inventario.resueltos" />/<Cifra :valor="inventario.vigentes" />
                         </span>
                         activos con los dos controles decididos.

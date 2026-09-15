@@ -134,10 +134,22 @@ final class ActivoRecurso extends Recurso
                 )),
             Columna::badge('estado_ciclo_vida', 'Estado')
                 ->ordenable()
+                // Con ancho declarado: el badge lleva `whitespace-nowrap` y sin
+                // sitio se cortaba contra la columna de acciones anclada. Cortar
+                // JUSTO el badge que señala el hallazgo —y dejarlo comunicado
+                // sólo por color e icono, contra §11— era el peor sitio posible
+                // para quedarse sin ancho.
+                ->ancho('11rem')
                 ->formato(fn (Activo $activo): ValorEtiquetado => new ValorEtiquetado(
                     $activo->estado_ciclo_vida->value,
+                    // «Sin borrado seguro» y no «Retirado, sin borrado seguro»:
+                    // lo que hay que hacer cabe, y la frase entera no. El estado
+                    // del ciclo de vida se sigue pudiendo filtrar y ordenar por
+                    // esta misma columna, así que no se pierde el dato — y el
+                    // hecho vale igual para `retirado` que para `dado_de_baja`,
+                    // que son los dos casos que `esperaBorradoSeguro()` cubre.
                     $activo->esperaBorradoSeguro()
-                        ? $activo->estado_ciclo_vida->etiqueta().', sin borrado seguro'
+                        ? 'Sin borrado seguro'
                         : $activo->estado_ciclo_vida->etiqueta(),
                     $activo->esperaBorradoSeguro() ? 'caducada' : $activo->estado_ciclo_vida->tono(),
                     // Un disco retirado con los datos dentro es un hallazgo, no
@@ -309,6 +321,7 @@ final class ActivoRecurso extends Recurso
                 ->icono('Plus')
                 ->permiso(Permiso::ActivosGestionar->value),
             (new Accion('todas-las-etiquetas', 'Etiquetas QR', '/activos/etiquetas', MetodoAccion::Get))
+                ->secundaria()
                 ->icono('QrCode'),
         ];
     }

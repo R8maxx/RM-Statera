@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SimboloBalanza from '@/components/SimboloBalanza.vue';
 /**
  * La marca de Statera.
  *
@@ -24,28 +25,7 @@ withDefaults(
 
 <template>
     <span class="flex items-center gap-2.5">
-        <svg
-            viewBox="0 0 32 32"
-            class="size-7 shrink-0 text-primary"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            role="img"
-            aria-label="Statera"
-        >
-            <!-- El fiel y la base. -->
-            <path d="M16 6.5v19" />
-            <path d="M11 26.5h10" />
-            <!-- El brazo, con el punto de apoyo en el centro. -->
-            <path d="M5 10.5h22" />
-            <circle cx="16" cy="10.5" r="1.6" fill="currentColor" stroke="none" />
-            <!-- Los dos platillos. Uno pesa algo más: una balanza en equilibrio
-                 perfecto no está midiendo nada. -->
-            <path d="M5 10.5 1.5 17.5a3.5 3.5 0 0 0 7 0Z" />
-            <path d="M27 10.5 23.5 19a3.5 3.5 0 0 0 7 0Z" />
-        </svg>
+        <SimboloBalanza class="size-7 shrink-0 text-primary" etiqueta="Statera" />
 
         <span v-if="variante === 'completo'" class="min-w-0 leading-tight">
             <span class="block text-[0.9375rem] font-semibold tracking-tight">Statera</span>

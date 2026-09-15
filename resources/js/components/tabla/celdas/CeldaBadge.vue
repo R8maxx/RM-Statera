@@ -30,8 +30,15 @@ const icono = computed(() => props.valor?.icono ?? estilo.value.icono);
 </script>
 
 <template>
+    <!--
+        `title` con la etiqueta entera: el badge no parte línea, así que en una
+        columna estrecha se corta contra el borde. El texto es el único de los
+        tres canales que no depende de ver bien, y perderlo deja el estado
+        comunicado sólo por color e icono.
+    -->
     <span
         v-if="valor"
+        :title="valor.etiqueta"
         class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-colors duration-200"
         :class="estilo.badge"
     >

@@ -60,10 +60,10 @@ enum PrioridadTarea: string
     public function tono(): string
     {
         return match ($this) {
-            self::Baja => 'basica',
-            self::Media => 'exigible',
-            self::Alta => 'media',
-            self::Critica => 'alta',
+            self::Baja => 'prioridad-baja',
+            self::Media => 'prioridad-media',
+            self::Alta => 'prioridad-alta',
+            self::Critica => 'prioridad-critica',
         };
     }
 

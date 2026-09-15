@@ -3,6 +3,7 @@ import AnilloProgreso from '@/components/AnilloProgreso.vue';
 import Cifra from '@/components/Cifra.vue';
 import BarraSegmentada, { type Segmento } from '@/components/BarraSegmentada.vue';
 import EstadoVacio from '@/components/EstadoVacio.vue';
+import PrimerosPasos from '@/components/PrimerosPasos.vue';
 import ResumenInventarioPanelCard from '@/components/activo/ResumenInventarioPanel.vue';
 import ResumenPlanPanel from '@/components/tarea/ResumenPlanPanel.vue';
 import GraficaBarras, { type Barra } from '@/components/grafica/GraficaBarras.vue';
@@ -15,11 +16,12 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
+import { useRecorrido } from '@/composables/useRecorrido';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Link } from '@inertiajs/vue3';
 import { ChevronRightIcon, PaperclipIcon, ServerIcon } from '@lucide/vue';
 import { motion } from 'motion-v';
-import { computed } from 'vue';
+import { computed, onMounted } from 'vue';
 
 type AvanceMarco = App.Http.Resources.Panel.AvanceMarco;
 type ResumenEvidencias = App.Http.Resources.Panel.ResumenEvidencias;
@@ -45,6 +47,25 @@ const props = defineProps<{
 
 const { variantesEntrada, variantesEscalonado } = useMovimientoReducido();
 const escalonado = variantesEscalonado(0.05);
+
+const { arrancarSiEsLaPrimeraVez } = useRecorrido();
+
+/*
+ * Primer arranque es que no haya NADA EXIGIBLE, no que no haya sistemas.
+ *
+ * La diferencia importa: un sistema dado de alta y sin valorar sigue sin
+ * producir un solo requisito, así que el panel seguiría enseñando ceros y el
+ * anillo seguiría diciendo 0 % de 0. Lo que abre la pantalla mientras tanto es
+ * por dónde se sigue.
+ */
+const primerArranque = computed(() => props.resumen.aplicables === 0);
+
+/*
+ * El recorrido se ofrece solo la primera vez, y desde el panel, que es la única
+ * pantalla por la que se pasa sí o sí. Que ya se vio se recuerda en el
+ * navegador: no se relanza a quien lo cerró.
+ */
+onMounted(() => arrancarSiEsLaPrimeraVez());
 
 const porcentaje = (implantadas: number, aplicables: number): number =>
     aplicables === 0 ? 0 : Math.round((implantadas / aplicables) * 100);
@@ -124,11 +145,25 @@ const metricas = computed(() => [
 <template>
     <AppLayout titulo="Panel">
         <motion.div :variants="escalonado" initial="oculto" animate="visible" class="space-y-6">
+            <!--
+                Mientras no haya nada exigible, la cabecera no resume: orienta.
+                Un anillo al 0 % sobre un denominador de cero no es un dato
+                pequeño, es un dato que no existe, y ocupa el sitio más visible
+                de la pantalla.
+            -->
+            <motion.section v-if="primerArranque" :variants="variantesEntrada">
+                <PrimerosPasos
+                    :sistemas="sistemas.length"
+                    :aplicables="resumen.aplicables"
+                    :evidencias="evidencias.total"
+                />
+            </motion.section>
+
             <!-- El porcentaje global es la cifra que abre la pantalla; las
                  cuatro de apoyo no necesitan caja, porque ahí la elevación no
                  comunica nada. Cinco tarjetas idénticas no tendrían jerarquía. -->
-            <motion.section :variants="variantesEntrada">
-                <Card>
+            <motion.section v-else :variants="variantesEntrada">
+                <Card data-recorrido="anillo-progreso">
                     <CardContent class="flex flex-col gap-8 py-2 sm:flex-row sm:items-center sm:gap-12">
                         <AnilloProgreso
                             :valor="porcentajeGlobal"
@@ -175,7 +210,7 @@ const metricas = computed(() => [
 
             <!-- ── Pruebas ────────────────────────────────────────────────── -->
             <motion.section :variants="variantesEntrada">
-                <Card>
+                <Card data-recorrido="tarjeta-pruebas">
                     <CardHeader>
                         <CardTitle>Pruebas</CardTitle>
                         <CardDescription>
@@ -193,12 +228,23 @@ const metricas = computed(() => [
                     </CardHeader>
 
                     <CardContent class="pt-0">
+                        <!--
+                            Sin nada exigible, esta acción es un callejón: no hay
+                            implantaciones a las que vincular la prueba, y quien
+                            la pulsa aprende que la herramienta le manda a sitios
+                            que no sirven. Mientras tanto la cabecera ya lleva la
+                            única acción de la pantalla, que además es la que toca.
+                        -->
                         <EstadoVacio
                             v-if="evidencias.total === 0"
                             :icono="PaperclipIcon"
                             titulo="Todavía no hay ninguna evidencia"
                             descripcion="Una evidencia se registra una vez y cuenta en todos los marcos donde aplique: la misma captura puede probar un control de ISO y tres medidas del ENS."
-                            :accion="{ etiqueta: 'Registrar la primera', href: '/evidencias/crear' }"
+                            :accion="
+                                primerArranque
+                                    ? undefined
+                                    : { etiqueta: 'Registrar la primera', href: '/evidencias/crear' }
+                            "
                         />
 
                         <dl v-else class="grid grid-cols-2 gap-y-4 sm:grid-cols-4 sm:divide-x sm:divide-border">
@@ -253,7 +299,7 @@ const metricas = computed(() => [
 
             <!-- ── Sistemas ───────────────────────────────────────────────── -->
             <motion.section :variants="variantesEntrada">
-                <Card>
+                <Card data-recorrido="tarjeta-sistemas">
                     <CardHeader>
                         <CardTitle>Sistemas</CardTitle>
                         <CardDescription>
@@ -275,7 +321,11 @@ const metricas = computed(() => [
                             :icono="ServerIcon"
                             titulo="Todavía no hay ningún sistema"
                             descripcion="Un sistema delimita el alcance: sobre él se valoran las cinco dimensiones y de ahí sale la categoría ENS y el conjunto de requisitos exigibles."
-                            :accion="{ etiqueta: 'Dar de alta el primero', href: '/sistemas/crear' }"
+                            :accion="
+                                primerArranque
+                                    ? undefined
+                                    : { etiqueta: 'Dar de alta el primero', href: '/sistemas/crear' }
+                            "
                         />
 
                         <ul v-else class="-mx-2 divide-y divide-border">

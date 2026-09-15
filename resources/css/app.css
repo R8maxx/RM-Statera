@@ -304,6 +304,17 @@
     --fila-hover: color-mix(in oklab, var(--muted) 50%, var(--card));
     --fila-seleccionada: color-mix(in oklab, var(--accent) 40%, var(--card));
 
+    /*
+     * El velo del recorrido guiado, y de nada más.
+     *
+     * No es el de un diálogo: aquél es `bg-black/10` porque sólo tiene que
+     * apartar el fondo, y aquí el velo TRABAJA —es lo que convierte un hueco
+     * recortado en un foco—. Con un 10 % el recorte no se lee y el paso señala
+     * sin señalar nada. Va teñido con el mismo hue que las sombras por el mismo
+     * motivo: negro puro sobre claro ensucia.
+     */
+    --velo: oklch(0.23 0.018 235 / 38%);
+
     /* Sombras teñidas con el hue del fondo. Negro puro sobre claro ensucia. */
     --sombra-1: 0 1px 2px oklch(0.23 0.018 235 / 7%), 0 1px 3px oklch(0.23 0.018 235 / 4%);
     --sombra-2: 0 1px 2px oklch(0.23 0.018 235 / 6%), 0 8px 20px -8px oklch(0.23 0.018 235 / 12%);
@@ -406,6 +417,10 @@
     --acento-suave: oklch(0.3 0.06 299);
     --acento-borde: oklch(0.38 0.08 299);
 
+    /* Sobre oscuro hace falta más cuerpo: el contraste entre el hueco y el
+       resto es menor de partida, porque el fondo ya es oscuro. */
+    --velo: oklch(0.12 0.01 235 / 62%);
+
     --sombra-1: 0 1px 2px oklch(0 0 0 / 40%);
     --sombra-2: 0 1px 2px oklch(0 0 0 / 35%), 0 8px 20px -8px oklch(0 0 0 / 55%);
     --sombra-3: 0 2px 4px oklch(0 0 0 / 35%), 0 16px 40px -12px oklch(0 0 0 / 65%);
@@ -423,6 +438,7 @@
     --color-popover: var(--popover);
     --color-popover-foreground: var(--popover-foreground);
     --color-superficie: var(--superficie);
+    --color-velo: var(--velo);
     --color-primary: var(--primary);
     --color-primary-foreground: var(--primary-foreground);
     --color-secondary: var(--secondary);

@@ -127,6 +127,19 @@ En pantalla se leen del token `oklch` y no hace falta el hex. Se tabulan aquí p
 
 El documento se pinta **siempre en tema claro**: se imprime, y un PDF que se adapte al tema del lector no existe.
 
+### Velo
+
+Un solo token, `--velo`, y un solo consumidor: el foco del recorrido guiado.
+
+| Tema | `oklch` | Alfa |
+|---|---|---|
+| Claro | `0.23 0.018 235 / 38%` | 38 % |
+| Oscuro | `0.12 0.01 235 / 62%` | 62 % |
+
+**No es el velo de un diálogo, y por eso no reutiliza el suyo.** El de `DialogOverlay` es `bg-black/10` porque allí sólo tiene que apartar el fondo mientras el diálogo se lleva la atención por sí solo. Aquí el velo **es** el mecanismo: lo que convierte un hueco recortado en un foco. Con un 10 % el recorte no se distingue y el paso señala sin señalar nada.
+
+Va teñido con el hue frío de los neutros por el mismo motivo que las sombras: negro puro sobre claro ensucia. Y sube a 62 % en oscuro porque ahí el fondo ya es oscuro de partida y la diferencia entre el hueco y el resto nace más pequeña.
+
 ### Semánticos
 
 Los estados del dominio. Se declaran una vez en `app.css` como `--estado-*` con su pareja `-suave`, y los consumen `CeldaBadge` y `BarraSegmentada`. **No se retocan al cambiar la marca**: son semántica, no decoración.

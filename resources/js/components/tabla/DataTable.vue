@@ -3,6 +3,7 @@ import EstadoVacio from '@/components/EstadoVacio.vue';
 import BarraFiltros from '@/components/tabla/BarraFiltros.vue';
 import ConfirmacionAccion from '@/components/tabla/ConfirmacionAccion.vue';
 import FilaDetalle from '@/components/tabla/FilaDetalle.vue';
+import FiltroAgrupado from '@/components/tabla/FiltroAgrupado.vue';
 import FiltroColumna from '@/components/tabla/FiltroColumna.vue';
 import IconoAccion from '@/components/tabla/IconoAccion.vue';
 import MenuColumna from '@/components/tabla/MenuColumna.vue';
@@ -299,11 +300,35 @@ function tieneColumnaVisible(filtro: Filtro): boolean {
     return filtro.columna !== null && clavesVisibles.value.has(filtro.columna);
 }
 
-const filtroPorColumna = computed<Record<string, Filtro>>(() =>
-    Object.fromEntries(
-        props.recurso.filtros
-            .filter(tieneColumnaVisible)
-            .map((filtro) => [filtro.columna as string, filtro]),
+/*
+ * Una columna puede recibir VARIOS filtros, y antes sólo sobrevivía uno.
+ *
+ * Esto era `Object.fromEntries(...)`, que con claves repetidas se queda con la
+ * última: «Plazo» de tareas declara `vencidas`, `por_vencer` y `sin_plazo`, y
+ * dos de los tres no llegaban a pintarse nunca. No daba error —sencillamente no
+ * estaban—, y cuál se salvaba lo decidía el orden de declaración del recurso.
+ */
+const filtrosPorColumna = computed<Record<string, Filtro[]>>(() => {
+    const mapa: Record<string, Filtro[]> = {};
+
+    for (const filtro of props.recurso.filtros.filter(tieneColumnaVisible)) {
+        const columna = filtro.columna as string;
+        (mapa[columna] ??= []).push(filtro);
+    }
+
+    return mapa;
+});
+
+/*
+ * Las acciones generales, con las secundarias delante.
+ *
+ * `toSorted` y no `sort`: `recurso.accionesGenerales` es un prop, y ordenarlo en
+ * el sitio mutaría lo que envió el servidor. Es estable, así que dos acciones
+ * del mismo peso conservan el orden en que las declaró el recurso.
+ */
+const accionesGeneralesOrdenadas = computed(() =>
+    props.recurso.accionesGenerales.toSorted(
+        (a, b) => Number(b.secundaria) - Number(a.secundaria),
     ),
 );
 
@@ -313,7 +338,7 @@ const filtrosSueltos = computed(() =>
     ),
 );
 
-const hayFiltrosDeColumna = computed(() => Object.keys(filtroPorColumna.value).length > 0);
+const hayFiltrosDeColumna = computed(() => Object.keys(filtrosPorColumna.value).length > 0);
 const filaDeFiltros = computed(() => hayFiltrosDeColumna.value && filtrosVisibles.value);
 
 /*
@@ -324,8 +349,10 @@ const filaDeFiltros = computed(() => hayFiltrosDeColumna.value && filtrosVisible
 const columnasFiltradas = computed(
     () =>
         new Set(
-            Object.entries(filtroPorColumna.value)
-                .filter(([, filtro]) => estaActivo(filtros.value[filtro.clave] ?? null))
+            Object.entries(filtrosPorColumna.value)
+                // Basta con que UNO de los filtros de la columna esté puesto:
+                // la cabecera marca que esa columna estrecha, no cuántas veces.
+                .filter(([, grupo]) => grupo.some((filtro) => estaActivo(filtros.value[filtro.clave] ?? null)))
                 .map(([clave]) => clave),
         ),
 );
@@ -781,8 +808,22 @@ const claseFiltro = 'sticky top-10 z-20 border-b bg-card/95 px-2 py-1.5 backdrop
                     @restablecer="restablecerVista"
                 />
 
-                <Link v-for="accion in recurso.accionesGenerales" :key="accion.clave" :href="accion.url">
-                    <Button size="sm" class="h-9 gap-1.5">
+                <!--
+                    Las secundarias primero y en `outline`: así el único botón
+                    lleno de la barra es el último, junto al borde, y los demás
+                    controles de contorno —filtros, densidad, exportar,
+                    columnas— quedan agrupados con ella.
+
+                    El orden sale del flag y NO de cómo el recurso ordenó su
+                    array: declarar «Etiquetas QR» antes o después de «Nuevo
+                    activo» no debería cambiar cuál manda en la pantalla.
+                -->
+                <Link
+                    v-for="accion in accionesGeneralesOrdenadas"
+                    :key="accion.clave"
+                    :href="accion.url"
+                >
+                    <Button size="sm" class="h-9 gap-1.5" :variant="accion.secundaria ? 'outline' : 'default'">
                         <IconoAccion :nombre="accion.icono" />
                         {{ accion.etiqueta }}
                     </Button>
@@ -966,12 +1007,22 @@ const claseFiltro = 'sticky top-10 z-20 border-b bg-card/95 px-2 py-1.5 backdrop
                                 :class="cn(claseFiltro, clasePegada(columna.clave, 'cabecera'))"
                                 :style="estiloPegada(columna.clave)"
                             >
-                                <FiltroColumna
-                                    v-if="filtroPorColumna[columna.clave]"
-                                    :filtro="filtroPorColumna[columna.clave]!"
-                                    :valor="filtros[filtroPorColumna[columna.clave]!.clave] ?? null"
-                                    @aplicar="(clave: string, valor: ValorFiltro) => aplicarFiltro(clave, valor)"
-                                />
+                                <template v-if="filtrosPorColumna[columna.clave]">
+                                    <FiltroColumna
+                                        v-if="filtrosPorColumna[columna.clave]!.length === 1"
+                                        :filtro="filtrosPorColumna[columna.clave]![0]!"
+                                        :titulo="columna.etiqueta"
+                                        :valor="filtros[filtrosPorColumna[columna.clave]![0]!.clave] ?? null"
+                                        @aplicar="(clave: string, valor: ValorFiltro) => aplicarFiltro(clave, valor)"
+                                    />
+                                    <FiltroAgrupado
+                                        v-else
+                                        :filtros="filtrosPorColumna[columna.clave]!"
+                                        :titulo="columna.etiqueta"
+                                        :valores="filtros"
+                                        @aplicar="(clave: string, valor: ValorFiltro) => aplicarFiltro(clave, valor)"
+                                    />
+                                </template>
                             </th>
 
                             <th v-if="recurso.accionesFila.length > 0" :class="cn(claseFiltro, claseAcciones('cabecera'))" />

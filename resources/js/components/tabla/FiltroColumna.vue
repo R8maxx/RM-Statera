@@ -23,8 +23,19 @@ const props = withDefaults(
         valor: ValorFiltro;
         /** `columna` va dentro de un `<th>`; `panel`, apilado en el desplegable. */
         variante?: 'columna' | 'panel';
+        /**
+         * El título de la columna bajo la que se pinta este control.
+         *
+         * Existe porque `Filtro::$etiqueta` NO es el nombre de la columna: en un
+         * `Filtro::porScope` es el PREDICADO —«Bloqueadas», «Sin valorar»,
+         * «Pendientes de firma»—. Rotular con él un control en reposo hacía que
+         * la cabecera de una tabla sin filtrar dijera «Pendientes de firma»
+         * encima de la lista completa, y eso se lee como un filtro puesto. Quien
+         * fuera a firmar podía creer que estaba viendo un subconjunto.
+         */
+        titulo?: string | null;
     }>(),
-    { variante: 'columna' },
+    { variante: 'columna', titulo: null },
 );
 
 const emit = defineEmits<{ aplicar: [clave: string, valor: ValorFiltro] }>();
@@ -36,6 +47,29 @@ const activo = computed(() => estaActivo(props.valor));
 const resumen = computed(() => resumenFiltro(props.filtro, props.valor));
 const marcados = computed(() => seleccionados(props.valor));
 const extremos = computed(() => rango(props.valor));
+
+/**
+ * Lo que dice el control cuando no está abierto.
+ *
+ * En reposo, el nombre de la columna: la cabecera describe lo que hay debajo.
+ * Aplicado, el predicado, que es justo cuando decir «Bloqueadas» es verdad —y
+ * para un booleano negado, su negación, porque «Bloqueadas» encima de las que
+ * NO lo están sería el mismo error al revés.
+ */
+const rotulo = computed(() => {
+    if (!activo.value) {
+        return props.titulo ?? props.filtro.etiqueta;
+    }
+
+    if (props.filtro.tipo === 'booleano') {
+        return props.valor === '0' ? `No: ${props.filtro.etiqueta.toLowerCase()}` : props.filtro.etiqueta;
+    }
+
+    return resumen.value ?? props.filtro.etiqueta;
+});
+
+/** Para el lector de pantalla manda la columna, no el predicado. */
+const nombreAccesible = computed(() => props.titulo ?? props.filtro.etiqueta);
 
 /* Un booleano es una lista de dos opciones; pintarlo aparte no aportaba nada. */
 const opciones = computed<Opcion[]>(() =>
@@ -142,8 +176,8 @@ const disparador = computed(() =>
             type="text"
             inputmode="search"
             autocomplete="off"
-            :placeholder="filtro.placeholder ?? 'Filtrar…'"
-            :aria-label="`Filtrar por ${filtro.etiqueta}`"
+            :placeholder="filtro.placeholder ?? titulo ?? 'Filtrar…'"
+            :aria-label="`Filtrar por ${nombreAccesible}`"
             :class="
                 cn(
                     'w-full min-w-0 rounded-md border bg-background transition-colors outline-none placeholder:text-muted-foreground',
@@ -159,7 +193,7 @@ const disparador = computed(() =>
             v-if="borrador !== ''"
             type="button"
             class="absolute top-1/2 right-1 flex size-5 -translate-y-1/2 items-center justify-center rounded text-muted-foreground transition-colors hover:text-destructive"
-            :aria-label="`Quitar el filtro de ${filtro.etiqueta}`"
+            :aria-label="`Quitar el filtro de ${nombreAccesible}`"
             @click="limpiar"
         >
             <XIcon class="size-3" />
@@ -168,8 +202,8 @@ const disparador = computed(() =>
 
     <!-- Rango de fechas: dos extremos, y cualquiera puede ir suelto. -->
     <Popover v-else-if="filtro.tipo === 'rango_fechas'" v-model:open="abierto">
-        <PopoverTrigger :class="disparador" :aria-label="`Filtrar por ${filtro.etiqueta}`">
-            <span class="min-w-0 flex-1 truncate">{{ resumen ?? filtro.etiqueta }}</span>
+        <PopoverTrigger :class="disparador" :aria-label="`Filtrar por ${nombreAccesible}`">
+            <span class="min-w-0 flex-1 truncate">{{ rotulo }}</span>
             <ChevronDownIcon class="size-3 shrink-0 opacity-60" />
         </PopoverTrigger>
         <PopoverContent align="start" class="w-64 gap-3 p-3">
@@ -206,8 +240,8 @@ const disparador = computed(() =>
 
     <!-- Opciones: select, multi-select y booleano comparten lista. -->
     <Popover v-else v-model:open="abierto">
-        <PopoverTrigger :class="disparador" :aria-label="`Filtrar por ${filtro.etiqueta}`">
-            <span class="min-w-0 flex-1 truncate">{{ resumen ?? filtro.etiqueta }}</span>
+        <PopoverTrigger :class="disparador" :aria-label="`Filtrar por ${nombreAccesible}`">
+            <span class="min-w-0 flex-1 truncate">{{ rotulo }}</span>
             <span
                 v-if="filtro.multiple && marcados.length > 1"
                 class="cifra shrink-0 rounded-full bg-primary/15 px-1.5 text-[10px] text-primary"

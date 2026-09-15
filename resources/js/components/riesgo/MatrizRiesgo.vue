@@ -122,70 +122,73 @@ const descripcion = computed(
             </p>
 
             <div class="min-w-0 flex-1">
-                <div class="flex gap-1.5">
-                    <!-- La columna de números de probabilidad. -->
-                    <div class="flex shrink-0 flex-col gap-0.5">
+                <!--
+                    Los rótulos del eje viven DENTRO de la misma rejilla que las
+                    celdas, en una primera columna propia.
+
+                    Antes eran una columna flex aparte, con un paso de 16 px
+                    (`aspect-square w-4` + `gap-0.5`) mientras las celdas iban a
+                    `1fr`, es decir ~26 px en cuanto la tarjeta era más ancha que
+                    5×16. Las dos columnas divergían: el «1» caía en la tercera
+                    fila y las dos últimas —donde están las celdas señaladas— se
+                    quedaban sin rótulo. Un mapa de calor cuyo eje no se puede
+                    leer no es un mapa de calor, y aquí es el gráfico sobre el que
+                    alguien firma que la organización convive con una exposición.
+
+                    Compartiendo `grid-template-rows` no pueden desalinearse, y
+                    el eje de abajo usa las mismas columnas por lo mismo.
+                -->
+                <div
+                    class="grid min-w-0 gap-0.5"
+                    :style="{ gridTemplateColumns: `1rem repeat(${impacto.length}, minmax(0, 1fr))` }"
+                    role="img"
+                    :aria-label="descripcion"
+                >
+                    <template v-for="fila in filas" :key="fila.valor">
                         <div
-                            v-for="fila in filas"
-                            :key="fila.valor"
-                            class="cifra flex aspect-square w-4 items-center justify-center text-[0.625rem] text-muted-foreground"
+                            class="cifra flex items-center justify-center pr-1 text-[0.625rem] text-muted-foreground"
                             :title="fila.etiqueta"
                         >
                             {{ fila.valor }}
                         </div>
-                    </div>
 
-                    <div
-                        class="grid min-w-0 flex-1 gap-0.5"
-                        :style="{ gridTemplateColumns: `repeat(${impacto.length}, minmax(0, 1fr))` }"
-                        role="img"
-                        :aria-label="descripcion"
-                    >
-                        <template v-for="fila in filas" :key="fila.valor">
-                            <div
-                                v-for="columna in impacto"
-                                :key="`${fila.valor}-${columna.valor}`"
-                                class="relative flex aspect-square items-center justify-center rounded-sm"
-                                :class="[
-                                    claseDe(fila.valor * columna.valor),
-                                    marcaDe(fila.valor, columna.valor)
-                                        ? 'ring-2 ring-foreground ring-offset-1 ring-offset-card'
-                                        : '',
-                                ]"
-                                :title="titulo(fila, columna)"
-                            >
-                                <!--
-                                    El número sólo en las celdas señaladas. Pintarlo
-                                    en las veinticinco convierte el mapa de calor en
-                                    una tabla de multiplicar, que es justo lo que la
-                                    cuadrícula evita tener que leer.
-                                -->
-                                <span
-                                    v-if="marcaDe(fila.valor, columna.valor)"
-                                    class="cifra text-[0.625rem] font-semibold text-background"
-                                >
-                                    {{ fila.valor * columna.valor }}
-                                </span>
-                            </div>
-                        </template>
-                    </div>
-                </div>
-
-                <div class="mt-1.5 flex gap-1.5">
-                    <div class="w-4 shrink-0" />
-
-                    <div
-                        class="grid min-w-0 flex-1 gap-0.5"
-                        :style="{ gridTemplateColumns: `repeat(${impacto.length}, minmax(0, 1fr))` }"
-                    >
                         <div
                             v-for="columna in impacto"
-                            :key="columna.valor"
-                            class="cifra text-center text-[0.625rem] text-muted-foreground"
-                            :title="columna.etiqueta"
+                            :key="`${fila.valor}-${columna.valor}`"
+                            class="relative flex aspect-square items-center justify-center rounded-sm"
+                            :class="[
+                                claseDe(fila.valor * columna.valor),
+                                marcaDe(fila.valor, columna.valor)
+                                    ? 'ring-2 ring-foreground ring-offset-1 ring-offset-card'
+                                    : '',
+                            ]"
+                            :title="titulo(fila, columna)"
                         >
-                            {{ columna.valor }}
+                            <!--
+                                El número sólo en las celdas señaladas. Pintarlo
+                                en las veinticinco convierte el mapa de calor en
+                                una tabla de multiplicar, que es justo lo que la
+                                cuadrícula evita tener que leer.
+                            -->
+                            <span
+                                v-if="marcaDe(fila.valor, columna.valor)"
+                                class="cifra text-[0.625rem] font-semibold text-background"
+                            >
+                                {{ fila.valor * columna.valor }}
+                            </span>
                         </div>
+                    </template>
+
+                    <!-- El eje de impacto, en la misma rejilla: primera celda
+                         vacía bajo la columna de rótulos. -->
+                    <div aria-hidden="true" />
+                    <div
+                        v-for="columna in impacto"
+                        :key="`eje-${columna.valor}`"
+                        class="cifra pt-1 text-center text-[0.625rem] text-muted-foreground"
+                        :title="columna.etiqueta"
+                    >
+                        {{ columna.valor }}
                     </div>
                 </div>
 

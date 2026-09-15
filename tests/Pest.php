@@ -26,11 +26,22 @@ use Tests\TestCase;
 
 pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
-    // `set_config(..., false)` es de sesión, no de transacción: sobrevive al
-    // rollback de RefreshDatabase. Se limpia antes de cada test para que ninguno
-    // herede la organización del anterior y para que el punto de partida sea
-    // siempre el de denegar por defecto.
-    ->beforeEach(fn () => app(ContextoOrganizacion::class)->olvidar())
+    ->beforeEach(function (): void {
+        // Un test de HTTP no puede depender de que alguien haya compilado
+        // JavaScript. Sin esto, la plantilla raíz resuelve `@vite` de verdad y
+        // la suite entera exige un `public/build/` presente —o el dev server
+        // arriba—: dieciocho tests de Inertia fallaban con «Not a valid Inertia
+        // response» cuando lo que faltaba era un fichero de assets. Aquí no se
+        // prueba ni un kilobyte de JavaScript; lo que se comprueba es el
+        // contrato de la respuesta de Inertia.
+        $this->withoutVite();
+
+        // `set_config(..., false)` es de sesión, no de transacción: sobrevive al
+        // rollback de RefreshDatabase. Se limpia antes de cada test para que
+        // ninguno herede la organización del anterior y para que el punto de
+        // partida sea siempre el de denegar por defecto.
+        app(ContextoOrganizacion::class)->olvidar();
+    })
     ->in('Feature', 'Unit');
 
 /*
