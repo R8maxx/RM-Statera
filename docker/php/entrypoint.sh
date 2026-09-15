@@ -8,13 +8,22 @@ set -e
 #             importa el catálogo. Lo hace SÓLO el servicio `app`.
 #   ligero    espera a la base y a que `app` haya dejado vendor/ en su sitio.
 #
-# Dos `composer install` a la vez sobre el mismo volumen se pisarían, y por eso
+# Dos `composer install` a la vez sobre la misma carpeta se pisarían, y por eso
 # `queue` espera a que `app` esté healthy en el compose además de esperar aquí.
+#
+# El script arranca como root —php-fpm necesita serlo para crear sus workers—
+# pero todo lo que ESCRIBE en la carpeta del proyecto va con `gosu www-data`,
+# que lleva el uid del host: si no, vendor/ y storage/ acabarían llenos de
+# ficheros de root en el repositorio de alguien.
 
 ARRANQUE="${STATERA_ARRANQUE:-ligero}"
 
 aviso() {
     echo "[statera] $*"
+}
+
+como_usuario() {
+    gosu www-data "$@"
 }
 
 esperar_a_postgres() {
@@ -32,12 +41,17 @@ esperar_a_vendor() {
 }
 
 if [ "$ARRANQUE" = 'completo' ]; then
+    # Lo que el framework necesita poder escribir siempre. Se hace en cada
+    # arranque y no sólo en la instalación: `git clone` deja estas carpetas con
+    # el uid de quien clonó, que no tiene por qué ser el mismo.
+    chown -R www-data:www-data storage bootstrap/cache
+
     # El .env va ANTES de `composer install`: el hook post-autoload-dump lanza
     # `artisan package:discover`, que arranca la aplicación y necesita leer la
     # configuración.
     if [ ! -f .env ]; then
         aviso 'no había .env; copiando .env.example'
-        cp .env.example .env
+        como_usuario cp .env.example .env
     fi
 
     esperar_a_postgres
@@ -46,27 +60,23 @@ if [ "$ARRANQUE" = 'completo' ]; then
         # Sin `--ignore-platform-req`: aquí sí están pcntl y posix, que es la
         # mitad del motivo de haber metido la aplicación en un contenedor.
         aviso 'instalando dependencias de PHP (la primera vez tarda)…'
-        composer install --no-interaction --prefer-dist
-        chown -R www-data:www-data vendor
+        como_usuario composer install --no-interaction --prefer-dist
     fi
 
     if ! grep -q '^APP_KEY=base64:' .env; then
         aviso 'generando APP_KEY'
-        php artisan key:generate --force
+        como_usuario php artisan key:generate --force
     fi
 
     aviso 'aplicando migraciones'
-    php artisan migrate --force
+    como_usuario php artisan migrate --force
 
     # Idempotente por diseño: empareja por clave natural `(marco, requisito)` y
     # nunca borra lo que desaparece de un fichero.
     aviso 'importando el catálogo normativo'
-    php artisan catalogo:importar
+    como_usuario php artisan catalogo:importar
 
-    # En un bind mount de Windows el enlace simbólico puede no poder crearse.
-    # No es crítico: las evidencias y los documentos viven en S3, no en el
-    # disco público.
-    php artisan storage:link 2>/dev/null || aviso 'storage:link omitido'
+    como_usuario php artisan storage:link
 
     aviso 'listo'
 else
@@ -74,4 +84,10 @@ else
     esperar_a_vendor
 fi
 
-exec "$@"
+# php-fpm tiene que arrancar como root: el maestro lee la configuración y crea
+# los workers, que sí bajan a www-data. Cualquier otro comando —Horizon, un
+# artisan suelto— baja aquí, porque escribe en la carpeta del proyecto.
+case "$1" in
+    php-fpm) exec "$@" ;;
+    *)       exec gosu www-data "$@" ;;
+esac

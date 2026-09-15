@@ -16,7 +16,7 @@ Un producto de RM Technology.
 
 ## Requisitos
 
-- Docker Desktop (en Windows, con WSL 2 instalado: `wsl --install`)
+- Ubuntu con Docker Engine y el plugin `docker compose`
 
 Nada más. PHP, Composer, Node y las extensiones viven dentro de los contenedores; el host no necesita ninguno.
 
@@ -34,13 +34,17 @@ Y ya está: <http://localhost:8000>. El primer arranque tarda unos minutos —co
 | Aplicación | <http://localhost:8000> |
 | Horizon | <http://localhost:8000/horizon> |
 | Vite | <http://localhost:5173> |
-| Consola de MinIO | <http://localhost:9001> (`statera` / `statera-secret`) |
+| MinIO | <http://localhost:9000> (`statera` / `statera-secret`) |
+
+Los contenedores escriben en la carpeta del proyecto —`vendor/`, `node_modules/`, `storage/`— con **tu** UID, no como root. Se da por hecho que es 1000, que es el del primer usuario de un Ubuntu recién instalado; si `id -u` devuelve otra cosa, añádelo al `.env`:
+
+```sh
+printf 'UID=%s\nGID=%s\n' "$(id -u)" "$(id -g)" >> .env
+```
 
 La base de tests `statera_test` y el rol de aplicación `statera_app` se crean solos, pero **sólo en el primer arranque del volumen de PostgreSQL**: si vienes de un volumen anterior, recréalo con `docker compose down -v && docker compose up -d`.
 
 > La aplicación se conecta como `statera_app`, que **no** es superusuario. PostgreSQL exime a los superusuarios de la seguridad a nivel de fila incluso con `FORCE`, así que conectarse con el rol administrativo dejaría el aislamiento multi-tenant puesto y sin efecto.
-
-`vendor/` y `node_modules/` viven en volúmenes de Docker y no se ven desde el explorador de ficheros: son decenas de miles de ficheros y leerlos a través del bind mount de Windows se nota en cada petición.
 
 ## Comandos
 
@@ -56,6 +60,12 @@ docker compose exec app composer lint       # Pint
 docker compose exec app composer types      # regenera los tipos de TypeScript desde PHP
 docker compose exec vite npm run type-check # vue-tsc
 docker compose logs -f app queue vite
+```
+
+Para mirar lo que hay en MinIO —las versiones de MinIO desde mayo de 2025 traen la consola web recortada— se usa `mc`, que ya está en el montaje:
+
+```sh
+docker compose run --rm --entrypoint sh minio-init -c 'mc alias set s http://minio:9000 statera statera-secret && mc ls --recursive s/statera-documentos'
 ```
 
 ## El catálogo normativo

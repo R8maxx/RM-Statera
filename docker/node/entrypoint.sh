@@ -1,22 +1,16 @@
 #!/bin/sh
 set -e
 
-# Vite. `node_modules` vive en un volumen de Docker, así que arranca vacío la
-# primera vez y hay que llenarlo aquí.
+# Vite. El host no tiene Node, así que `node_modules` lo llena este contenedor
+# —en la carpeta del proyecto, con tu UID: el servicio declara `user`, porque el
+# root del contenedor dejaría ahí decenas de miles de ficheros que tu usuario no
+# podría borrar.
 #
-# Se comprueba un paquete concreto y no sólo la carpeta: el volumen existe desde
-# el primer arranque, y un `npm ci` interrumpido dejaría una carpeta presente e
-# inservible.
+# Se comprueba un paquete concreto y no sólo la carpeta: un `npm ci`
+# interrumpido deja una carpeta presente e inservible.
 if [ ! -d node_modules/vite ]; then
     echo '[statera] instalando dependencias de Node (la primera vez tarda)…'
-    # El `package-lock.json` se generó en Windows. Si le faltan las variantes de
-    # Linux de algún binario opcional —esbuild, rollup—, `npm ci` se planta;
-    # `--no-save` resuelve sin tocar el lock, que es un fichero versionado y no
-    # debe cambiar por haber arrancado un contenedor.
-    npm ci || {
-        echo '[statera] npm ci falló; resolviendo sin tocar el lock'
-        npm install --no-save
-    }
+    npm ci
 fi
 
 exec npm run dev

@@ -370,12 +370,16 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
 
 - **La aplicación corre en un contenedor también en desarrollo**, que es lo contrario
   de lo que decía la cabecera del `docker-compose.yml` («hay PHP local y el ciclo de
-  edición es más rápido así»). El motivo no es comodidad: Windows no tiene `ext-pcntl`
-  ni `ext-posix`, que `laravel/horizon` exige como requisitos duros, así que **Horizon
-  no podía arrancar** y cada `composer install` necesitaba `--ignore-platform-req`.
-  Un entorno donde una dependencia declarada no se puede ejecutar no es un entorno de
-  desarrollo, es un entorno parecido. Con la aplicación dentro, `queue` corre Horizon
-  de verdad y el test de integración de Gotenberg deja de auto-saltarse.
+  edición es más rápido así»). El motivo no es comodidad: el lock exige diez
+  extensiones —`pdo_pgsql`, `gd`, `zip`, `gmp`, `intl`, `pcntl`…— y con el intérprete
+  del host lo que funciona depende de qué tenga compilado cada máquina. En Windows
+  faltaban `pcntl` y `posix`, que `laravel/horizon` pide como requisitos duros, así que
+  **Horizon no podía arrancar** y cada `composer install` necesitaba
+  `--ignore-platform-req`. Un entorno donde una dependencia declarada no se puede
+  ejecutar no es un entorno de desarrollo, es un entorno parecido. El destino es
+  Ubuntu, y aun ahí la imagen es lo que hace que el entorno sea el mismo en todas
+  partes. Con la aplicación dentro, `queue` corre Horizon de verdad y el test de
+  integración de Gotenberg deja de auto-saltarse.
 
   Tres cosas que no se ven leyendo el `docker-compose.yml`:
 
@@ -386,13 +390,19 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
      navegadores resuelven cualquier `*.localhost` a loopback por su cuenta, donde
      está publicado el 9000. Poner `minio` a secas rompe **toda** descarga de
      evidencias y documentos, y el síntoma —un host desconocido— no menciona S3.
-  2. **`vendor/` y `node_modules/` viven en volúmenes de Docker, no en el bind mount.**
-     Son decenas de miles de ficheros y el autoloader se lee en cada petición. El
-     precio, asumido: dejan de verse desde Windows y el editor pierde el
-     autocompletado.
-  3. **Vite vigila por sondeo** (`usePolling`). A través de un bind mount de Windows no
-     llegan eventos de inotify: sin él no reaccionan ni el HMR ni el `refresh: true`
-     del plugin de Laravel, y lo que se ve es un Vite que parece colgado.
+  2. **Las imágenes de MinIO vienen de `quay.io`, no de Docker Hub**, donde
+     `minio/minio` y `minio/mc` ya no existen. Un repositorio que no existe se anuncia
+     como «pull access denied», que parece un problema de credenciales y no lo es. Van
+     ancladas, como Gotenberg y PostgreSQL, y **`minio` se queda sin healthcheck a
+     propósito**: el recomendado es `mc ready local`, y que `mc` siga dentro de esa
+     imagen es un detalle de MinIO que ya ha cambiado una vez. Quien espera es
+     `minio-init`, en su propio bucle.
+  3. **Los contenedores escriben en la carpeta del proyecto con el UID del host**
+     (`ARG UID`, y `gosu www-data` en el entrypoint). En Linux el uid del contenedor es
+     el que queda en el fichero: sin eso, `vendor/`, `node_modules/` y `storage/` se
+     llenan de ficheros de root que el dueño del repositorio no puede borrar. php-fpm
+     es la excepción y arranca como root, porque el maestro tiene que poder crear sus
+     workers.
 
   El arranque es completo a propósito —dependencias, `APP_KEY`, migraciones, catálogo
   y buckets— porque cada paso manual documentado es un paso que alguien se salta: el
