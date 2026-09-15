@@ -95,7 +95,23 @@ function mover(indice: number, salto: number): void {
             <span v-if="hechos === lista.length && editable"> Ciérrala desde «Estado» cuando toque.</span>
         </p>
 
-        <ul v-if="lista.length > 0" class="space-y-1">
+        <!--
+            Reordenar con las flechas intercambiaba dos filas de un fotograma al
+            siguiente y había que releer la lista para saber cuál se había
+            movido. `<TransitionGroup>` hace FLIP con el `:key` que ya estaba, y
+            no hace falta ni una línea de estado: la posición la sigue el
+            navegador.
+
+            Aquí sí y en la tabla no, y la diferencia es de dónde viene el orden:
+            esto es una lista corta que el usuario reordena a mano, no cincuenta
+            filas que el servidor devuelve otra vez cada vez que alguien filtra.
+        -->
+        <TransitionGroup
+            v-if="lista.length > 0"
+            tag="ul"
+            name="paso"
+            class="relative space-y-1"
+        >
             <li
                 v-for="(paso, indice) in lista"
                 :key="paso.id ?? `nuevo-${indice}`"
@@ -113,12 +129,26 @@ function mover(indice: number, salto: number): void {
                     "
                 />
 
+                <!--
+                    La raya se traza, no aparece. `line-through` es instantáneo y
+                    no confirma nada; ver cómo se tacha lo escrito es lo que dice
+                    que el clic llegó, y es el único acuse que hay —la lista se
+                    guarda contra el servidor y la respuesta tarda—. La clase
+                    `.tachado` de `app.css` lo hace con `scaleX` sobre un
+                    pseudo-elemento: `text-decoration` no se puede animar.
+                -->
                 <label
                     :for="`paso-${indice}`"
-                    class="min-w-0 flex-1 cursor-pointer text-sm"
-                    :class="paso.hecha ? 'text-muted-foreground line-through' : ''"
+                    class="min-w-0 flex-1 cursor-pointer text-sm transition-colors duration-[var(--duracion)] ease-marca"
+                    :class="paso.hecha ? 'text-muted-foreground' : ''"
                 >
-                    {{ paso.titulo }}
+                    <!--
+                        La raya va en un `<span>` en línea y no en el `<label>`:
+                        el label es un elemento flex, y `box-decoration-break`
+                        —que es lo que hace que un paso de dos líneas se tache
+                        entero— sólo actúa sobre cajas en línea.
+                    -->
+                    <span class="tachado" :data-hecha="paso.hecha ? '' : undefined">{{ paso.titulo }}</span>
                 </label>
 
                 <div v-if="editable" class="flex shrink-0 gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
@@ -151,7 +181,7 @@ function mover(indice: number, salto: number): void {
                     </Button>
                 </div>
             </li>
-        </ul>
+        </TransitionGroup>
 
         <p v-else class="text-sm text-muted-foreground">
             Sin pasos. Una lista de comprobación sirve para trocear una tarea sin inflar el plan con

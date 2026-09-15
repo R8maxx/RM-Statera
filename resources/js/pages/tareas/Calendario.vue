@@ -11,6 +11,8 @@ import { formatoFecha } from '@/lib/celdas';
 import { tono } from '@/lib/tonos';
 import { Link } from '@inertiajs/vue3';
 import { CalendarDaysIcon, ChevronLeftIcon, ChevronRightIcon } from '@lucide/vue';
+import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
+import { motion } from 'motion-v';
 import { computed, toRef } from 'vue';
 
 type Vencimiento = App.Domain.Aviso.Vencimiento;
@@ -146,6 +148,47 @@ const agenda = computed(() =>
 );
 
 const fechaLarga = (dia: string): string => formatoFecha.format(new Date(`${dia}T00:00:00`));
+
+/*
+ * ── De qué lado viene el mes ───────────────────────────────────────────────
+ *
+ * Cambiar de mes es una navegación de Inertia: la página se monta de nuevo y el
+ * componente no recuerda de dónde venía. El módulo sí —no se vuelve a evaluar
+ * mientras la aplicación viva—, y es el único sitio donde cabe este dato.
+ *
+ * No se guarda en `sessionStorage` a propósito: no es una preferencia ni un
+ * estado que deba sobrevivir a una recarga. Si alguien llega al calendario
+ * escribiendo la URL, no viene de ningún lado y la rejilla entra sin dirección,
+ * que es exactamente lo correcto.
+ *
+ * Y la dirección no es adorno: la rejilla entera se repinta y sin ella no hay
+ * forma de saber si se pulsó adelante o atrás — las seis semanas son siempre
+ * seis, así que ni siquiera cambia de alto.
+ */
+let mesVisitado: string | null = null;
+
+function ladoDeEntrada(mes: string, anterior: string | null): boolean | null {
+    if (anterior === null || anterior === mes) {
+        return null;
+    }
+
+    /* Los meses llegan como `AAAA-MM`, así que se ordenan como texto. */
+    return mes > anterior;
+}
+
+const desdeLaDerecha = ladoDeEntrada(props.rejilla.mes, mesVisitado);
+
+mesVisitado = props.rejilla.mes;
+
+const { reducido } = useMovimientoReducido();
+
+const entradaRejilla = computed(() => {
+    if (reducido.value || desdeLaDerecha === null) {
+        return { opacity: 0 };
+    }
+
+    return { opacity: 0, x: desdeLaDerecha ? 24 : -24 };
+});
 </script>
 
 <template>
@@ -207,7 +250,12 @@ const fechaLarga = (dia: string): string => formatoFecha.format(new Date(`${dia}
             va la agenda, que es la misma información en la forma que cabe.
         -->
         <div v-else class="hidden md:block">
-            <div class="grid grid-cols-7 gap-px overflow-hidden rounded-xl border bg-border">
+            <motion.div
+                class="grid grid-cols-7 gap-px overflow-hidden rounded-xl border bg-border"
+                :initial="entradaRejilla"
+                :animate="{ opacity: 1, x: 0 }"
+                :transition="{ duration: reducido ? 0 : 0.22, ease: [0.16, 1, 0.3, 1] }"
+            >
                 <div
                     v-for="(inicial, indice) in cabeceras"
                     :key="inicial"
@@ -271,7 +319,7 @@ const fechaLarga = (dia: string): string => formatoFecha.format(new Date(`${dia}
                         y {{ del(dia.dia).length - POR_DIA }} más
                     </p>
                 </div>
-            </div>
+            </motion.div>
 
             <!-- § 3: leyenda siempre que haya dos tonos o más. -->
             <ul v-if="leyenda.length > 1" class="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">

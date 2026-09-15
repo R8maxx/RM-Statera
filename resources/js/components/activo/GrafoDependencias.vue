@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
+import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
 import { Link } from '@inertiajs/vue3';
 import { CornerDownRightIcon } from '@lucide/vue';
+import { motion } from 'motion-v';
 
 export interface ActivoDelGrafo {
     id: number;
@@ -35,13 +37,38 @@ defineProps<{
 }>();
 
 defineEmits<{ retirar: [id: number] }>();
+
+const { reducido } = useMovimientoReducido();
+
+/**
+ * La cadena se despliega de arriba abajo, un nivel cada 60 ms.
+ *
+ * Aquí el escalonado no es ritmo: la lista está sangrada por profundidad y lo
+ * que se ve avanzar **es la dependencia**. Que el nivel 3 llegue después del 2
+ * dice que cuelga de él, que es lo que una lista sangrada pide que deduzcas
+ * leyendo. Y es lo que justifica el valor efectivo que se enseña al lado: la
+ * valoración sube por esta cadena.
+ *
+ * Por nivel y no por fila: dos hermanos del mismo nivel entran a la vez, porque
+ * ninguno depende del otro.
+ */
+function retrasoDe(profundidad: number): number {
+    return reducido.value ? 0 : Math.min(profundidad - 1, 6) * 0.06;
+}
 </script>
 
 <template>
     <ul v-if="activos.length > 0" class="divide-y divide-border">
-        <li
+        <motion.li
             v-for="activo in activos"
             :key="activo.id"
+            :initial="reducido ? { opacity: 1 } : { opacity: 0, x: -6 }"
+            :animate="{ opacity: 1, x: 0 }"
+            :transition="{
+                duration: reducido ? 0 : 0.22,
+                delay: retrasoDe(activo.profundidad),
+                ease: [0.16, 1, 0.3, 1],
+            }"
             class="flex flex-wrap items-start justify-between gap-3 py-3 first:pt-0"
         >
             <div class="flex min-w-0 flex-1 gap-2" :style="{ paddingInlineStart: `${(activo.profundidad - 1) * 1.25}rem` }">
@@ -79,7 +106,7 @@ defineEmits<{ retirar: [id: number] }>();
             >
                 Retirar
             </Button>
-        </li>
+        </motion.li>
     </ul>
 
     <p v-else class="text-sm text-muted-foreground">{{ vacio }}</p>

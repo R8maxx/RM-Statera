@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
+import { motion } from 'motion-v';
 import CeldaBadge from '@/components/tabla/celdas/CeldaBadge.vue';
 import { formatoFechaHora } from '@/lib/celdas';
 
@@ -25,11 +27,28 @@ defineProps<{ transiciones: Transicion[] }>();
 function cuando(fecha: string | null): string {
     return fecha ? formatoFechaHora.format(new Date(fecha)) : '—';
 }
+const { reducido } = useMovimientoReducido();
+
+/*
+ * La línea se recorre de arriba abajo, 40 ms por hito.
+ *
+ * Es una cronología: que los hitos lleguen en orden es lo que la hace leerse
+ * como tal en vez de como una lista. Tope a diez para que un requisito con
+ * treinta transiciones no tarde más de medio segundo en estar entero.
+ */
+const retrasoDe = (indice: number): number => (reducido.value ? 0 : Math.min(indice, 10) * 0.04);
 </script>
 
 <template>
     <ol v-if="transiciones.length > 0" class="relative space-y-5 border-l pl-5">
-        <li v-for="transicion in [...transiciones].reverse()" :key="transicion.id" class="relative">
+        <motion.li
+            v-for="(transicion, indice) in [...transiciones].reverse()"
+            :key="transicion.id"
+            :initial="reducido ? { opacity: 1 } : { opacity: 0, y: 6 }"
+            :animate="{ opacity: 1, y: 0 }"
+            :transition="{ duration: reducido ? 0 : 0.22, delay: retrasoDe(indice), ease: [0.16, 1, 0.3, 1] }"
+            class="relative"
+        >
             <span
                 class="absolute top-1.5 -left-[1.4375rem] size-2 rounded-full bg-border ring-4 ring-background"
                 aria-hidden="true"
@@ -54,7 +73,7 @@ function cuando(fecha: string | null): string {
             </p>
 
             <p v-if="transicion.nota" class="mt-1.5 text-sm">{{ transicion.nota }}</p>
-        </li>
+        </motion.li>
     </ol>
 
     <p v-else class="text-sm text-muted-foreground">

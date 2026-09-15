@@ -8,6 +8,8 @@ import {
     DialogScrollContent,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
+import { motion } from 'motion-v';
 import { computed } from 'vue';
 
 type Previsualizacion = App.Http.Resources.Valoracion.PrevisualizacionValoracion;
@@ -55,6 +57,17 @@ const bloques = computed(() => [
         codigos: props.diff.dejanDeAplicar,
     },
 ].filter((bloque) => bloque.codigos.length > 0));
+const { variantesEntrada, variantesEscalonado } = useMovimientoReducido();
+
+/*
+ * Los bloques del diff llegan en orden, 60 ms cada uno.
+ *
+ * Es la pantalla donde alguien decide si aplica un recálculo que puede dejar
+ * catorce medidas fuera de alcance: que los bloques se cuenten uno a uno en vez
+ * de aparecer los cuatro a la vez es lo que hace que se lean antes de pulsar. El
+ * diálogo se abre pocas veces y sólo cuando se cambia una valoración.
+ */
+const escalonado = variantesEscalonado(0.06);
 </script>
 
 <template>
@@ -67,7 +80,7 @@ const bloques = computed(() => [
                 </DialogDescription>
             </DialogHeader>
 
-            <div class="space-y-5">
+            <motion.div class="space-y-5" :variants="escalonado" initial="oculto" animate="visible">
                 <div class="rounded-xl border bg-superficie px-4 py-3">
                     <p class="text-xs text-muted-foreground">Categoría resultante</p>
                     <p class="text-base font-semibold tracking-tight">
@@ -84,7 +97,7 @@ const bloques = computed(() => [
                     mismas. Se guardarán los niveles y las justificaciones.
                 </p>
 
-                <section v-for="bloque in bloques" :key="bloque.clave">
+                <motion.section v-for="bloque in bloques" :key="bloque.clave" :variants="variantesEntrada">
                     <h3 class="text-sm font-medium">
                         {{ bloque.titulo }}
                         <span class="ml-1 text-muted-foreground">({{ bloque.codigos.length }})</span>
@@ -100,12 +113,12 @@ const bloques = computed(() => [
                             {{ codigo }}
                         </li>
                     </ul>
-                </section>
+                </motion.section>
 
                 <p v-if="diff.hayCambios" class="text-sm text-muted-foreground">
                     {{ diff.sinCambios }} medidas se quedan como están.
                 </p>
-            </div>
+            </motion.div>
 
             <DialogFooter>
                 <Button variant="outline" :disabled="guardando" @click="emit('cancelar')">Cancelar</Button>

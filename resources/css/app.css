@@ -331,7 +331,32 @@
      * la petición está viva. Con `prefers-reduced-motion` se pinta quieto.
      */
     --duracion-bucle: 1100ms;
+    /*
+     * Una salida SIEMPRE dura menos que su entrada. Al entrar, algo se está
+     * presentando y conviene poder seguirlo; al salir ya se ha decidido y sólo
+     * falta que se quite de en medio. Igualarlas hace que la interfaz parezca
+     * que tarda en obedecer.
+     */
+    --duracion-salida: 160ms;
+
+    /*
+     * Tres curvas, y cada una hace una cosa distinta (DESIGN.md §10).
+     *
+     * `--curva` es una salida: arranca deprisa y frena largo. Es la correcta
+     * para APARECER y DESAPARECER, y es la de marca.
+     *
+     * `--curva-en-pantalla` acelera y frena. Es para lo que se desplaza DE un
+     * sitio A otro —una tarjeta que cambia de columna, el panel del recorrido
+     * que persigue al foco—: con una curva de salida esas cosas arrancan de
+     * golpe, como si se las hubiera empujado.
+     *
+     * `--curva-panel` es la de los paneles laterales. Lo que NO puede llevar un
+     * panel que entra es `ease-in`, que empieza lento justo en el instante en
+     * que se está mirando.
+     */
     --curva: cubic-bezier(0.16, 1, 0.3, 1);
+    --curva-en-pantalla: cubic-bezier(0.77, 0, 0.175, 1);
+    --curva-panel: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .dark {
@@ -527,6 +552,8 @@
     --radius-xl: calc(var(--radius) + 4px);
 
     --ease-marca: var(--curva);
+    --ease-en-pantalla: var(--curva-en-pantalla);
+    --ease-panel: var(--curva-panel);
 }
 
 @layer base {
@@ -578,6 +605,209 @@
 
     .hilo-de-carga {
         animation: hilo-de-carga var(--duracion-bucle) var(--curva) infinite;
+    }
+
+    /*
+     * Desplegar una altura que nadie ha medido.
+     *
+     * La rejilla pasa de `0fr` a `1fr` y el navegador interpola el reparto. Es
+     * la única forma de animar una altura desconocida sin medirla en JavaScript
+     * —y medirla en JavaScript significa leer el diseño en cada fotograma, que
+     * es justo lo que hay que evitar—.
+     *
+     * A diferencia de `display: none`, **el contenido se queda en el DOM**. Eso
+     * no es un efecto secundario: `SeccionFormulario` depende de ello, porque lo
+     * que sale del DOM sale del `FormData` y los campos son `nullable` en el
+     * `FormRequest`, así que una edición los borraría en silencio.
+     *
+     * Lo que `display: none` sí resolvía por accidente era el foco: a altura
+     * cero el contenido sigue siendo tabulable. Quien use esto tiene que poner
+     * `inert` mientras esté plegado.
+     *
+     * **Y `data-asentado` no es opcional.** El `overflow: hidden` que hace falta
+     * para recortar mientras crece **también recorta el anillo de foco** del
+     * primer y del último campo, que sobresale 4 px por el `outline-offset-2`.
+     * Un foco a medio pintar incumple §11 y el síntoma aparece lejos de la
+     * causa: se ve tabulando, no leyendo el fichero. Así que en cuanto la
+     * transición termina, quien use esto marca `data-asentado` y el recorte se
+     * levanta. Va con un atributo y no con una clase de Tailwind porque hace
+     * falta más especificidad que `.desplegable > *`.
+     */
+    .desplegable {
+        display: grid;
+        grid-template-rows: 0fr;
+        transition: grid-template-rows var(--duracion) var(--curva);
+    }
+
+    .desplegable[data-abierto] {
+        grid-template-rows: 1fr;
+    }
+
+    .desplegable > * {
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .desplegable[data-abierto][data-asentado] > * {
+        overflow: visible;
+    }
+
+    /*
+     * Las clases de `<Transition name="detalle-fila">`, para la fila desplegada
+     * de la tabla.
+     *
+     * Van aquí y no como utilidades sueltas porque el `<tr>` que entra y el
+     * `.desplegable` que crece son dos elementos distintos: Vue pone la clase en
+     * el `<tr>` y lo que hay que mover está dentro. Las declara después de la
+     * regla de `[data-abierto]` a propósito — misma especificidad, y aquí manda
+     * la que llega al final.
+     */
+    .detalle-fila-enter-from .desplegable,
+    .detalle-fila-leave-to .desplegable {
+        grid-template-rows: 0fr;
+    }
+
+    .detalle-fila-enter-from,
+    .detalle-fila-leave-to {
+        opacity: 0;
+    }
+
+    /*
+     * La entrada dura lo MISMO que el despliegue de la rejilla, y eso importa
+     * más de lo que parece: `<Transition>` dispara `after-enter` al terminar
+     * ESTA transición, y es cuando se levanta el recorte. Con 160 ms aquí y
+     * 220 ms en `grid-template-rows`, el contenido asomaría por fuera de la fila
+     * durante los últimos sesenta milisegundos del crecimiento.
+     *
+     * La salida sí es más corta, como todas: ahí no hay nada que esperar.
+     */
+    .detalle-fila-enter-active {
+        transition: opacity var(--duracion) var(--curva);
+    }
+
+    .detalle-fila-leave-active {
+        transition: opacity var(--duracion-salida) var(--curva);
+    }
+
+    /*
+     * Las clases de `<TransitionGroup name="paso">`, para la lista de
+     * comprobación de una tarea.
+     *
+     * `-move` es la que importa y es la que no se escribe a mano: es el FLIP que
+     * recoloca las filas que no se han tocado cuando otra cambia de sitio. El
+     * `-leave-active` en absoluto es lo que evita que las de abajo den un tirón
+     * mientras la que se va todavía se está yendo.
+     */
+    .paso-move,
+    .paso-enter-active,
+    .paso-leave-active {
+        transition:
+            transform var(--duracion) var(--curva),
+            opacity var(--duracion-salida) var(--curva);
+    }
+
+    .paso-enter-from,
+    .paso-leave-to {
+        opacity: 0;
+        transform: translateX(-6px);
+    }
+
+    .paso-leave-active {
+        position: absolute;
+    }
+
+    /*
+     * `<TransitionGroup name="version">`, para el registro de entregas.
+     *
+     * Entra por arriba, que es de donde viene: la lista está en orden inverso y
+     * la que se acaba de emitir es la primera. `-move` es lo que hace que las
+     * anteriores se aparten en lugar de saltar.
+     */
+    .version-move,
+    .version-enter-active {
+        transition:
+            transform var(--duracion-lenta) var(--curva),
+            opacity var(--duracion) var(--curva);
+    }
+
+    .version-enter-from {
+        opacity: 0;
+        transform: translateY(-12px);
+    }
+
+    /*
+     * `<Transition name="recorrido">`, para el velo del recorrido guiado.
+     *
+     * Sólo opacidad: lo que hay dentro es un recorte hecho con una sombra de
+     * 9999 px y un panel colocado en absoluto; escalarlos deformaría el recorte
+     * y movería el panel a un sitio donde ya no señala nada.
+     */
+    .recorrido-enter-active {
+        transition: opacity var(--duracion) var(--curva);
+    }
+
+    .recorrido-leave-active {
+        transition: opacity var(--duracion-salida) var(--curva);
+    }
+
+    .recorrido-enter-from,
+    .recorrido-leave-to {
+        opacity: 0;
+    }
+
+    /*
+     * El remate del anillo al llegar al cien por cien.
+     *
+     * `forwards` y una sola iteración: esto NO es un tercer bucle del chrome de
+     * trabajo (DESIGN.md §10). Ocurre una vez, cuando la cifra llega, y se apaga
+     * sola. El elemento se pinta sólo en ese caso, así que no hay nada que parar.
+     */
+    @keyframes pulso-completo {
+        from {
+            transform: scale(1);
+            opacity: 0.55;
+        }
+        to {
+            transform: scale(1.14);
+            opacity: 0;
+        }
+    }
+
+    .pulso-completo {
+        animation: pulso-completo var(--duracion-lenta) var(--curva) 1 forwards;
+        transform-box: fill-box;
+        transform-origin: center;
+    }
+
+    /*
+     * La raya de un paso hecho se traza, no aparece.
+     *
+     * `line-through` es instantáneo y no confirma nada: marcar una casilla y ver
+     * cómo se tacha lo escrito es lo que dice que el clic llegó, y en una lista
+     * que se guarda contra el servidor es el único acuse que hay hasta que la
+     * respuesta vuelve. `text-decoration` no se puede animar.
+     *
+     * Va con un fondo degradado y NO con un pseudo-elemento en `scaleX`, que fue
+     * el primer intento y estaba mal: un pseudo-elemento en absoluto es UNA raya
+     * sobre la caja entera, así que un paso que ocupa dos líneas quedaba tachado
+     * por la mitad. Con `box-decoration-break: clone` cada línea es su propia
+     * caja y se tacha entera, que es lo que hace `line-through` de toda la vida.
+     *
+     * Es la tercera excepción a «sólo transform y opacity», y la más barata de
+     * las tres: `background-size` repinta, no recalcula la disposición.
+     */
+    .tachado {
+        background-image: linear-gradient(currentColor, currentColor);
+        background-repeat: no-repeat;
+        background-position: 0 58%;
+        background-size: 0 1px;
+        box-decoration-break: clone;
+        -webkit-box-decoration-break: clone;
+        transition: background-size var(--duracion) var(--curva);
+    }
+
+    .tachado[data-hecha] {
+        background-size: 100% 1px;
     }
 }
 

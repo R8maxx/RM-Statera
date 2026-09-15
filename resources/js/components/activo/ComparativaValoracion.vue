@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
+import { motion } from 'motion-v';
 import { computed } from 'vue';
 
 export interface DimensionValorada {
@@ -46,6 +48,7 @@ const filas = computed(() =>
 );
 
 const hayHerencia = computed(() => filas.value.some((fila) => fila.heredada));
+const { reducido } = useMovimientoReducido();
 </script>
 
 <template>
@@ -63,12 +66,30 @@ const hayHerencia = computed(() => filas.value.some((fila) => fila.heredada));
                     <tr v-for="fila in filas" :key="fila.codigo">
                         <th scope="row" class="py-2 text-left font-normal">{{ fila.nombre }}</th>
                         <td class="py-2 text-muted-foreground">{{ fila.nivelEtiqueta }}</td>
-                        <td class="py-2" :class="fila.heredada ? 'font-medium text-primary' : 'text-muted-foreground'">
+                        <!--
+                            La efectiva llega después de la valorada, 180 ms.
+                            Es lo que enseña que una DERIVA de la otra en vez de
+                            ser dos columnas puestas al lado: la valoración sube
+                            por el grafo, y aquí se ve subir. Sólo en las filas
+                            heredadas — donde coinciden no hay nada que contar y
+                            un retraso sería un tropiezo.
+                        -->
+                        <motion.td
+                            class="py-2"
+                            :class="fila.heredada ? 'font-medium text-primary' : 'text-muted-foreground'"
+                            :initial="reducido || !fila.heredada ? { opacity: 1 } : { opacity: 0, y: -4 }"
+                            :animate="{ opacity: 1, y: 0 }"
+                            :transition="{
+                                duration: reducido ? 0 : 0.22,
+                                delay: reducido || !fila.heredada ? 0 : 0.18,
+                                ease: [0.16, 1, 0.3, 1],
+                            }"
+                        >
                             {{ fila.efectivaEtiqueta }}
                             <span v-if="fila.heredada" class="text-xs font-normal text-muted-foreground">
                                 · heredado
                             </span>
-                        </td>
+                        </motion.td>
                     </tr>
                 </tbody>
             </table>

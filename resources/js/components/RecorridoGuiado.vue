@@ -321,14 +321,43 @@ onBeforeUnmount(() => {
     window.removeEventListener('scroll', alRedimensionar);
 });
 
+/*
+ * El recorte del foco y el panel se mueven JUNTOS y con la misma curva.
+ *
+ * `--ease-en-pantalla` y no `--ease-marca`: ninguno de los dos está apareciendo,
+ * los dos van de un sitio a otro, y una curva de salida los hace arrancar de
+ * golpe (DESIGN.md §10).
+ *
+ * Y el panel se mueve **porque hasta ahora no lo hacía**: el recorte viajaba
+ * hasta el siguiente elemento y el panel se materializaba al lado ya colocado.
+ * El recorrido se ve una vez por usuario y lo que enseña es dónde están las
+ * cosas; un panel que acompaña al foco es lo que hace que el recorrido sea un
+ * recorrido y no cinco diapositivas.
+ */
+const MOVIMIENTO = '220ms var(--ease-en-pantalla)';
+
 const transicion = computed(() =>
-    reducido.value ? 'none' : 'top 220ms var(--ease-marca), left 220ms var(--ease-marca), width 220ms var(--ease-marca), height 220ms var(--ease-marca)',
+    reducido.value
+        ? 'none'
+        : `top ${MOVIMIENTO}, left ${MOVIMIENTO}, width ${MOVIMIENTO}, height ${MOVIMIENTO}`,
+);
+
+/* El panel sólo cambia de sitio; no tiene tamaño que interpolar. */
+const transicionPanel = computed(() =>
+    reducido.value ? 'none' : `top ${MOVIMIENTO}, left ${MOVIMIENTO}`,
 );
 </script>
 
 <template>
     <Teleport to="body">
-        <div v-if="abierto && paso" class="pointer-events-none fixed inset-0 z-[60]">
+        <!--
+            Al terminar, el velo se retira en vez de cortarse. Es lo último que
+            se ve del recorrido y hasta ahora desaparecía de un fotograma al
+            siguiente, que se lee como si algo hubiera fallado. La salida es más
+            corta que la entrada, como todas (DESIGN.md §10).
+        -->
+        <Transition name="recorrido">
+            <div v-if="abierto && paso" class="pointer-events-none fixed inset-0 z-[60]">
             <!--
                 El foco. Cuando hay ancla es un recorte; cuando no la hay, el
                 mismo elemento se estira a toda la ventana y hace de velo liso,
@@ -377,7 +406,7 @@ const transicion = computed(() =>
                 tabindex="-1"
                 class="pointer-events-auto fixed rounded-xl border bg-card p-5 shadow-sombra-3
                        max-sm:inset-x-4 max-sm:bottom-4 sm:w-[380px]"
-                :style="posicion"
+                :style="{ ...posicion, transition: transicionPanel }"
                 :class="!esEstrecho && !marco && 'sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2'"
                 @keydown="alPulsar"
             >
@@ -440,6 +469,7 @@ const transicion = computed(() =>
                     <XIcon />
                 </Button>
             </div>
-        </div>
+            </div>
+        </Transition>
     </Teleport>
 </template>

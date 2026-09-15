@@ -31,6 +31,20 @@ const animado = useTransition(destino, {
 
 const mostrado = computed(() => (reducido.value ? props.valor : animado.value));
 
+/**
+ * Y cuando llega a cien, remata.
+ *
+ * Una vez, sin bucle, y sólo en cien. Es la cifra que el producto entero existe
+ * para mover: llegar al cien por cien de implantación es el trabajo de meses de
+ * una organización, y que la pantalla lo trate igual que a un 62 % es dejar sin
+ * decir lo único que había que decir. DESIGN.md §10 lo tiene enumerado como uno
+ * de los cuatro momentos, y no hay un quinto sin pasar antes por ese documento.
+ *
+ * Espera a que el contador llegue: el pulso es la consecuencia de haber
+ * llegado, no un aviso de que se va a llegar.
+ */
+const completo = computed(() => Math.round(mostrado.value) >= 100 && props.valor >= 100);
+
 const radio = computed(() => (props.tamano - props.grosor) / 2);
 const circunferencia = computed(() => 2 * Math.PI * radio.value);
 const recorrido = computed(() => circunferencia.value * (1 - Math.min(Math.max(mostrado.value, 0), 100) / 100));
@@ -59,6 +73,21 @@ onMounted(() => (destino.value = props.valor));
                 class="stroke-primary"
                 :stroke-dasharray="circunferencia"
                 :stroke-dashoffset="recorrido"
+            />
+
+            <!--
+                El remate del cien por cien: un anillo que se expande una vez y
+                se apaga. Va por fuera del trazo y no lo toca, así que el arco
+                no se deforma ni cambia de grosor.
+            -->
+            <circle
+                v-if="completo && !reducido"
+                :cx="tamano / 2"
+                :cy="tamano / 2"
+                :r="radio"
+                fill="none"
+                stroke-width="2"
+                class="pulso-completo origin-center stroke-primary"
             />
         </svg>
 

@@ -5,15 +5,37 @@ import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { useBalanza } from '@/composables/useBalanza';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import { Form, Link } from '@inertiajs/vue3';
 
 defineProps<{ puedeRestablecer: boolean; estado?: string | null }>();
+
+/**
+ * La balanza contesta al intento, y es el único sitio del producto donde la
+ * marca responde a lo que hace el usuario.
+ *
+ * Al enviar se queda plana —la cuenta cuadra— y si Fortify dice que la pareja no
+ * vale, se desequilibra una vez y vuelve. El aviso escrito sigue siendo quien
+ * comunica el fallo: §11 no deja que un estado dependa del movimiento, y por
+ * debajo de `lg` o con movimiento reducido la balanza ni se pinta.
+ *
+ * Se llama al enviar y no al recibir respuesta porque el gesto tiene que
+ * acompañar al clic, no llegar doscientos milisegundos después.
+ */
+const { asentar, sacudir } = useBalanza();
 </script>
 
 <template>
     <AuthLayout titulo="Entrar en Statera" descripcion="Usa la cuenta que te dio de alta el responsable de seguridad.">
-        <Form action="/login" method="post" #default="{ errors, processing }" class="grid gap-5">
+        <Form
+            action="/login"
+            method="post"
+            #default="{ errors, processing }"
+            class="grid gap-5"
+            @start="asentar"
+            @error="sacudir"
+        >
             <!--
                 Fortify devuelve el fallo de acceso en el campo `email`, pero no
                 es un error de ese campo: es que la pareja no vale. Enseñarlo

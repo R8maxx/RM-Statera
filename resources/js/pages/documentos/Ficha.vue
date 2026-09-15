@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
 import HistorialVersiones, { type Version } from '@/components/documento/HistorialVersiones.vue';
+import EsqueletoDocumento from '@/components/documento/EsqueletoDocumento.vue';
 import CeldaBadge from '@/components/tabla/celdas/CeldaBadge.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { motion } from 'motion-v';
 import { Link, router, useForm, usePoll } from '@inertiajs/vue3';
 import { DownloadIcon, FileTextIcon, PencilIcon, RefreshCwIcon, StampIcon, TypeIcon } from '@lucide/vue';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
@@ -130,6 +133,11 @@ function comprobar(): void {
  */
 const varianteGenerar = computed(() => (props.versionEnCurso?.emisible ? 'outline' : 'default'));
 
+const { variantesEntrada, variantesEscalonado } = useMovimientoReducido();
+
+/* Las tres tarjetas llegan en el orden en que se leen, no de golpe. */
+const escalonado = variantesEscalonado(0.05);
+
 const kb = (bytes: number | null | undefined): string =>
     bytes === null || bytes === undefined ? '—' : `${Math.round(bytes / 1024)} kB`;
 </script>
@@ -153,8 +161,14 @@ const kb = (bytes: number | null | undefined): string =>
             </template>
         </CabeceraPagina>
 
-        <div class="grid gap-6 lg:grid-cols-3">
-            <Card class="lg:col-span-2">
+        <motion.div
+            class="grid gap-6 lg:grid-cols-3"
+            :variants="escalonado"
+            initial="oculto"
+            animate="visible"
+        >
+            <motion.div :variants="variantesEntrada" class="lg:col-span-2">
+            <Card>
                 <CardHeader>
                     <CardTitle>Borrador</CardTitle>
                     <CardDescription>
@@ -164,6 +178,14 @@ const kb = (bytes: number | null | undefined): string =>
                 </CardHeader>
 
                 <CardContent class="flex flex-col gap-4">
+                    <!--
+                        Mientras el worker trabaja se enseña la forma de lo que
+                        va a salir, no una rueda. Es la única espera del producto
+                        que dura decenas de segundos, que es donde DESIGN.md §9
+                        decía que hacía falta un esqueleto y donde no lo había.
+                    -->
+                    <EsqueletoDocumento v-if="enCurso" />
+
                     <div v-if="versionEnCurso" class="flex flex-wrap items-center gap-3">
                         <CeldaBadge
                             :valor="{
@@ -266,6 +288,9 @@ const kb = (bytes: number | null | undefined): string =>
                 </CardContent>
             </Card>
 
+            </motion.div>
+
+            <motion.div :variants="variantesEntrada">
             <Card>
                 <CardHeader>
                     <CardTitle>Ficha</CardTitle>
@@ -297,8 +322,10 @@ const kb = (bytes: number | null | undefined): string =>
                     </div>
                 </CardContent>
             </Card>
+            </motion.div>
 
-            <Card class="lg:col-span-3">
+            <motion.div :variants="variantesEntrada" class="lg:col-span-3">
+            <Card>
                 <CardHeader>
                     <CardTitle>Versiones emitidas</CardTitle>
                     <CardDescription>
@@ -310,6 +337,7 @@ const kb = (bytes: number | null | undefined): string =>
                     <HistorialVersiones :versiones="versiones" :documento-id="documento.id" />
                 </CardContent>
             </Card>
-        </div>
+            </motion.div>
+        </motion.div>
     </AppLayout>
 </template>

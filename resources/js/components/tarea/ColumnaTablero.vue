@@ -4,6 +4,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Link } from '@inertiajs/vue3';
 import { tono } from '@/lib/tonos';
 import { dropTargetForElements } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
+import { AnimatePresence } from 'motion-v';
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 
 export interface Columna {
@@ -112,14 +113,23 @@ onBeforeUnmount(() => limpiar?.());
 
         <ScrollArea class="min-h-0 flex-1 px-2 pb-2">
             <div class="space-y-2">
-                <TarjetaTarea
-                    v-for="tarjeta in columna.tarjetas"
-                    :key="tarjeta.id"
-                    :tarjeta="tarjeta"
-                    :etiquetas="etiquetas"
-                    @mover="(id, estado) => emit('mover', id, estado)"
-                    @descartar="(id, titulo) => emit('descartar', id, titulo)"
-                />
+                <!--
+                    `popLayout` saca del flujo a la que se va antes de animarla,
+                    así que las que quedan cierran el hueco a la vez en lugar de
+                    esperar a que termine. Sin `AnimatePresence` una tarjeta
+                    descartada desaparece de golpe y el diálogo parece no haber
+                    hecho nada.
+                -->
+                <AnimatePresence mode="popLayout">
+                    <TarjetaTarea
+                        v-for="tarjeta in columna.tarjetas"
+                        :key="tarjeta.id"
+                        :tarjeta="tarjeta"
+                        :etiquetas="etiquetas"
+                        @mover="(id, estado) => emit('mover', id, estado)"
+                        @descartar="(id, titulo) => emit('descartar', id, titulo)"
+                    />
+                </AnimatePresence>
 
                 <p v-if="columna.tarjetas.length === 0" class="px-1 py-6 text-center text-xs text-muted-foreground">
                     Nada aquí.

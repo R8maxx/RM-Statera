@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
+import { motion } from 'motion-v';
 import CeldaBadge from '@/components/tabla/celdas/CeldaBadge.vue';
 import EstadoVacio from '@/components/EstadoVacio.vue';
 import { Link } from '@inertiajs/vue3';
@@ -14,11 +16,30 @@ type Correspondencia = App.Http.Resources.Implantacion.Correspondencia;
  * implantado algo que no lo está.
  */
 defineProps<{ correspondencias: Correspondencia[] }>();
+const { variantesEscalonado, variantesEntrada } = useMovimientoReducido();
+
+/*
+ * El argumento del producto, impreso en pantalla: «esta evidencia vale para ISO
+ * y para el ENS». Que las correspondencias lleguen una detrás de otra en vez de
+ * de golpe es lo que hace que se cuenten en lugar de que estén.
+ */
+const escalonado = variantesEscalonado(0.06);
 </script>
 
 <template>
-    <div v-if="correspondencias.length > 0" class="space-y-4">
-        <article v-for="correspondencia in correspondencias" :key="correspondencia.requisitoId" class="rounded-xl border p-4">
+    <motion.div
+        v-if="correspondencias.length > 0"
+        class="space-y-4"
+        :variants="escalonado"
+        initial="oculto"
+        animate="visible"
+    >
+        <motion.article
+            v-for="correspondencia in correspondencias"
+            :key="correspondencia.requisitoId"
+            :variants="variantesEntrada"
+            class="rounded-xl border p-4"
+        >
             <header class="flex flex-wrap items-start justify-between gap-2">
                 <div class="min-w-0">
                     <p class="flex flex-wrap items-center gap-2">
@@ -66,8 +87,8 @@ defineProps<{ correspondencias: Correspondencia[] }>();
             <p v-else class="mt-3 text-sm text-muted-foreground">
                 Ningún sistema de la organización tiene todavía este requisito en su alcance.
             </p>
-        </article>
-    </div>
+        </motion.article>
+    </motion.div>
 
     <EstadoVacio
         v-else

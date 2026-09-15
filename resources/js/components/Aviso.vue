@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
 import { AlertCircleIcon, CheckCircle2Icon, InfoIcon } from '@lucide/vue';
+import { motion } from 'motion-v';
 import { computed } from 'vue';
 
 /**
@@ -11,6 +13,13 @@ import { computed } from 'vue';
  *
  * `role="alert"` sólo en el tono de error: un lector de pantalla interrumpe lo
  * que esté diciendo, y hacerlo para un mensaje informativo es ruido.
+ *
+ * **Entra, no aparece.** Un aviso de credenciales incorrectas que se materializa
+ * de golpe empuja lo que tiene debajo y hay que volver a buscar el cursor; es el
+ * mismo motivo por el que el formulario de acceso se ancla arriba en vez de
+ * centrarse. Ocho píxeles y 220 ms bastan para que se lea como algo que ha
+ * llegado. La animación no toca el `role`: quien usa lector de pantalla lo oye
+ * igual, y lo oye antes de que termine de moverse.
  */
 const props = withDefaults(
     defineProps<{ tono?: 'error' | 'exito' | 'info'; titulo?: string }>(),
@@ -33,18 +42,23 @@ const estilos = {
 } as const;
 
 const estilo = computed(() => estilos[props.tono]);
+
+const { variantesEntrada } = useMovimientoReducido();
 </script>
 
 <template>
-    <div
+    <motion.div
         class="flex items-start gap-2.5 rounded-xl border px-3.5 py-3 text-sm"
         :class="estilo.caja"
         :role="tono === 'error' ? 'alert' : 'status'"
+        :variants="variantesEntrada"
+        initial="oculto"
+        animate="visible"
     >
         <component :is="estilo.icono" class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
         <div class="min-w-0">
             <p v-if="titulo" class="font-medium">{{ titulo }}</p>
             <p :class="titulo && 'mt-0.5 opacity-90'"><slot /></p>
         </div>
-    </div>
+    </motion.div>
 </template>

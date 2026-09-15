@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
+import { motion } from 'motion-v';
 import Cifra from '@/components/Cifra.vue';
 import { Link } from '@inertiajs/vue3';
 import { CheckCircle2Icon } from '@lucide/vue';
@@ -46,12 +48,30 @@ const tonos: Record<string, string> = {
 const abiertas = computed(() => props.alertas.filter((alerta) => alerta.valor > 0));
 const porCompletar = computed(() => props.pendientes.filter((pendiente) => pendiente.valor > 0));
 const activos = computed(() => new Set(Object.keys(props.filtros)));
+
+const { variantesEntrada, variantesEscalonado } = useMovimientoReducido();
+
+/*
+ * La tira entra escalonada, 40 ms por indicador.
+ *
+ * Es lo que pide acción HOY, y lo primero que se mira al abrir el módulo: que
+ * llegue de izquierda a derecha es lo que hace que se recorra en vez de que se
+ * dé por vista. Las cifras ya cuentan con `Cifra`; esto sólo ordena la entrada
+ * de las tarjetas, y ocurre al montar, nunca al filtrar.
+ */
+const escalonado = variantesEscalonado(0.04);
 </script>
 
 <template>
     <section class="mb-6" :aria-label="`Lo que pide acción: ${denominadorEtiqueta}`">
-        <ul v-if="abiertas.length > 0" class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            <li v-for="alerta in abiertas" :key="alerta.clave">
+        <motion.ul
+            v-if="abiertas.length > 0"
+            class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
+            :variants="escalonado"
+            initial="oculto"
+            animate="visible"
+        >
+            <motion.li v-for="alerta in abiertas" :key="alerta.clave" :variants="variantesEntrada">
                 <Link
                     :href="`${alerta.base}?${alerta.filtro}`"
                     class="block h-full rounded-xl border bg-superficie px-3.5 py-3 transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
@@ -72,8 +92,8 @@ const activos = computed(() => new Set(Object.keys(props.filtros)));
                         {{ alerta.etiqueta }}
                     </span>
                 </Link>
-            </li>
-        </ul>
+            </motion.li>
+        </motion.ul>
 
         <!--
             Sin nada abierto, una línea y no una fila de ceros. Es un estado

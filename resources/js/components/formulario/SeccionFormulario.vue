@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { usarSeccionObligatorios } from '@/composables/useCamposObligatorios';
+import { useDesplegable } from '@/composables/useDesplegable';
 import { ChevronRightIcon } from '@lucide/vue';
 import { computed, ref, useId } from 'vue';
 
@@ -20,13 +21,23 @@ import { computed, ref, useId } from 'vue';
  * cabecera, **fuera de lo que se pliega**, para que plegar una sección no
  * esconda que todavía debe dos campos.
  *
- * **Plegar es `v-show`, no `v-if` ni el `Collapsible` de Reka.** Los campos
- * tienen que seguir en el DOM —lo que sale del DOM sale del `FormData`, y como
- * son `nullable` en el `FormRequest` una edición los borraría en silencio—, y
- * `display:none` no excluye un campo del envío: `FormData` sólo se salta los
- * deshabilitados y los que no tienen `name`. Con `forceMount` de Reka el
- * contenido se queda montado pero **visible**, que es justo lo que no hace
- * falta.
+ * **Plegar no es `v-if` ni el `Collapsible` de Reka.** Los campos tienen que
+ * seguir en el DOM —lo que sale del DOM sale del `FormData`, y como son
+ * `nullable` en el `FormRequest` una edición los borraría en silencio—. Con
+ * `forceMount` de Reka el contenido se queda montado pero **visible**, que es
+ * justo lo que no hace falta.
+ *
+ * **Y tampoco es ya `v-show`.** El chevron rotaba con transición y el contenido
+ * aparecía de golpe, que es peor que no animar nada: el mando se mueve y lo
+ * mandado no. Ahora es `.desplegable` (una rejilla de `0fr` a `1fr`, en
+ * `app.css`), que anima una altura que nadie ha medido y deja el contenido
+ * donde estaba. `display:none` tampoco excluía un campo del envío —`FormData`
+ * sólo se salta los deshabilitados y los que no tienen `name`—, así que el
+ * razonamiento de arriba sigue intacto.
+ *
+ * Lo que `display:none` sí resolvía **por accidente** era el foco: a altura cero
+ * el contenido sigue siendo tabulable, y tabular hasta un campo que no se ve es
+ * peor que no poder llegar a él. De ahí el `inert`, que hay que poner a mano.
  */
 const props = withDefaults(
     defineProps<{
@@ -44,6 +55,7 @@ const pendientes = usarSeccionObligatorios();
 
 const idContenido = `seccion-${useId()}`;
 const abierta = ref(!props.plegable || !props.plegadaPorDefecto);
+const { asentada, alTerminarTransicion } = useDesplegable(abierta);
 
 const textoPendientes = computed(() =>
     pendientes.value === 1 ? '1 sin rellenar' : `${pendientes.value} sin rellenar`,
@@ -91,8 +103,17 @@ const textoPendientes = computed(() =>
             </p>
         </div>
 
-        <div :id="idContenido" v-show="abierta" class="grid content-start gap-5">
-            <slot />
+        <div
+            :id="idContenido"
+            class="desplegable"
+            :data-abierto="abierta ? '' : undefined"
+            :data-asentado="asentada ? '' : undefined"
+            :inert="!abierta"
+            @transitionend="alTerminarTransicion"
+        >
+            <div class="grid content-start gap-5">
+                <slot />
+            </div>
         </div>
     </section>
 </template>

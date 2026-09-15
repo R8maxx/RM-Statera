@@ -84,7 +84,7 @@ const fecha = (valor: string): string => formatoFecha.format(new Date(valor));
 
 <template>
     <div class="space-y-4">
-        <ul v-if="evidencias.length > 0" class="divide-y divide-border">
+        <TransitionGroup v-if="evidencias.length > 0" tag="ul" name="paso" class="relative divide-y divide-border">
             <li
                 v-for="evidencia in evidencias"
                 :key="evidencia.id"
@@ -114,7 +114,7 @@ const fecha = (valor: string): string => formatoFecha.format(new Date(valor));
 
                 <Button variant="ghost" size="sm" @click="desvincular(evidencia.id)">Desvincular</Button>
             </li>
-        </ul>
+        </TransitionGroup>
 
         <p v-else class="text-sm text-muted-foreground">
             Este requisito no tiene ninguna prueba detrás. Está implantado o no según lo que diga su estado, pero

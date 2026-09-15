@@ -12,6 +12,8 @@ import {
 import { Link } from '@inertiajs/vue3';
 import { CheckSquareIcon, EllipsisVerticalIcon, GripVerticalIcon, PaperclipIcon } from '@lucide/vue';
 import { draggable } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
+import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
+import { motion } from 'motion-v';
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 
 export interface Tarjeta {
@@ -73,12 +75,50 @@ onMounted(() => {
 let limpiar: (() => void) | null = null;
 
 onBeforeUnmount(() => limpiar?.());
+
+const { reducido, transicionMovimiento } = useMovimientoReducido();
+
+/**
+ * La tarjeta viaja; no desaparece de una columna y aparece en la otra.
+ *
+ * `layoutId` es lo que hace que sea LA MISMA tarjeta a ojos de motion aunque
+ * esté en otro sitio del árbol: al soltarla, la actualización optimista de
+ * Inertia la coloca ya en la columna de destino y la proyección la lleva desde
+ * donde estaba. Sin esto, el gesto termina con la tarjeta materializándose a
+ * cuarenta centímetros de donde se soltó, y quien arrastra tiene que volver a
+ * buscarla.
+ *
+ * `layout` a secas es para las vecinas: las que quedan tienen que cerrar el
+ * hueco, no dar un tirón.
+ *
+ * La curva es la de desplazamiento y no la de marca. Una tarjeta que va de un
+ * sitio a otro no está apareciendo: con una curva de salida arranca de golpe,
+ * como si se la hubiera empujado.
+ */
+const transicionTarjeta = transicionMovimiento;
 </script>
 
 <template>
+    <!--
+        El envoltorio es de motion y el `<article>` sigue siendo nativo, y esa
+        separación no es cosmética: `motion.*` es un `defineComponent`, así que un
+        `ref` puesto encima devuelve la INSTANCIA del componente y no el nodo del
+        DOM. `draggable()` necesita un `HTMLElement`, así que ponerlo arriba
+        habría roto el arrastre del tablero entero sin un solo error en consola y
+        sin que TypeScript dijera nada.
+
+        Lo que proyecta motion es esta caja; lo que se arrastra es lo de dentro.
+        Para el efecto es lo mismo, porque la caja contiene a la tarjeta exacta.
+    -->
+    <motion.div
+        :layout-id="reducido ? undefined : `tarea-${tarjeta.id}`"
+        :layout="reducido ? undefined : true"
+        :transition="transicionTarjeta"
+        :exit="reducido ? { opacity: 0 } : { opacity: 0, scale: 0.96 }"
+    >
     <article
         ref="elemento"
-        class="group rounded-xl border bg-card p-3 transition-shadow"
+        class="group rounded-xl border bg-card p-3 transition-[box-shadow,opacity] duration-[var(--duracion-rapida)] ease-marca"
         :class="arrastrando ? 'opacity-40' : 'hover:shadow-sombra-1'"
     >
         <div class="flex items-start gap-1.5">
@@ -152,4 +192,5 @@ onBeforeUnmount(() => limpiar?.());
             </span>
         </p>
     </article>
+    </motion.div>
 </template>

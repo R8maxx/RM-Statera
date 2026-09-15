@@ -43,7 +43,7 @@ const sinValorar: ValorEtiquetado = { valor: null, etiqueta: 'Sin valorar', tono
 </script>
 
 <template>
-    <ul v-if="riesgos.length > 0" class="divide-y divide-border">
+    <TransitionGroup v-if="riesgos.length > 0" tag="ul" name="paso" class="relative divide-y divide-border">
         <li v-for="riesgo in riesgos" :key="riesgo.id" class="py-3 first:pt-0">
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div class="min-w-0">
@@ -91,7 +91,7 @@ const sinValorar: ValorEtiquetado = { valor: null, etiqueta: 'Sin valorar', tono
                 />
             </div>
         </li>
-    </ul>
+    </TransitionGroup>
 
     <p v-else class="text-sm text-muted-foreground">
         No hay ningún riesgo registrado sobre este activo. Los riesgos se registran en

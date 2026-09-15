@@ -381,10 +381,30 @@ function alternarDespliegue(id: number | string): void {
     desplegadas.value = siguiente;
 }
 
+/*
+ * Y cuáles han terminado de abrirse.
+ *
+ * El `overflow: hidden` de `.desplegable` recorta el contenido mientras la fila
+ * crece —que es para lo que está— pero también recortaría el anillo de foco de
+ * un enlace de la ficha. Mientras se mueve hay que recortar; cuando se para, no.
+ * Es lo mismo que hace `useDesplegable` en los formularios; aquí la transición
+ * la gobierna `<Transition>`, así que se cuelga de sus ganchos.
+ */
+const asentadas = ref(new Set<string>());
+
+function marcarAsentada(clave: string, asentada: boolean): void {
+    const siguiente = new Set(asentadas.value);
+    asentada ? siguiente.add(clave) : siguiente.delete(clave);
+    asentadas.value = siguiente;
+}
+
 /* Cambiar de página o de filtro deja abiertas filas que ya no están. */
 watch(
     () => props.meta,
-    () => (desplegadas.value = new Set()),
+    () => {
+        desplegadas.value = new Set();
+        asentadas.value = new Set();
+    },
 );
 
 /*
@@ -1092,6 +1112,16 @@ const claseFiltro = 'sticky top-10 z-20 border-b bg-card/95 px-2 py-1.5 backdrop
                             </td>
                         </tr>
 
+                        <!--
+                            Y el cuerpo NO va en un `<TransitionGroup>`, aunque
+                            una acción masiva que retira filas haga saltar a las
+                            de abajo. Paginar y filtrar son consultas de
+                            servidor: los `key` de la página entera cambian, así
+                            que el grupo animaría las cincuenta filas cada vez
+                            que alguien escribe tres letras en un filtro. Eso es
+                            lo que `lib/motion.ts` prohíbe, y con razón. Quien
+                            dice que hay una consulta viva es el hilo de carga.
+                        -->
                         <template v-for="fila in filas" v-else :key="fila.id">
                         <tr
                             :class="
@@ -1193,16 +1223,37 @@ const claseFiltro = 'sticky top-10 z-20 border-b bg-card/95 px-2 py-1.5 backdrop
                             </td>
                         </tr>
 
-                        <tr v-if="hayQueDesplegar && desplegadas.has(String(fila.id))">
-                            <td :colspan="anchoTabla" class="border-b bg-card p-0">
-                                <div
-                                    class="sticky left-0"
-                                    :style="anchoVisible > 0 ? { width: `${anchoVisible}px` } : undefined"
-                                >
-                                    <FilaDetalle :columnas="columnasOcultasEnFila" :fila="fila" />
-                                </div>
-                            </td>
-                        </tr>
+                        <!--
+                            Se despliega, no aparece. Antes la tabla entera daba
+                            un tirón hacia abajo de un fotograma al siguiente y
+                            había que volver a buscar dónde estaba la fila que se
+                            acababa de abrir.
+
+                            `<Transition>` y no sólo `data-abierto` porque hace
+                            falta que el contenido siga montado mientras se
+                            cierra; con `v-if` a secas el cierre sería seco. Y
+                            sigue sin montarse nada de las filas que nadie ha
+                            abierto: cincuenta filas por diez columnas ocultas
+                            son quinientas celdas que no se ven.
+                        -->
+                        <Transition
+                            name="detalle-fila"
+                            @after-enter="marcarAsentada(String(fila.id), true)"
+                            @before-leave="marcarAsentada(String(fila.id), false)"
+                        >
+                            <tr v-if="hayQueDesplegar && desplegadas.has(String(fila.id))">
+                                <td :colspan="anchoTabla" class="border-b bg-card p-0">
+                                    <div
+                                        class="desplegable sticky left-0"
+                                        data-abierto
+                                        :data-asentado="asentadas.has(String(fila.id)) ? '' : undefined"
+                                        :style="anchoVisible > 0 ? { width: `${anchoVisible}px` } : undefined"
+                                    >
+                                        <FilaDetalle :columnas="columnasOcultasEnFila" :fila="fila" />
+                                    </div>
+                                </td>
+                            </tr>
+                        </Transition>
                         </template>
                     </tbody>
                 </table>

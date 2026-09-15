@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
 import { tono } from '@/lib/tonos';
+import { motion } from 'motion-v';
 import { computed } from 'vue';
 
 /**
@@ -22,6 +24,13 @@ import { computed } from 'vue';
  * El color de cada celda sale del tono que **declara el dominio** en
  * `CalculoRiesgo::bandas()`, no de una tabla aquí: el mismo tono significa cosas
  * distintas según el módulo, así que el cliente no lo deduce.
+ *
+ * **Las celdas entran en diagonal, y eso es lo único que se anima aquí.** No es
+ * decoración: la diagonal ES el gradiente de riesgo —probabilidad por impacto
+ * crece hacia la esquina—, así que el orden en que se pintan enseña cómo se lee
+ * el mapa antes de que nadie tenga que explicarlo. Ocurre una vez al montar y
+ * dura medio segundo de punta a punta; una matriz que se reanimara en cada
+ * recarga parcial sería exactamente lo que `lib/motion.ts` prohíbe.
  */
 
 interface Banda {
@@ -105,6 +114,19 @@ const descripcion = computed(
             .join('. ')
         + '.',
 );
+const { reducido } = useMovimientoReducido();
+
+/**
+ * Cuándo entra cada celda: por su distancia a la esquina de arriba a la
+ * izquierda, no por su índice en el bucle.
+ *
+ * Con un escalonado por índice la matriz se pinta en zigzag, fila a fila, y eso
+ * no significa nada. Por diagonal, lo que se ve avanzar es el propio producto
+ * probabilidad × impacto.
+ */
+function retrasoDe(indiceFila: number, indiceColumna: number): number {
+    return reducido.value ? 0 : (indiceFila + indiceColumna) * 0.025;
+}
 </script>
 
 <template>
@@ -144,7 +166,7 @@ const descripcion = computed(
                     role="img"
                     :aria-label="descripcion"
                 >
-                    <template v-for="fila in filas" :key="fila.valor">
+                    <template v-for="(fila, indiceFila) in filas" :key="fila.valor">
                         <div
                             class="cifra flex items-center justify-center pr-1 text-[0.625rem] text-muted-foreground"
                             :title="fila.etiqueta"
@@ -152,9 +174,16 @@ const descripcion = computed(
                             {{ fila.valor }}
                         </div>
 
-                        <div
-                            v-for="columna in impacto"
+                        <motion.div
+                            v-for="(columna, indiceColumna) in impacto"
                             :key="`${fila.valor}-${columna.valor}`"
+                            :initial="reducido ? { opacity: 1 } : { opacity: 0, scale: 0.9 }"
+                            :animate="{ opacity: 1, scale: 1 }"
+                            :transition="{
+                                duration: reducido ? 0 : 0.22,
+                                delay: retrasoDe(indiceFila, indiceColumna),
+                                ease: [0.16, 1, 0.3, 1],
+                            }"
                             class="relative flex aspect-square items-center justify-center rounded-sm"
                             :class="[
                                 claseDe(fila.valor * columna.valor),
@@ -176,7 +205,7 @@ const descripcion = computed(
                             >
                                 {{ fila.valor * columna.valor }}
                             </span>
-                        </div>
+                        </motion.div>
                     </template>
 
                     <!-- El eje de impacto, en la misma rejilla: primera celda

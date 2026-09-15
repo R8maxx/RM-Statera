@@ -77,11 +77,18 @@ const temas: { valor: PreferenciaTema; etiqueta: string; icono: typeof SunIcon }
 </script>
 
 <template>
+    <!--
+        Sin animación, y es una decisión: DESIGN.md §10, primera fila de la
+        tabla. Esto se abre con ⌘K decenas de veces al día y siempre con el
+        teclado; los 220 ms que llevan los demás diálogos serían aquí 220 ms de
+        espera, cincuenta veces al día, antes de poder escribir. Una acción
+        iniciada con un atajo no se anima nunca.
+    -->
     <CommandDialog
         v-model:open="abierta"
         title="Buscar"
         description="Salta a un módulo o ejecuta una acción."
-        class="max-w-xl"
+        class="max-w-xl duration-0 data-open:animate-none data-closed:animate-none"
     >
         <CommandInput placeholder="Buscar un módulo o una acción…" />
 

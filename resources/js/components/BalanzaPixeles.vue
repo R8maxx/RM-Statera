@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useBalanza } from '@/composables/useBalanza';
 import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
 import { extension, nubeBalanza, proyectar, type Punto } from '@/lib/balanza';
 import { ambiente } from '@/lib/motion';
@@ -70,6 +71,23 @@ let fase = 0;
 let avance = 0;
 let ultimo = 0;
 let pintado = 0;
+
+/*
+ * Los dos gestos que la balanza hace a petición, y que no son ambiente.
+ *
+ * `impulso` va de 1 a 0 y es cuánto queda del desequilibrio; `faseImpulso` es su
+ * propia oscilación, más rápida y más amplia que la basculación de fondo. Que
+ * decaiga en lugar de pararse en seco es lo que la hace parecer una balanza y no
+ * un aviso: un brazo con masa no se detiene, se va calmando.
+ *
+ * `cuadrada` va de 0 a 1 y apaga la basculación normal. Al enviar credenciales
+ * la balanza se queda plana, que es lo que una balanza hace cuando la cuenta
+ * cuadra, y se mira medio segundo antes de que la página navegue.
+ */
+let impulso = 0;
+let faseImpulso = 0;
+let cuadrada = 0;
+let cuadrando = false;
 
 /** Ancho y alto en píxeles CSS, y el radio del objeto dentro de ellos. */
 let ancho = 0;
@@ -265,7 +283,24 @@ function bucle(ahora: number): void {
     fase = (fase + (delta * Math.PI * 2) / ambiente.balanceo) % (Math.PI * 2);
     avance = Math.min(avance + delta / ambiente.entrada, 1);
 
-    pintar(Math.sin(fase) * ambiente.amplitud, suavizar(avance));
+    if (impulso > 0) {
+        impulso = Math.max(impulso - delta / ambiente.sacudida, 0);
+        faseImpulso += (delta * Math.PI * 2) / ambiente.cicloSacudida;
+    }
+
+    cuadrada = cuadrando
+        ? Math.min(cuadrada + delta / ambiente.asentar, 1)
+        : Math.max(cuadrada - delta / ambiente.asentar, 0);
+
+    /*
+     * La basculación de fondo se apaga al cuadrar, y el desequilibrio se suma
+     * por encima: un intento fallido se ve aunque la balanza estuviera plana
+     * porque se acababa de enviar el formulario anterior.
+     */
+    const basculacion = Math.sin(fase) * ambiente.amplitud * (1 - cuadrada);
+    const golpe = Math.sin(faseImpulso) * ambiente.amplitud * ambiente.factorSacudida * impulso;
+
+    pintar(basculacion + golpe, suavizar(avance));
 }
 
 function arrancar(): void {
@@ -314,6 +349,28 @@ onMounted(() => {
         arrancar();
     } else {
         pintarEstatico();
+    }
+});
+
+const { sacudidas, asentamientos } = useBalanza();
+
+/*
+ * Con movimiento reducido no se hace ninguno de los dos: ahí la balanza es un
+ * fotograma quieto y el aviso escrito ya dice todo lo que hay que decir.
+ */
+watch(sacudidas, () => {
+    if (!debeAnimar.value) {
+        return;
+    }
+
+    impulso = 1;
+    faseImpulso = 0;
+    cuadrando = false;
+});
+
+watch(asentamientos, () => {
+    if (debeAnimar.value) {
+        cuadrando = true;
     }
 });
 

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
 import EstadoVacio from '@/components/EstadoVacio.vue';
+import HuellaRevelada from '@/components/documento/HuellaRevelada.vue';
 import { formatoFechaHora } from '@/lib/celdas';
 import { CheckIcon, CopyIcon, DownloadIcon, FileTextIcon, HistoryIcon } from '@lucide/vue';
 import { ref } from 'vue';
@@ -19,6 +20,28 @@ export interface Version {
 const props = defineProps<{ versiones: Version[]; documentoId: number }>();
 
 const copiada = ref<number | null>(null);
+
+/*
+ * ── Cuál es la que se acaba de emitir ──────────────────────────────────────
+ *
+ * Emitir recarga la página, así que el componente no recuerda qué había antes.
+ * El módulo sí, mientras la aplicación viva, y es el mismo recurso que usa el
+ * calendario para saber de qué lado viene el mes.
+ *
+ * Quien llega al historial escribiendo la URL no ve escribirse ninguna huella, y
+ * es correcto: no acaba de emitir nada. El gesto celebra un acto, no una visita.
+ */
+const yaVistas = new Set<number>();
+const primeraVisita = yaVistas.size === 0;
+
+const recienEmitida = props.versiones.find((version) => !yaVistas.has(version.id))?.id ?? null;
+
+for (const version of props.versiones) {
+    yaVistas.add(version.id);
+}
+
+/* En la primera carga no hay nada «reciente»: está todo el historial. */
+const aRevelar = primeraVisita ? null : recienEmitida;
 
 /**
  * La huella entera, no un prefijo: es lo que se contrasta con el fichero que se
@@ -52,7 +75,13 @@ const fecha = (valor: string | null): string =>
         descripcion="Genera un borrador, revísalo y emítelo. Sólo a partir de ahí queda registrado de forma inmutable."
     />
 
-    <ul v-else class="divide-y divide-border">
+    <!--
+        Una versión emitida entra por arriba y empuja a las anteriores. Esto es
+        el registro de lo que se ha ENTREGADO, y que la fila nueva se vea llegar
+        a él es la diferencia entre «ha pasado algo» y «ahí hay una fila más».
+        No se anima al cargar la página: sólo cuando la lista cambia.
+    -->
+    <TransitionGroup v-else tag="ul" name="version" class="relative divide-y divide-border">
         <li v-for="version in versiones" :key="version.id" class="flex flex-col gap-2 py-4">
             <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                 <span class="cifra text-base font-semibold">{{ version.etiqueta }}</span>
@@ -86,9 +115,7 @@ const fecha = (valor: string | null): string =>
             <p v-if="version.motivo" class="text-sm">{{ version.motivo }}</p>
 
             <div v-if="version.huella" class="flex items-start gap-2">
-                <code class="cifra min-w-0 flex-1 break-all rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground">
-                    {{ version.huella }}
-                </code>
+                <HuellaRevelada :huella="version.huella" :revelar="version.id === aRevelar" />
                 <Button
                     variant="ghost"
                     size="icon"
@@ -100,5 +127,5 @@ const fecha = (valor: string | null): string =>
                 </Button>
             </div>
         </li>
-    </ul>
+    </TransitionGroup>
 </template>

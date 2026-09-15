@@ -418,22 +418,61 @@ El tono que viaja del servidor es **un nombre de estado del dominio, no un color
 
 **Estados vacíos.** Título de una línea que dice qué falta, una frase de contexto y un botón. Nada de ilustraciones genéricas.
 
-**Carga.** Esqueletos con la forma del contenido real y pulso, no ruedas girando. Spinner sólo donde no hay forma que anticipar. Cuando ya hay contenido y sólo se está reconsultando —filtrar, ordenar, paginar— no se sustituye por esqueletos: un hilo de 2 px recorre el borde superior de la tabla y el resto se queda quieto. Es el único bucle del chrome de trabajo, dura lo que dura la petición y con `prefers-reduced-motion` se pinta quieto.
+**Carga.** Esqueletos con la forma del contenido real y pulso, no ruedas girando. Spinner sólo donde no hay forma que anticipar. Cuando ya hay contenido y sólo se está reconsultando —filtrar, ordenar, paginar— no se sustituye por esqueletos: un hilo de 2 px recorre el borde superior de la tabla y el resto se queda quieto. Es el único bucle del chrome de trabajo, dura lo que dura la petición y con `prefers-reduced-motion` se pinta quieto. Cuando lo que se espera es un **documento** —Gotenberg tarda decenas de segundos—, el esqueleto tiene la forma de la página que va a salir: portada, tabla y pie. Es donde esta regla se gana el sueldo, porque es la única espera del producto lo bastante larga como para que una rueda girando se note vacía.
 
 ## 10. Movimiento
 
 Los números viven en `resources/js/lib/motion.ts` y en `app.css`, una sola vez, y ningún componente los escribe a mano.
 
+### Cuántas veces se ve decide si se mueve
+
+Ésta es la regla de la que salen todas las demás. No es el tamaño de la animación lo que cansa: es su frecuencia.
+
+| Cada cuánto se ve | Qué se permite |
+|---|---|
+| **Cien veces al día** — un atajo de teclado, la paleta de comandos, un hover de navegación | **Nada.** Una acción iniciada con el teclado no se anima nunca |
+| **Decenas de veces** — una fila, un badge, un botón | 120 ms y sólo color. Se nota que responde, no se nota que se mueve |
+| **Alguna vez al día** — un modal, un panel lateral, un despliegue, una tarjeta que cambia de columna | 180–380 ms con la curva que le toque |
+| **Una vez, o casi** — el primer acceso, emitir una versión al auditor, terminar el recorrido guiado | Presupuesto para que se recuerde |
+
+**El presupuesto de deleite son cuatro sitios y están enumerados abajo.** Un quinto se añade a esa lista antes de escribirlo, o no se escribe.
+
+Y sigue en pie la mitad de la regla que protege la herramienta: **lo decorativo no entra en el chrome de trabajo**. Nada de entradas animadas por sección al hacer scroll, ni de transición en cada tarjeta de una tabla, ni de contadores en una celda. Alguien tiene esto abierto ocho horas.
+
+### Los números
+
 - 120 ms en hover y foco, 220 ms en lo general, 380 ms en modales y paneles laterales
-- Curva `cubic-bezier(0.16, 1, 0.3, 1)`: salida rápida y frenada larga, que se percibe como respuesta y no como espera
-- Muelle (`stiffness: 220, damping: 26`) sólo para lo que se arrastra: paneles, popovers
+- **Toda salida es más corta que su entrada**: 160 ms frente a 220. Una salida que tarda lo mismo que su entrada se percibe como que la interfaz tarda en obedecer, porque en ese momento ya se ha decidido y sólo falta que desaparezca
 - Las entradas se desplazan 8 px, no 30. Ocho ordenan la lectura; treinta la interrumpen
+- Muelle (`stiffness: 220, damping: 26`) sólo para lo que se arrastra
 
-El listón para que algo se anime es que comunique jerarquía, narrativa, feedback o un cambio de estado. **Lo decorativo no entra**: esto es una herramienta que alguien tiene abierta ocho horas, y un bucle infinito en la periferia cansa mucho antes de lo que parece. Nada de entradas animadas por sección al hacer scroll, ni de transición en cada tarjeta, ni de contadores que suben solos.
+### Tres curvas, y cada una hace una cosa
 
-**Una excepción, y está acotada:** la balanza del panel de acceso (`BalanzaPixeles.vue`). El panel se mira quince segundos antes de entrar y está fuera del chrome de trabajo. Se apaga entera con `prefers-reduced-motion`, con la pestaña en segundo plano y por debajo de `lg`.
+| Token | Valor | Para qué |
+|---|---|---|
+| `--curva` | `cubic-bezier(0.16, 1, 0.3, 1)` | **Aparecer y desaparecer.** Salida rápida y frenada larga, que se percibe como respuesta y no como espera |
+| `--curva-en-pantalla` | `cubic-bezier(0.77, 0, 0.175, 1)` | **Ir de un sitio a otro.** Una tarjeta que viaja de una columna a otra no aparece: se desplaza, y una curva de salida la haría arrancar de golpe |
+| `--curva-panel` | `cubic-bezier(0.32, 0.72, 0, 1)` | Paneles laterales. **Nunca `ease-in` en algo que entra**: empieza lento justo en el instante que se está mirando |
 
-`prefers-reduced-motion: reduce` se resuelve en tres capas y las tres tienen que seguir puestas: el `@media` global de `app.css`, el `<MotionConfig reduced-motion="user">` de los layouts y el composable `useMovimientoReducido` para lo que no es ni CSS ni una variante.
+### Dos reglas de forma
+
+- **Sólo `transform` y `opacity`.** Se saltan el cálculo de disposición y el pintado. Hay tres excepciones declaradas y ninguna más: el `grid-template-rows` de `.desplegable`, el `flex-grow` de `BarraSegmentada` —para una altura o un reparto desconocidos no existe equivalente con `transform`— y el `background-size` de `.tachado`, que repinta pero no recalcula nada.
+- **`.desplegable` es la forma canónica de plegar.** Rejilla de `0fr` a `1fr`, que anima una altura que nadie ha medido y **deja el contenido en el DOM** —lo que sale del DOM sale del `FormData`—. A altura cero el contenido sigue siendo tabulable, así que va con `inert`.
+- **`.tachado` es la otra utilidad de `app.css`**, y existe porque `text-decoration` no se puede animar. Un paso que se marca hecho se tacha con un `scaleX` sobre un pseudo-elemento: la raya se traza de izquierda a derecha y confirma que el clic llegó, que en una lista que se guarda contra el servidor es el único acuse que hay.
+- **Toda lista que puede menguar lleva salida**, con `AnimatePresence` o `<TransitionGroup>`. Una fila que desaparece de un fotograma al siguiente y arrastra a las de abajo es el salto más común y el más fácil de evitar.
+
+### Los cuatro momentos, y sólo cuatro
+
+1. **La entrada al acceso.** La pila del formulario escalona a 60 ms; la balanza se asienta al entrar bien y se desequilibra una vez al fallar.
+2. **Emitir una versión.** El sello de «Borrador» se convierte en el número, y la huella SHA-256 se revela carácter a carácter. La huella es la prueba de que ese PDF es ese PDF: verla escribirse es lo que la convierte en un hecho en lugar de en una cadena que nadie lee.
+3. **El recorrido guiado.** El panel acompaña al recorte del foco en vez de reaparecer, y el velo se retira desde el centro al terminar.
+4. **El anillo al llegar al 100 %.** Un pulso, una vez, sin bucle y sólo en 100.
+
+### Dos bucles en todo el producto
+
+Son dos y siguen siendo dos: **el hilo de carga de la tabla** —que no es decorativo, dice que hay una consulta viva, y dura lo que dura la petición— y **la balanza del acceso** (`BalanzaPixeles.vue`), que se mira quince segundos antes de entrar y está fuera del chrome de trabajo. Se apaga entera con `prefers-reduced-motion`, con la pestaña en segundo plano y por debajo de `lg`. El esqueleto de generación de un documento no cuenta como tercero: existe mientras Gotenberg trabaja y se va con él.
+
+`prefers-reduced-motion: reduce` se resuelve en tres capas y las tres tienen que seguir puestas: el `@media` global de `app.css`, el `<MotionConfig reduced-motion="user">` de los layouts y el composable `useMovimientoReducido` para lo que no es ni CSS ni una variante. Movimiento reducido es **menos y más suave, no cero**: se pierde el desplazamiento, se conserva la comprensión.
 
 ## 11. Accesibilidad
 
@@ -532,7 +571,10 @@ Frases cortas, verbos activos, tono profesional sin rigidez. Se habla de lo que 
 - [ ] ¿Se entiende cada estado sin ver el color? ¿Lleva su icono, y no sólo un punto?
 - [ ] ¿Se distingue un campo obligatorio de uno que ha fallado?
 - [ ] ¿El foco es visible recorriendo la pantalla con el tabulador?
-- [ ] ¿Lo que se mueve se para con `prefers-reduced-motion: reduce`?
+- [ ] ¿Hay algo que aparezca o desaparezca de golpe? Si puede menguar, lleva salida.
+- [ ] ¿Todo lo que se mueve usa `--curva`, `--curva-en-pantalla` o `--curva-panel`? Ningún número suelto.
+- [ ] ¿Se animan sólo `transform` y `opacity`, salvo las tres excepciones declaradas en §10?
+- [ ] ¿Lo que se mueve se para con `prefers-reduced-motion: reduce`, y la pantalla sigue entendiéndose?
 - [ ] ¿Funciona a 375 px de ancho?
 - [ ] ¿Cada afirmación de la web tiene detrás un dato o una evidencia?
 - [ ] ¿Hay algo decorativo que se pueda quitar sin perder información? Quítalo.

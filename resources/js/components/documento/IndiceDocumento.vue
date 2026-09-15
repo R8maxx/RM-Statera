@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
+import { motion } from 'motion-v';
 import { cn } from '@/lib/utils';
 import type { Editor } from '@tiptap/vue-3';
 import { computed } from 'vue';
@@ -92,6 +94,7 @@ function ir(entrada: Entrada, indice: number): void {
 
     void indice;
 }
+const { reducido } = useMovimientoReducido();
 </script>
 
 <template>
@@ -101,13 +104,34 @@ function ir(entrada: Entrada, indice: number): void {
                 Secciones
             </p>
             <ol class="space-y-0.5">
-                <li v-for="(entrada, indice) in entradas" :key="entrada.pos">
+                <li v-for="(entrada, indice) in entradas" :key="entrada.pos" class="relative">
+                    <!--
+                        La marca de sección activa se desliza, y aquí SÍ se puede:
+                        el índice es un componente persistente dentro de la misma
+                        pantalla. En el sidebar no —`AppLayout` se monta dentro de
+                        cada página, así que entre dos secciones no hay ningún
+                        elemento compartido que mover— y por eso allí sigue
+                        apareciendo y desapareciendo.
+
+                        Se mueve sola con el scroll, sin que nadie pulse nada, y
+                        ver de dónde a dónde va es lo que dice por qué se ha
+                        movido.
+                    -->
+                    <motion.span
+                        v-if="indice === activa"
+                        :layout-id="reducido ? undefined : 'indice-documento-activa'"
+                        :transition="{ duration: reducido ? 0 : 0.28, ease: [0.77, 0, 0.175, 1] }"
+                        class="absolute inset-y-1 left-0 w-0.5 rounded-full bg-primary"
+                        aria-hidden="true"
+                    />
+
                     <button
                         type="button"
                         :aria-current="indice === activa ? 'true' : undefined"
                         :class="
                             cn(
-                                'w-full rounded-md px-2 py-1.5 text-left text-sm transition-colors',
+                                'w-full rounded-md px-2 py-1.5 text-left text-sm',
+                                'transition-colors duration-[var(--duracion-rapida)] ease-marca',
                                 'outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50',
                                 indice === activa
                                     ? 'bg-accent font-medium text-accent-foreground'
