@@ -6,9 +6,13 @@ set -e
 # root del contenedor dejaría ahí decenas de miles de ficheros que tu usuario no
 # podría borrar.
 #
-# Se comprueba un paquete concreto y no sólo la carpeta: un `npm ci`
-# interrumpido deja una carpeta presente e inservible.
-if [ ! -d node_modules/vite ]; then
+# Se comprueba el BINARIO y no la carpeta del paquete: npm crea las carpetas al
+# principio y enlaza los ejecutables al final, así que un `npm ci` interrumpido
+# deja `node_modules/vite` presente y `vite` sin instalar. Mirar la carpeta daba
+# por buena esa instalación a medias y el contenedor moría con
+# «sh: vite: not found». `npm ci` vacía node_modules antes de instalar, de modo
+# que además repara el destrozo.
+if [ ! -x node_modules/.bin/vite ]; then
     echo '[statera] instalando dependencias de Node (la primera vez tarda)…'
     npm ci
 fi

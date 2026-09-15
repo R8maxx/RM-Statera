@@ -23,6 +23,15 @@ services:
       # migraciones y catálogo—. Dos `composer install` a la vez sobre la misma
       # carpeta se pisarían.
       STATERA_ARRANQUE: completo
+      # Dónde están los servicios lo sabe el compose, no el .env: son la
+      # topología de esta red, no una preferencia de nadie. Dotenv no pisa una
+      # variable que ya está en el entorno, así que esto gana sobre el .env y un
+      # fichero heredado de otra máquina no manda a la aplicación a 127.0.0.1,
+      # que dentro de un contenedor es el propio contenedor.
+      DB_HOST: postgres
+      REDIS_HOST: redis
+      GOTENBERG_URL: http://gotenberg:3000
+      AWS_ENDPOINT: http://minio.localhost:9000
     volumes:
       - .:/var/www/html
     depends_on:
@@ -59,6 +68,11 @@ services:
         UID: "${UID:-1000}"
         GID: "${GID:-1000}"
     container_name: statera-queue
+    environment:
+      DB_HOST: postgres
+      REDIS_HOST: redis
+      GOTENBERG_URL: http://gotenberg:3000
+      AWS_ENDPOINT: http://minio.localhost:9000
     # Horizon y no `queue:work`: las cuatro colas y sus tiempos ya están
     # declarados en config/horizon.php, y aquí sí existen pcntl y posix.
     command: ["php", "artisan", "horizon"]

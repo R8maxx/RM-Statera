@@ -381,7 +381,7 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
   partes. Con la aplicación dentro, `queue` corre Horizon de verdad y el test de
   integración de Gotenberg deja de auto-saltarse.
 
-  Tres cosas que no se ven leyendo el `docker-compose.yml`:
+  Cuatro cosas que no se ven leyendo el `docker-compose.yml`:
 
   1. **El alias de red `minio.localhost` no es cosmético.** `temporaryUrl()` firma con
      SigV4 y **el host va dentro de la firma**, así que reescribirlo después la
@@ -397,7 +397,15 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
      propósito**: el recomendado es `mc ready local`, y que `mc` siga dentro de esa
      imagen es un detalle de MinIO que ya ha cambiado una vez. Quien espera es
      `minio-init`, en su propio bucle.
-  3. **Los contenedores escriben en la carpeta del proyecto con el UID del host**
+  3. **Dónde están los servicios lo declara el compose, no el `.env`.** `DB_HOST`,
+     `REDIS_HOST`, `GOTENBERG_URL` y `AWS_ENDPOINT` van en el `environment` de `app` y
+     `queue` aunque también estén en `.env.example`, y no es duplicación por descuido:
+     son la topología de esta red, no una preferencia de nadie. Dotenv **no pisa una
+     variable que ya esté en el entorno**, así que el compose gana y un `.env`
+     heredado de otra máquina no manda la aplicación a `127.0.0.1` — que dentro de un
+     contenedor es el propio contenedor, y el error que sale habla de que PostgreSQL
+     no acepta conexiones, no de que el host esté mal.
+  4. **Los contenedores escriben en la carpeta del proyecto con el UID del host**
      (`ARG UID`, y `gosu www-data` en el entrypoint). En Linux el uid del contenedor es
      el que queda en el fichero: sin eso, `vendor/`, `node_modules/` y `storage/` se
      llenan de ficheros de root que el dueño del repositorio no puede borrar. php-fpm
