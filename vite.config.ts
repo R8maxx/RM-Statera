@@ -43,6 +43,16 @@ export default defineConfig({
         // que acaba pidiendo el navegador. Sin esto apuntaría a la dirección
         // interna del contenedor, que desde el host no resuelve.
         origin: 'http://localhost:5173',
+        // La aplicación y Vite viven en puertos distintos, así que cada carga
+        // de un módulo es una petición entre orígenes. Vite ya no autoriza
+        // cualquiera: sin esta lista el navegador bloquea `@vite/client` y la
+        // pantalla sale sin estilos y sin Vue, con un error de CORS que no
+        // menciona a Vite. Van los dos nombres de la misma máquina porque
+        // `127.0.0.1:8000` y `localhost:8000` son orígenes diferentes para el
+        // navegador, y nadie se acuerda de cuál escribió.
+        cors: {
+            origin: ['http://localhost:8000', 'http://127.0.0.1:8000'],
+        },
         watch: {
             // Sin `usePolling`: en Linux los eventos de inotify atraviesan el
             // bind mount, y sondear decenas de miles de ficheros cuesta una CPU

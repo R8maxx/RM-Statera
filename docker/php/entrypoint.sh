@@ -68,6 +68,13 @@ if [ "$ARRANQUE" = 'completo' ]; then
         como_usuario php artisan key:generate --force
     fi
 
+    # Una configuración cacheada congela los valores de `env()` y deja de leer
+    # tanto el .env como el entorno: con un `bootstrap/cache/config.php` traído
+    # de otra máquina, la aplicación insiste en la base de datos de aquélla y el
+    # error habla de que PostgreSQL rechaza la conexión, no de una caché. Es el
+    # mismo motivo por el que `composer test` limpia antes de correr.
+    como_usuario php artisan config:clear
+
     aviso 'aplicando migraciones'
     como_usuario php artisan migrate --force
 
