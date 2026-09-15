@@ -22,12 +22,16 @@ use App\Http\Resources\Implantacion\Correspondencia;
  * partida y la SoA es precisamente la lista de exclusiones con su motivo; por
  * eso esta declaración lleva dos columnas de justificación y la del ENS no.
  *
- * **Y aquí está el hueco que deja no tener módulo de riesgos.** ISO espera que
- * la inclusión se justifique desde el análisis de riesgos («control incluido a
- * raíz del riesgo R-014») o desde un requisito legal o contractual. El § 4.3 no
- * existe todavía, así que se escribe lo que es cierto y se declara lo que falta
- * en el apartado de limitaciones. Lo que NO se hace es inventarse la referencia
- * a un riesgo que no existe.
+ * **La inclusión se justifica desde donde ISO espera.** Un control entra por
+ * pertenecer al Anexo A, por tratar un riesgo identificado («control incluido a
+ * raíz del riesgo R-014»), por una exigencia legal —que el ENS pida la misma
+ * medida lo es— o por decisión motivada. Los riesgos llegan del § 4.3 por el
+ * vínculo de salvaguarda, así que la referencia es real o no se escribe: lo que
+ * NO se hace es inventarse un riesgo para rellenar la columna.
+ *
+ * Lo que la herramienta no hace, y por eso sigue declarado en las limitaciones,
+ * es **exigir** que todo control aplicable tenga un riesgo detrás ni comprobar
+ * que el análisis cubra el alcance entero.
  */
 final class DeclaracionAplicabilidadIso extends DeclaracionAplicabilidad
 {
@@ -68,10 +72,12 @@ final class DeclaracionAplicabilidadIso extends DeclaracionAplicabilidad
             resumen: $this->resumenDe($documento, $filas),
             filas: $filas,
             limitaciones: [
-                'La **justificación de inclusión desde el análisis de riesgos** no figura en este '
-                .'documento: el módulo de riesgos (§ 4.3) no está implantado. Lo que se declara para '
-                .'cada control es su origen real —pertenencia al Anexo A y, cuando existe, exigencia '
-                .'legal derivada del ENS— y nunca una referencia a un riesgo inexistente.',
+                'La **justificación de inclusión** de cada control recoge su origen real: pertenencia '
+                .'al Anexo A, tratamiento de un riesgo del registro cuando el control está vinculado '
+                .'como salvaguarda, exigencia legal derivada del ENS y decisión motivada. **La '
+                .'herramienta no exige que todo control aplicable tenga un riesgo detrás ni comprueba '
+                .'que el análisis de riesgos cubra el alcance completo**, de modo que la ausencia de '
+                .'referencia a un riesgo no significa que no exista, sino que no se ha vinculado.',
 
                 'Los títulos de control siguen ISO/IEC 27002:2022. **La redacción íntegra de los '
                 .'controles no se reproduce** aquí por estar protegida por derechos de autor.',
@@ -155,6 +161,17 @@ final class DeclaracionAplicabilidadIso extends DeclaracionAplicabilidad
         // legal es justificación de inclusión perfectamente válida para ISO.
         if ($exigidasPorEns !== []) {
             $motivos[] = 'exigido por el ENS ('.implode(', ', array_keys($exigidasPorEns)).')';
+        }
+
+        /*
+         * La justificación que ISO espera de verdad. El control está dentro
+         * porque trata un riesgo identificado, y el vínculo ya existe: es la
+         * salvaguarda del § 4.3, registrada contra la implantación y no contra
+         * el requisito, que es lo que hace que un mismo control valga a la vez
+         * de prueba de cumplimiento y de tratamiento sin apuntarlo dos veces.
+         */
+        if ($implantacion->riesgos->isNotEmpty()) {
+            $motivos[] = 'tratamiento del riesgo '.$implantacion->riesgos->pluck('codigo')->implode(', ');
         }
 
         if ($implantacion->origen_exigencia === OrigenExigencia::Perfil) {

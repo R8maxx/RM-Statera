@@ -231,11 +231,21 @@ aprobación formal, que los roles ENS están pendientes de designación, que el 
 no se reproduce por derechos de autor, y las dos brechas conocidas del Anexo II. Un auditor respeta
 una limitación declarada y suspende una inventada.
 
-**La SoA justifica la inclusión sin inventarse un riesgo.** Mientras no exista el módulo de riesgos
-(§4.3), cada control aplicable dice «Anexo A» y, cuando el mapeo cruzado lo encuentra, «exigido por
-el ENS (op.acc.2)» —que es un requisito **legal** y una justificación de inclusión legítima para
-ISO—. Es el mapeo cruzado tapando parte del hueco, y de paso el argumento del producto impreso en el
-entregable.
+**La SoA justifica la inclusión sin inventarse un riesgo.** Cada control aplicable dice «Anexo A» y,
+cuando los hay, «tratamiento del riesgo R-014» —el vínculo de salvaguarda del §4.3, que es la
+justificación que ISO 6.1.3 d) espera de verdad— y «exigido por el ENS (op.acc.2)» —que es un
+requisito **legal** y una justificación de inclusión igualmente legítima para ISO, y de paso el
+argumento del producto impreso en el entregable—. Lo que no se hace es escribir una referencia a un
+riesgo que no está vinculado.
+
+**Y por eso las limitaciones de los dos documentos se reescribieron cuando llegó el §4.3.** Decían
+que el módulo de riesgos no estaba implantado, y eso pasó a ser **falso en el PDF que se le entrega
+al auditor**, que es peor que una limitación ausente. No se borraron: se precisó qué es lo que la
+herramienta sigue sin hacer —no exige que todo control aplicable tenga un riesgo detrás, ni comprueba
+que el análisis cubra el alcance entero—, mismo tratamiento que ya se le había dado a la limitación
+del flujo de aprobación. En la DdA se separaron las dos mitades: el análisis de riesgos existe y no
+figura ahí **por diseño** —una Declaración de Aplicabilidad declara medidas, no riesgos—; el plan de
+adecuación sigue pendiente de módulo.
 
 ---
 
@@ -342,6 +352,20 @@ portátiles: con clave singular, o se crean treinta riesgos —y el indicador de
 donde hay una cosa que decidir, que es el argumento aritmético que dejó las subtareas fuera de
 `tareas`— o se apunta a uno arbitrario y los otros veintinueve son invisibles. Y §2.2 ya se corrigió
 una vez por lo mismo, con la tabla única de documentos.
+
+**Y se recorre en los dos sentidos.** `Riesgo::activos()` contesta «sobre qué pesa» y
+`Activo::riesgos()` contesta «a qué está expuesto»; sin la segunda, el inventario decía cuánto vale
+una cosa y qué se cae con ella, pero no contra qué hay que protegerla. En la tabla de activos va como
+**recuento** y no como nivel máximo: el nivel se lee con la escala congelada de cada valoración y eso
+no es algo que SQL pueda comparar entre filas sin mentir; quién está por encima del umbral lo
+contesta el filtro `riesgo_sobre_umbral`, que delega en `Riesgo::scopeSobreUmbral()` —el mismo que
+cuenta el registro— en vez de reescribir la condición. Los dos van por `whereHas` y no por `join`,
+por lo mismo que el alcance: un activo con tres riesgos saldría tres veces y la paginación contaría
+mal.
+
+Y **el bloque de la ficha no se manda si quien mira no tiene `riesgos.ver`**. Conectar dos módulos
+abre una puerta lateral al registro del otro sin que nadie la decida; el frontend decide qué pinta y
+nunca qué autoriza.
 
 **Las salvaguardas apuntan a `implantaciones` y no a `requisitos`.** Es la diferencia entre «el ENS
 pide cifrado» y «lo tenemos puesto en este sistema», y es lo que hace que un mismo control valga a la

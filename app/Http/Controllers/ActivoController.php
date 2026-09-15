@@ -16,15 +16,18 @@ use App\Domain\Activo\Obsolescencia;
 use App\Domain\Activo\RegistrarDependencia;
 use App\Domain\Activo\ResumenInventario;
 use App\Domain\Activo\ValoracionEfectiva;
+use App\Domain\Autorizacion\Enums\Permiso;
 use App\Domain\Catalogo\Enums\Dimension;
 use App\Domain\Categorizacion\Enums\NivelDimension;
 use App\Domain\Categorizacion\ValoracionDimensiones;
+use App\Domain\Riesgo\Models\Riesgo;
 use App\Domain\Sistema\Models\Sistema;
 use App\Http\Requests\GuardarActivoRequest;
 use App\Http\Requests\MarcarRevisadosRequest;
 use App\Http\Requests\VincularDependenciaRequest;
 use App\Http\Resources\ActivoRecurso;
 use App\Http\Resources\Concerns\RespondeConRecurso;
+use App\Http\Resources\Riesgo\NivelDeRiesgo;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -96,6 +99,18 @@ class ActivoController extends Controller
 
         $valoracionEfectiva = $efectiva->de($activo);
 
+        /*
+         * Los riesgos sólo si quien mira puede verlos. El frontend decide qué
+         * pinta y nunca qué autoriza, así que la lista no se manda y el bloque
+         * no existe: alguien con `activos.ver` a secas no lee el registro de
+         * riesgos entrando por la ficha de un activo.
+         */
+        $puedeVerRiesgos = $request->user()?->can(Permiso::RiesgosVer->value) ?? false;
+
+        if ($puedeVerRiesgos) {
+            $activo->load(['riesgos.amenaza', 'riesgos.valoracionVigente']);
+        }
+
         return Inertia::render('activos/Ficha', [
             'activo' => $this->serializar($activo),
             'etiqueta' => $this->etiqueta($activo, $request, $generador),
@@ -119,6 +134,8 @@ class ActivoController extends Controller
             ),
             'dependeDe' => $grafo->dependenciasDe($activo)->map($this->resumir(...))->all(),
             'dependientes' => $grafo->dependientesDe($activo)->map($this->resumir(...))->all(),
+            'puedeVerRiesgos' => $puedeVerRiesgos,
+            'riesgos' => $puedeVerRiesgos ? $this->riesgosDe($activo) : [],
             // Para el desplegable de «declarar dependencia»: cualquier activo de
             // la organización menos él mismo. Los que cerrarían un ciclo los
             // rechaza el dominio, con un mensaje que explica por dónde.
@@ -381,6 +398,47 @@ class ActivoController extends Controller
             'nota' => $activo->getAttribute('vinculo_nota'),
             'directa' => (int) ($activo->getAttribute('profundidad') ?? 1) === 1,
         ];
+    }
+
+    /**
+     * A qué está expuesto este activo, de mayor a menor exposición.
+     *
+     * Se ordena por `exposicion()` —el residual si se ha declarado y el
+     * intrínseco si no—, que es la misma cifra con la que el registro de riesgos
+     * mide el apetito. Los sin valorar caen al final: no son un riesgo bajo,
+     * son un riesgo que nadie ha mirado, y se distinguen por la etiqueta.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function riesgosDe(Activo $activo): array
+    {
+        return $activo->riesgos
+            ->sortByDesc(fn (Riesgo $riesgo): int => $riesgo->valoracionVigente?->exposicion() ?? 0)
+            ->values()
+            ->map(function (Riesgo $riesgo): array {
+                $vigente = $riesgo->valoracionVigente;
+
+                return [
+                    'id' => $riesgo->id,
+                    'codigo' => $riesgo->codigo,
+                    'titulo' => $riesgo->titulo,
+                    'amenaza' => $riesgo->nombreAmenaza(),
+                    'intrinseco' => NivelDeRiesgo::badge($vigente),
+                    'residual' => NivelDeRiesgo::badge($vigente, residual: true),
+                    'decision' => $vigente === null ? null : [
+                        'valor' => $vigente->decision->value,
+                        'etiqueta' => $vigente->decision->etiqueta(),
+                        'tono' => $vigente->decision->tono(),
+                        'icono' => $vigente->decision->icono(),
+                    ],
+                    // Las dos contradicciones que la herramienta señala sin
+                    // corregir, igual que `esperaBorradoSeguro()` en esta misma
+                    // ficha: no cambian el dato, lo ponen delante.
+                    'sinRespaldo' => $riesgo->residualSinRespaldo(),
+                    'revisionVencida' => $riesgo->revisionVencida(),
+                ];
+            })
+            ->all();
     }
 
     /**

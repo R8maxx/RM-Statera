@@ -16,6 +16,7 @@ use App\Http\Resources\Definicion\Filtro;
 use App\Http\Resources\Definicion\Opcion;
 use App\Http\Resources\Definicion\ValorEtiquetado;
 use App\Http\Resources\Enums\MetodoAccion;
+use App\Http\Resources\Riesgo\NivelDeRiesgo;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\JoinClause;
@@ -247,30 +248,12 @@ final class RiesgoRecurso extends Recurso
     /**
      * El nivel, leído con la escala CONGELADA de esa valoración.
      *
-     * Nunca con la vigente: interpretar un número de marzo con la escala de octubre
-     * es exactamente lo que la instantánea existe para impedir.
+     * La regla vive en `NivelDeRiesgo` porque la ficha de un activo pinta el
+     * mismo badge, y el mapa nivel → color no se copia.
      */
     private function nivel(Riesgo $riesgo, bool $residual): ?ValorEtiquetado
     {
-        $vigente = $riesgo->valoracionVigente;
-
-        if ($vigente === null) {
-            return null;
-        }
-
-        $cifra = $residual ? $vigente->riesgo_residual : $vigente->riesgo_intrinseco;
-        $nivel = $residual ? $vigente->nivelResidual() : $vigente->nivelIntrinseco();
-
-        if ($cifra === null || $nivel === null) {
-            return null;
-        }
-
-        return new ValorEtiquetado(
-            (string) $cifra,
-            "{$nivel->etiqueta()} ({$cifra})",
-            $nivel->tono(),
-            $nivel->icono(),
-        );
+        return NivelDeRiesgo::badge($riesgo->valoracionVigente, $residual);
     }
 
     /**

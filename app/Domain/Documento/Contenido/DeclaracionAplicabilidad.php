@@ -77,7 +77,7 @@ abstract class DeclaracionAplicabilidad implements GeneradorDocumento
             ->where('requisitos.tipo', $this->tipoDeRequisito())
             // Sin esto, noventa y tres controles son doscientas consultas y el
             // documento se come el tiempo de la cola.
-            ->with(['requisito.padre', 'requisito.marco', 'responsable', 'evidencias'])
+            ->with(['requisito.padre', 'requisito.marco', 'responsable', 'evidencias', 'riesgos'])
             ->orderBy('requisitos.orden')
             ->orderBy('requisitos.id')
             ->get();

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import Aviso from '@/components/Aviso.vue';
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
+import BloqueRiesgos, { type RiesgoDelActivo } from '@/components/activo/BloqueRiesgos.vue';
 import ComparativaValoracion, {
     type ValoracionSerializada,
 } from '@/components/activo/ComparativaValoracion.vue';
@@ -82,6 +83,9 @@ const props = defineProps<{
     motivos: Motivo[];
     dependeDe: ActivoDelGrafo[];
     dependientes: ActivoDelGrafo[];
+    /** Vacío y con el bloque escondido si quien mira no tiene `riesgos.ver`. */
+    puedeVerRiesgos: boolean;
+    riesgos: RiesgoDelActivo[];
     candidatos: Opcion[];
 }>();
 
@@ -261,6 +265,25 @@ function retirar(dependenciaId: number): void {
                                 :activo-id="activo.id"
                                 vacio="Ningún activo declarado se apoya en éste."
                             />
+                        </CardContent>
+                    </Card>
+
+                    <!--
+                        En la columna de análisis y no en la de datos: contra qué
+                        hay que proteger este activo pesa lo mismo que cuánto vale
+                        y qué se apoya en él. La columna de la derecha es la ficha.
+                    -->
+                    <Card v-if="puedeVerRiesgos">
+                        <CardHeader>
+                            <CardTitle>A qué está expuesto</CardTitle>
+                            <CardDescription>
+                                Los riesgos del registro que pesan sobre este activo. Su impacto se deduce de la
+                                valoración efectiva, así que lo que este activo hereda por el grafo también los sube.
+                            </CardDescription>
+                        </CardHeader>
+
+                        <CardContent>
+                            <BloqueRiesgos :riesgos="riesgos" :activo-id="activo.id" />
                         </CardContent>
                     </Card>
                 </div>

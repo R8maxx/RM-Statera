@@ -68,8 +68,11 @@ final class DeclaracionAplicabilidadEns extends DeclaracionAplicabilidad
             resumen: $this->resumenDe($documento, $filas),
             filas: $filas,
             limitaciones: [
-                'El **análisis de riesgos** (`op.pl.1`) y el **plan de adecuación** no figuran en este '
-                .'documento: sus módulos no están implantados en la herramienta.',
+                'El **análisis de riesgos** (`op.pl.1`) se gestiona en la herramienta y **no se '
+                .'reproduce en este documento**: una Declaración de Aplicabilidad declara medidas, no '
+                .'riesgos. La herramienta **todavía no genera el documento de análisis y tratamiento '
+                .'de riesgos**, que ha de aportarse por separado, y el **plan de adecuación** sigue '
+                .'pendiente: su módulo no está implantado.',
 
                 'Los **roles ENS** —responsable de la información, del servicio, de seguridad, del '
                 .'sistema y administrador de la seguridad del sistema— están **pendientes de '

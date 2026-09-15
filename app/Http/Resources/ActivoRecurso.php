@@ -78,7 +78,11 @@ final class ActivoRecurso extends Recurso
     {
         return Activo::query()
             ->with(['propietario', 'custodio', 'sistemas'])
-            ->withCount(['dependeDe as dependencias_count', 'dependientes as dependientes_count']);
+            ->withCount([
+                'dependeDe as dependencias_count',
+                'dependientes as dependientes_count',
+                'riesgos as riesgos_count',
+            ]);
     }
 
     /** @return list<Columna> */
@@ -145,6 +149,13 @@ final class ActivoRecurso extends Recurso
             Columna::numero('dependientes', 'Sostiene')
                 ->ayuda('Cuántos activos dependen directamente de éste. Lo que se cae si él cae.')
                 ->formato(fn (Activo $activo): int => (int) $activo->getAttribute('dependientes_count')),
+            // Contra qué hay que protegerlo. Un recuento y no el nivel máximo:
+            // el nivel se lee con la escala congelada de cada valoración, que no
+            // es algo que SQL pueda comparar entre filas sin mentir. Quién está
+            // por encima del umbral lo contesta el filtro de al lado.
+            Columna::numero('riesgos', 'Riesgos')
+                ->ayuda('Cuántos riesgos del registro pesan sobre este activo. El detalle está en su ficha.')
+                ->formato(fn (Activo $activo): int => (int) $activo->getAttribute('riesgos_count')),
             Columna::texto('propietario', 'Propietario')
                 ->formato(fn (Activo $activo): ?string => $activo->propietario?->name),
 
@@ -260,6 +271,8 @@ final class ActivoRecurso extends Recurso
             Filtro::porScope('restringida', 'Con información restringida', 'informacionRestringida')->sinColumna(),
             Filtro::porScope('sin_soporte', 'Soporte o garantía vencidos', 'sinSoporte')->sinColumna(),
             Filtro::porScope('espera_borrado', 'Retirados sin borrado seguro', 'esperaBorradoSeguro')->sinColumna(),
+            Filtro::porScope('con_riesgos', 'Con riesgos registrados', 'conRiesgos')->sinColumna(),
+            Filtro::porScope('riesgo_sobre_umbral', 'Con riesgo sobre el umbral', 'conRiesgoSobreUmbral')->sinColumna(),
         ];
     }
 

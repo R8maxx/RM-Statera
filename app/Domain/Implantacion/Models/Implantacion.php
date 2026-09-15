@@ -13,6 +13,7 @@ use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Implantacion\Enums\EstadoImplantacion;
 use App\Domain\Implantacion\Enums\NivelMadurez;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
+use App\Domain\Riesgo\Models\Riesgo;
 use App\Domain\Sistema\Models\Sistema;
 use App\Domain\Tarea\Models\Tarea;
 use App\Models\User;
@@ -122,6 +123,22 @@ class Implantacion extends Model
             ->withPivot(['vinculada_por_id', 'created_at'])
             ->orderByRaw("CASE WHEN tareas.estado IN ('hecha', 'descartada') THEN 1 ELSE 0 END")
             ->orderByRaw('tareas.fecha_limite NULLS LAST');
+    }
+
+    /**
+     * Los riesgos que este control trata.
+     *
+     * La inversa de `Riesgo::salvaguardas()`, y es lo que permite que la SoA
+     * justifique la inclusión de un control desde el análisis de riesgos —que es
+     * lo que ISO 6.1.3 d) espera— sin registrar el vínculo por segunda vez.
+     *
+     * @return BelongsToMany<Riesgo, $this>
+     */
+    public function riesgos(): BelongsToMany
+    {
+        return $this->belongsToMany(Riesgo::class, 'riesgo_implantacion')
+            ->withPivot(['nota', 'vinculada_por_id', 'created_at'])
+            ->orderBy('riesgos.codigo');
     }
 
     /** @return HasMany<ImplantacionTransicion, $this> */

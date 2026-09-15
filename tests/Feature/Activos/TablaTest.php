@@ -7,6 +7,9 @@ use App\Domain\Activo\Enums\TipoActivo;
 use App\Domain\Activo\Models\Activo;
 use App\Domain\Activo\RegistrarDependencia;
 use App\Domain\Categorizacion\Enums\NivelDimension;
+use App\Domain\Riesgo\Models\Riesgo;
+use App\Domain\Riesgo\Models\RiesgoValoracion;
+use App\Domain\Riesgo\VincularRiesgo;
 use App\Domain\Sistema\Models\Sistema;
 use Inertia\Testing\AssertableInertia;
 
@@ -114,6 +117,51 @@ it('filtra por alcance sin duplicar la fila del activo que está en dos sistemas
             ->where('filas.0.codigo', 'SRV-01')
             ->where('filas.0.alcance', 'SIS-01, SGSI-01')
             ->where('meta.total', 1)
+        );
+});
+
+it('cuenta los riesgos de cada fila sin duplicarla', function (): void {
+    // Mismo razonamiento que el alcance: un activo con tres riesgos saldría tres
+    // veces resolviendo el N:M con un join, y la paginación contaría mal.
+    $uno = Riesgo::factory()->create(['codigo' => 'R-001']);
+    $dos = Riesgo::factory()->create(['codigo' => 'R-002']);
+
+    app(VincularRiesgo::class)->activo($uno, $this->base);
+    app(VincularRiesgo::class)->activo($dos, $this->base);
+
+    $this->actingAs($this->usuario)
+        ->get('/activos')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->has('filas', 2)
+            ->where('filas.0.codigo', 'BBDD-01')
+            ->where('filas.0.riesgos', 2)
+            ->where('filas.1.riesgos', 0)
+        );
+});
+
+it('el filtro de riesgos enseña exactamente lo que cuenta la columna', function (): void {
+    /*
+     * La regla de siempre: el día que el indicador y el filtro se escriban por
+     * separado, uno dirá 12 y el otro enseñará 9. Y el filtro de umbral delega en
+     * `Riesgo::scopeSobreUmbral()`, que es el mismo que cuenta el registro.
+     */
+    $porDebajo = Riesgo::factory()->create(['codigo' => 'R-BAJO']);
+    RiesgoValoracion::factory()->for($porDebajo)->con(1, 2)->create();
+    app(VincularRiesgo::class)->activo($porDebajo, $this->base);
+
+    $porEncima = Riesgo::factory()->create(['codigo' => 'R-ALTO']);
+    RiesgoValoracion::factory()->for($porEncima)->con(5, 4)->create();
+    app(VincularRiesgo::class)->activo($porEncima, $this->servicio);
+
+    $this->actingAs($this->usuario)
+        ->get('/activos?filter[con_riesgos]=1')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina->has('filas', 2));
+
+    $this->actingAs($this->usuario)
+        ->get('/activos?filter[riesgo_sobre_umbral]=1')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->has('filas', 1)
+            ->where('filas.0.codigo', 'SRV-01')
         );
 });
 

@@ -13,6 +13,8 @@ use App\Domain\Implantacion\CambiarAplicabilidad;
 use App\Domain\Implantacion\Enums\EstadoImplantacion;
 use App\Domain\Implantacion\GeneradorImplantaciones;
 use App\Domain\Implantacion\Models\Implantacion;
+use App\Domain\Riesgo\Models\Riesgo;
+use App\Domain\Riesgo\VincularRiesgo;
 use App\Domain\Sistema\Models\Sistema;
 
 /**
@@ -87,9 +89,34 @@ it('justifica la inclusión de cada control aplicable sin inventarse un riesgo',
         // sección. Lo que no puede faltar en ninguna fila es el origen.
         expect($fila->justificacionInclusion)->toStartWith('Anexo A');
 
-        // El módulo de riesgos no existe: el documento no cita ninguno.
+        // Ningún control de este sistema está vinculado como salvaguarda, así
+        // que el documento no cita ningún riesgo. Inventar la referencia para
+        // rellenar la columna es peor que dejarla con el origen que hay.
         expect($fila->justificacionInclusion)->not->toContain('riesgo R-');
     }
+});
+
+it('justifica la inclusión desde el riesgo cuando el control es una salvaguarda', function (): void {
+    /*
+     * La justificación que ISO 6.1.3 d) espera de verdad, y que hasta que existió
+     * el § 4.3 se declaraba como limitación. El vínculo no se registra dos veces:
+     * es la misma fila de `riesgo_implantacion` que trata el riesgo.
+     */
+    $implantacion = Implantacion::query()
+        ->join('requisitos', 'requisitos.id', '=', 'implantaciones.requisito_id')
+        ->where('requisitos.codigo', 'A.8.24')
+        ->select('implantaciones.*')
+        ->firstOrFail();
+
+    $riesgo = Riesgo::factory()->create(['codigo' => 'R-014']);
+    app(VincularRiesgo::class)->salvaguarda($riesgo, $implantacion, null);
+
+    $fila = collect(($this->construir)()->filas)
+        ->firstOrFail(static fn (FilaRequisito $f): bool => $f->codigo === 'A.8.24');
+
+    expect($fila->justificacionInclusion)
+        ->toStartWith('Anexo A')
+        ->toContain('tratamiento del riesgo R-014');
 });
 
 it('añade la exigencia legal del ENS cuando el mapeo cruzado la encuentra', function (): void {
@@ -154,7 +181,15 @@ it('declara por escrito lo que todavía no puede afirmar', function (): void {
     $limitaciones = implode(' ', ($this->construir)()->limitaciones);
 
     expect($limitaciones)
-        ->toContain('módulo de riesgos')
+        /*
+         * Decía «el módulo de riesgos (§ 4.3) no está implantado», y cuando el
+         * módulo llegó eso pasó a ser FALSO en el PDF que se le entrega al
+         * auditor — que es peor que una limitación ausente. No se borró: se
+         * precisó qué es lo que la herramienta sigue sin hacer. Mismo
+         * tratamiento que ya se le había dado a la del flujo de aprobación.
+         */
+        ->toContain('no exige que todo control aplicable tenga un riesgo detrás')
+        ->not->toContain('módulo de riesgos')
         // La redacción se precisó al volverse editable la narrativa: la
         // herramienta no implementa aprobación, y el texto de aprobación que
         // pueda figurar lo ha escrito la organización, no Statera.

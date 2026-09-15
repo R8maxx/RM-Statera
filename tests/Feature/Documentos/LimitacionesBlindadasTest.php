@@ -49,7 +49,15 @@ it('salen siempre, con o sin limitaciones propias', function (): void {
 
     $conPropias = implode(' ', ($this->contenido)()->limitaciones);
 
-    foreach (['módulo de riesgos', 'no implementa un flujo de aprobación', 'derechos de autor'] as $frase) {
+    // Tres frases de las limitaciones de fábrica, una por bloque. La primera
+    // decía «módulo de riesgos» y cambió al llegar el § 4.3: lo que se fija aquí
+    // es que los bloques de fábrica siguen saliendo, no su redacción exacta
+    // —de eso se ocupa `ContenidoSoaTest`—.
+    foreach ([
+        'no exige que todo control aplicable tenga un riesgo detrás',
+        'no implementa un flujo de aprobación',
+        'derechos de autor',
+    ] as $frase) {
         expect($sinPropias)->toContain($frase);
         expect($conPropias)->toContain($frase);
     }

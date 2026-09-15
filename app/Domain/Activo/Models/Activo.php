@@ -13,6 +13,7 @@ use App\Domain\Catalogo\Enums\CategoriaEns;
 use App\Domain\Catalogo\Enums\Dimension;
 use App\Domain\Categorizacion\ValoracionDimensiones;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
+use App\Domain\Riesgo\Models\Riesgo;
 use App\Domain\Sistema\Models\Sistema;
 use App\Models\User;
 use Database\Factories\ActivoFactory;
@@ -196,6 +197,22 @@ class Activo extends Model
     }
 
     /**
+     * A qué está expuesto este activo.
+     *
+     * La inversa de `Riesgo::activos()`, y sin ella el inventario contesta a
+     * medias: un activo decía cuánto vale y qué se apoya en él, pero no contra
+     * qué hay que protegerlo. N:M por lo mismo que en la otra dirección —«robo
+     * de un portátil» es UN riesgo sobre treinta portátiles—.
+     *
+     * @return BelongsToMany<Riesgo, $this>
+     */
+    public function riesgos(): BelongsToMany
+    {
+        return $this->belongsToMany(Riesgo::class, 'activo_riesgo')
+            ->withPivot(['vinculado_por_id', 'created_at']);
+    }
+
+    /**
      * La valoración propia como value object, para reutilizar lo que ya sabe
      * comparar y ordenar niveles.
      */
@@ -325,6 +342,35 @@ class Activo extends Model
         $query->where(function (Builder $anidada): void {
             $anidada->whereDate('fin_soporte_so', '<', Carbon::today())
                 ->orWhereDate('fin_garantia', '<', Carbon::today());
+        });
+    }
+
+    /** @param  Builder<$this>  $query */
+    public function scopeConRiesgos(Builder $query): void
+    {
+        $query->whereHas('riesgos');
+    }
+
+    /**
+     * Los activos sobre los que pesa algún riesgo por encima del apetito
+     * declarado.
+     *
+     * Delega en `Riesgo::scopeSobreUmbral()`, que resuelve el umbral él solo
+     * cuando no se le pasa ninguno — que es exactamente el motivo por el que
+     * está escrito así. Reescribir aquí la condición dejaría al inventario
+     * diciendo 12 donde el registro de riesgos enseña 9.
+     *
+     * Por `whereHas` y no por `join`: un activo con tres riesgos saldría tres
+     * veces y la paginación contaría mal. Mismo criterio que
+     * `Filtro::porRelacion()` con el alcance.
+     *
+     * @param  Builder<$this>  $query
+     */
+    public function scopeConRiesgoSobreUmbral(Builder $query): void
+    {
+        $query->whereHas('riesgos', function (Builder $riesgos): void {
+            /** @var Builder<Riesgo> $riesgos */
+            $riesgos->sobreUmbral();
         });
     }
 
