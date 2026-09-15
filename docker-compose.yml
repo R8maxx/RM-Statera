@@ -1,11 +1,85 @@
 # Statera — entorno de desarrollo.
 #
-# La aplicación PHP corre en el host (`composer dev`), no en un contenedor:
-# hay PHP 8.5 local y el ciclo de edición es más rápido así. Aquí solo viven
-# los servicios de apoyo. La imagen equivalente en producción se describe en
-# la §10 de stack-gestor-cumplimiento.md.
+# Todo el producto corre en contenedores, incluida la aplicación PHP: Windows no
+# tiene `pcntl` ni `posix`, así que Horizon no podía arrancar y cada
+# `composer install` necesitaba `--ignore-platform-req`. El motivo largo está en
+# «Desvíos vigentes respecto al stack», en CLAUDE.md.
+#
+# No hay nada que instalar en el host salvo Docker. La imagen equivalente en
+# producción se describe en la §10 de stack-gestor-cumplimiento.md.
 
 services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: statera-app
+    environment:
+      # Sólo este servicio hace el arranque largo —dependencias, APP_KEY,
+      # migraciones y catálogo—. Dos `composer install` a la vez sobre el mismo
+      # volumen se pisarían.
+      STATERA_ARRANQUE: completo
+    volumes:
+      - .:/var/www/html
+      # `vendor` y `node_modules` fuera del bind: son decenas de miles de
+      # ficheros y leerlos a través del sistema de ficheros virtualizado de
+      # Windows se nota en cada petición. El precio es que dejan de verse desde
+      # el explorador y el editor pierde el autocompletado.
+      - vendor:/var/www/html/vendor
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      # php-fpm sólo escucha cuando el entrypoint ha terminado: `exec` es su
+      # última línea. Esperar a este puerto es esperar al arranque completo.
+      test: ["CMD-SHELL", "timeout 1 bash -c '</dev/tcp/127.0.0.1/9000' || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 180s
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: statera-nginx
+    ports:
+      - "127.0.0.1:8000:80"
+    volumes:
+      - .:/var/www/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      app:
+        condition: service_healthy
+
+  queue:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: statera-queue
+    # Horizon y no `queue:work`: las cuatro colas y sus tiempos ya están
+    # declarados en config/horizon.php, y aquí sí existen pcntl y posix.
+    command: ["php", "artisan", "horizon"]
+    volumes:
+      - .:/var/www/html
+      - vendor:/var/www/html/vendor
+    depends_on:
+      app:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  vite:
+    image: node:24-alpine
+    container_name: statera-vite
+    working_dir: /var/www/html
+    entrypoint: ["/bin/sh", "/var/www/html/docker/node/entrypoint.sh"]
+    ports:
+      - "127.0.0.1:5173:5173"
+    volumes:
+      - .:/var/www/html
+      - node_modules:/var/www/html/node_modules
+
   postgres:
     image: postgres:17
     container_name: statera-postgres
@@ -40,36 +114,29 @@ services:
       timeout: 5s
       retries: 10
 
-  # Versión ANCLADA, nunca el tag "8": entre 8.8.0 y 8.9.1 la conversión a
-  # PDF/A y PDF/UA estuvo rota (§4 de stack-gestor-cumplimiento.md).
-  #
-  # Gotenberg descarga las URL que se le pasen: si es alcanzable desde fuera
-  # es un SSRF de manual. En desarrollo se publica SOLO en loopback porque la
-  # app corre en el host; en producción va en la red privada, sin puerto
-  # publicado y sin salida a internet.
-  #
-  # La allow-list restringe Chromium a dos cosas y sólo dos: los ficheros que el
-  # propio Gotenberg deja en /tmp —el HTML y los assets que le enviamos en el
-  # multipart— y los `data:`, que no son una descarga sino contenido incrustado.
-  # Ninguna URL remota, ni nuestra ni ajena: la allow-list DENIEGA todo lo que no
-  # case, así que ningún `http(s)://` entra por aquí.
-  #
-  # `data:` hace falta porque las fuentes del documento van incrustadas en el
-  # CSS: Chromium trata una fuente como recurso sujeto a CORS y desde un
-  # documento `file://` —origen opaco— la bloquea EN SILENCIO, sin error de carga
-  # que `failOnResourceLoadingFailed()` pueda cazar. El PDF sale con Arial y con
-  # pinta de correcto, y sólo se ve mirando los `/BaseFont` del fichero.
   gotenberg:
     image: gotenberg/gotenberg:8.9.1
     container_name: statera-gotenberg
+    # Versión anclada, nunca el tag `8`: entre 8.8.0 y 8.9.1 la conversión a
+    # PDF/A y PDF/UA estuvo rota.
     command:
       - "gotenberg"
+      # La allow-list DENIEGA todo lo que no case. `data:` hace falta porque las
+      # fuentes van incrustadas en el CSS: Chromium trata una fuente como
+      # recurso sujeto a CORS y desde un `file://` la bloquearía en silencio.
+      # Sigue sin entrar ningún http(s)://, que es de lo que protege — Gotenberg
+      # descarga las URL que se le pasen.
       - "--chromium-allow-list=^(file:///tmp/|data:).*"
+      # Primer eslabón de la cadena: 120 s < Guzzle 180 s < timeout del job 300 s.
       - "--api-timeout=120s"
     ports:
       - "127.0.0.1:3000:3000"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
-  # S3 local para el almacén de evidencias.
   minio:
     image: minio/minio:latest
     container_name: statera-minio
@@ -82,13 +149,40 @@ services:
       - "127.0.0.1:9001:9001"
     volumes:
       - minio-data:/data
+    networks:
+      default:
+        aliases:
+          # El alias es lo que hace descargable una evidencia. `temporaryUrl()`
+          # firma con SigV4 y el nombre del host va DENTRO de la firma, así que
+          # el navegador tiene que llegar por el mismo nombre que usó el
+          # servidor; reescribirlo después invalida la firma. Dentro de la red
+          # este nombre resuelve al contenedor, y en el navegador cualquier
+          # *.localhost resuelve a loopback, donde está publicado el 9000.
+          - minio.localhost
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
       interval: 10s
       timeout: 5s
       retries: 10
 
+  minio-init:
+    image: minio/mc:latest
+    container_name: statera-minio-init
+    environment:
+      MINIO_ROOT_USER: statera
+      MINIO_ROOT_PASSWORD: statera-secret
+      AWS_BUCKET: statera-evidencias
+      AWS_BUCKET_DOCUMENTOS: statera-documentos
+    entrypoint: ["/bin/sh", "/init.sh"]
+    volumes:
+      - ./docker/minio/init.sh:/init.sh:ro
+    depends_on:
+      minio:
+        condition: service_healthy
+
 volumes:
   postgres-data:
   redis-data:
   minio-data:
+  vendor:
+  node_modules:

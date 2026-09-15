@@ -25,9 +25,12 @@
         <env name="CACHE_STORE" value="array"/>
         <!-- Los tests corren sobre PostgreSQL, no sobre SQLite en memoria: el
              esquema depende de CTEs recursivas, JSONB con GIN y RLS. La base
-             statera_test la crea docker/postgres/init al levantar el volumen. -->
+             statera_test la crea docker/postgres/init al levantar el volumen.
+
+             El host es el nombre del servicio porque la suite corre dentro del
+             contenedor: `docker compose exec app composer test`. -->
         <env name="DB_CONNECTION" value="pgsql"/>
-        <env name="DB_HOST" value="127.0.0.1"/>
+        <env name="DB_HOST" value="postgres"/>
         <env name="DB_PORT" value="5432"/>
         <env name="DB_DATABASE" value="statera_test"/>
         <env name="DB_USERNAME" value="statera_app"/>

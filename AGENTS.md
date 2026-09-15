@@ -7,6 +7,11 @@ fuente canónica: se mantiene ahí y no se duplica aquí.
 El contexto funcional y técnico completo está en `especificacion-gestor-cumplimiento.md`
 y `stack-gestor-cumplimiento.md`.
 
+**Todo se ejecuta dentro de los contenedores.** El host no tiene PHP ni Node, así que
+las guías de más abajo, escritas para un entorno local, hay que leerlas con el prefijo
+puesto: `docker compose exec app php artisan …`, `docker compose exec app composer …`,
+`docker compose exec vite npm …`. El detalle está en el README y en `CLAUDE.md`.
+
 ---
 
 <laravel-boost-guidelines>

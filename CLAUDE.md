@@ -127,22 +127,32 @@ Y sobre los refuerzos: en el Anexo II **se acumulan** —«+ R1 + R2» exige los
 
 ## Comandos
 
+Todo corre en contenedores, la aplicación incluida. El host no necesita ni PHP ni
+Node.
+
 ```sh
-docker compose up -d                # postgres 17, redis, gotenberg, minio
-composer dev                        # servidor, cola y logs
-php artisan migrate
-php artisan catalogo:importar       # ISO, ENS, mapeos y las amenazas de MAGERIT
-php artisan db:seed                 # organización, usuarios, sistema, inventario, tareas y riesgos (sintéticos)
-php artisan avisos:enviar --dry-run # lo que saldría por correo, sin enviarlo
-composer test                       # Pest sobre PostgreSQL
-composer analyse                    # Larastan nivel 6
-composer lint                       # Pint
-composer types                      # regenera resources/js/types/generated.d.ts desde PHP
-npm run type-check                  # vue-tsc
-npm run build
+docker compose up -d --build        # levanta el producto entero
 ```
 
-La aplicación PHP corre en el host; Docker solo levanta los servicios de apoyo.
+Lo demás va dentro. Con `app` basta para todo lo de PHP; `vite` es el de Node:
+
+```sh
+docker compose exec app php artisan migrate
+docker compose exec app php artisan catalogo:importar       # ISO, ENS, mapeos y las amenazas de MAGERIT
+docker compose exec app php artisan db:seed                 # organización, usuarios, sistema, inventario, tareas y riesgos (sintéticos)
+docker compose exec app php artisan avisos:enviar --dry-run # lo que saldría por correo, sin enviarlo
+docker compose exec app composer test                       # Pest sobre PostgreSQL
+docker compose exec app composer analyse                    # Larastan nivel 6
+docker compose exec app composer lint                       # Pint
+docker compose exec app composer types                      # regenera resources/js/types/generated.d.ts desde PHP
+docker compose exec vite npm run type-check                 # vue-tsc
+docker compose exec vite npm run build
+docker compose logs -f app queue vite
+```
+
+Cinco servicios propios: `nginx` (el 8000), `app` (php-fpm), `queue` (Horizon),
+`vite` (el 5173) y `minio-init`, que crea los buckets y se apaga. Detrás siguen
+`postgres`, `redis`, `gotenberg` y `minio`.
 
 ## Prioridad de cobertura de tests
 
@@ -357,6 +367,37 @@ escondería justamente el aviso que hay que ver.
 ## Desvíos vigentes respecto al stack
 
 Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y por qué, para que nadie lo "arregle" sin contexto.
+
+- **La aplicación corre en un contenedor también en desarrollo**, que es lo contrario
+  de lo que decía la cabecera del `docker-compose.yml` («hay PHP local y el ciclo de
+  edición es más rápido así»). El motivo no es comodidad: Windows no tiene `ext-pcntl`
+  ni `ext-posix`, que `laravel/horizon` exige como requisitos duros, así que **Horizon
+  no podía arrancar** y cada `composer install` necesitaba `--ignore-platform-req`.
+  Un entorno donde una dependencia declarada no se puede ejecutar no es un entorno de
+  desarrollo, es un entorno parecido. Con la aplicación dentro, `queue` corre Horizon
+  de verdad y el test de integración de Gotenberg deja de auto-saltarse.
+
+  Tres cosas que no se ven leyendo el `docker-compose.yml`:
+
+  1. **El alias de red `minio.localhost` no es cosmético.** `temporaryUrl()` firma con
+     SigV4 y **el host va dentro de la firma**, así que reescribirlo después la
+     invalida: el navegador tiene que llegar por el mismo nombre que usó el servidor.
+     Dentro de la red ese nombre resuelve al contenedor por el alias; fuera, los
+     navegadores resuelven cualquier `*.localhost` a loopback por su cuenta, donde
+     está publicado el 9000. Poner `minio` a secas rompe **toda** descarga de
+     evidencias y documentos, y el síntoma —un host desconocido— no menciona S3.
+  2. **`vendor/` y `node_modules/` viven en volúmenes de Docker, no en el bind mount.**
+     Son decenas de miles de ficheros y el autoloader se lee en cada petición. El
+     precio, asumido: dejan de verse desde Windows y el editor pierde el
+     autocompletado.
+  3. **Vite vigila por sondeo** (`usePolling`). A través de un bind mount de Windows no
+     llegan eventos de inotify: sin él no reaccionan ni el HMR ni el `refresh: true`
+     del plugin de Laravel, y lo que se ve es un Vite que parece colgado.
+
+  El arranque es completo a propósito —dependencias, `APP_KEY`, migraciones, catálogo
+  y buckets— porque cada paso manual documentado es un paso que alguien se salta: el
+  bucket de MinIO llevaba desde el principio creándose a mano, y olvidarlo fallaba
+  mucho después, al subir una evidencia.
 
 - **La clase base se llama `Recurso`, no `Resource`.** El directorio sí es `app/Http/Resources/`, como dice §2.1 del stack, pero `Resource` colisiona con el pseudo-tipo `resource` de PHP: Pint lo pasa a minúsculas en los docblocks (`@extends resource<Sistema>`) y a partir de ahí Larastan no resuelve el genérico. En español encaja además con `ConsultaRecurso`, `DefinicionRecurso` y `RespondeConRecurso`.
 

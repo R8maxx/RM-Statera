@@ -35,8 +35,25 @@ export default defineConfig({
         },
     },
     server: {
+        // Vite corre en su propio contenedor: sin escuchar en todas las
+        // interfaces, el puerto publicado no llegaría a ninguna parte.
+        host: '0.0.0.0',
+        port: 5173,
+        // Lo que `laravel-vite-plugin` escribe en `public/hot` y, por tanto, lo
+        // que acaba pidiendo el navegador. Sin esto apuntaría a la dirección
+        // interna del contenedor, que desde Windows no resuelve.
+        origin: 'http://localhost:5173',
         watch: {
-            ignored: ['**/storage/framework/views/**'],
+            // A través de un bind mount de Windows no llegan eventos de
+            // inotify: sin sondeo no reaccionan ni el HMR ni el `refresh: true`
+            // del plugin de Laravel, y parece que Vite se ha quedado colgado.
+            usePolling: true,
+            interval: 300,
+            ignored: [
+                '**/storage/framework/views/**',
+                '**/vendor/**',
+                '**/node_modules/**',
+            ],
         },
     },
 });
