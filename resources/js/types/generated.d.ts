@@ -99,6 +99,7 @@ export type Accion = {
 icono: string | null,
 confirmacion: string | null,
 destructiva: boolean,
+secundaria: boolean,
 readonly clave: string,
 readonly etiqueta: string,
 readonly url: string,

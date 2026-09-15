@@ -24,6 +24,8 @@ final class Accion
 
     public bool $destructiva = false;
 
+    public bool $secundaria = false;
+
     private ?string $permiso = null;
 
     public function __construct(
@@ -69,6 +71,29 @@ final class Accion
     public function destructiva(): self
     {
         $this->destructiva = true;
+
+        return $this;
+    }
+
+    /**
+     * Que no es la acción que se espera de esta pantalla.
+     *
+     * Lo declara el recurso y no la posición del array: `DataTable` pintaba
+     * TODA acción general como primario lleno, así que «Nuevo activo» y
+     * «Etiquetas QR» salían iguales, y «Nuevo riesgo» y «Metodología» también.
+     * Dos botones de color lleno a la vez y no manda ninguno — es el mismo
+     * argumento que ya se escribió al introducir «Emitir versión», y DESIGN.md
+     * §9 lo pide explícitamente.
+     *
+     * Quién es secundaria no lo puede deducir el cliente: imprimir las etiquetas
+     * de todo el parque y abrir los criterios de aceptación de la dirección son
+     * acciones legítimas y perfectamente normales, sólo que no son a lo que va
+     * el noventa y cinco por ciento de quien abre esa tabla. Eso lo sabe el
+     * recurso.
+     */
+    public function secundaria(): self
+    {
+        $this->secundaria = true;
 
         return $this;
     }

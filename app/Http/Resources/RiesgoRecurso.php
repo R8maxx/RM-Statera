@@ -229,6 +229,7 @@ final class RiesgoRecurso extends Recurso
                 ->icono('Plus')
                 ->permiso(Permiso::RiesgosGestionar->value),
             (new Accion('metodologia', 'Metodología', '/riesgos/metodologia', MetodoAccion::Get))
+                ->secundaria()
                 ->icono('Scale')
                 ->permiso(Permiso::RiesgosVer->value),
         ];
