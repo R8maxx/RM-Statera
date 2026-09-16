@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Domain\Riesgo\Models;
 
-use App\Domain\Auditoria\Concerns\RegistraTraza;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
 use App\Domain\Riesgo\CalculoRiesgo;
 use App\Domain\Riesgo\Enums\DecisionRiesgo;
 use App\Domain\Riesgo\Enums\NivelRiesgo;
 use App\Domain\Riesgo\Metodologia;
+use App\Domain\Traza\Concerns\RegistraTraza;
 use App\Models\User;
 use Database\Factories\Riesgo\RiesgoValoracionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;

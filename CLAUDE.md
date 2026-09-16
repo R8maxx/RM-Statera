@@ -170,6 +170,23 @@ Por orden, según dónde duele un fallo silencioso:
 4. **Importador del catálogo**, incluida la idempotencia y el diff.
 5. Resto de módulos: flujos principales.
 
+### Los tests que no hay que acordarse de ampliar
+
+Cuatro tests **descubren** en vez de enumerar, así que cubren solos lo que traiga el módulo siguiente.
+Los cuatro nacieron de fallos que ya habían mordido o estaban a punto:
+
+| Test | Qué convierte en rojo |
+|---|---|
+| `Organizacion/RlsDeclaradaTest` | Una tabla con `organizacion_id` **sin RLS activa, forzada y con política**. Pregunta a `pg_policies` en vez de enumerar modelos. Lleva la lista de las cuatro excepciones declaradas —`users` y las tres de spatie— y exige que quien deje de serlo salga de la lista. |
+| `Organizacion/FactoriesSinOrganizacionTest` | Una factory que declare `organizacion_id` en su `definition()`. |
+| `Autorizacion/RolesTest` | Que al rol `Auditor` le falte un permiso `.ver`, o que le sobre uno de escritura. `Rol::permisos()` es lista literal para `Tecnico` y `Auditor`, y olvidarla no rompía nada. |
+| `Diseno/TonosTest` | Un tono que el servidor emite y que no está en `lib/tonos.ts`. **`tono()` acaba en `?? neutro`: el badge sale gris y no falla nadie** — el mismo fallo que `IconoTipo` tenía y que `IconosTest` ya cubría. |
+
+Los dos de diseño y el de roles se apoyan en `enumsDelDominioCon()` (en `tests/Pest.php`), que recorre
+`app/Domain/<Contexto>/Enums/` **y el propio contexto**, porque algunos enums están sueltos —`Aviso\Fuente`
+lo está— y limitarse al subdirectorio dejaba fuera justo al que rompía la suite. `IconosTest` tenía dos
+listas literales y ya no tiene ninguna.
+
 ## La capa de recursos
 
 Vive en `app/Http/Resources/` y existe para que los diecinueve módulos hablen el mismo dialecto.
@@ -637,6 +654,23 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
 - **SSR desactivado** (`INERTIA_SSR_ENABLED=false`). La aplicación vive tras un login: no hay SEO ni primer pintado crítico que lo justifique. Con `@inertiajs/vite` volver a activarlo es cambiar la variable.
 
 - **`DatabaseSeeder` no usa `WithoutModelEvents`.** `PerteneceAOrganizacion` rellena `organizacion_id` en el evento `creating`; silenciar los eventos deja la columna a nulo y RLS rechaza la inserción con un error de privilegios que no dice nada de la causa.
+
+- **Ninguna factory declara `organizacion_id` en su `definition()`**, y es la misma trampa por el otro
+  lado. El trait rellena la columna **sólo si viene a nulo**, así que un valor por defecto en la factory
+  lo cortocircuita: la fila nace con un tenant que no es el del contexto y el `WITH CHECK` de la
+  política la rechaza. `SistemaFactory` lo hacía, era la única del repositorio que lo hacía, y tenía
+  **nueve tests de riesgos en rojo desde el día que se escribieron** — el error habla de privilegios y
+  no menciona la palabra «organización», así que pasó por una regresión de otra cosa durante semanas.
+  En un `state` —`->de($organizacion)`— sí vale: ahí es una decisión explícita de quien escribe el
+  test. Lo clava `FactoriesSinOrganizacionTest`.
+
+- **La traza vive en `app/Domain/Traza/`, no en `Domain\Auditoria\`.** Lo que hay ahí es
+  `eventos_auditoria`, el log inmutable de quién tocó qué dentro de Statera, y eso es una traza. El
+  nombre `Auditoria` hizo falta para el módulo del § 4.12, que registra auditorías de verdad: con los
+  dos en la misma carpeta habría un `RegistroAuditoria` a una «s» de distancia de un
+  `RegistroAuditorias`. El servicio pasó a `RegistroTraza`; **`EventoAuditoria` conserva su nombre**,
+  porque es el modelo de `eventos_auditoria` y la tabla se llama así en la § 2.2. Mismo criterio que
+  `IndicadorInventario` → `Indicador`.
 
 - **Los avisos van por el canal de flash de Inertia v3** (`Inertia::flash()` + `router.on('flash')`), no como prop compartido. Un prop se reenvía en cada recarga parcial y el aviso volvía a saltar al filtrar o paginar.
 

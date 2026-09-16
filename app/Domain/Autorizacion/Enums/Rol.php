@@ -35,9 +35,19 @@ enum Rol: string
         return match ($this) {
             self::ResponsableSeguridad => 'Responde del SGSI: valora los sistemas, decide el alcance y firma lo que se entrega.',
             self::Tecnico => 'Implanta y prueba: mueve estados, sube evidencias y las vincula. No redefine el alcance.',
-            self::Auditor => 'Sólo lectura. Ve el cumplimiento y sus pruebas, y no puede alterar nada de lo que audita.',
+            self::Auditor => 'Sólo lectura, para el auditor externo que viene de fuera. Ve el cumplimiento, sus pruebas y el registro de auditorías, y no escribe nada.',
         };
     }
+
+    /*
+     * Ojo con `Auditor` ahora que existe el módulo de auditorías (§ 4.12): el
+     * nombre del rol y el del módulo coinciden y parece un olvido, pero no lo es.
+     * Este rol es el **auditor externo** que § 4.19 describe como «un rol de solo
+     * lectura con acceso limitado al alcance auditado»; quien registra una
+     * auditoría interna en Statera es el responsable de seguridad. Darle
+     * escritura sobre el registro sería dejar que quien audita escriba el acta de
+     * su propia auditoría.
+     */
 
     /**
      * El técnico no valora ni da de alta sistemas: eso redefine lo que se le
@@ -85,10 +95,20 @@ enum Rol: string
                 Permiso::RiesgosGestionar,
                 Permiso::TareasVer,
                 Permiso::TareasGestionar,
+                // Ve las auditorías y no las registra: quien audita responde de
+                // lo que escribe, y el técnico es parte de lo auditado.
+                Permiso::AuditoriasVer,
                 Permiso::DocumentosVer,
                 Permiso::DocumentosRedactar,
             ],
 
+            /*
+             * Todo lo `.ver` y nada más. `RolesTest` lo comprueba recorriendo
+             * `Permiso::cases()`, así que un módulo nuevo al que se le olvide
+             * añadir aquí su permiso de lectura pone la suite en rojo — que es lo
+             * que faltaba, porque esta lista es literal y olvidarla no rompía
+             * nada: el módulo simplemente no aparecía.
+             */
             self::Auditor => [
                 Permiso::PanelVer,
                 Permiso::SistemasVer,
@@ -97,6 +117,7 @@ enum Rol: string
                 Permiso::ActivosVer,
                 Permiso::RiesgosVer,
                 Permiso::TareasVer,
+                Permiso::AuditoriasVer,
                 Permiso::DocumentosVer,
             ],
         };

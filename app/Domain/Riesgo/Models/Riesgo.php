@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Domain\Riesgo\Models;
 
 use App\Domain\Activo\Models\Activo;
-use App\Domain\Auditoria\Concerns\RegistraTraza;
 use App\Domain\Implantacion\Enums\EstadoImplantacion;
 use App\Domain\Implantacion\Models\Implantacion;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
 use App\Domain\Riesgo\MetodologiaVigente;
+use App\Domain\Traza\Concerns\RegistraTraza;
 use App\Models\User;
 use Database\Factories\Riesgo\RiesgoFactory;
 use Illuminate\Database\Eloquent\Builder;

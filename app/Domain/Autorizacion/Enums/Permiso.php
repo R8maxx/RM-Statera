@@ -79,6 +79,9 @@ enum Permiso: string
     case TareasVer = 'tareas.ver';
     case TareasGestionar = 'tareas.gestionar';
 
+    case AuditoriasVer = 'auditorias.ver';
+    case AuditoriasGestionar = 'auditorias.gestionar';
+
     case DocumentosVer = 'documentos.ver';
     case DocumentosGenerar = 'documentos.generar';
     case DocumentosAprobar = 'documentos.aprobar';
@@ -103,6 +106,8 @@ enum Permiso: string
             self::RiesgosAceptar => 'Aceptar riesgos y definir la metodología',
             self::TareasVer => 'Ver el plan de acción',
             self::TareasGestionar => 'Crear tareas, asignarlas y moverlas de estado',
+            self::AuditoriasVer => 'Ver las auditorías, su checklist y sus hallazgos',
+            self::AuditoriasGestionar => 'Registrar auditorías, revisar la checklist y cerrarlas',
             self::DocumentosVer => 'Ver los documentos y descargar sus versiones',
             self::DocumentosGenerar => 'Crear documentos, generar borradores y mandarlos a revisión',
             self::DocumentosAprobar => 'Aprobar documentos y entregar la versión firmada',

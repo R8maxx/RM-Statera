@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Domain\Auditoria;
+namespace App\Domain\Traza;
 
-use App\Domain\Auditoria\Enums\AccionAuditada;
-use App\Domain\Auditoria\Models\EventoAuditoria;
+use App\Domain\Traza\Enums\AccionAuditada;
+use App\Domain\Traza\Models\EventoAuditoria;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -13,6 +13,18 @@ use Illuminate\Support\Facades\Request;
 
 /**
  * Escribe la traza. Todo evento auditado pasa por aquí.
+ *
+ * **Vivía en `App\Domain\Auditoria` y se llamaba `RegistroAuditoria`.** Lo que
+ * hay aquí es el log inmutable de quién tocó qué dentro de Statera —la tabla
+ * `eventos_auditoria` de la § 2.2—, y eso es una **traza**, no una auditoría. El
+ * nombre hizo falta para el módulo del § 4.12, que sí registra auditorías de
+ * verdad: dejar los dos en la misma carpeta habría puesto un `RegistroAuditoria`
+ * a una «s» de distancia de un `RegistroAuditorias`, que es cómo se acaba
+ * editando el fichero equivocado. Mismo caso que `IndicadorInventario` →
+ * `Indicador`: la forma era genérica y el nombre mentía.
+ *
+ * `EventoAuditoria` sí conserva su nombre, porque es el modelo de
+ * `eventos_auditoria` y la tabla se llama así en la especificación.
  *
  * Guarda **sólo lo que cambió**, no el modelo entero: un log que copia doscientas
  * filas completas cada vez deja de poder consultarse en un año, y la pregunta
@@ -23,7 +35,7 @@ use Illuminate\Support\Facades\Request;
  * tal y como van a la base: escalares. Pasar por los casts metería enums y
  * objetos `Carbon` en una columna JSONB.
  */
-final class RegistroAuditoria
+final class RegistroTraza
 {
     /**
      * Lo que nunca entra en la traza.

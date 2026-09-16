@@ -114,6 +114,49 @@ it('el responsable de seguridad lo puede todo dentro de su organización', funct
     }
 });
 
+/**
+ * El auditor ve todo y no toca nada, y eso hay que comprobarlo por construcción.
+ *
+ * `ResponsableSeguridad` usa `Permiso::cases()` y se entera solo de cada permiso
+ * nuevo; `Tecnico` y `Auditor` son **listas literales**, así que olvidarse de
+ * añadirles el módulo siguiente no rompe nada: simplemente no aparece, y quien
+ * lo descubre es la persona que no lo encuentra en su pantalla.
+ *
+ * Este par de tests convierte ese olvido en rojo. El primero es el que importa:
+ * un rol de sólo lectura al que le falte un `.ver` es un rol que no puede hacer
+ * su trabajo, y el módulo de auditorías es justamente el que va a mirar.
+ */
+it('el auditor puede ver todo lo que hay que ver', function (): void {
+    $auditor = usuarioCon(Rol::Auditor);
+
+    foreach (Permiso::cases() as $permiso) {
+        if ($permiso->esDeEscritura()) {
+            continue;
+        }
+
+        expect($auditor->can($permiso->value))->toBeTrue(sprintf(
+            'Al rol Auditor le falta `%s`. Es de sólo lectura, así que todo permiso `.ver` es suyo: '
+            .'acuérdate de la lista literal de `Rol::permisos()`.',
+            $permiso->value,
+        ));
+    }
+});
+
+it('el auditor no puede escribir nada', function (): void {
+    $auditor = usuarioCon(Rol::Auditor);
+
+    foreach (Permiso::cases() as $permiso) {
+        if (! $permiso->esDeEscritura()) {
+            continue;
+        }
+
+        expect($auditor->can($permiso->value))->toBeFalse(sprintf(
+            'El rol Auditor tiene `%s`, que es de escritura. No puede alterar nada de lo que audita.',
+            $permiso->value,
+        ));
+    }
+});
+
 it('un rol no atraviesa la frontera de la organización', function (): void {
     $otra = Organizacion::factory()->create();
     $responsableDeOtra = usuarioCon(Rol::ResponsableSeguridad, $otra);

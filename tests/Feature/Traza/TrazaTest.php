@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-use App\Domain\Auditoria\Enums\AccionAuditada;
-use App\Domain\Auditoria\Models\EventoAuditoria;
 use App\Domain\Catalogo\Models\Marco;
 use App\Domain\Implantacion\Enums\EstadoImplantacion;
 use App\Domain\Implantacion\Models\Implantacion;
 use App\Domain\Organizacion\Models\Organizacion;
 use App\Domain\Sistema\Enums\EstadoSistema;
 use App\Domain\Sistema\Models\Sistema;
+use App\Domain\Traza\Enums\AccionAuditada;
+use App\Domain\Traza\Models\EventoAuditoria;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 

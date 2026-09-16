@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Domain\Evidencia\Models;
 
-use App\Domain\Auditoria\Concerns\RegistraTraza;
 use App\Domain\Evidencia\Enums\PeriodicidadRenovacion;
 use App\Domain\Evidencia\Enums\TipoEvidencia;
 use App\Domain\Implantacion\Models\Implantacion;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
+use App\Domain\Traza\Concerns\RegistraTraza;
 use App\Models\User;
 use Database\Factories\EvidenciaFactory;
 use Illuminate\Database\Eloquent\Builder;

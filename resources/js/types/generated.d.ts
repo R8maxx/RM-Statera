@@ -8,11 +8,6 @@ export type EstadoControl = 'si' | 'no' | 'por_confirmar' | 'no_aplica';
 export type TipoActivo = 'servicios' | 'datos' | 'software' | 'hardware' | 'comunicaciones' | 'soportes' | 'equipamiento_auxiliar' | 'instalaciones' | 'personal';
 }
 }
-namespace Auditoria {
-namespace Enums {
-export type AccionAuditada = 'creado' | 'actualizado' | 'eliminado';
-}
-}
 namespace Autorizacion {
 namespace Enums {
 export type Permiso = 'panel.ver' | 'sistemas.ver' | 'sistemas.gestionar' | 'sistemas.valorar' | 'implantaciones.ver' | 'implantaciones.gestionar' | 'evidencias.ver' | 'evidencias.gestionar' | 'activos.ver' | 'activos.gestionar' | 'riesgos.ver' | 'riesgos.gestionar' | 'riesgos.aceptar' | 'tareas.ver' | 'tareas.gestionar' | 'documentos.ver' | 'documentos.generar' | 'documentos.aprobar' | 'documentos.redactar' | 'documentos.plantillas';
@@ -90,6 +85,11 @@ namespace Enums {
 export type EstadoTarea = 'pendiente' | 'en_curso' | 'bloqueada' | 'hecha' | 'descartada';
 export type OrigenTarea = 'hallazgo' | 'riesgo' | 'brecha_implantacion' | 'incidente' | 'revision_direccion' | 'propia';
 export type PrioridadTarea = 'baja' | 'media' | 'alta' | 'critica';
+}
+}
+namespace Traza {
+namespace Enums {
+export type AccionAuditada = 'creado' | 'actualizado' | 'eliminado';
 }
 }
 }

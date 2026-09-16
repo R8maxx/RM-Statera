@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Domain\Tarea\Models;
 
-use App\Domain\Auditoria\Concerns\RegistraTraza;
 use App\Domain\Implantacion\Models\Implantacion;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
 use App\Domain\Tarea\Enums\EstadoTarea;
 use App\Domain\Tarea\Enums\OrigenTarea;
 use App\Domain\Tarea\Enums\PrioridadTarea;
+use App\Domain\Traza\Concerns\RegistraTraza;
 use App\Models\User;
 use Database\Factories\TareaFactory;
 use Illuminate\Database\Eloquent\Builder;

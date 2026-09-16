@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Documento\Models;
 
-use App\Domain\Auditoria\Concerns\RegistraTraza;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
+use App\Domain\Traza\Concerns\RegistraTraza;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Database\Factories\DocumentoCuerpoFactory;

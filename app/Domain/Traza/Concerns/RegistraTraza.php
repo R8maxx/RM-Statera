@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Domain\Auditoria\Concerns;
+namespace App\Domain\Traza\Concerns;
 
-use App\Domain\Auditoria\RegistroAuditoria;
+use App\Domain\Traza\RegistroTraza;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -23,8 +23,8 @@ trait RegistraTraza
 {
     public static function bootRegistraTraza(): void
     {
-        static::created(static fn (Model $modelo) => app(RegistroAuditoria::class)->creado($modelo));
-        static::updated(static fn (Model $modelo) => app(RegistroAuditoria::class)->actualizado($modelo));
-        static::deleted(static fn (Model $modelo) => app(RegistroAuditoria::class)->eliminado($modelo));
+        static::created(static fn (Model $modelo) => app(RegistroTraza::class)->creado($modelo));
+        static::updated(static fn (Model $modelo) => app(RegistroTraza::class)->actualizado($modelo));
+        static::deleted(static fn (Model $modelo) => app(RegistroTraza::class)->eliminado($modelo));
     }
 }

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Domain\Auditoria\Enums;
+namespace App\Domain\Traza\Enums;
 
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 

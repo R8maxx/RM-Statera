@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Domain\Sistema\Models;
 
-use App\Domain\Auditoria\Concerns\RegistraTraza;
 use App\Domain\Catalogo\Enums\Dimension;
 use App\Domain\Categorizacion\Enums\NivelDimension;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
+use App\Domain\Traza\Concerns\RegistraTraza;
 use Database\Factories\ValoracionDimensionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;

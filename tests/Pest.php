@@ -85,6 +85,59 @@ function uniforme(NivelDimension $nivel): ValoracionDimensiones
 
 /*
 |--------------------------------------------------------------------------
+| Los enums del dominio
+|--------------------------------------------------------------------------
+|
+| Los tests de diseño —iconos y tonos— comprueban que todo lo que el servidor
+| puede emitir existe en el mapa del cliente, porque los dos mapas fallan en
+| silencio: `IconoTipo` no pinta nada y `tonos.ts` devuelve gris.
+|
+| Enumerar los enums a mano convierte ese test en algo de lo que hay que
+| acordarse, que es exactamente lo que no funciona: el enum nuevo se escribe, la
+| lista no se toca y el test sigue verde mintiendo. Aquí se descubren.
+|
+*/
+
+/**
+ * Los enums del dominio que declaran un método concreto.
+ *
+ * Mira en los dos sitios donde viven: `app/Domain/<Contexto>/Enums/` y el propio
+ * `app/Domain/<Contexto>/`, porque algunos están sueltos —`Aviso\Fuente` lo
+ * está— y limitarse al subdirectorio dejaba fuera precisamente al que rompe la
+ * suite cuando falta.
+ *
+ * @return list<class-string<BackedEnum>>
+ */
+function enumsDelDominioCon(string $metodo): array
+{
+    $encontrados = [];
+
+    $rutas = [
+        ...(glob(__DIR__.'/../app/Domain/*/Enums/*.php') ?: []),
+        ...(glob(__DIR__.'/../app/Domain/*/*.php') ?: []),
+    ];
+
+    foreach ($rutas as $ruta) {
+        $enum = str_replace(
+            ['/', 'app\\'],
+            ['\\', 'App\\'],
+            substr((string) strstr($ruta, 'app/'), 0, -4),
+        );
+
+        // `enum_exists()` descarta solo lo que no es un enum: casi todo lo que
+        // hay suelto en un contexto son clases de dominio.
+        if (enum_exists($enum) && method_exists($enum, $metodo)) {
+            $encontrados[] = $enum;
+        }
+    }
+
+    sort($encontrados);
+
+    return array_values(array_unique($encontrados));
+}
+
+/*
+|--------------------------------------------------------------------------
 | Gotenberg
 |--------------------------------------------------------------------------
 |

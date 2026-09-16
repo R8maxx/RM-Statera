@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Domain\Implantacion\Models;
 
-use App\Domain\Auditoria\Concerns\RegistraTraza;
 use App\Domain\Catalogo\Enums\Dimension;
 use App\Domain\Catalogo\Enums\Exigencia;
 use App\Domain\Catalogo\Models\Requisito;
@@ -16,6 +15,7 @@ use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
 use App\Domain\Riesgo\Models\Riesgo;
 use App\Domain\Sistema\Models\Sistema;
 use App\Domain\Tarea\Models\Tarea;
+use App\Domain\Traza\Concerns\RegistraTraza;
 use App\Models\User;
 use Database\Factories\ImplantacionFactory;
 use Illuminate\Database\Eloquent\Builder;

@@ -2,22 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Domain\Activo\Enums\Clasificacion;
-use App\Domain\Activo\Enums\EstadoCicloVida;
-use App\Domain\Activo\Enums\EstadoControl;
-use App\Domain\Activo\Enums\TipoActivo;
-use App\Domain\Aviso\Fuente;
-use App\Domain\Documento\Enums\ClasificacionDocumental;
-use App\Domain\Documento\Enums\EstadoDocumental;
-use App\Domain\Documento\Enums\EstadoGeneracion;
-use App\Domain\Documento\Enums\OrigenTexto;
-use App\Domain\Implantacion\Enums\EstadoImplantacion;
-use App\Domain\Riesgo\Enums\DecisionRiesgo;
-use App\Domain\Riesgo\Enums\GrupoAmenaza;
-use App\Domain\Riesgo\Enums\NivelRiesgo;
-use App\Domain\Tarea\Enums\EstadoTarea;
-use App\Domain\Tarea\Enums\PrioridadTarea;
-
 /*
 |--------------------------------------------------------------------------
 | Los iconos del dominio
@@ -32,26 +16,17 @@ use App\Domain\Tarea\Enums\PrioridadTarea;
 |
 */
 
-/** Los enums que declaran icono, que son los que se pintan como badge. */
+/**
+ * Los enums que declaran icono, que son los que se pintan como badge.
+ *
+ * **Se descubren, no se enumeran.** Era una lista literal, y una lista literal
+ * convierte esto en un test del que hay que acordarse: el enum nuevo se escribe,
+ * nadie toca la lista, y el test sigue verde sin comprobar nada de lo nuevo. Es
+ * el mismo defecto que `Rol::permisos()` tiene declarado en CLAUDE.md.
+ */
 function enumsConIcono(): array
 {
-    return [
-        EstadoTarea::class,
-        EstadoImplantacion::class,
-        EstadoCicloVida::class,
-        EstadoControl::class,
-        Clasificacion::class,
-        ClasificacionDocumental::class,
-        EstadoDocumental::class,
-        EstadoGeneracion::class,
-        OrigenTexto::class,
-        PrioridadTarea::class,
-        TipoActivo::class,
-        Fuente::class,
-        NivelRiesgo::class,
-        DecisionRiesgo::class,
-        GrupoAmenaza::class,
-    ];
+    return enumsDelDominioCon('icono');
 }
 
 /** Los nombres que el mapa de `IconoTipo.vue` sabe resolver. */
@@ -144,15 +119,15 @@ it('dos estados del mismo tono no comparten icono', function (string $enum): voi
             ),
         );
     }
-})->with([
-    EstadoTarea::class,
-    EstadoImplantacion::class,
-    // `Rechazado` y `Obsoleto` comparten el gris del dominio: el icono es lo
-    // único que separa una decisión de un archivo.
-    EstadoDocumental::class,
-    EstadoCicloVida::class,
-    EstadoControl::class,
-    Clasificacion::class,
-    NivelRiesgo::class,
-    DecisionRiesgo::class,
-]);
+})
+    /*
+     * Todos los que declaran las dos cosas, descubiertos igual que arriba. La
+     * lista literal era aquí además engañosa: parecía una selección con criterio
+     * y era sólo los que había el día que se escribió. `EstadoDocumental` es el
+     * caso que la justificaba —«Rechazado» y «Obsoleto» comparten el gris del
+     * dominio, y el icono es lo único que separa una decisión de un archivo—.
+     */
+    ->with(fn () => array_values(array_intersect(
+        enumsDelDominioCon('icono'),
+        enumsDelDominioCon('tono'),
+    )));

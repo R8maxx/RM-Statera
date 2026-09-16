@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Domain\Documento\Models;
 
-use App\Domain\Auditoria\Concerns\RegistraTraza;
 use App\Domain\Documento\Enums\OrigenTexto;
 use App\Domain\Documento\Enums\SeccionNarrativa;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
+use App\Domain\Traza\Concerns\RegistraTraza;
 use Database\Factories\DocumentoSeccionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;

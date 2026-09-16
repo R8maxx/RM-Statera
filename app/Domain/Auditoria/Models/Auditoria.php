@@ -1,0 +1,196 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Domain\Auditoria\Models;
+
+use App\Domain\Auditoria\Enums\EstadoAuditoria;
+use App\Domain\Auditoria\Enums\ResultadoPunto;
+use App\Domain\Auditoria\Enums\TipoAuditoria;
+use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
+use App\Domain\Sistema\Models\Sistema;
+use App\Domain\Traza\Concerns\RegistraTraza;
+use App\Models\User;
+use Database\Factories\Auditoria\AuditoriaFactory;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
+
+/**
+ * Una auditoría sobre un sistema: § 4.12 y la cláusula 9.2 de ISO.
+ *
+ * **Cuelga de un sistema y es obligatorio.** El SGSI es un `sistema` —la § 2.2 lo
+ * llama «la unidad de alcance y de certificación»—, así que una auditoría de
+ * certificación ISO es la auditoría de ese sistema. Sin él no hay checklist que
+ * precargar, que es la mitad del módulo.
+ *
+ * **Cerrarla es lo que la congela**, y no es una preferencia: un trigger de
+ * PostgreSQL deja de admitir cambios en sus puntos y en sus hallazgos a partir de
+ * ese momento. Lo que se le enseña al auditor siguiente tiene que poder
+ * demostrarse tal cual se cerró, exactamente igual que la versión de un documento
+ * emitido y la valoración de un riesgo aceptado.
+ *
+ * @property int $id
+ * @property int $organizacion_id
+ * @property int $sistema_id
+ * @property string $codigo
+ * @property TipoAuditoria $tipo
+ * @property EstadoAuditoria $estado
+ * @property ?string $alcance
+ * @property Carbon $fecha
+ * @property ?string $auditor
+ * @property ?string $entidad_certificadora
+ * @property ?string $resultado
+ * @property ?string $conclusiones
+ * @property ?Carbon $fecha_cierre
+ * @property ?int $cerrada_por_id
+ */
+class Auditoria extends Model
+{
+    /** @use HasFactory<AuditoriaFactory> */
+    use HasFactory;
+
+    use PerteneceAOrganizacion;
+    use RegistraTraza;
+
+    protected $table = 'auditorias';
+
+    protected $fillable = [
+        'organizacion_id',
+        'sistema_id',
+        'codigo',
+        'tipo',
+        'estado',
+        'alcance',
+        'fecha',
+        'auditor',
+        'entidad_certificadora',
+        'resultado',
+        'conclusiones',
+        'fecha_cierre',
+        'cerrada_por_id',
+    ];
+
+    /** @return BelongsTo<Sistema, $this> */
+    public function sistema(): BelongsTo
+    {
+        return $this->belongsTo(Sistema::class);
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function cerradaPor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'cerrada_por_id');
+    }
+
+    /**
+     * La checklist, en el orden del marco.
+     *
+     * `requisitos.orden` y no el código: ordenar por texto pondría `op.acc.10`
+     * antes que `op.acc.2`, que es el mismo motivo por el que lo hacen los
+     * documentos.
+     *
+     * @return HasMany<AuditoriaPunto, $this>
+     */
+    public function puntos(): HasMany
+    {
+        return $this->hasMany(AuditoriaPunto::class)
+            ->join('implantaciones', 'implantaciones.id', '=', 'auditoria_puntos.implantacion_id')
+            ->join('requisitos', 'requisitos.id', '=', 'implantaciones.requisito_id')
+            ->select('auditoria_puntos.*')
+            ->orderBy('requisitos.orden')
+            ->orderBy('requisitos.id');
+    }
+
+    /** @return HasMany<Hallazgo, $this> */
+    public function hallazgos(): HasMany
+    {
+        return $this->hasMany(Hallazgo::class)->orderBy('tipo')->orderBy('id');
+    }
+
+    /** @param  Builder<$this>  $query */
+    public function scopeAbiertas(Builder $query): void
+    {
+        $query->where('auditorias.estado', '!=', EstadoAuditoria::Cerrada->value);
+    }
+
+    /** @param  Builder<$this>  $query */
+    public function scopeCerradas(Builder $query): void
+    {
+        $query->where('auditorias.estado', EstadoAuditoria::Cerrada->value);
+    }
+
+    /**
+     * Cerradas con alguna no conformidad entre sus hallazgos.
+     *
+     * El scope que de verdad importa —cuáles de ésas siguen sin tratar— llega con
+     * el § 4.13, que es la otra mitad del módulo: hasta que exista
+     * `no_conformidades` no hay nada contra lo que restar.
+     *
+     * @param  Builder<$this>  $query
+     */
+    public function scopeConNoConformidades(Builder $query): void
+    {
+        $query->cerradas()->whereHas('hallazgos', function (Builder $hallazgos): void {
+            /** @var Builder<Hallazgo> $hallazgos */
+            $hallazgos->noConformidades();
+        });
+    }
+
+    /** Si la base admite todavía cambios en su checklist y sus hallazgos. */
+    public function admiteCambios(): bool
+    {
+        return $this->estado->admiteCambios();
+    }
+
+    /**
+     * Cuántos puntos hay revisados y cuántos en total.
+     *
+     * Es el denominador de la auditoría, y la razón entera por la que existe la
+     * checklist: «3 hallazgos» no dice nada y «3 hallazgos sobre 52 medidas
+     * revisadas» sí.
+     *
+     * @return array{revisados: int, total: int}
+     */
+    public function avance(): array
+    {
+        $puntos = $this->relationLoaded('puntos') ? $this->puntos : $this->puntos()->get();
+
+        return [
+            'revisados' => $puntos
+                ->filter(static fn (AuditoriaPunto $punto): bool => $punto->resultado->estaRevisado())
+                ->count(),
+            'total' => $puntos->count(),
+        ];
+    }
+
+    /** @return array<string, string> */
+    protected function casts(): array
+    {
+        return [
+            'tipo' => TipoAuditoria::class,
+            'estado' => EstadoAuditoria::class,
+            'fecha' => 'date',
+            'fecha_cierre' => 'date',
+        ];
+    }
+
+    /**
+     * El resultado por defecto de un punto recién precargado.
+     *
+     * Vive aquí y no en `PrecargarChecklist` porque lo leen los dos: quien
+     * precarga y quien cuenta cuánto queda por revisar.
+     */
+    public static function resultadoInicial(): ResultadoPunto
+    {
+        return ResultadoPunto::Pendiente;
+    }
+
+    protected static function newFactory(): AuditoriaFactory
+    {
+        return AuditoriaFactory::new();
+    }
+}

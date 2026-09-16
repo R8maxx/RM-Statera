@@ -161,7 +161,7 @@ it('deja constancia de quién pidió el documento, porque la cola no tiene usuar
 
     $version = app(GenerarDocumento::class)->encolar($this->documento, $usuario);
 
-    // `RegistroAuditoria` lee el usuario de la sesión y en cola no hay ninguna:
+    // `RegistroTraza` lee el usuario de la sesión y en cola no hay ninguna:
     // esta columna es la única constancia.
     expect($version->generada_por_id)->toBe($usuario->id);
 });
