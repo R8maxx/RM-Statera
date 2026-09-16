@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domain\Catalogo\Models\Marco;
 use App\Domain\Documento\Models\Documento;
+use App\Domain\Documento\Models\DocumentoLectura;
 use App\Domain\Documento\Models\DocumentoVersion;
 use App\Domain\Organizacion\Models\Organizacion;
 use App\Domain\Sistema\Models\Sistema;
@@ -110,11 +111,43 @@ it('no se descarga una versión que pertenece a OTRO documento de la misma organ
         ->assertNotFound();
 });
 
-it('ni el generar ni el emitir alcanzan a un documento ajeno', function (): void {
+it('ni el generar ni el mandar a revisión alcanzan a un documento ajeno', function (): void {
     ['usuario' => $usuario, 'ajeno' => $ajeno] = dosOrganizacionesConDocumentos();
 
     $this->actingAs($usuario)->post("/documentos/{$ajeno->id}/generar")->assertNotFound();
-    $this->actingAs($usuario)->post("/documentos/{$ajeno->id}/emitir")->assertNotFound();
+    $this->actingAs($usuario)->post("/documentos/{$ajeno->id}/revision")->assertNotFound();
+});
+
+/**
+ * Firmar el documento de otro sería lo más caro que se puede filtrar aquí: no es
+ * leer algo ajeno, es dejar constancia de una aprobación que nadie de esa
+ * organización ha decidido.
+ */
+it('no se aprueba, ni se rechaza, ni se acusa la versión de otra organización', function (): void {
+    ['usuario' => $usuario, 'ajeno' => $ajeno, 'versionAjena' => $version] = dosOrganizacionesConDocumentos();
+
+    $base = "/documentos/{$ajeno->id}/versiones/{$version->id}";
+
+    $this->actingAs($usuario)->post("{$base}/aprobar")->assertNotFound();
+    $this->actingAs($usuario)->post("{$base}/rechazar", ['motivo' => 'No.'])->assertNotFound();
+    $this->actingAs($usuario)->post("{$base}/acuse")->assertNotFound();
+});
+
+it('el acuse de otra organización no se ve', function (): void {
+    ['usuario' => $usuario, 'ajeno' => $ajeno, 'versionAjena' => $version] = dosOrganizacionesConDocumentos();
+
+    // Un acuse dice quién ha leído qué y cuándo: es un registro de conducta del
+    // personal de un cliente, y de lo último que debería poder verse desde otro.
+    comoOrganizacion($ajeno->organizacion_id);
+    $version->lecturas()->create([
+        'user_id' => User::factory()->create(['organizacion_id' => $ajeno->organizacion_id])->id,
+        'acusada_en' => now(),
+        'created_at' => now(),
+    ]);
+
+    comoOrganizacion($usuario->organizacion_id);
+
+    expect(DocumentoLectura::query()->count())->toBe(0);
 });
 
 it('la consulta del recurso no ve versiones de otra organización', function (): void {

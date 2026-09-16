@@ -190,11 +190,17 @@ it('declara por escrito lo que todavía no puede afirmar', function (): void {
          */
         ->toContain('no exige que todo control aplicable tenga un riesgo detrás')
         ->not->toContain('módulo de riesgos')
-        // La redacción se precisó al volverse editable la narrativa: la
-        // herramienta no implementa aprobación, y el texto de aprobación que
-        // pueda figurar lo ha escrito la organización, no Statera.
-        ->toContain('no implementa un flujo de aprobación')
-        ->toContain('Statera no lo ha validado')
+        /*
+         * Y lo mismo, otra vez, con la aprobación. Decía «la herramienta no
+         * implementa un flujo de aprobación» y eso dejó de ser cierto al llegar
+         * el § 4.5: ahora registra quién firmó, cuándo y con qué nota. Lo que
+         * sigue sin hacer es comprobar que quien firma tenga potestad para
+         * hacerlo, y guardar una firma electrónica cualificada — que es la
+         * diferencia entre trazabilidad y validez jurídica.
+         */
+        ->toContain('no comprueba que quien firma tenga potestad')
+        ->toContain('no incorpora firma electrónica')
+        ->not->toContain('no implementa un flujo de aprobación')
         ->toContain('derechos de autor');
 });
 

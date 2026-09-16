@@ -40,13 +40,45 @@ it('el auditor y el técnico ven el índice y la ficha', function (Rol $rol): vo
     $this->actingAs($usuario)->get("/documentos/{$this->documento->id}")->assertOk();
 })->with([Rol::Auditor, Rol::Tecnico]);
 
-it('ni el auditor ni el técnico generan o emiten', function (Rol $rol): void {
+it('ni el auditor ni el técnico generan documentos', function (Rol $rol): void {
     $usuario = usuarioCon($rol);
 
     $this->actingAs($usuario)->post("/documentos/{$this->documento->id}/generar")->assertForbidden();
-    $this->actingAs($usuario)->post("/documentos/{$this->documento->id}/emitir")->assertForbidden();
     $this->actingAs($usuario)->get('/documentos/crear')->assertForbidden();
 })->with([Rol::Auditor, Rol::Tecnico]);
+
+/**
+ * Y ninguno de los dos firma, que desde el § 4.5 es lo mismo que decir que
+ * ninguno de los dos entrega: aprobar es lo que numera la versión y congela el
+ * PDF. Es la misma línea que separa registrar un riesgo de aceptarlo.
+ */
+it('ni el auditor ni el técnico aprueban ni rechazan', function (Rol $rol): void {
+    $version = DocumentoVersion::factory()
+        ->delDocumento($this->documento->id)
+        ->enRevision()
+        ->create();
+
+    $usuario = usuarioCon($rol);
+    $base = "/documentos/{$this->documento->id}/versiones/{$version->id}";
+
+    $this->actingAs($usuario)->post("{$base}/aprobar")->assertForbidden();
+    $this->actingAs($usuario)->post("{$base}/rechazar", ['motivo' => 'No.'])->assertForbidden();
+})->with([Rol::Auditor, Rol::Tecnico]);
+
+/**
+ * El acuse es la excepción, y a propósito: se escribe sobre uno mismo, como en
+ * `/perfil`. Hasta el auditor puede declarar que ha leído lo que audita.
+ */
+it('cualquiera que vea el documento puede acusar su lectura', function (Rol $rol): void {
+    $version = DocumentoVersion::factory()
+        ->delDocumento($this->documento->id)
+        ->emitida()
+        ->create();
+
+    $this->actingAs(usuarioCon($rol))
+        ->post("/documentos/{$this->documento->id}/versiones/{$version->id}/acuse")
+        ->assertRedirect();
+})->with([Rol::Auditor, Rol::Tecnico, Rol::ResponsableSeguridad]);
 
 it('el auditor puede descargar lo entregado, que es de lo que va auditar', function (): void {
     DocumentoVersion::factory()->delDocumento($this->documento->id)->emitida()->create();
@@ -59,7 +91,7 @@ it('el auditor puede descargar lo entregado, que es de lo que va auditar', funct
         ->assertInertia(fn (AssertableInertia $p) => $p->has('versiones', 1));
 });
 
-it('el responsable de seguridad sí genera y emite', function (): void {
+it('el responsable de seguridad sí genera y aprueba', function (): void {
     $usuario = usuarioCon(Rol::ResponsableSeguridad);
 
     $this->actingAs($usuario)->get('/documentos/crear')->assertOk();

@@ -76,6 +76,20 @@ const estados: Record<string, Tono> = {
     },
 
     /*
+     * El violeta de marca, y el único badge de estado que lo gasta. DESIGN.md lo
+     * tenía declarado desde el principio y sin flujo detrás; el flujo de
+     * aprobación documental es ese flujo, y es exactamente lo que ese acento
+     * tiene reservado: revisión y auditoría.
+     */
+    en_revision: {
+        badge: 'bg-estado-en-revision-suave text-estado-en-revision',
+        punto: 'bg-estado-en-revision',
+        relleno: 'bg-estado-en-revision',
+        tramo: 'bg-estado-en-revision',
+        icono: 'Eye',
+    },
+
+    /*
      * El único rojo del vocabulario. Una evidencia caducada o una tarea vencida
      * son de las pocas cosas del dominio que van mal de verdad; DESIGN.md §3 le
      * reserva el rojo a eso y a nada más.

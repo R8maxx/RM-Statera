@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
+import CampoSwitch from '@/components/formulario/CampoSwitch.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
 import FormularioRecurso from '@/components/formulario/FormularioRecurso.vue';
@@ -17,6 +18,9 @@ interface Documento {
     sistema_id: number | null;
     responsable_id: number | null;
     notas: string | null;
+    periodicidad_revision_meses: number | null;
+    exige_acuse: boolean;
+    redactado: boolean;
 }
 
 /** Las opciones de sistema y de tipo llevan su marco para poder avisar antes de enviar. */
@@ -60,13 +64,29 @@ const avisoMarco = computed<string | null>(() => {
 
     return `Ese sistema está declarado bajo otro marco. Elige uno de ${esperado} o cambia el tipo de documento.`;
 });
+
+/**
+ * Un documento redactado no declara conformidad con ningún marco.
+ *
+ * El servidor manda `marco: null` para política, norma y procedimiento, y ese
+ * nulo significa «no hay nada que casar», nunca «no se ha rellenado». De ahí sale
+ * también que el sistema deje de ser obligatorio: una política de seguridad es de
+ * la organización entera.
+ */
+const redactado = computed(() => props.tipos.find((t) => t.valor === tipo.value)?.marco === null);
+
+const acuse = ref(props.documento?.exige_acuse ?? false);
 </script>
 
 <template>
     <AppLayout :titulo="edicion ? `Editar ${documento!.codigo}` : 'Nuevo documento'">
         <FormularioRecurso
             :titulo="edicion ? 'Editar documento' : 'Nuevo documento'"
-            descripcion="El documento no se redacta: se genera a partir de lo que ya está registrado. Aquí sólo se decide de qué sistema es, cómo se llama y quién responde de él."
+            :descripcion="
+                redactado
+                    ? 'Una política, una norma o un procedimiento los escribe la organización: aquí se le da código y responsable, y el contenido se redacta después en el editor.'
+                    : 'Una declaración de aplicabilidad no se redacta: se genera a partir de lo que ya está registrado. Aquí sólo se decide de qué sistema es, cómo se llama y quién responde de él.'
+            "
             :action="edicion ? `/documentos/${documento!.id}` : '/documentos'"
             :method="edicion ? 'put' : 'post'"
             :etiqueta-enviar="edicion ? 'Guardar cambios' : 'Crear documento'"
@@ -75,7 +95,7 @@ const avisoMarco = computed<string | null>(() => {
         >
             <SeccionFormulario
                 titulo="Qué documento es"
-                ayuda="La Declaración de Aplicabilidad de ISO y la del ENS son dos consultas distintas sobre las mismas implantaciones. Cada una sólo puede emitirse para un sistema de su marco."
+                ayuda="Hay dos familias y no se parecen: las declaraciones de aplicabilidad se calculan desde las implantaciones y sólo caben en un sistema de su marco; una política, una norma o un procedimiento los escribe la organización."
                 plegable
             >
                 <CampoSelect
@@ -91,10 +111,38 @@ const avisoMarco = computed<string | null>(() => {
                     v-model="sistema"
                     nombre="sistema_id"
                     etiqueta="Sistema"
-                    :opciones="sistemas"
+                    :opciones="redactado ? conOpcionVacia(sistemas, 'Toda la organización') : sistemas"
                     :error="errors.sistema_id ?? avisoMarco ?? undefined"
-                    requerido
-                    ayuda="De él salen el alcance declarado, la categoría y el conjunto de requisitos exigibles."
+                    :requerido="!redactado"
+                    :ayuda="
+                        redactado
+                            ? 'Opcional: una política de seguridad suele ser de la organización entera y no colgar de ningún sistema.'
+                            : 'De él salen el alcance declarado, la categoría y el conjunto de requisitos exigibles.'
+                    "
+                />
+            </SeccionFormulario>
+
+            <SeccionFormulario
+                titulo="Revisión y difusión"
+                ayuda="Un documento del SGSI no basta con publicarlo: hay que revisarlo cada cierto tiempo y poder demostrar que quien tiene que conocerlo lo conoce."
+                plegable
+            >
+                <CampoTexto
+                    nombre="periodicidad_revision_meses"
+                    etiqueta="Se revisa cada (meses)"
+                    tipo="number"
+                    :valor-inicial="documento?.periodicidad_revision_meses ?? undefined"
+                    :error="errors.periodicidad_revision_meses"
+                    placeholder="12"
+                    ayuda="En blanco es «no se revisa por calendario», que es lo normal en una Declaración de Aplicabilidad: se rehace cuando cambia el alcance. Al aprobar, la fecha de la próxima revisión se calcula desde aquí y salta en el calendario."
+                />
+
+                <CampoSwitch
+                    v-model="acuse"
+                    nombre="exige_acuse"
+                    etiqueta="Exigir acuse de lectura"
+                    :error="errors.exige_acuse"
+                    ayuda="Para políticas y normas: la cláusula 7.3 de ISO y org.2 del ENS piden poder demostrar que se conocen, no sólo que están publicadas. Nadie acusa recibo de una Declaración de Aplicabilidad."
                 />
             </SeccionFormulario>
 

@@ -37,6 +37,10 @@ final class TextosDeFabrica
             return '';
         }
 
+        if ($tipo->esRedactado()) {
+            return self::redactado($tipo, $seccion);
+        }
+
         return match ($seccion) {
             SeccionNarrativa::Introduccion => self::introduccion($tipo),
             SeccionNarrativa::ObjetoYAlcance => self::objetoYAlcance(),
@@ -85,6 +89,63 @@ final class TextosDeFabrica
 
                 La categoría no se elige: se deriva de valorar el perjuicio en las cinco dimensiones de seguridad, y esa derivación se imprime entera en el apartado siguiente.
                 MD,
+
+            // No llegan aquí: `para()` desvía los redactados a `redactado()`
+            // antes, porque su introducción no es la de una declaración.
+            TipoDocumento::Politica,
+            TipoDocumento::Norma,
+            TipoDocumento::Procedimiento => '',
+        };
+    }
+
+    /**
+     * Los textos de partida de un documento que escribe la organización.
+     *
+     * Aquí Statera sí tiene algo que decir, a diferencia de `Conclusiones` o
+     * `LimitacionesPropias`: son las frases que el ENS espera literalmente de una
+     * política —`org.1` pide que declare los objetivos, el compromiso de la
+     * dirección y a quién obliga— y que cualquier organización va a escribir casi
+     * igual. Es lo que la § 4.5 llama «plantillas base personalizables»: un punto
+     * de partida cierto, no un hueco en blanco ni un «sustituya este texto», que
+     * es lo que acabaría impreso en el PDF que alguien aprueba sin mirar.
+     */
+    private static function redactado(TipoDocumento $tipo, SeccionNarrativa $seccion): string
+    {
+        return match ($seccion) {
+            SeccionNarrativa::Introduccion => match ($tipo) {
+                TipoDocumento::Politica => <<<'MD'
+                    Esta política establece los objetivos y los principios de seguridad de la información que la organización adopta, y recoge el compromiso de la dirección con su cumplimiento y con la mejora continua del sistema de gestión.
+
+                    Es de obligado cumplimiento para todo el personal de la organización y para los terceros que traten información de la organización o accedan a sus sistemas.
+                    MD,
+
+                TipoDocumento::Norma => <<<'MD'
+                    Esta norma desarrolla lo que la política de seguridad de la información establece, y fija las reglas concretas que hay que cumplir en el ámbito que se declara más abajo.
+
+                    Es de obligado cumplimiento para quienes figuran en su ámbito de aplicación. Lo que no esté recogido aquí se rige por la política de seguridad de la información.
+                    MD,
+
+                TipoDocumento::Procedimiento => <<<'MD'
+                    Este procedimiento describe cómo se ejecuta una actividad concreta: quién la hace, cuándo, con qué medios y qué registro deja.
+
+                    Los registros que genera su ejecución son la evidencia de que la actividad se realiza, y se conservan durante el plazo que aquí se indique.
+                    MD,
+
+                default => '',
+            },
+
+            /*
+             * El alcance se queda vacío, y no por falta de ganas: a quién obliga
+             * y sobre qué sistemas se aplica es lo más específico que tiene un
+             * documento así, y cualquier frase de relleno que Statera pusiera
+             * aquí saldría impresa en el PDF que alguien acaba aprobando. Un
+             * hueco vacío no se pinta —ni él ni su título—, así que un documento
+             * sin alcance escrito se nota; una frase genérica, no.
+             *
+             * Lo que sí hay es la ayuda del campo en el editor, que es donde se
+             * orienta a quien escribe sin acabar dentro del documento.
+             */
+            default => '',
         };
     }
 
@@ -102,6 +163,12 @@ final class TextosDeFabrica
         $derivacion = match ($tipo) {
             TipoDocumento::SoaIso => 'Los controles del Anexo A se consideran aplicables de partida. Excluir uno exige registrar el motivo, y esa justificación se imprime en el apartado de controles excluidos: sin motivo, la herramienta no permite la exclusión.',
             TipoDocumento::DdaEns => 'El conjunto de medidas exigibles se deriva de la categoría del sistema, que a su vez es el máximo de los niveles asignados a las cinco dimensiones de seguridad. Ninguna medida se marca a mano.',
+
+            // No llegan aquí: `SeccionNarrativa::aplicaA()` no ofrece este hueco
+            // a un documento redactado, que no deriva nada de ninguna tabla.
+            TipoDocumento::Politica,
+            TipoDocumento::Norma,
+            TipoDocumento::Procedimiento => '',
         };
 
         return $derivacion."\n\n"
@@ -125,6 +192,11 @@ final class TextosDeFabrica
 
                 **Los refuerzos del Anexo II se acumulan**: «Refuerzo 2» significa «hasta el refuerzo 2», es decir, R1 y R2, no sólo R2.
                 MD,
+
+            // No llegan aquí: un documento redactado no tiene tabla que explicar.
+            TipoDocumento::Politica,
+            TipoDocumento::Norma,
+            TipoDocumento::Procedimiento => '',
         };
     }
 

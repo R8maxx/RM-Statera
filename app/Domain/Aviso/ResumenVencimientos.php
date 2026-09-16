@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Aviso;
 
+use App\Domain\Documento\Models\Documento;
 use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Tarea\Models\Tarea;
 
@@ -46,6 +47,16 @@ final readonly class ResumenVencimientos
             evidenciasPorCaducar: $this->calendario->deEvidencias(Evidencia::query()->porCaducar($dias)),
             tareasVencidas: $this->calendario->deTareas(Tarea::query()->vencidas()),
             tareasPorVencer: $this->calendario->deTareas(Tarea::query()->porVencer($dias)),
+            /*
+             * La revisión documental, con los mismos scopes que cuentan el
+             * indicador del panel y el filtro de la tabla. Va en su propio par
+             * por lo mismo que evidencias y tareas van aparte: una revisión
+             * vencida no se arregla como una tarea que no se hizo — se arregla
+             * volviendo a mirar el documento y aprobándolo otra vez, y lo hace
+             * quien firma.
+             */
+            documentosRevisionVencida: $this->calendario->deDocumentos(Documento::query()->revisionVencida()),
+            documentosPorRevisar: $this->calendario->deDocumentos(Documento::query()->porRevisar($dias)),
             dias: $dias,
         );
     }

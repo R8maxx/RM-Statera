@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Aviso;
 
+use App\Domain\Documento\Models\Documento;
 use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Tarea\Enums\EstadoTarea;
 use App\Domain\Tarea\Models\Tarea;
@@ -62,7 +63,21 @@ final readonly class CalendarioVencimientos
             ))
             : [];
 
-        $vencimientos = [...$tareas, ...$evidencias];
+        $documentos = $filtros->quiere(Fuente::Documento)
+            ? $this->deDocumentos($filtros->acotar(
+                Documento::query()->whereHas(
+                    'versionAprobada',
+                    fn (Builder $version): Builder => $version
+                        ->whereNotNull('fecha_proxima_revision')
+                        ->whereDate('fecha_proxima_revision', '>=', $desde)
+                        ->whereDate('fecha_proxima_revision', '<=', $hasta),
+                ),
+                'fecha_proxima_revision',
+                'versionAprobada',
+            ))
+            : [];
+
+        $vencimientos = [...$tareas, ...$evidencias, ...$documentos];
 
         usort($vencimientos, static fn (Vencimiento $a, Vencimiento $b): int => [$a->dia, $a->titulo] <=> [$b->dia, $b->titulo]);
 
@@ -87,6 +102,61 @@ final readonly class CalendarioVencimientos
     public function deEvidencias(Builder $consulta): array
     {
         return $this->filas($consulta, 'fecha_caducidad', Fuente::Evidencia);
+    }
+
+    /**
+     * Los documentos cuya revisión toca, o ya tocaba.
+     *
+     * **No puede pasar por `filas()`**, y no es un capricho: ese helper lee la
+     * fecha de la propia fila, y aquí la fecha vive en la versión aprobada
+     * mientras que el título y el responsable viven en el documento. Lo que vence
+     * no es el documento, es la revisión de lo que se firmó.
+     *
+     * @param  Builder<Documento>  $consulta
+     * @return list<Vencimiento>
+     */
+    public function deDocumentos(Builder $consulta): array
+    {
+        $hoy = Carbon::today();
+
+        return $consulta
+            ->with(['responsable:id,name', 'versionAprobada'])
+            ->get()
+            ->map(function (Documento $documento) use ($hoy): ?Vencimiento {
+                $fecha = $documento->versionAprobada?->fecha_proxima_revision;
+
+                if ($fecha === null) {
+                    return null;
+                }
+
+                $dias = (int) $hoy->diffInDays($fecha, false);
+
+                return new Vencimiento(
+                    id: $documento->id,
+                    fuente: Fuente::Documento,
+                    // Con el código delante: el auditor cita «la SoA v4», y en una
+                    // lista de quince vencimientos «Declaración de Aplicabilidad»
+                    // aparece tres veces sin decir cuál es cuál.
+                    titulo: "{$documento->codigo} — {$documento->titulo}",
+                    dia: $fecha->toDateString(),
+                    fecha: $fecha->format('d/m/Y'),
+                    dias: $dias,
+                    responsable: $documento->responsable?->name,
+                    tono: $this->tono($dias),
+                    /*
+                     * Un documento aprobado cuya revisión se pasó **no deja de
+                     * estar aprobado**: lo que está vencido es la revisión. Por
+                     * eso el estado dice «Revisión vencida» y no «Obsoleto», que
+                     * sería decir que el documento ya no vale — y sí vale, hasta
+                     * que alguien apruebe el siguiente.
+                     */
+                    estadoTono: $dias < 0 ? 'caducada' : 'implantado',
+                    estadoEtiqueta: $dias < 0 ? 'Revisión vencida' : 'Vigente',
+                );
+            })
+            ->filter()
+            ->values()
+            ->all();
     }
 
     /**

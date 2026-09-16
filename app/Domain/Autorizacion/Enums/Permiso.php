@@ -19,9 +19,20 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * dimensiones sí. Es la decisión que redefine el alcance del cumplimiento
  * entero, y no es la misma persona quien la toma.
  *
- * `documentos.generar` cubre crear el registro, generar el borrador y emitir la
- * versión, que es lo mismo que hacer y entregar. `documentos.aprobar` llegará
- * con el flujo de aprobación, que es cuando la diferencia existirá de verdad.
+ * `documentos.generar` cubre crear el registro, preparar el borrador y mandarlo a
+ * revisión, que es todo el trabajo de hacer un documento. Lo que ya **no** cubre
+ * es entregarlo: desde el § 4.5, quien firma es quien emite.
+ *
+ * `documentos.aprobar` es el cuarto verbo del producto, junto a
+ * `sistemas.valorar` y `riesgos.aceptar`, y está por el mismo motivo que ellos:
+ * aprobar un documento es la dirección declarando que asume lo que dice, y ésa
+ * es la razón entera por la que ISO pide la aprobación. Un técnico que prepara la
+ * política no debe poder firmarla — y como aprobar es lo que numera y congela el
+ * PDF, este permiso es también el que decide quién entrega al auditor.
+ *
+ * Acusar la lectura NO lleva permiso propio, como no lo lleva `/perfil`: se
+ * escribe sobre uno mismo y no redefine nada de la organización. Basta con poder
+ * ver el documento.
  *
  * `riesgos.aceptar` es el tercer verbo del producto, y está por el mismo motivo
  * que `sistemas.valorar`: aceptar un riesgo es la organización declarando que
@@ -70,6 +81,7 @@ enum Permiso: string
 
     case DocumentosVer = 'documentos.ver';
     case DocumentosGenerar = 'documentos.generar';
+    case DocumentosAprobar = 'documentos.aprobar';
     case DocumentosRedactar = 'documentos.redactar';
     case DocumentosPlantillas = 'documentos.plantillas';
 
@@ -92,7 +104,8 @@ enum Permiso: string
             self::TareasVer => 'Ver el plan de acción',
             self::TareasGestionar => 'Crear tareas, asignarlas y moverlas de estado',
             self::DocumentosVer => 'Ver los documentos y descargar sus versiones',
-            self::DocumentosGenerar => 'Generar documentos y emitir versiones',
+            self::DocumentosGenerar => 'Crear documentos, generar borradores y mandarlos a revisión',
+            self::DocumentosAprobar => 'Aprobar documentos y entregar la versión firmada',
             self::DocumentosRedactar => 'Redactar los textos de un documento',
             self::DocumentosPlantillas => 'Definir los textos base de la organización',
         };

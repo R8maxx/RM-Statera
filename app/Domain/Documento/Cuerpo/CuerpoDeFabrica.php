@@ -74,6 +74,17 @@ final class CuerpoDeFabrica
             ...match ($this->tipo) {
                 TipoDocumento::SoaIso => $this->cuerpoIso(),
                 TipoDocumento::DdaEns => $this->cuerpoEns(),
+
+                /*
+                 * Un documento redactado no tiene cuerpo calculado: entre el
+                 * objeto y las conclusiones va lo que escriba la organización, y
+                 * eso ya lo traen las secciones narrativas de arriba. Nada que
+                 * insertar aquí no es un hueco por rellenar: es la diferencia
+                 * entre un documento que se consulta y uno que se escribe.
+                 */
+                TipoDocumento::Politica,
+                TipoDocumento::Norma,
+                TipoDocumento::Procedimiento => [],
             },
 
             ...$this->seccion(SeccionNarrativa::Conclusiones),
@@ -182,7 +193,11 @@ final class CuerpoDeFabrica
         $propias = $this->prosa(SeccionNarrativa::LimitacionesPropias);
 
         return Nodo::de('seccion', [], [
-            Nodo::encabezado(2, 'Limitaciones de esta declaración'),
+            // «Declaración» sólo si lo es: una política no declara aplicabilidad
+            // de nada, y el título llegaría al PDF diciendo lo contrario.
+            Nodo::encabezado(2, $this->tipo->esRedactado()
+                ? 'Limitaciones de este documento'
+                : 'Limitaciones de esta declaración'),
             Nodo::hueco('limitaciones_sistema'),
             ...($propias === [] ? [] : [
                 Nodo::encabezado(3, 'Limitaciones declaradas por la organización'),

@@ -77,10 +77,15 @@ final readonly class FiltrosVencimiento
      * @template TModel of \Illuminate\Database\Eloquent\Model
      *
      * @param  Builder<TModel>  $consulta
+     * @param  string|null  $relacionFecha  cuando la fecha no está en la tabla consultada
      * @return Builder<TModel>
      */
-    public function acotar(Builder $consulta, string $columnaFecha): Builder
+    public function acotar(Builder $consulta, string $columnaFecha, ?string $relacionFecha = null): Builder
     {
+        // Estrictamente anterior a hoy: lo que vence hoy todavía no se ha pasado,
+        // igual que en `Tarea::vencidas()` y en `Evidencia::caducadas()`.
+        $vencido = fn (Builder $q): Builder => $q->whereDate($columnaFecha, '<', Carbon::today());
+
         return $consulta
             ->when(
                 $this->responsableId !== null,
@@ -88,9 +93,16 @@ final readonly class FiltrosVencimiento
             )
             ->when(
                 $this->soloVencidos,
-                // Estrictamente anterior a hoy: lo que vence hoy todavía no se ha
-                // pasado, igual que en `Tarea::vencidas()` y en `caducadas()`.
-                fn (Builder $q): Builder => $q->whereDate($columnaFecha, '<', Carbon::today()),
+                /*
+                 * Un documento no tiene fecha propia: lo que vence es la revisión
+                 * de su versión aprobada, así que la condición baja a la relación
+                 * en vez de buscar una columna que no existe en `documentos`. Es
+                 * la misma razón por la que el recuento va por `whereHas` y no
+                 * por `join`.
+                 */
+                fn (Builder $q): Builder => $relacionFecha === null
+                    ? $vencido($q)
+                    : $q->whereHas($relacionFecha, $vencido),
             );
     }
 

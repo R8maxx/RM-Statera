@@ -8,6 +8,7 @@ use App\Domain\Activo\Enums\EstadoControl;
 use App\Domain\Activo\Enums\TipoActivo;
 use App\Domain\Aviso\Fuente;
 use App\Domain\Documento\Enums\ClasificacionDocumental;
+use App\Domain\Documento\Enums\EstadoDocumental;
 use App\Domain\Documento\Enums\EstadoGeneracion;
 use App\Domain\Documento\Enums\OrigenTexto;
 use App\Domain\Implantacion\Enums\EstadoImplantacion;
@@ -41,6 +42,7 @@ function enumsConIcono(): array
         EstadoControl::class,
         Clasificacion::class,
         ClasificacionDocumental::class,
+        EstadoDocumental::class,
         EstadoGeneracion::class,
         OrigenTexto::class,
         PrioridadTarea::class,
@@ -145,6 +147,9 @@ it('dos estados del mismo tono no comparten icono', function (string $enum): voi
 })->with([
     EstadoTarea::class,
     EstadoImplantacion::class,
+    // `Rechazado` y `Obsoleto` comparten el gris del dominio: el icono es lo
+    // único que separa una decisión de un archivo.
+    EstadoDocumental::class,
     EstadoCicloVida::class,
     EstadoControl::class,
     Clasificacion::class,

@@ -369,9 +369,71 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/documentos/{documento}/generar', [DocumentoController::class, 'generar'])
             ->name('documentos.generar');
 
-        // Emitir es entregar, y a partir de ahí la versión es inmutable.
-        Route::post('/documentos/{documento}/emitir', [DocumentoController::class, 'emitir'])
-            ->name('documentos.emitir');
+        /*
+         * Aquí había un `/emitir`. Ya no: desde el § 4.5 **aprobar es lo que
+         * emite**, y sale por su propia ruta con su propio permiso. Dejarla
+         * abierta habría sido una puerta lateral para entregar sin firma, que es
+         * justo lo que el flujo existe para impedir.
+         */
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | La aprobación (§ 4.5)
+    |--------------------------------------------------------------------------
+    |
+    | Firmar es lo que numera la versión, congela el PDF y lo mueve a `emitidas/`.
+    | No es un matiz de permisos: es la razón por la que ISO pide la aprobación, y
+    | por eso no cuelga de `documentos.generar`.
+    |
+    | El rechazo va con el mismo permiso: decir que no es la otra mitad de decidir.
+    |
+    */
+
+    Route::middleware(['can:documentos.aprobar', ExigirDosFactores::class])->group(function (): void {
+        Route::post('/documentos/{documento}/versiones/{version}/aprobar', [DocumentoController::class, 'aprobar'])
+            ->scopeBindings()
+            ->name('documentos.versiones.aprobar');
+
+        Route::post('/documentos/{documento}/versiones/{version}/rechazar', [DocumentoController::class, 'rechazar'])
+            ->scopeBindings()
+            ->name('documentos.versiones.rechazar');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | El acuse de lectura (§ 4.5)
+    |--------------------------------------------------------------------------
+    |
+    | **Sin permiso propio y sin segundo factor**, y es la única escritura del
+    | producto que va así. Es el mismo criterio que `/perfil`: se escribe sobre uno
+    | mismo, no redefine nada de la organización y no hay nada que otra persona
+    | pueda ganar haciéndolo por ti. Exigir aquí el segundo factor convertiría en
+    | un trámite de dos pasos lo que tiene que costar un clic, y un acuse que
+    | cuesta se deja de firmar.
+    |
+    */
+
+    Route::middleware('can:documentos.ver')->group(function (): void {
+        Route::post('/documentos/{documento}/versiones/{version}/acuse', [DocumentoController::class, 'acusar'])
+            ->scopeBindings()
+            ->name('documentos.versiones.acuse');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Mandar a revisión
+    |--------------------------------------------------------------------------
+    |
+    | Va con `redactar` y no con `generar`: es el final de escribir el documento
+    | —«esto ya está, que lo mire quien firma»— y no el principio de entregarlo.
+    | Quien lo redacta tiene que poder soltarlo sin depender de nadie.
+    |
+    */
+
+    Route::middleware(['can:documentos.redactar', ExigirDosFactores::class])->group(function (): void {
+        Route::post('/documentos/{documento}/revision', [DocumentoController::class, 'revisar'])
+            ->name('documentos.revision');
     });
 
     /*

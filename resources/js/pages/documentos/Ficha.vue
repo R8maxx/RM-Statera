@@ -1,25 +1,41 @@
 <script setup lang="ts">
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
+import BloqueAcuse from '@/components/documento/BloqueAcuse.vue';
+import BloqueAprobacion from '@/components/documento/BloqueAprobacion.vue';
 import HistorialVersiones, { type Version } from '@/components/documento/HistorialVersiones.vue';
 import EsqueletoDocumento from '@/components/documento/EsqueletoDocumento.vue';
 import CeldaBadge from '@/components/tabla/celdas/CeldaBadge.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { motion } from 'motion-v';
 import { Link, router, useForm, usePoll } from '@inertiajs/vue3';
-import { DownloadIcon, FileTextIcon, PencilIcon, RefreshCwIcon, StampIcon, TypeIcon } from '@lucide/vue';
+import { DownloadIcon, FileTextIcon, PencilIcon, RefreshCwIcon, TypeIcon } from '@lucide/vue';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 
+/**
+ * Los dos estados de una versión, que no son lo mismo.
+ *
+ * `generacion*` es el ciclo de vida del TRABAJO que produce el PDF y es lo que
+ * mira el poll; `estado*` es el del DOCUMENTO —borrador, en revisión, aprobado—.
+ * Que el PDF se haya generado bien no significa que nadie lo haya firmado.
+ */
 interface VersionEnCurso extends Version {
+    generacion: string;
+    generacionEtiqueta: string;
+    generacionTono: string;
+    enCurso: boolean;
     estado: string;
     estadoEtiqueta: string;
     estadoTono: string;
-    enCurso: boolean;
+    estadoIcono: string;
+    aprobadaPor: string | null;
+    aprobadaEn: string | null;
+    notaAprobacion: string | null;
+    motivoRechazo: string | null;
+    proximaRevision: string | null;
     descargable: boolean;
     emisible: boolean;
     error: string | null;
@@ -42,14 +58,25 @@ const props = defineProps<{
         marco: string | null;
         responsable: string | null;
         notas: string | null;
+        periodicidad_revision_meses: number | null;
+        exige_acuse: boolean;
+        redactado: boolean;
     };
     versionEnCurso: VersionEnCurso | null;
+    versionVigente: VersionEnCurso | null;
     versiones: Version[];
+    acuse: {
+        total: number;
+        acusados: number;
+        pendientes: string[];
+        lectores: { nombre: string; fecha: string }[];
+        yaAcusado: boolean;
+    } | null;
+    puedeAprobar: boolean;
     cuerpoMasNuevoQueElBorrador: boolean;
 }>();
 
 const generar = useForm({});
-const emision = useForm({ motivo: '' });
 
 const enCurso = computed(() => props.versionEnCurso?.enCurso ?? false);
 
@@ -109,9 +136,18 @@ watch(
         // anuncia lo que vio. El aviso de fin sólo puede salir de aquí.
         if (anterior === true && desde !== null) {
             desde = null;
-            if (props.versionEnCurso?.estado === 'generada') {
+
+            /*
+             * Si la generación venía de una firma, el borrador ya no está: se
+             * numeró y pasó a `versiones`. Ese caso no es «el borrador está
+             * listo», es «el documento está entregado», y decirlo mal deja a
+             * alguien buscando un borrador que no existe.
+             */
+            if (props.versionEnCurso === null) {
+                toast.success('Documento aprobado y entregado.');
+            } else if (props.versionEnCurso.generacion === 'generada') {
                 toast.success('El borrador está listo.');
-            } else if (props.versionEnCurso?.estado === 'fallida') {
+            } else if (props.versionEnCurso.generacion === 'fallida') {
                 toast.error('La generación falló.');
             }
         }
@@ -127,11 +163,12 @@ function comprobar(): void {
 }
 
 /*
- * Un solo botón de color lleno por vista (DESIGN.md §9): con un borrador listo,
- * la acción que manda es emitirlo, así que regenerar baja a secundaria. Dos
- * llenos a la vez y no manda ninguno.
+ * Un solo botón de color lleno por vista (DESIGN.md §9): en cuanto hay un
+ * borrador generado, la acción que manda está en el bloque de aprobación —mandar
+ * a revisión, o firmar—, así que regenerar baja a secundaria. Dos llenos a la vez
+ * y no manda ninguno.
  */
-const varianteGenerar = computed(() => (props.versionEnCurso?.emisible ? 'outline' : 'default'));
+const varianteGenerar = computed(() => (props.versionEnCurso?.descargable ? 'outline' : 'default'));
 
 const { variantesEntrada, variantesEscalonado } = useMovimientoReducido();
 
@@ -189,9 +226,9 @@ const kb = (bytes: number | null | undefined): string =>
                     <div v-if="versionEnCurso" class="flex flex-wrap items-center gap-3">
                         <CeldaBadge
                             :valor="{
-                                valor: versionEnCurso.estado,
-                                etiqueta: versionEnCurso.estadoEtiqueta,
-                                tono: versionEnCurso.estadoTono,
+                                valor: versionEnCurso.generacion,
+                                etiqueta: versionEnCurso.generacionEtiqueta,
+                                tono: versionEnCurso.generacionTono,
                             }"
                         />
                         <span v-if="versionEnCurso.descargable" class="text-sm text-muted-foreground">
@@ -254,43 +291,51 @@ const kb = (bytes: number | null | undefined): string =>
                         </Button>
                     </div>
 
-                    <form
-                        v-if="versionEnCurso?.emisible"
-                        class="flex flex-col gap-2 border-t border-border pt-4"
-                        @submit.prevent="emision.post(`/documentos/${documento.id}/emitir`, { preserveScroll: true })"
-                    >
-                        <Label for="motivo">
-                            Motivo de la entrega
-                            <span v-if="versiones.length > 0" class="text-destructive">*</span>
-                        </Label>
-                        <Input
-                            id="motivo"
-                            v-model="emision.motivo"
-                            placeholder="Entrega a la auditoría de seguimiento"
-                        />
-                        <p class="text-sm text-muted-foreground">
-                            «¿Por qué hay una v{{ versiones.length + 1 }}?» es la primera pregunta del
-                            auditor, y contestarla dentro de seis meses no lo hace nadie.
-                        </p>
-                        <p v-if="emision.errors.motivo" class="text-sm text-destructive">
-                            {{ emision.errors.motivo }}
-                        </p>
-                        <Button type="submit" variant="acento" :disabled="emision.processing" class="self-start">
-                            <StampIcon class="size-4" />
-                            Emitir versión
-                        </Button>
-                    </form>
-
                     <p class="text-sm text-muted-foreground">
-                        Las versiones emitidas no se regeneran. El PDF que se descarga es exactamente
+                        Las versiones aprobadas no se regeneran. El PDF que se descarga es exactamente
                         el que se generó ese día, y su SHA-256 lo demuestra.
                     </p>
                 </CardContent>
             </Card>
 
+            <!--
+                La aprobación va bajo el borrador y no en la columna estrecha:
+                es donde está la acción que manda de esta pantalla, y lo que se
+                firma es el borrador que hay justo encima.
+            -->
+            <BloqueAprobacion
+                v-if="versionEnCurso"
+                class="mt-6 block"
+                :documento-id="documento.id"
+                :version="versionEnCurso"
+                :puede-aprobar="puedeAprobar"
+                :entregas="versiones.length"
+            />
+
+            <BloqueAprobacion
+                v-else-if="versionVigente"
+                class="mt-6 block"
+                :documento-id="documento.id"
+                :version="versionVigente"
+                :puede-aprobar="puedeAprobar"
+                :entregas="versiones.length"
+            />
+
             </motion.div>
 
-            <motion.div :variants="variantesEntrada">
+            <motion.div :variants="variantesEntrada" class="flex flex-col gap-6">
+            <!--
+                El bloque de acuse NO se pinta si el documento no lo exige, y el
+                servidor tampoco lo manda: conectar dos cosas abre una puerta
+                lateral si quien pinta decide también qué se permite.
+            -->
+            <BloqueAcuse
+                v-if="acuse && versionVigente"
+                :documento-id="documento.id"
+                :version-id="versionVigente.id"
+                :acuse="acuse"
+            />
+
             <Card>
                 <CardHeader>
                     <CardTitle>Ficha</CardTitle>
@@ -300,13 +345,45 @@ const kb = (bytes: number | null | undefined): string =>
                         <div class="text-muted-foreground">Código</div>
                         <div class="cifra">{{ documento.codigo }}</div>
                     </div>
-                    <div>
+                    <!--
+                        Un documento redactado —política, norma, procedimiento—
+                        es de la organización entera y normalmente no cuelga de
+                        ningún sistema. Enseñar «— —» donde no hay nada es peor
+                        que no enseñar la fila.
+                    -->
+                    <div v-if="documento.sistema">
                         <div class="text-muted-foreground">Sistema</div>
                         <div>{{ documento.sistemaCodigo }} — {{ documento.sistema }}</div>
                     </div>
-                    <div>
+                    <div v-if="documento.marco">
                         <div class="text-muted-foreground">Marco</div>
-                        <div>{{ documento.marco ?? '—' }}</div>
+                        <div>{{ documento.marco }}</div>
+                    </div>
+                    <div v-if="documento.periodicidad_revision_meses">
+                        <div class="text-muted-foreground">Se revisa cada</div>
+                        <div>
+                            <span class="cifra">{{ documento.periodicidad_revision_meses }}</span>
+                            {{ documento.periodicidad_revision_meses === 1 ? 'mes' : 'meses' }}
+                        </div>
+                    </div>
+
+                    <!--
+                        La versión en vigor, con su firma. Cuando hay un borrador
+                        encima, el bloque de aprobación habla de ÉL —que es lo que
+                        pide acción— y esto es lo único que sigue diciendo qué
+                        está entregado ahora mismo.
+                    -->
+                    <div v-if="versionVigente?.aprobadaPor">
+                        <div class="text-muted-foreground">Versión vigente</div>
+                        <div>
+                            <span class="cifra">{{ versionVigente.etiqueta }}</span>
+                            · aprobada por {{ versionVigente.aprobadaPor }}
+                            el {{ versionVigente.aprobadaEn }}
+                        </div>
+                    </div>
+                    <div v-if="versionVigente?.proximaRevision">
+                        <div class="text-muted-foreground">Próxima revisión</div>
+                        <div class="cifra">{{ versionVigente.proximaRevision }}</div>
                     </div>
                     <div>
                         <div class="text-muted-foreground">Clasificación</div>

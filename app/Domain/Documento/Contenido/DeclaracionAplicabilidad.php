@@ -6,7 +6,6 @@ namespace App\Domain\Documento\Contenido;
 
 use App\Domain\Catalogo\Models\Requisito;
 use App\Domain\Documento\Models\Documento;
-use App\Domain\Documento\Models\DocumentoVersion;
 use App\Domain\Documento\Narrativa\MarkdownDocumento;
 use App\Domain\Documento\Narrativa\ResolverNarrativa;
 use App\Domain\Implantacion\CorrespondenciasCruzadas;
@@ -15,7 +14,6 @@ use App\Domain\Implantacion\Models\Implantacion;
 use App\Http\Resources\Implantacion\Correspondencia;
 use App\Http\Resources\Panel\SegmentoEstado;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Carbon;
 
 /**
  * Lo que comparten la SoA de ISO y la DdA del ENS.
@@ -27,6 +25,15 @@ use Illuminate\Support\Carbon;
  */
 abstract class DeclaracionAplicabilidad implements GeneradorDocumento
 {
+    /*
+     * La portada, el historial y las limitaciones son de cualquier entrega y no
+     * sólo de una declaración: desde que existen los documentos redactados, los
+     * comparten dos ramas que no tienen antepasado común. Las limitaciones son
+     * el motivo de fondo —dos copias de esa lista es cómo se acaba con una
+     * política declarando algo que la SoA ya no declara—.
+     */
+    use Concerns\ArmaContenidoComun;
+
     public function __construct(
         protected readonly CorrespondenciasCruzadas $correspondencias,
         protected readonly ResolverNarrativa $narrativa,
@@ -260,107 +267,5 @@ abstract class DeclaracionAplicabilidad implements GeneradorDocumento
             ->where('tipo', $this->tipoDeRequisito())
             ->whereDoesntHave('hijos')
             ->count();
-    }
-
-    /**
-     * Las versiones ya entregadas, con su huella.
-     *
-     * Encadena la custodia: cada entrega puede demostrar cuál fue la anterior.
-     * **La huella de la versión en curso no cabe aquí**, porque sería
-     * autorreferencia: el PDF no puede contener su propio SHA-256.
-     *
-     * @return list<array<string, mixed>>
-     */
-    protected function historialDe(Documento $documento): array
-    {
-        return $documento->versionesEmitidas()
-            ->with('generadaPor')
-            ->get()
-            ->map(fn (DocumentoVersion $version): array => [
-                'numero' => $version->numero,
-                'emitida' => $version->emitida_en?->format('d/m/Y'),
-                'quien' => $version->generadaPor?->name,
-                'motivo' => $version->motivo,
-                'huella' => $version->hash_sha256,
-            ])
-            ->values()
-            ->all();
-    }
-
-    /**
-     * Los datos de cabecera comunes a los dos documentos.
-     *
-     * @return array<string, mixed>
-     */
-    protected function portadaBase(Documento $documento, DocumentoVersion $version): array
-    {
-        $organizacion = $documento->organizacion;
-        $sistema = $documento->sistema;
-
-        return [
-            // `organizacion_id` es NOT NULL; `sistema_id` sí puede faltar en los
-            // tipos de documento de ámbito organizativo que vendrán después.
-            'organizacion' => $organizacion->nombre,
-            'cif' => $organizacion->cif,
-            'sistemaCodigo' => $sistema?->codigo,
-            'sistemaNombre' => $sistema?->nombre,
-            'marco' => $sistema?->marco->nombre,
-            'marcoVersion' => $sistema?->marco->version,
-            'documentoCodigo' => $documento->codigo,
-            'clasificacion' => $documento->clasificacion->etiqueta(),
-            'responsable' => $documento->responsable?->name,
-            'version' => $version->etiqueta(),
-            'esBorrador' => $version->esBorrador(),
-            'fecha' => Carbon::now()->format('d/m/Y'),
-        ];
-    }
-
-    /**
-     * Las limitaciones comunes. Se imprimen, no se esconden.
-     *
-     * Un auditor respeta una limitación declarada y suspende una inventada: es
-     * más barato decir que el flujo de aprobación no existe todavía que dejar
-     * que lo descubra él.
-     *
-     * @param  list<FilaRequisito>  $filas
-     * @return list<string>
-     */
-    protected function limitacionesBase(DocumentoVersion $version, array $filas): array
-    {
-        $limitaciones = [
-            /*
-             * Reescrita cuando la narrativa se volvió editable. Ahora la
-             * organización puede redactar un texto de aprobación, y la frase
-             * anterior —«no lleva aprobación formal»— se leería como una
-             * contradicción con él. Borrarla sería mentir: el flujo sigue sin
-             * existir. Así que se precisa qué es lo que no hace la herramienta y
-             * de quién es el texto que aparece.
-             */
-            'La herramienta **no implementa un flujo de aprobación**: no registra quién aprobó, '
-            .'cuándo ni con qué decisión. El texto de aprobación que figure en este documento, si '
-            .'lo hay, lo ha redactado la organización y Statera no lo ha validado. Una versión '
-            .'emitida no equivale a una versión aprobada por la dirección.',
-
-            /*
-             * Con la zona horaria escrita. La aplicación trabaja en UTC y quien
-             * lee el documento no tiene por qué: sin la marca, un documento
-             * generado a las 00:30 en España aparece fechado el día anterior, y
-             * una fecha que no cuadra con el registro es un hallazgo barato de
-             * encontrar.
-             */
-            'Datos extraídos el '.Carbon::now()->format('d/m/Y \a \l\a\s H:i T')
-            .' sobre '.count($filas).' requisitos registrados.',
-        ];
-
-        if ($version->esBorrador()) {
-            array_unshift(
-                $limitaciones,
-                '**Borrador.** Este PDF se regenera cada vez que se pide y no constituye una '
-                .'entrega: sólo las versiones emitidas quedan registradas de forma inmutable '
-                .'con su huella SHA-256.'
-            );
-        }
-
-        return $limitaciones;
     }
 }

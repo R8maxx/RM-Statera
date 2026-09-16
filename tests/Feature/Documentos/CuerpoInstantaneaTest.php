@@ -5,7 +5,6 @@ declare(strict_types=1);
 use App\Domain\Catalogo\Models\Marco;
 use App\Domain\Documento\Cuerpo\GuardarCuerpo;
 use App\Domain\Documento\Cuerpo\Nodo;
-use App\Domain\Documento\EmitirVersion;
 use App\Domain\Documento\GenerarDocumento;
 use App\Domain\Documento\Models\Documento;
 use App\Domain\Documento\Models\DocumentoCuerpo;
@@ -56,7 +55,7 @@ it('congela el cuerpo entero en la instantánea de la versión', function (): vo
 });
 
 it('una versión emitida no cambia aunque se reescriba el documento entero', function (): void {
-    $emitida = app(EmitirVersion::class)(($this->generar)(), 'Entrega a auditoría.');
+    $emitida = entregarVersion(($this->generar)(), null, 'Entrega a auditoría.');
 
     $antes = $emitida->instantanea['cuerpo'];
 
@@ -72,7 +71,7 @@ it('una versión emitida no cambia aunque se reescriba el documento entero', fun
 });
 
 it('el trigger rechaza tocar la fila de una versión emitida', function (): void {
-    $emitida = app(EmitirVersion::class)(($this->generar)(), 'Entrega a auditoría.');
+    $emitida = entregarVersion(($this->generar)(), null, 'Entrega a auditoría.');
 
     // No es que el código sea educado: lo impide PostgreSQL.
     expect(fn () => $emitida->update([
@@ -81,7 +80,7 @@ it('el trigger rechaza tocar la fila de una versión emitida', function (): void
 });
 
 it('el borrador siguiente sí recoge lo que se editó', function (): void {
-    app(EmitirVersion::class)(($this->generar)(), 'Primera entrega.');
+    entregarVersion(($this->generar)(), null, 'Primera entrega.');
 
     $fila = DocumentoCuerpo::query()->where('documento_id', $this->documento->id)->firstOrFail();
 

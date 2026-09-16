@@ -5,6 +5,9 @@ declare(strict_types=1);
 use App\Domain\Autorizacion\Enums\Rol;
 use App\Domain\Aviso\Notifications\VencimientosDelDia;
 use App\Domain\Aviso\ResumenVencimientos;
+use App\Domain\Documento\Models\Documento;
+use App\Domain\Documento\Models\DocumentoVersion;
+use App\Domain\Documento\ResumenDocumental;
 use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Organizacion\Models\Organizacion;
@@ -244,4 +247,110 @@ it('la entradilla habla de lo que hay en ese correo', function (): void {
     );
 
     expect($lasDos)->toContain('pruebas caducadas y trabajo sin hacer');
+});
+
+/*
+|--------------------------------------------------------------------------
+| La tercera fuente: la revisión documental (§ 4.5)
+|--------------------------------------------------------------------------
+|
+| Lo que vence no es el documento sino **la revisión de su versión aprobada**: la
+| fecha se calcula al firmar y se congela en la versión. Un documento sin
+| periodicidad no vence nunca, y es una respuesta legítima.
+|
+*/
+
+/** Una política aprobada cuya próxima revisión cae donde se diga. */
+function politicaAprobadaCon(?Carbon $proximaRevision, string $titulo = 'Política de Seguridad'): Documento
+{
+    // Código único: `politica()` trae uno fijo, que es lo cómodo cuando sólo hay
+    // una, y aquí se crean varias en el mismo test.
+    $documento = Documento::factory()->politica()->create([
+        'codigo' => 'POL-'.fake()->unique()->numerify('####'),
+        'titulo' => $titulo,
+    ]);
+
+    DocumentoVersion::factory()
+        ->delDocumento($documento->id)
+        ->emitida()
+        ->create(['fecha_proxima_revision' => $proximaRevision]);
+
+    return $documento;
+}
+
+it('separa la revisión vencida de la que toca pronto', function (): void {
+    politicaAprobadaCon(Carbon::today()->subDays(10), 'Política vieja');
+    politicaAprobadaCon(Carbon::today()->addDays(5), 'Norma de contraseñas');
+
+    // Fuera de la ventana y sin fecha: ninguna de las dos es asunto del aviso.
+    politicaAprobadaCon(Carbon::today()->addMonths(6));
+    politicaAprobadaCon(null);
+
+    $vencimientos = app(ResumenVencimientos::class)();
+
+    expect($vencimientos->documentosRevisionVencida)->toHaveCount(1)
+        ->and($vencimientos->documentosPorRevisar)->toHaveCount(1)
+        ->and($vencimientos->documentosRevisionVencida[0]->titulo)->toContain('Política vieja')
+        ->and($vencimientos->documentosRevisionVencida[0]->cuando('toca revisar', 'tocaba revisar'))
+        ->toBe('tocaba revisar hace 10 días');
+});
+
+/**
+ * Un borrador no vence: lo que caduca es la revisión de lo que se **firmó**. Si
+ * contara el borrador, el aviso saltaría por un documento que nadie ha entregado.
+ */
+it('un documento sin versión aprobada no vence', function (): void {
+    $documento = Documento::factory()->politica()->create();
+
+    DocumentoVersion::factory()
+        ->delDocumento($documento->id)
+        ->enRevision()
+        ->create(['fecha_proxima_revision' => Carbon::today()->subDays(30)]);
+
+    $vencimientos = app(ResumenVencimientos::class)();
+
+    expect($vencimientos->documentosRevisionVencida)->toBeEmpty()
+        ->and($vencimientos->documentosPorRevisar)->toBeEmpty();
+});
+
+it('el correo nombra la revisión documental en su propio bloque', function (): void {
+    politicaAprobadaCon(Carbon::today()->subDays(3), 'Política de Seguridad');
+
+    $correo = (new VencimientosDelDia('Organización', app(ResumenVencimientos::class)()))
+        ->toMail($this->responsable);
+
+    $texto = implode(' ', array_map(
+        static fn (mixed $linea): string => is_string($linea) ? $linea : '',
+        $correo->introLines,
+    ));
+
+    expect($texto)->toContain('Documentos sin revisar a tiempo')
+        // «Tocaba revisar» y no «venció»: el documento sigue aprobado y en vigor.
+        ->toContain('tocaba revisar');
+});
+
+it('el documento de otra organización tampoco cruza', function (): void {
+    $ajena = Organizacion::factory()->create();
+
+    app(ContextoOrganizacion::class)->paraOrganizacion($ajena, function (): void {
+        politicaAprobadaCon(Carbon::today()->subDays(5), 'Política ajena');
+    });
+
+    comoOrganizacion($this->organizacion);
+
+    expect(app(ResumenVencimientos::class)()->documentosRevisionVencida)->toBeEmpty();
+});
+
+/**
+ * El indicador de la tabla y el aviso cuentan con el mismo scope, que es lo que
+ * impide que el correo diga 12 y la pantalla enseñe 9.
+ */
+it('el indicador de la tabla cuenta lo mismo que el aviso', function (): void {
+    politicaAprobadaCon(Carbon::today()->subDays(2));
+    politicaAprobadaCon(Carbon::today()->addDays(40));
+
+    $alertas = collect(app(ResumenDocumental::class)->alertas())->keyBy('clave');
+
+    expect($alertas['revision_vencida']->valor)
+        ->toBe(count(app(ResumenVencimientos::class)()->documentosRevisionVencida));
 });

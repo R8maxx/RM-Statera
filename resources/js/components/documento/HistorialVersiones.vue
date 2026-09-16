@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import CeldaBadge from '@/components/tabla/celdas/CeldaBadge.vue';
 import { Button } from '@/components/ui/button';
 import EstadoVacio from '@/components/EstadoVacio.vue';
 import HuellaRevelada from '@/components/documento/HuellaRevelada.vue';
@@ -15,6 +16,14 @@ export interface Version {
     motivo: string | null;
     quien: string | null;
     emitida: string | null;
+    /** Quién firmó y cuándo. Es lo que el auditor busca en el historial. */
+    aprobadaPor?: string | null;
+    aprobadaEn?: string | null;
+    /** `aprobado` mientras sea la vigente; `obsoleto` en cuanto la sustituyan. */
+    estado?: string;
+    estadoEtiqueta?: string;
+    estadoTono?: string;
+    estadoIcono?: string;
 }
 
 const props = defineProps<{ versiones: Version[]; documentoId: number }>();
@@ -85,10 +94,35 @@ const fecha = (valor: string | null): string =>
         <li v-for="version in versiones" :key="version.id" class="flex flex-col gap-2 py-4">
             <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                 <span class="cifra text-base font-semibold">{{ version.etiqueta }}</span>
+
+                <!--
+                    La vigente se distingue de las jubiladas: en una lista de
+                    seis entregas, «cuál es la que está en vigor» es la primera
+                    pregunta y la fecha no la contesta sola.
+                -->
+                <CeldaBadge
+                    v-if="version.estado"
+                    :valor="{
+                        valor: version.estado,
+                        etiqueta: version.estadoEtiqueta ?? '',
+                        tono: version.estadoTono,
+                        icono: version.estadoIcono,
+                    }"
+                />
+
                 <span class="text-sm text-muted-foreground">{{ fecha(version.emitida) }}</span>
-                <span v-if="version.quien" class="text-sm text-muted-foreground">
+
+                <!--
+                    Quién firmó, no quién pulsó «Generar». Desde el § 4.5 son dos
+                    personas distintas y la que importa aquí es la que aprobó.
+                -->
+                <span v-if="version.aprobadaPor" class="text-sm text-muted-foreground">
+                    · Aprobada por {{ version.aprobadaPor }}
+                </span>
+                <span v-else-if="version.quien" class="text-sm text-muted-foreground">
                     · {{ version.quien }}
                 </span>
+
                 <span class="text-sm text-muted-foreground">· {{ kb(version.tamano) }}</span>
 
                 <div class="ms-auto flex gap-2">

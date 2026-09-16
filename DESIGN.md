@@ -151,7 +151,7 @@ Los estados del dominio. Se declaran una vez en `app.css` como `--estado-*` con 
 | `estado-en-progreso` | `#9F5B00` | `#FFF0D4` | **4.70** | En progreso |
 | `estado-no-iniciado` | `#656B73` | `#ECEFF2` | **4.66** | No iniciado |
 | `estado-no-aplica` | `#6B6B72` | `#F0F0F3` | **4.64** | No aplica |
-| `estado-en-revision` | `#7B45C4` | `#F7F2FF` | 5.50 | En revisión *(declarado, sin flujo todavía)* |
+| `estado-en-revision` | `#7B45C4` | `#F7F2FF` | 5.50 | En revisión — una versión de documento esperando la firma de la dirección (§ 4.5) |
 
 **Deuda saldada.** Tres de estos tonos —`en-progreso`, `no-iniciado` y `no-aplica`— estaban en 3.32, 3.14 y 3.47, por debajo del 4.5:1 que pide §11 para texto normal. Se bajó la luminosidad del tono de texto sin tocar el hue ni el croma, que es como este documento decía que había que arreglarlo. El disparador fue el botón de transición: en cuanto un tono de estado pinta la etiqueta de un control, deja de ser un matiz y pasa a ser texto que hay que poder leer.
 

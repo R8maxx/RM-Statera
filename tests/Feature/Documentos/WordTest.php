@@ -8,7 +8,6 @@ use App\Domain\Documento\Contenido\RegistroGeneradores;
 use App\Domain\Documento\Cuerpo\GuardarCuerpo;
 use App\Domain\Documento\Cuerpo\Nodo;
 use App\Domain\Documento\Cuerpo\ResolverCuerpo;
-use App\Domain\Documento\EmitirVersion;
 use App\Domain\Documento\GenerarDocumento;
 use App\Domain\Documento\Models\Documento;
 use App\Domain\Documento\Models\DocumentoVersion;
@@ -59,7 +58,7 @@ beforeEach(function (): void {
     $this->emitir = function (): DocumentoVersion {
         $servicio = app(GenerarDocumento::class);
 
-        return app(EmitirVersion::class)($servicio->encolar($this->documento)->fresh());
+        return entregarVersion($servicio->encolar($this->documento)->fresh());
     };
 });
 

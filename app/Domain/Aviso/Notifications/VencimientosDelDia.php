@@ -56,8 +56,12 @@ final class VencimientosDelDia extends Notification implements ShouldQueue
 
         $this->bloque($correo, 'Evidencias caducadas', $this->vencimientos->evidenciasCaducadas, 'caduca', 'caducó');
         $this->bloque($correo, 'Tareas vencidas', $this->vencimientos->tareasVencidas);
+        // «Tocaba revisar» y no «venció»: lo que se ha pasado es la revisión, no
+        // el documento, que sigue aprobado y en vigor hasta que haya otro.
+        $this->bloque($correo, 'Documentos sin revisar a tiempo', $this->vencimientos->documentosRevisionVencida, 'toca revisar', 'tocaba revisar');
         $this->bloque($correo, 'Evidencias por caducar', $this->vencimientos->evidenciasPorCaducar, 'caduca', 'caducó');
         $this->bloque($correo, 'Tareas por vencer', $this->vencimientos->tareasPorVencer);
+        $this->bloque($correo, 'Documentos por revisar', $this->vencimientos->documentosPorRevisar, 'toca revisar', 'tocaba revisar');
 
         return $correo
             ->action('Abrir Statera', url('/panel'))

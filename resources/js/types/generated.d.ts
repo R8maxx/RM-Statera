@@ -15,12 +15,12 @@ export type AccionAuditada = 'creado' | 'actualizado' | 'eliminado';
 }
 namespace Autorizacion {
 namespace Enums {
-export type Permiso = 'panel.ver' | 'sistemas.ver' | 'sistemas.gestionar' | 'sistemas.valorar' | 'implantaciones.ver' | 'implantaciones.gestionar' | 'evidencias.ver' | 'evidencias.gestionar' | 'activos.ver' | 'activos.gestionar' | 'riesgos.ver' | 'riesgos.gestionar' | 'riesgos.aceptar' | 'tareas.ver' | 'tareas.gestionar' | 'documentos.ver' | 'documentos.generar' | 'documentos.redactar' | 'documentos.plantillas';
+export type Permiso = 'panel.ver' | 'sistemas.ver' | 'sistemas.gestionar' | 'sistemas.valorar' | 'implantaciones.ver' | 'implantaciones.gestionar' | 'evidencias.ver' | 'evidencias.gestionar' | 'activos.ver' | 'activos.gestionar' | 'riesgos.ver' | 'riesgos.gestionar' | 'riesgos.aceptar' | 'tareas.ver' | 'tareas.gestionar' | 'documentos.ver' | 'documentos.generar' | 'documentos.aprobar' | 'documentos.redactar' | 'documentos.plantillas';
 export type Rol = 'responsable_seguridad' | 'tecnico' | 'auditor';
 }
 }
 namespace Aviso {
-export type Fuente = 'tarea' | 'evidencia';
+export type Fuente = 'tarea' | 'evidencia' | 'documento';
 export type Vencimiento = {
 readonly url: string,
 readonly icono: string,
@@ -54,10 +54,11 @@ export type OrigenExigencia = 'categoria' | 'modulacion_dimension' | 'perfil' | 
 namespace Documento {
 namespace Enums {
 export type ClasificacionDocumental = 'publico' | 'uso_interno' | 'confidencial';
+export type EstadoDocumental = 'borrador' | 'en_revision' | 'aprobado' | 'rechazado' | 'obsoleto';
 export type EstadoGeneracion = 'encolada' | 'generando' | 'generada' | 'fallida';
 export type OrigenTexto = 'plantilla' | 'propio';
 export type SeccionNarrativa = 'introduccion' | 'objeto_y_alcance' | 'metodologia' | 'nota_resumen' | 'nota_tabla' | 'nota_derivacion' | 'nota_madurez' | 'nota_exclusiones' | 'conclusiones' | 'limitaciones_propias' | 'aprobacion';
-export type TipoDocumento = 'soa_iso' | 'dda_ens';
+export type TipoDocumento = 'soa_iso' | 'dda_ens' | 'politica' | 'norma' | 'procedimiento';
 }
 }
 namespace Evidencia {

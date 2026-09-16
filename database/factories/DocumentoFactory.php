@@ -55,6 +55,28 @@ class DocumentoFactory extends Factory
         return $this->deTipo(TipoDocumento::DdaEns)->state(fn (): array => ['codigo' => 'DDA-ENS-01']);
     }
 
+    /**
+     * Una política: documento redactado, de la organización entera.
+     *
+     * Sin sistema a propósito —el `CHECK` sólo lo exige para las declaraciones— y
+     * con acuse exigido y periodicidad, que es el caso que de verdad ejercita el
+     * § 4.5: nadie acusa recibo de una SoA.
+     */
+    public function politica(): self
+    {
+        return $this->deTipo(TipoDocumento::Politica)->state(fn (): array => [
+            'codigo' => 'POL-SEG-01',
+            'titulo' => 'Política de Seguridad de la Información',
+            'periodicidad_revision_meses' => 12,
+            'exige_acuse' => true,
+        ]);
+    }
+
+    public function conPeriodicidad(?int $meses): self
+    {
+        return $this->state(fn (): array => ['periodicidad_revision_meses' => $meses]);
+    }
+
     public function paraSistema(int $sistemaId): self
     {
         return $this->state(fn (): array => ['sistema_id' => $sistemaId]);

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domain\Catalogo\Models\Marco;
+use App\Domain\Documento\EmitirVersion;
 use App\Domain\Documento\Enums\EstadoGeneracion;
 use App\Domain\Documento\GenerarDocumento;
 use App\Domain\Documento\Jobs\GenerarDocumentoJob;
@@ -50,7 +51,7 @@ it('sin contexto no ve la versión y no hace nada: el fallo es SILENCIOSO', func
     // Sin excepción y sin ruido. Ni el scope global ni RLS devuelven la fila, y
     // el job se va como si el documento no existiera.
     (new GenerarDocumentoJob($versionId, $this->organizacion->id))
-        ->handle(app(GenerarDocumento::class));
+        ->handle(app(GenerarDocumento::class), app(EmitirVersion::class));
 
     expect($this->gotenberg->solicitudes)->toBeEmpty();
 
@@ -72,7 +73,7 @@ it('el middleware del job fija la organización y el trabajo sale adelante', fun
 
     // Lo que hace la cola: pasar el job por sus middlewares.
     foreach ($job->middleware() as $middleware) {
-        $middleware->handle($job, fn () => $job->handle(app(GenerarDocumento::class)));
+        $middleware->handle($job, fn () => $job->handle(app(GenerarDocumento::class), app(EmitirVersion::class)));
     }
 
     comoOrganizacion($organizacionId);
@@ -87,7 +88,7 @@ it('devuelve el contexto a denegar por defecto al terminar', function (): void {
     sinOrganizacion();
 
     foreach ($job->middleware() as $middleware) {
-        $middleware->handle($job, fn () => $job->handle(app(GenerarDocumento::class)));
+        $middleware->handle($job, fn () => $job->handle(app(GenerarDocumento::class), app(EmitirVersion::class)));
     }
 
     // Un worker atiende jobs de organizaciones distintas: si el contexto
@@ -103,7 +104,7 @@ it('no toca la versión de otra organización aunque el job diga que es suya', f
     sinOrganizacion();
 
     foreach ($job->middleware() as $middleware) {
-        $middleware->handle($job, fn () => $job->handle(app(GenerarDocumento::class)));
+        $middleware->handle($job, fn () => $job->handle(app(GenerarDocumento::class), app(EmitirVersion::class)));
     }
 
     comoOrganizacion($this->organizacion->id);

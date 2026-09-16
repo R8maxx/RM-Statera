@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\Domain\Documento\Enums\EstadoDocumental;
 use App\Domain\Documento\Enums\EstadoGeneracion;
 use App\Domain\Documento\Models\DocumentoVersion;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Carbon;
 
@@ -34,6 +36,11 @@ class DocumentoVersionFactory extends Factory
     {
         return [
             'numero' => null,
+            // Explícito aunque la base lo ponga por defecto: `create()` no
+            // relee la fila, así que sin esto el modelo que devuelve la factory
+            // llega con `estado` a nulo y lo primero que lea su máquina de
+            // estados revienta sin mencionar la palabra «estado».
+            'estado' => EstadoDocumental::Borrador->value,
             'estado_generacion' => EstadoGeneracion::Encolada->value,
             'instantanea' => [],
             'parametros' => [],
@@ -70,14 +77,53 @@ class DocumentoVersionFactory extends Factory
         ]);
     }
 
-    /** Ya entregada. Inmutable desde el propio `INSERT`. */
+    /** Esperando la firma de la dirección. Sigue siendo regenerable. */
+    public function enRevision(): self
+    {
+        return $this->generada()->state(fn (): array => [
+            'estado' => EstadoDocumental::EnRevision->value,
+        ]);
+    }
+
+    /** La dirección la tumbó. El motivo es obligatorio y lo exige el CHECK. */
+    public function rechazada(string $motivo = 'Falta el apartado de responsabilidades.'): self
+    {
+        return $this->generada()->state(fn (): array => [
+            'estado' => EstadoDocumental::Rechazado->value,
+            'motivo_rechazo' => $motivo,
+        ]);
+    }
+
+    /**
+     * Ya entregada: firmada, numerada e inmutable desde el propio `INSERT`.
+     *
+     * Lleva firmante porque el `CHECK` lo exige —una versión aprobada sin quién
+     * la aprobó sería justo el registro que este módulo existe para impedir— y
+     * por eso se crea un usuario si no se da uno.
+     *
+     * **Sólo puede haber una aprobada viva por documento**, que lo garantiza un
+     * índice único parcial. Para un histórico con varias entregas, las anteriores
+     * van con `obsoleta()`.
+     */
     public function emitida(int $numero = 1, ?string $motivo = null): self
     {
         return $this->generada()->state(fn (): array => [
             'numero' => $numero,
+            'estado' => EstadoDocumental::Aprobado->value,
+            'aprobada_por_id' => User::factory(),
+            'aprobada_en' => Carbon::today(),
             'ruta' => "1/1/emitidas/v{$numero}/".fake()->uuid().'.pdf',
             'motivo' => $motivo ?? 'Entrega a auditoría.',
             'emitida_en' => Carbon::now(),
+        ]);
+    }
+
+    /** Una entrega anterior, ya sustituida por otra aprobada después. */
+    public function obsoleta(int $numero = 1, ?string $motivo = null): self
+    {
+        return $this->emitida($numero, $motivo)->state(fn (): array => [
+            'estado' => EstadoDocumental::Obsoleto->value,
+            'obsoleta_en' => Carbon::today(),
         ]);
     }
 

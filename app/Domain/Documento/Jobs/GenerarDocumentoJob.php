@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Documento\Jobs;
 
+use App\Domain\Documento\EmitirVersion;
 use App\Domain\Documento\Enums\EstadoGeneracion;
 use App\Domain\Documento\GenerarDocumento;
 use App\Domain\Documento\Models\DocumentoVersion;
@@ -67,7 +68,7 @@ final class GenerarDocumentoJob implements ShouldBeUnique, ShouldQueue
         return [new ConContextoDeOrganizacion($this->organizacionId)];
     }
 
-    public function handle(GenerarDocumento $generar): void
+    public function handle(GenerarDocumento $generar, EmitirVersion $emitir): void
     {
         $version = DocumentoVersion::query()->find($this->versionId);
 
@@ -78,6 +79,22 @@ final class GenerarDocumentoJob implements ShouldBeUnique, ShouldQueue
         }
 
         $generar->ejecutar($version);
+
+        /*
+         * Si esta generación venía de una firma, aquí se cierra la aprobación:
+         * se numera, se congela y se mueve a `emitidas/`.
+         *
+         * **La condición es el estado de la fila, no un parámetro del job**, y es
+         * deliberado: un job que lleva una bandera «y además emite» se puede
+         * reintentar con la bandera puesta sobre una versión que ya se emitió.
+         * `esEmisible()` mira lo que hay —firmada, con PDF, sin numerar— y por
+         * eso es idempotente sin tener que acordarse de nada.
+         */
+        $version->refresh();
+
+        if ($version->esEmisible()) {
+            $emitir($version);
+        }
     }
 
     /**

@@ -58,6 +58,23 @@ enum SeccionNarrativa: string
 
     public function aplicaA(TipoDocumento $tipo): bool
     {
+        /*
+         * Un documento redactado no tiene tabla, ni resumen, ni derivación de la
+         * categoría: su contenido lo escribe la organización de principio a fin.
+         * De los once huecos le quedan los cinco que son prosa de verdad, y
+         * ofrecerle los otros seis sería ofrecerle explicar cómo leer una tabla
+         * que no existe.
+         */
+        if ($tipo->esRedactado()) {
+            return in_array($this, [
+                self::Introduccion,
+                self::ObjetoYAlcance,
+                self::Conclusiones,
+                self::LimitacionesPropias,
+                self::Aprobacion,
+            ], true);
+        }
+
         return match ($this) {
             // La derivación de la categoría y la madurez por marco sólo existen
             // en el ENS; las exclusiones de controles, sólo en ISO.

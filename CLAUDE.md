@@ -99,8 +99,12 @@ El orden importa: el catálogo y el motor son la parte más específica del domi
    motor, inventario, implantaciones, evidencias y tareas.
 8. ✅ Análisis de riesgos (§ 4.3), que abre la **fase 2** —«el papel formal»—.
    Catálogo de amenazas de MAGERIT, metodología por organización, valoración con
-   histórico comparable y salvaguardas sobre implantaciones. Quedan de esa fase el
-   flujo de aprobación documental con acuse de lectura y el plan de adecuación.
+   histórico comparable y salvaguardas sobre implantaciones.
+9. ✅ Flujo de aprobación documental con acuse de lectura (§ 4.5): estado del
+   documento, firma de la dirección, obsolescencia de la versión anterior,
+   periodicidad de revisión con su aviso, y la segunda familia de documentos —los
+   **redactados**: política, norma y procedimiento—. De la fase 2 queda **el plan
+   de adecuación**.
 
 ## El catálogo
 
@@ -288,6 +292,98 @@ php artisan documentos:generar SOA-SGSI-01 --html    # sigue siendo el bucle rá
 
 ---
 
+## La aprobación de un documento
+
+Es el § 4.5, y el hueco estaba reservado por escrito en tres sitios: `estado_generacion` se llama así
+para dejar libre el nombre `estado`, `Permiso` anunciaba que `documentos.aprobar` «llegará con el
+flujo de aprobación», y `DESIGN.md` tenía el token `--estado-en-revision` declarado **sin flujo
+detrás**. Éste es ese flujo.
+
+**Aprobar es lo que emite, y no es una preferencia.** La portada se congela en `instantanea` al
+generar y el trigger vuelve la fila inmutable en cuanto tiene número: una firma posterior **no podría
+salir impresa en el PDF que se entrega**, que es justamente donde el auditor la busca. Así que firmar
+hace dos cosas —escribe la aprobación y **manda regenerar**— y `EmitirVersion` pasa a ser el último
+paso de ese trabajo, sin ruta ni botón propios. Entre las dos cosas hay un hueco en el que la fila
+está **firmada y sin numerar**; el `CHECK` lo admite a propósito —sólo exige firma para el estado
+`aprobado`, no al revés— y si la generación falla, la versión se queda en revisión con su error.
+
+De ahí salen dos detalles que no se ven leyendo el job:
+
+1. **`etiquetaPrevista()` existe por el pie de página.** Esa generación corre con `numero` todavía
+   nulo, así que `etiqueta()` diría «Borrador» en las noventa páginas del documento entregado y el
+   fichero se llamaría `soa-sgsi-01-borrador.pdf`.
+2. **«Borrador» dejó de ser «sin número» y pasó a ser «sin firma».** La limitación que se antepone en
+   el PDF y el `esBorrador` de la portada miran `tieneFirma()`, no `numero`. Mirando el número, el
+   documento entregado se declararía borrador a sí mismo.
+
+**Cinco estados y no los cuatro de la § 2.2.** Falta uno para «la dirección lo ha mirado y ha dicho
+que no», y sin él una versión tumbada se queda en «pendiente de firma» para siempre. `rechazado`
+**exige motivo**, igual que `descartada` en tareas, y no gasta número: un hueco en la numeración es
+una pregunta del auditor. Tampoco gasta rojo — que la dirección tumbe una versión es una decisión
+legítima, mismo criterio que `DecisionRiesgo`.
+
+**`obsoleto` es el hermano de `EstadoImplantacion::NoAplica`: lo pone el sistema**, al aprobarse la
+siguiente, y nunca una persona. Es además **la única puerta del trigger**, tallada igual que la de
+`riesgo_valoraciones` con `vigente`: sin ella un documento aprobado no podría revisarse nunca. Se
+compara el registro entero con `estado` y `obsoleta_en` neutralizados, y **`updated_at` se neutraliza
+sólo cuando el estado cambia** —neutralizarlo siempre dejaría pasar un «toque» suelto sobre una fila
+entregada—. Quién es la vigente lo marca un índice único parcial, como el borrador.
+
+**Las versiones que ya estaban emitidas se archivaron como obsoletas, sin firmante.** Bajo el modelo
+nuevo una fila con número está aprobada, y aquéllas no lo están: rellenarles `aprobada_por_id` con
+quien pulsó «Generar» sería **fabricar una firma**, que es lo que estas tablas existen para hacer
+imposible. Por eso el `CHECK` de la firma no alcanza a `obsoleto`.
+
+**Los destinatarios del acuse son todos los usuarios de la organización**, sin tabla de destinatarios:
+los pendientes salen de restar. Es una simplificación **declarada en las limitaciones del PDF**, no un
+descuido —quien tiene que conocer la política son las personas, y § 4.8 no existe— y `User` no lleva
+el scope de organización, así que `CoberturaAcuse` lo acota a mano. El acuse cuelga de la **versión**:
+quien leyó la v3 no ha leído la v4, y heredarlo convertiría el registro en un trámite que se pasa solo.
+
+**La ruta del acuse va sin permiso propio y sin segundo factor**, y es la única escritura del producto
+que va así: se escribe sobre uno mismo, como en `/perfil`. Un acuse que cuesta dos pasos se deja de
+firmar. En cambio **mandar a revisión va con `documentos.redactar`** y no con `generar`: es el final
+de escribir, no el principio de entregar, y quien lo redacta tiene que poder soltarlo sin depender de
+nadie.
+
+**Y la limitación impresa se reescribió, no se borró.** Decir que la herramienta «no implementa un
+flujo de aprobación» pasó a ser **falso en el PDF que se le entrega al auditor**, que es peor que una
+limitación ausente — el mismo tratamiento que ya se les dio a las dos de riesgos con el § 4.3. Lo que
+sigue sin hacer: comprobar que quien firma tenga potestad para hacerlo, y guardar firma electrónica
+cualificada. `LimitacionesBlindadasTest` lo clava.
+
+---
+
+## Los documentos redactados
+
+La segunda familia, y no se parece a la primera. Una Declaración de Aplicabilidad es una consulta
+sobre `implantaciones` congelada en un PDF; **una política no sale de ninguna consulta**. Son los tres
+niveles de la jerarquía del § 4.5 —`politica`, `norma`, `procedimiento`— y son los que dan sentido al
+acuse: nadie acusa recibo de una SoA.
+
+El cuarto nivel de esa jerarquía, el **registro**, no entra: un registro es la salida de un
+procedimiento, no un documento que Statera redacte y versione.
+
+**Una sola clase para los tres** (`DocumentoRedactado`), que implementa `GeneradorDocumento`
+directamente en vez de heredar de `DeclaracionAplicabilidad`: no tiene filas, ni tabla, ni
+correspondencias cruzadas. Lo único que comparte con las declaraciones —portada, historial y
+limitaciones— se extrajo al trait `ArmaContenidoComun`, y **las limitaciones son el motivo de fondo**:
+dos copias de esa lista es cómo se acaba con una política declarando algo que la SoA ya no declara.
+
+**No cuelgan de un sistema** —el `CHECK` en negativo ya lo admitía— y `marcoEsperado()` devuelve nulo,
+que significa «no hay nada que casar» y nunca «no se ha rellenado». De los once huecos narrativos les
+quedan cinco: ofrecerle «cómo leer la tabla» a un documento sin tabla es ofrecerle explicar algo que
+no existe.
+
+**El texto de fábrica del alcance se queda vacío a propósito.** A quién obliga y sobre qué se aplica
+es lo más específico que tiene un documento así, y cualquier frase de relleno acabaría impresa en el
+PDF que alguien aprueba. Un hueco vacío no se pinta —ni él ni su título—, así que se nota; una frase
+genérica, no. Lo que sí trae es la introducción, porque `org.1` pide literalmente que la política
+declare objetivos, compromiso de la dirección y a quién obliga: eso es lo que la § 4.5 llama
+«plantilla base».
+
+---
+
 ## El análisis de riesgos
 
 Vive en `app/Domain/Riesgo/`. Abre la fase 2, y es lo que cobra el grafo de dependencias del
@@ -462,7 +558,7 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
 
 - **`--acento` (violeta de marca) y `--accent` (superficie de hover de shadcn) son cosas distintas y tienen nombres distintos a propósito.** `--accent` es el teal pálido que pintan el ítem activo del sidebar, el menú, el desplegable y el select; unificarlo con el acento de marca los rompe todos a la vez. El violeta vive en `--acento`, `--acento-suave`, `--acento-borde` y la escala `--violeta-*`.
 
-- **El violeta se queda en cuatro sitios y sólo cuatro:** el filete de `CabeceraPagina` (uno por pantalla), la variante `acento` del botón —reservada a flujos de revisión y auditoría, todavía sin usar—, el token `--estado-en-revision` (declarado, sin flujo detrás) y la balanza del acceso. **No** en enlaces, **no** en el anillo de foco y **no** en el resto de badges de estado. El reparto es 60/30/10 y el violeta que se ve en todas partes deja de ser acento.
+- **El violeta se queda en cuatro sitios y sólo cuatro:** el filete de `CabeceraPagina` (uno por pantalla), la variante `acento` del botón —reservada a flujos de revisión y auditoría, y hoy en «Aprobar y entregar»—, el token `--estado-en-revision` —que desde el § 4.5 **sí tiene flujo detrás**: es el badge de una versión esperando firma, y el único badge de estado que gasta violeta— y la balanza del acceso. **No** en enlaces, **no** en el anillo de foco y **no** en el resto de badges de estado. El reparto es 60/30/10 y el violeta que se ve en todas partes deja de ser acento.
 
 - **La balanza del panel de acceso es la única animación decorativa del producto**, y contradice a propósito el «lo decorativo no entra» de `lib/motion.ts`. El motivo: el panel se mira quince segundos antes de entrar, no ocho horas, y está fuera del chrome de trabajo. A cambio se apaga en tres condiciones —`prefers-reduced-motion`, pestaña en segundo plano y por debajo de `lg`— y en las tres se pinta un solo fotograma quieto. Es canvas 2D a mano (`lib/balanza.ts` + `components/BalanzaPixeles.vue`), sin librería: para setecientos puntos no hace falta un motor 3D, y aquí cada dependencia hay que justificarla en una revisión. La geometría sale del `viewBox` de `Logotipo.vue`, así que lo que gira **es** el logotipo; si alguien redibuja el símbolo, hay que redibujar la nube. **El tamaño lo decide la caja, nunca una medida escrita a mano:** `extension()` mide cuánto ocupa la figura en el fotograma más ancho de toda la vuelta y de ahí sale el `tam` que cabe, así que basta con meter el componente en un `flex-1` para que se adapte a la ventana y ningún platillo se sale en ningún ángulo. Volver a poner anchos en `rem` por punto de ruptura es el error que ya se cometió una vez.
 
@@ -1085,6 +1181,30 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
   `GrupoAmenaza` viajan serializados como `ValorEtiquetado` —valor, etiqueta, tono, icono—, igual que
   `EstadoTarea`, y las pantallas declaran interfaces locales para lo que el controlador serializa a
   mano. El atributo lo llevan los que cruzan **como tipo**: `Permiso`, `Rol`, `Fuente`, `Filtro`.
+
+- **`User` NO lleva `PerteneceAOrganizacion`, y toda consulta de usuarios se acota a mano.** La
+  autenticación tiene que poder encontrar a alguien *antes* de saber de qué organización es, así que
+  ese modelo se queda fuera de las tres capas: no hay scope global y no hay RLS. La consecuencia es
+  que un `User::query()` inocente —el desplegable de responsables, la lista de destinatarios de un
+  acuse— **lista a los usuarios de todos los clientes**, y no lo caza ningún test de aislamiento
+  porque el modelo no está protegido en ninguna capa. Se acota con
+  `->where('organizacion_id', …)`, y la organización se toma preferentemente de la fila que se está
+  mirando —`$version->organizacion_id`— y no del contexto: bajo RLS es la misma, y así la consulta no
+  depende de que alguien haya fijado el contexto antes. Ya había un caso de esto en el formulario de
+  documentos, corregido al llegar el § 4.5.
+
+- **La cifra de un documento en la tabla sale por subconsulta, incluido su estado documental.** Es la
+  misma regla que ya regía para el número de versión: un `join` contra `documento_versiones`
+  multiplicaría las filas y la paginación contaría mal. Y lo que hace que un `max()` sobre un texto
+  no sea un disparate es que los dos índices únicos parciales —un borrador vivo, una aprobada viva—
+  garantizan que agrega sobre una fila como mucho.
+
+- **`GenerarDocumento::encolar()` hace `refresh()` tras insertar**, igual que `CrearTarea`. Los valores
+  por defecto de `estado` los pone la base, y repetirlos en el modelo sería el mismo dato en dos
+  sitios que pueden desincronizarse. Sin eso, un borrador recién encolado llega con `estado` a nulo y
+  lo primero que lea su máquina de estados revienta con un «call to a member function on null» que no
+  menciona la palabra «estado». Por lo mismo, `DocumentoVersionFactory` declara `estado` explícito:
+  `create()` no relee la fila.
 
 ## Fuera de alcance
 

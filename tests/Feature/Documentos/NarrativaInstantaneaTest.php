@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use App\Domain\Catalogo\Models\Marco;
-use App\Domain\Documento\EmitirVersion;
 use App\Domain\Documento\GenerarDocumento;
 use App\Domain\Documento\Models\Documento;
 use App\Domain\Documento\Models\DocumentoVersion;
@@ -75,7 +74,7 @@ it('una versión EMITIDA no cambia aunque se reescriban los textos', function ()
     app(GuardarNarrativa::class)($this->documento, ['conclusiones' => 'Lo que se entregó.']);
 
     $servicio = app(GenerarDocumento::class);
-    $emitida = app(EmitirVersion::class)($servicio->encolar($this->documento)->fresh());
+    $emitida = entregarVersion($servicio->encolar($this->documento)->fresh());
 
     app(GuardarNarrativa::class)($this->documento, ['conclusiones' => 'Lo que pensamos ahora.']);
 
@@ -84,7 +83,7 @@ it('una versión EMITIDA no cambia aunque se reescriban los textos', function ()
 
 it('y la base impide tocar esa fila, no sólo la buena voluntad', function (): void {
     $servicio = app(GenerarDocumento::class);
-    $emitida = app(EmitirVersion::class)($servicio->encolar($this->documento)->fresh());
+    $emitida = entregarVersion($servicio->encolar($this->documento)->fresh());
 
     DocumentoVersion::query()->whereKey($emitida->id)->update(['motivo' => 'otro']);
 })->throws(QueryException::class, 'Una version emitida no se modifica');

@@ -29,8 +29,20 @@ class GuardarDocumentoRequest extends FormRequest
         $documento = $this->route('documento');
         $id = $documento instanceof Documento ? $documento->id : null;
 
+        $tipo = TipoDocumento::tryFrom((string) $this->input('tipo'));
+
         return [
-            'sistema_id' => ['required', 'integer', 'exists:sistemas,id'],
+            /*
+             * El sistema es obligatorio en una declaración de aplicabilidad —el
+             * alcance y la categoría salen de él— y **opcional en un documento
+             * redactado**: una política de seguridad es de la organización
+             * entera y normalmente no cuelga de ningún sistema. El `CHECK` de la
+             * tabla dice lo mismo, escrito en negativo.
+             */
+            'sistema_id' => [
+                $tipo?->esRedactado() === true ? 'nullable' : 'required',
+                'integer', 'exists:sistemas,id',
+            ],
             'tipo' => ['required', Rule::enum(TipoDocumento::class)],
             'codigo' => [
                 'required', 'string', 'max:60',
@@ -44,6 +56,17 @@ class GuardarDocumentoRequest extends FormRequest
             'clasificacion' => ['required', Rule::enum(ClasificacionDocumental::class)],
             'responsable_id' => ['nullable', 'integer', 'exists:users,id'],
             'notas' => ['nullable', 'string', 'max:2000'],
+
+            /*
+             * Nulo es «no lo revisamos por calendario», que es una respuesta
+             * legítima: una Declaración de Aplicabilidad se rehace cuando cambia
+             * el alcance, no cuando pasa un año. El rango es el mismo que el de
+             * la metodología de riesgo y por lo mismo: por debajo de un mes no es
+             * una periodicidad y por encima de cinco años no es una revisión.
+             */
+            'periodicidad_revision_meses' => ['nullable', 'integer', 'between:1,60'],
+
+            'exige_acuse' => ['boolean'],
         ];
     }
 
@@ -64,6 +87,17 @@ class GuardarDocumentoRequest extends FormRequest
                 $sistema = Sistema::query()->with('marco')->find($this->input('sistema_id'));
 
                 if ($tipo === null || $sistema === null) {
+                    return;
+                }
+
+                /*
+                 * Un documento redactado no declara conformidad con ningún
+                 * marco, así que no hay nada que casar: `marcoEsperado()` es nulo
+                 * y el nulo significa «no hay restricción», nunca «no se ha
+                 * rellenado». Sin esta salida, adjuntarle un sistema a una
+                 * política daría un error que no se puede corregir.
+                 */
+                if ($tipo->marcoEsperado() === null) {
                     return;
                 }
 

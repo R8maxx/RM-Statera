@@ -4,20 +4,30 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Domain\Autorizacion\Enums\Permiso;
+use App\Domain\Documento\AcusarLectura;
+use App\Domain\Documento\AprobarVersion;
+use App\Domain\Documento\CoberturaAcuse;
 use App\Domain\Documento\Contenido\ContenidoDocumento;
-use App\Domain\Documento\EmitirVersion;
 use App\Domain\Documento\Enums\ClasificacionDocumental;
+use App\Domain\Documento\Enums\EstadoDocumental;
 use App\Domain\Documento\Enums\TipoDocumento;
+use App\Domain\Documento\EnviarARevision;
 use App\Domain\Documento\GenerarDocumento;
 use App\Domain\Documento\Models\Documento;
 use App\Domain\Documento\Models\DocumentoVersion;
 use App\Domain\Documento\Narrativa\MarkdownDocumento;
 use App\Domain\Documento\Narrativa\MaterializarSecciones;
+use App\Domain\Documento\RechazarVersion;
 use App\Domain\Documento\Render\EscritorWord;
+use App\Domain\Documento\ResumenDocumental;
+use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Sistema\Models\Sistema;
-use App\Http\Requests\EmitirVersionRequest;
+use App\Http\Requests\AprobarVersionRequest;
+use App\Http\Requests\EnviarARevisionRequest;
 use App\Http\Requests\GenerarDocumentoRequest;
 use App\Http\Requests\GuardarDocumentoRequest;
+use App\Http\Requests\RechazarVersionRequest;
 use App\Http\Resources\Concerns\RespondeConRecurso;
 use App\Http\Resources\DocumentoRecurso;
 use App\Models\User;
@@ -41,9 +51,17 @@ class DocumentoController extends Controller
 {
     use RespondeConRecurso;
 
-    public function index(Request $request): Response
+    public function index(Request $request, ResumenDocumental $resumen): Response
     {
-        return Inertia::render('documentos/Index', $this->tabla(new DocumentoRecurso, $request));
+        return Inertia::render('documentos/Index', [
+            ...$this->tabla(new DocumentoRecurso, $request),
+            /*
+             * Lo que pide acción hoy, encima de la tabla y no en el panel: mismo
+             * reparto que en el inventario —el panel contesta cómo va la cosa y
+             * la tabla contesta qué hay que resolver—.
+             */
+            'alertas' => $resumen->alertas(),
+        ]);
     }
 
     public function create(): Response
@@ -70,12 +88,37 @@ class DocumentoController extends Controller
     /**
      * La ficha: el borrador vivo, el historial de entregas y sus huellas.
      */
-    public function show(Documento $documento): Response
+    public function show(Request $request, Documento $documento, CoberturaAcuse $acuse): Response
     {
         $documento->load(['sistema.marco', 'responsable']);
 
+        $vigente = $documento->versionAprobada()->with('aprobadaPor')->first();
+        $usuario = $request->user();
+
         return Inertia::render('documentos/Ficha', [
             'documento' => $this->serializar($documento),
+
+            /*
+             * La versión vigente va suelta y no dentro de `versiones`: es la que
+             * se lee, la que se acusa y la que caduca, y la ficha la enseña
+             * arriba. Las demás son histórico.
+             */
+            'versionVigente' => $this->serializarVersion($vigente),
+
+            /*
+             * El bloque de acuse **no se manda si el documento no lo exige**, y
+             * el de aprobación no manda botones a quien no tiene el permiso: el
+             * frontend decide qué pinta y nunca qué autoriza.
+             */
+            'acuse' => $vigente !== null && $documento->exigeAcuse()
+                ? [
+                    ...$acuse->de($vigente),
+                    'yaAcusado' => $usuario instanceof User && $acuse->loHaAcusado($vigente, $usuario),
+                ]
+                : null,
+
+            'puedeAprobar' => $usuario instanceof User
+                && $usuario->can(Permiso::DocumentosAprobar->value),
             /*
              * Si el documento se editó DESPUÉS de generar el borrador, el PDF
              * que hay en disco es anterior y no lleva esos cambios. Sin este
@@ -96,7 +139,7 @@ class DocumentoController extends Controller
                 $documento->versiones()->whereNull('numero')->with('generadaPor')->first(),
             ),
             'versiones' => fn (): array => $documento->versionesEmitidas()
-                ->with('generadaPor')
+                ->with(['generadaPor', 'aprobadaPor'])
                 ->get()
                 ->map(fn (DocumentoVersion $v): array => (array) $this->serializarVersion($v))
                 ->all(),
@@ -176,17 +219,82 @@ class DocumentoController extends Controller
     }
 
     /**
-     * Convierte el borrador en una entrega, y con eso en algo inmutable.
+     * «Esto ya está: que lo mire quien tiene que firmarlo.»
+     *
+     * No congela nada: el borrador sigue siendo regenerable mientras está en
+     * revisión, porque quien revisa pide cambios y quien escribió los hace.
      */
-    public function emitir(EmitirVersionRequest $request, Documento $documento, EmitirVersion $emitir): RedirectResponse
+    public function revisar(EnviarARevisionRequest $request, Documento $documento, EnviarARevision $enviar): RedirectResponse
     {
         $borrador = $documento->borrador()->first();
 
         abort_if($borrador === null, 404);
 
-        $version = $emitir($borrador, $request->string('motivo')->value() ?: null);
+        $enviar($borrador, $request->string('motivo')->value() ?: null);
 
-        Inertia::flash('exito', "Versión v{$version->numero} emitida. A partir de ahora no se puede modificar ni regenerar.");
+        Inertia::flash('exito', 'El documento está en revisión, a la espera de aprobación.');
+
+        return to_route('documentos.show', $documento);
+    }
+
+    /**
+     * La firma de la dirección, que es lo que entrega el documento.
+     *
+     * Aprobar **encola una regeneración**: el PDF tiene que salir con la firma
+     * impresa en portada, y la portada se congela al generar. Quien numera y
+     * mueve el fichero a `emitidas/` es el final de ese trabajo, así que aquí no
+     * hay número que anunciar todavía — lo anuncia el cliente cuando lo ve, igual
+     * que con «generando…».
+     */
+    public function aprobar(
+        AprobarVersionRequest $request,
+        Documento $documento,
+        DocumentoVersion $version,
+        AprobarVersion $aprobar,
+    ): RedirectResponse {
+        $usuario = $request->user();
+
+        abort_unless($usuario instanceof User, 403);
+
+        $aprobar($version, $usuario, $request->string('nota')->value() ?: null);
+
+        Inertia::flash('exito', 'Documento aprobado. Se está generando la versión firmada.');
+
+        return to_route('documentos.show', $documento);
+    }
+
+    /** La otra mitad de decidir: la dirección dice que no, y dice por qué. */
+    public function rechazar(
+        RechazarVersionRequest $request,
+        Documento $documento,
+        DocumentoVersion $version,
+        RechazarVersion $rechazar,
+    ): RedirectResponse {
+        $rechazar($version, $request->string('motivo')->toString());
+
+        Inertia::flash('exito', 'Versión rechazada. El motivo queda registrado para quien la retome.');
+
+        return to_route('documentos.show', $documento);
+    }
+
+    /**
+     * «He leído esta versión.»
+     *
+     * Sin permiso propio: se escribe sobre uno mismo, como en `/perfil`.
+     */
+    public function acusar(
+        Request $request,
+        Documento $documento,
+        DocumentoVersion $version,
+        AcusarLectura $acusar,
+    ): RedirectResponse {
+        $usuario = $request->user();
+
+        abort_unless($usuario instanceof User, 403);
+
+        $acusar($version, $usuario);
+
+        Inertia::flash('exito', 'Queda registrado que has leído esta versión.');
 
         return to_route('documentos.show', $documento);
     }
@@ -326,6 +434,9 @@ class DocumentoController extends Controller
             'responsable_id' => $documento->responsable_id,
             'responsable' => $documento->responsable?->name,
             'notas' => $documento->notas,
+            'periodicidad_revision_meses' => $documento->periodicidad_revision_meses,
+            'exige_acuse' => $documento->exigeAcuse(),
+            'redactado' => $documento->tipo->esRedactado(),
         ];
     }
 
@@ -342,12 +453,48 @@ class DocumentoController extends Controller
             'id' => $version->id,
             'numero' => $version->numero,
             'etiqueta' => $version->etiqueta(),
-            'estado' => $version->estado_generacion->value,
-            'estadoEtiqueta' => $version->estado_generacion->etiqueta(),
-            'estadoTono' => $version->estado_generacion->tono(),
+
+            /*
+             * Dos estados, y no son lo mismo. `generacion*` es el ciclo de vida
+             * del TRABAJO que produce el PDF —encolada, generando, fallida— y lo
+             * mira el poll; `estado*` es el del DOCUMENTO —borrador, en revisión,
+             * aprobado— y es lo que le importa a quien lo firma. Que el PDF se
+             * haya generado bien no significa que nadie lo haya aprobado.
+             */
+            'generacion' => $version->estado_generacion->value,
+            'generacionEtiqueta' => $version->estado_generacion->etiqueta(),
+            'generacionTono' => $version->estado_generacion->tono(),
             'enCurso' => $version->estado_generacion->enCurso(),
+
+            'estado' => $version->estado->value,
+            'estadoEtiqueta' => $version->estado->etiqueta(),
+            'estadoTono' => $version->estado->tono(),
+            'estadoIcono' => $version->estado->icono(),
+
+            /*
+             * A dónde puede ir desde aquí. Lo manda el servidor para que el
+             * cliente no tenga que reconstruir la máquina de estados: es el mismo
+             * criterio que las transiciones de una tarjeta del tablero, y por el
+             * mismo motivo —un gesto que se acepta y luego falla se explica mucho
+             * peor que uno que no se ofrece—.
+             */
+            'transiciones' => array_map(
+                static fn (EstadoDocumental $destino): array => [
+                    'valor' => $destino->value,
+                    'etiqueta' => $destino->etiqueta(),
+                    'tono' => $destino->tono(),
+                    'icono' => $destino->icono(),
+                ],
+                $version->estado->transicionesPermitidas(),
+            ),
+
+            'aprobadaPor' => $version->aprobadaPor?->name,
+            'aprobadaEn' => $version->aprobada_en?->format('d/m/Y'),
+            'notaAprobacion' => $version->nota_aprobacion,
+            'motivoRechazo' => $version->motivo_rechazo,
+            'proximaRevision' => $version->fecha_proxima_revision?->format('d/m/Y'),
+
             'descargable' => $version->tieneFichero(),
-            'emisible' => $version->esEmisible(),
             // La huella entera, no un prefijo: es lo que se contrasta con el
             // fichero que se le entrega al auditor.
             'huella' => $version->hash_sha256,
@@ -393,7 +540,18 @@ class DocumentoController extends Controller
                 static fn (ClasificacionDocumental $c): array => ['valor' => $c->value, 'etiqueta' => $c->etiqueta()],
                 ClasificacionDocumental::cases(),
             ),
-            'responsables' => User::query()->orderBy('name')->get()
+            /*
+             * Acotado a la organización a mano: `User` no lleva
+             * `PerteneceAOrganizacion` —la autenticación tiene que poder
+             * encontrar a alguien antes de saber de qué organización es—, así que
+             * aquí no hay scope global ni RLS que tapen el cruce. Sin este
+             * `where`, el desplegable de responsables lista a los usuarios de
+             * todos los clientes.
+             */
+            'responsables' => User::query()
+                ->where('organizacion_id', app(ContextoOrganizacion::class)->idObligatorio())
+                ->orderBy('name')
+                ->get()
                 ->map(fn (User $u): array => ['valor' => (string) $u->id, 'etiqueta' => $u->name])->all(),
         ];
     }

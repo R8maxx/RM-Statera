@@ -39,9 +39,13 @@ function filasDeDocumentos(array $parametros = []): array
 it('no duplica un documento por tener varias versiones emitidas', function (): void {
     $documento = Documento::factory()->soa()->paraSistema($this->sistema->id)->create(['codigo' => 'SOA-01']);
 
-    foreach ([1, 2, 3] as $numero) {
-        DocumentoVersion::factory()->delDocumento($documento->id)->emitida($numero)->create();
+    // Las dos primeras quedan obsoletas: sólo puede haber una versión aprobada
+    // viva por documento, y lo impone un índice único parcial.
+    foreach ([1, 2] as $numero) {
+        DocumentoVersion::factory()->delDocumento($documento->id)->obsoleta($numero)->create();
     }
+
+    DocumentoVersion::factory()->delDocumento($documento->id)->emitida(3)->create();
 
     $props = filasDeDocumentos();
 

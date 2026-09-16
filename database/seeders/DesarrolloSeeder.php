@@ -377,6 +377,34 @@ class DesarrolloSeeder extends Seeder
             $documento->codigo,
             $documento->codigo,
         ));
+
+        /*
+         * Y una política, que es la otra familia de documentos: no se calcula, la
+         * escribe la organización. Es la que da sentido al acuse de lectura —de
+         * una Declaración de Aplicabilidad no acusa recibo nadie— y la que enseña
+         * el flujo de aprobación de punta a punta.
+         *
+         * Se queda **sin versión y sin aprobar**, igual que la DdA: generar exige
+         * Gotenberg, y sembrar una versión «aprobada» a mano fabricaría una firma
+         * que nadie ha puesto. El estado de partida de cualquier organización es
+         * justamente éste — un documento por escribir y por firmar.
+         */
+        $politica = Documento::query()->firstOrCreate(
+            ['codigo' => 'POL-SEG-01'],
+            [
+                'sistema_id' => null,
+                'titulo' => 'Política de Seguridad de la Información',
+                'tipo' => TipoDocumento::Politica->value,
+                'periodicidad_revision_meses' => 12,
+                'exige_acuse' => true,
+            ],
+        );
+
+        $this->command->info(sprintf(
+            'Política %s creada: redáctala en /documentos/%d/cuerpo y mándala a revisión.',
+            $politica->codigo,
+            $politica->id,
+        ));
     }
 
     /**

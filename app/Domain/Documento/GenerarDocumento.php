@@ -77,6 +77,16 @@ final readonly class GenerarDocumento
 
         $version->save();
 
+        /*
+         * `refresh()` tras insertar, por lo mismo que en `CrearTarea`: el valor
+         * por defecto de `estado` lo pone la base, y repetirlo aquí sería el
+         * mismo dato en dos sitios que pueden desincronizarse. Sin esto, un
+         * borrador recién encolado llega con `estado` a nulo y lo primero que
+         * intente leer su máquina de estados revienta con un «call to a member
+         * function on null» que no menciona la palabra «estado».
+         */
+        $version->refresh();
+
         GenerarDocumentoJob::dispatch($version->id, $documento->organizacion_id);
 
         return $version;
@@ -200,7 +210,13 @@ final readonly class GenerarDocumento
 
             pie: View::make('documentos.pie', [
                 'clasificacion' => $documento->clasificacion->sello(),
-                'version' => $version->etiqueta(),
+                /*
+                 * La etiqueta PREVISTA, no la actual. Esta generación es la que
+                 * dispara la firma, y cuando corre el número todavía no está
+                 * puesto: con `etiqueta()` el PDF que se entrega llevaría
+                 * «Borrador» impreso en todas las páginas.
+                 */
+                'version' => $version->etiquetaPrevista(),
                 'fecha' => $portada['fecha'] ?? '',
             ])->render(),
 
@@ -223,6 +239,6 @@ final readonly class GenerarDocumento
      */
     private function nombreDescarga(Documento $documento, DocumentoVersion $version): string
     {
-        return Str::slug($documento->codigo.'-'.$version->etiqueta()).'.pdf';
+        return Str::slug($documento->codigo.'-'.$version->etiquetaPrevista()).'.pdf';
     }
 }

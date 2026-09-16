@@ -6,6 +6,9 @@ use App\Domain\Autorizacion\Enums\Rol;
 use App\Domain\Autorizacion\SembrarRoles;
 use App\Domain\Categorizacion\Enums\NivelDimension;
 use App\Domain\Categorizacion\ValoracionDimensiones;
+use App\Domain\Documento\AprobarVersion;
+use App\Domain\Documento\EnviarARevision;
+use App\Domain\Documento\Models\DocumentoVersion;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Organizacion\Models\Organizacion;
 use App\Models\User;
@@ -237,4 +240,36 @@ function filtroDeclarado(AssertableInertia $pagina, string $clave): array
     expect($filtro)->not->toBeNull("El recurso no declara ningún filtro `{$clave}`.");
 
     return $filtro;
+}
+
+/*
+|--------------------------------------------------------------------------
+| El camino hasta una entrega
+|--------------------------------------------------------------------------
+|
+| Desde el § 4.5, emitir dejó de ser un acto suelto: **aprobar es lo que emite**.
+| Una versión llega a tener número cuando la dirección la firma, porque la firma
+| va impresa en la portada del PDF y la portada se congela al generar.
+|
+| Así que ningún test puede ya llamar a `EmitirVersion` y esperar una entrega: el
+| camino es generar, mandar a revisión y firmar. Se escribe una vez aquí para que
+| el día que el flujo gane un paso no haya que tocar seis ficheros.
+|
+| La cola es `sync` en los tests, así que al volver de aquí la versión ya está
+| regenerada con la firma, numerada y congelada.
+|
+*/
+
+function entregarVersion(
+    DocumentoVersion $version,
+    ?User $direccion = null,
+    ?string $motivo = null,
+): DocumentoVersion {
+    $direccion ??= User::factory()->create([
+        'organizacion_id' => $version->organizacion_id,
+    ]);
+
+    app(EnviarARevision::class)($version, $motivo ?? 'Entrega a auditoría.');
+
+    return app(AprobarVersion::class)($version->fresh() ?? $version, $direccion);
 }

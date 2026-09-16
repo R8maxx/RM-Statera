@@ -115,7 +115,7 @@ final class MaterializarCuerpo
     {
         $hijos = match ($fuente) {
             'portada_ficha' => $this->portadaFicha($contenido),
-            'portada_pie' => $this->portadaPie($editado),
+            'portada_pie' => $this->portadaPie($editado, $tipo),
             'resumen_cifras' => $this->resumenCifras($contenido, $tipo),
             'resumen_grafica' => $this->resumenGrafica($contenido),
             'tabla_requisitos' => $this->tablaRequisitos($contenido, $tipo),
@@ -198,19 +198,32 @@ final class MaterializarCuerpo
             ]),
         ];
 
+        /*
+         * Sistema y marco **sólo si los hay**. Un documento redactado —una
+         * política, una norma— es de la organización entera y no cuelga de
+         * ningún sistema: imprimirle «Sistema: —» y «Marco: —» en portada no es
+         * un hueco sin rellenar, es decirle al auditor que falta un dato que no
+         * existe. Una declaración de aplicabilidad los lleva siempre, porque el
+         * `CHECK` de la tabla se los exige.
+         */
         $sistemaCodigo = $this->cadena($p, 'sistemaCodigo');
-        $sistema = $sistemaCodigo === null
-            ? [Nodo::texto($this->cadena($p, 'sistemaNombre') ?? '—')]
-            : [Nodo::texto($sistemaCodigo, ['cifra']), Nodo::texto(' · '.($this->cadena($p, 'sistemaNombre') ?? '—'))];
+        $sistemaNombre = $this->cadena($p, 'sistemaNombre');
 
-        $filas[] = Nodo::de('fichaFila', ['clave' => 'Sistema'], $sistema);
+        if ($sistemaCodigo !== null || $sistemaNombre !== null) {
+            $filas[] = Nodo::de('fichaFila', ['clave' => 'Sistema'], $sistemaCodigo === null
+                ? [Nodo::texto((string) $sistemaNombre)]
+                : [Nodo::texto($sistemaCodigo, ['cifra']), Nodo::texto(' · '.($sistemaNombre ?? '—'))]);
+        }
 
-        $marco = $this->cadena($p, 'marco') ?? '—';
-        $version = $this->cadena($p, 'marcoVersion');
+        $marco = $this->cadena($p, 'marco');
 
-        $filas[] = Nodo::de('fichaFila', ['clave' => 'Marco'], [
-            Nodo::texto($version === null ? $marco : $marco.' ('.$version.')'),
-        ]);
+        if ($marco !== null) {
+            $version = $this->cadena($p, 'marcoVersion');
+
+            $filas[] = Nodo::de('fichaFila', ['clave' => 'Marco'], [
+                Nodo::texto($version === null ? $marco : $marco.' ('.$version.')'),
+            ]);
+        }
 
         // Sólo la DdA tiene categoría, y va en negrita porque es de donde sale
         // todo lo demás del documento.
@@ -229,6 +242,29 @@ final class MaterializarCuerpo
         $filas[] = Nodo::de('fichaFila', ['clave' => 'Clasificación'], [Nodo::texto($this->cadena($p, 'clasificacion') ?? '—')]);
         $filas[] = Nodo::de('fichaFila', ['clave' => 'Responsable'], [Nodo::texto($this->cadena($p, 'responsable') ?? 'Sin asignar')]);
 
+        /*
+         * La firma, y **es la razón de que aprobar sea lo que emite**: la portada
+         * se congela al generar, así que si la aprobación llegara después no
+         * podría figurar aquí — y aquí es donde el auditor la busca.
+         *
+         * En negrita, como la categoría de la DdA, porque es lo que convierte un
+         * fichero en un documento del sistema de gestión.
+         */
+        $aprobadaPor = $this->cadena($p, 'aprobadaPor');
+
+        if ($aprobadaPor !== null) {
+            $filas[] = Nodo::de('fichaFila', ['clave' => 'Aprobada por'], [
+                Nodo::texto($aprobadaPor, ['bold']),
+                Nodo::texto(' · '.($this->cadena($p, 'aprobadaEn') ?? '—')),
+            ]);
+        }
+
+        $proxima = $this->cadena($p, 'proximaRevision');
+
+        if ($proxima !== null) {
+            $filas[] = Nodo::de('fichaFila', ['clave' => 'Próxima revisión'], [Nodo::texto($proxima)]);
+        }
+
         return $filas;
     }
 
@@ -241,16 +277,28 @@ final class MaterializarCuerpo
      *
      * @return list<array<string, mixed>>
      */
-    private function portadaPie(bool $editado): array
+    private function portadaPie(bool $editado, TipoDocumento $tipo): array
     {
-        $frase = $editado
-            ? 'Statera — un producto de RM Technology. Este documento se generó desde el registro de '.
-              'implantaciones y después se editó a mano. Los apartados calculados que se hayan '.
-              'modificado, o que ya no coincidan con el registro, figuran en el apartado de limitaciones.'
-            : 'Statera — un producto de RM Technology. '.
-              'Las tablas, las cifras y la derivación de la categoría se generan desde el registro de '.
-              'implantaciones y no se mantienen a mano; los textos de presentación los redacta la '.
-              'organización.';
+        /*
+         * Un documento redactado no tiene tablas ni cifras que explicar: lo
+         * escribe la organización de principio a fin, y decir que «se genera
+         * desde el registro de implantaciones» sería falso en su propia portada.
+         * Lo que sí tiene que decir es lo mismo que los demás: cómo se hizo.
+         */
+        $frase = match (true) {
+            $editado => 'Statera — un producto de RM Technology. Este documento se generó desde el registro de '.
+                'implantaciones y después se editó a mano. Los apartados calculados que se hayan '.
+                'modificado, o que ya no coincidan con el registro, figuran en el apartado de limitaciones.',
+
+            $tipo->esRedactado() => 'Statera — un producto de RM Technology. El contenido de este documento lo '.
+                'redacta la organización; Statera aporta el control de versiones, la huella del fichero '.
+                'entregado y el registro de su aprobación.',
+
+            default => 'Statera — un producto de RM Technology. '.
+                'Las tablas, las cifras y la derivación de la categoría se generan desde el registro de '.
+                'implantaciones y no se mantienen a mano; los textos de presentación los redacta la '.
+                'organización.',
+        };
 
         return [Nodo::de('pieDePortada', [], [Nodo::texto($frase)])];
     }

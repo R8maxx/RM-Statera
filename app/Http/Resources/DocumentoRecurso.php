@@ -6,6 +6,7 @@ namespace App\Http\Resources;
 
 use App\Domain\Autorizacion\Enums\Permiso;
 use App\Domain\Documento\Enums\ClasificacionDocumental;
+use App\Domain\Documento\Enums\EstadoDocumental;
 use App\Domain\Documento\Enums\EstadoGeneracion;
 use App\Domain\Documento\Enums\TipoDocumento;
 use App\Domain\Documento\Models\Documento;
@@ -73,7 +74,19 @@ final class DocumentoRecurso extends Recurso
             // `max()` sobre un texto sería un orden alfabético sin sentido, y aquí
             // da igual: el índice único parcial garantiza un solo borrador por
             // documento, así que agrega sobre una fila como mucho.
-            ->selectRaw($versiones('max(case when dv.numero is null then dv.estado_generacion end)').' as estado_borrador');
+            ->selectRaw($versiones('max(case when dv.numero is null then dv.estado_generacion end)').' as estado_borrador')
+            /*
+             * El estado DOCUMENTAL de la versión vigente y su fecha de revisión.
+             * Mismo truco y misma garantía: el índice único parcial deja una sola
+             * versión aprobada por documento, así que el `max()` agrega sobre una
+             * fila como mucho.
+             *
+             * Por subconsulta y no por `join` por lo de siempre: un documento con
+             * cuatro entregas saldría cuatro veces y la paginación contaría mal.
+             */
+            ->selectRaw($versiones("max(case when dv.estado = 'aprobado' then dv.estado end)").' as estado_vigente')
+            ->selectRaw($versiones("max(case when dv.estado = 'aprobado' then dv.fecha_proxima_revision end)").' as proxima_revision')
+            ->selectRaw($versiones('max(case when dv.numero is null then dv.estado end)').' as estado_borrador_documental');
     }
 
     /** @return list<Columna> */
@@ -98,8 +111,20 @@ final class DocumentoRecurso extends Recurso
                 ->ordenable('ultima_version')
                 ->ayuda('La última versión entregada. Los borradores no cuentan: se regeneran.')
                 ->formato(fn (Documento $documento): ValorEtiquetado => $this->version($documento)),
-            Columna::fechaHora('ultima_emision', 'Emitida')->ordenable(),
+            /*
+             * El estado del DOCUMENTO, que es lo que le importa a quien lo
+             * firma, y no el del trabajo que produce el PDF. Cuando hay versión
+             * vigente manda ella; si no, el del borrador vivo.
+             */
+            Columna::badge('estado', 'Estado')
+                ->ayuda('Dónde está el documento: en borrador, esperando firma, aprobado u obsoleto.')
+                ->formato(fn (Documento $documento): ValorEtiquetado => $this->estadoDocumental($documento)),
+            Columna::fecha('proxima_revision', 'Próxima revisión')
+                ->ordenable()
+                ->ayuda('Se calcula al aprobar, desde la periodicidad que declara el documento.'),
+            Columna::fechaHora('ultima_emision', 'Emitida')->ordenable()->oculta(),
             Columna::badge('generacion', 'Generación')
+                ->oculta()
                 ->ayuda('En qué anda el borrador: si se está generando, si está listo para emitir o si falló.')
                 ->formato(fn (Documento $documento): ValorEtiquetado => $this->generacion($documento)),
             Columna::badge('clasificacion', 'Clasificación')
@@ -138,6 +163,14 @@ final class DocumentoRecurso extends Recurso
                 static fn (ClasificacionDocumental $c): Opcion => new Opcion($c->value, $c->etiqueta()),
                 ClasificacionDocumental::cases(),
             )),
+            /*
+             * Delega en el scope del modelo en vez de reescribir la condición:
+             * es el mismo que cuenta el indicador del panel y el que usa el aviso
+             * diario. Con la condición escrita dos veces, el día que cambie una
+             * el correo dice 12 y la tabla enseña 9.
+             */
+            Filtro::porScope('revision_vencida', 'Revisión vencida', 'revisionVencida')->sinColumna(),
+            Filtro::porScope('en_revision', 'Pendientes de aprobar', 'enRevision')->sinColumna(),
             Filtro::rangoFechas('created_at', 'Alta'),
         ];
     }
@@ -179,6 +212,33 @@ final class DocumentoRecurso extends Recurso
         }
 
         return new ValorEtiquetado((string) $numero, "v{$numero}", 'implantado');
+    }
+
+    /**
+     * Dónde está el documento, en su propio vocabulario.
+     *
+     * Manda la versión vigente cuando la hay —es la que está en vigor— y sólo si
+     * no la hay se enseña en qué anda el borrador. Un documento aprobado con un
+     * borrador nuevo encima sigue estando aprobado: lo que se entregó no deja de
+     * estar entregado porque alguien empiece a escribir la versión siguiente.
+     */
+    private function estadoDocumental(Documento $documento): ValorEtiquetado
+    {
+        $vigente = $documento->getAttribute('estado_vigente')
+            ?? $documento->getAttribute('estado_borrador_documental');
+
+        if ($vigente === null) {
+            return new ValorEtiquetado(null, 'Sin empezar', 'no_iniciado');
+        }
+
+        $estado = EstadoDocumental::from((string) $vigente);
+
+        return new ValorEtiquetado(
+            $estado->value,
+            $estado->etiqueta(),
+            $estado->tono(),
+            $estado->icono(),
+        );
     }
 
     /**

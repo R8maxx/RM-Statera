@@ -29,6 +29,24 @@ function anchoUtilDeLaHoja(): float
     return (float) GeometriaPagina::ANCHO - 2 * (float) GeometriaPagina::MARGEN_LATERAL;
 }
 
+/**
+ * Los tipos que llevan tabla larga, que son los que se calculan.
+ *
+ * Un documento redactado —política, norma, procedimiento— no tiene ninguna: su
+ * contenido lo escribe la organización y no sale de una consulta. Aquí no vale
+ * recorrer `TipoDocumento::cases()`, porque «esta tabla aprovecha la hoja» no es
+ * una afirmación falsa sobre una política, es una afirmación sin sujeto.
+ *
+ * @return list<TipoDocumento>
+ */
+function tiposConTablaLarga(): array
+{
+    return array_values(array_filter(
+        TipoDocumento::cases(),
+        static fn (TipoDocumento $tipo): bool => ! $tipo->esRedactado(),
+    ));
+}
+
 it('declara anchuras que caben en la caja de texto', function (TipoDocumento $tipo): void {
     $suma = array_sum(array_map(
         static fn (array $columna): float => (float) rtrim($columna['ancho'], 'in'),
@@ -36,7 +54,7 @@ it('declara anchuras que caben en la caja de texto', function (TipoDocumento $ti
     ));
 
     expect($suma)->toBeLessThanOrEqual(anchoUtilDeLaHoja());
-})->with(TipoDocumento::cases());
+})->with(fn () => tiposConTablaLarga());
 
 /**
  * Y que no se quede corta: una tabla que ocupe el setenta por ciento de la
@@ -49,11 +67,11 @@ it('aprovecha la hoja, sin dejar media página en blanco', function (TipoDocumen
     ));
 
     expect($suma)->toBeGreaterThan(anchoUtilDeLaHoja() * 0.9);
-})->with(TipoDocumento::cases());
+})->with(fn () => tiposConTablaLarga());
 
 /** Y que cada una siga siendo una anchura que el esquema admite. */
 it('declara anchuras que el esquema del cuerpo admite', function (TipoDocumento $tipo): void {
     foreach (ColumnasTabla::para($tipo) as $columna) {
         expect(EsquemaCuerpo::anchoValido($columna['ancho']))->toBeTrue($columna['ancho']);
     }
-})->with(TipoDocumento::cases());
+})->with(fn () => tiposConTablaLarga());

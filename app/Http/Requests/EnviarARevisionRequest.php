@@ -8,17 +8,21 @@ use App\Domain\Documento\Models\Documento;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * Emitir es entregar, y a partir de ahí la versión es inmutable.
+ * Mandar el borrador a quien tiene que firmarlo.
  *
  * El motivo es obligatorio en cuanto hay una versión anterior: «¿por qué hay una
- * v4?» es la primera pregunta del auditor, y contestarla después de seis meses
- * no lo hace nadie. En la primera entrega no se pide, porque el motivo es obvio.
+ * v4?» es la primera pregunta del auditor, y contestarla después de seis meses no
+ * lo hace nadie. En la primera entrega no se pide, porque el motivo es obvio.
+ *
+ * **Se pide aquí y no al firmar**, y eso cambió con el flujo de aprobación: por
+ * qué hay una versión nueva lo sabe quien la ha preparado, no quien la firma. Lo
+ * que escribe quien firma es otra cosa y va en `nota_aprobacion`, igual que
+ * `nota` y `nota_aceptacion` en una valoración de riesgo.
  *
  * Que el borrador esté generado NO se comprueba aquí: es una regla de estado y
- * vive en `DocumentoVersion::esEmisible()`, para que valga igual desde un
- * comando de consola.
+ * vive en el dominio, para que valga igual desde un comando de consola.
  */
-class EmitirVersionRequest extends FormRequest
+class EnviarARevisionRequest extends FormRequest
 {
     /**
      * @return array<string, mixed>
@@ -40,7 +44,7 @@ class EmitirVersionRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'motivo.required' => 'Di por qué se emite una versión nueva: es lo primero que pregunta el auditor.',
+            'motivo.required' => 'Di por qué hay una versión nueva: es lo primero que pregunta el auditor.',
         ];
     }
 }

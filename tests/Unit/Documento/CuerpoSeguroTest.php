@@ -157,4 +157,29 @@ it('pinta el esqueleto de fábrica sin perder ninguna negrita', function (TipoDo
         ->and($html)->toContain('<h2>Introducción</h2>')
         ->and($html)->toContain('<strong>')
         ->and($html)->not->toContain('<script');
-})->with(TipoDocumento::cases());
+})->with(fn () => array_values(array_filter(
+    TipoDocumento::cases(),
+    static fn (TipoDocumento $tipo): bool => ! $tipo->esRedactado(),
+)));
+
+/**
+ * El esqueleto de un documento redactado, que es otra cosa.
+ *
+ * No lleva negrita porque su texto de fábrica es prosa llana —y lo que Statera
+ * no tiene nada que decir se queda en blanco a propósito—, y sobre todo **no
+ * lleva tabla ni gráfica**: si apareciera un `<table>` aquí sería que el
+ * esqueleto está insertando huecos calculados en un documento que no calcula
+ * nada, y ésos saldrían vacíos en el PDF sin ningún error.
+ */
+it('pinta el esqueleto de un documento redactado, sin nada calculado', function (TipoDocumento $tipo): void {
+    $html = (new RenderizadorCuerpo)->aHtml(CuerpoDeFabrica::para($tipo));
+
+    expect($html)->toContain('<section class="portada">')
+        ->and($html)->toContain('<h2>Introducción</h2>')
+        ->and($html)->toContain('<h2>Control de versiones</h2>')
+        ->and($html)->not->toContain('<table')
+        ->and($html)->not->toContain('<script');
+})->with(fn () => array_values(array_filter(
+    TipoDocumento::cases(),
+    static fn (TipoDocumento $tipo): bool => $tipo->esRedactado(),
+)));

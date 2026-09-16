@@ -44,10 +44,13 @@ enum Rol: string
      * exige a la organización, y quien lo hace responde de ello. El auditor no
      * escribe nada, porque alterar lo que audita invalida la auditoría.
      *
-     * Tampoco emite documentos el técnico: emitir una versión es entregarla, y
-     * quien la firma es el responsable de seguridad. Leerlos sí, los dos: un
-     * auditor que no pudiera abrir la Declaración de Aplicabilidad no podría
-     * auditar nada.
+     * Tampoco aprueba documentos el técnico, y desde el § 4.5 eso es lo mismo
+     * que decir que no los entrega: aprobar es lo que numera la versión, congela
+     * el PDF y lo mueve a `emitidas/`. Lo que sí hace es redactarlos y, cuando
+     * los da por terminados, **mandarlos a revisión** —que va con `redactar` y no
+     * con `generar`, porque es el final de escribir y no el principio de
+     * entregar—. Leerlos sí, los dos: un auditor que no pudiera abrir la
+     * Declaración de Aplicabilidad no podría auditar nada.
      *
      * Redactar los textos de un documento sí lo hace el técnico —es trabajo de
      * quien lo está preparando—, pero la plantilla de la organización no: eso

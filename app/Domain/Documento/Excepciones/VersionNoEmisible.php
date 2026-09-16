@@ -8,11 +8,11 @@ use App\Domain\Documento\Models\DocumentoVersion;
 use RuntimeException;
 
 /**
- * Se intentó emitir algo que no se puede emitir.
+ * Se intentó cerrar una aprobación que no está en condiciones de cerrarse.
  *
- * Emitir es entregar: a partir de ahí la fila es inmutable y el PDF es el que se
- * enseñará dentro de dos años. Por eso no se emite un borrador que todavía se
- * está generando, ni uno que falló, ni se re-emite lo ya emitido.
+ * Cerrarla es numerar y entregar: a partir de ahí la fila es inmutable y el PDF
+ * es el que se enseñará dentro de dos años. Por eso no se cierra una versión sin
+ * PDF, ni una que nadie ha firmado, ni se vuelve a numerar la ya numerada.
  */
 final class VersionNoEmisible extends RuntimeException
 {
@@ -22,9 +22,20 @@ final class VersionNoEmisible extends RuntimeException
             return new self("La versión v{$version->numero} ya está emitida y no se vuelve a emitir.");
         }
 
-        return new self(
-            'El borrador todavía no tiene PDF: está '
-            .mb_strtolower($version->estado_generacion->etiqueta()).'.'
-        );
+        if (! $version->tieneFichero()) {
+            return new self(
+                'El borrador todavía no tiene PDF: está '
+                .mb_strtolower($version->estado_generacion->etiqueta()).'.'
+            );
+        }
+
+        // El caso que importa: sin firma no hay entrega. Emitir dejó de ser un
+        // acto propio cuando aprobar pasó a ser lo que emite, y una versión
+        // numerada sin firmante sería exactamente el registro que este módulo
+        // existe para hacer imposible.
+        return new self(sprintf(
+            'La versión está en «%s» y sin firma: sólo se entrega lo que la dirección ha aprobado.',
+            $version->estado->etiqueta(),
+        ));
     }
 }

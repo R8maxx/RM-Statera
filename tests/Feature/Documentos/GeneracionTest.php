@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domain\Catalogo\Models\Marco;
+use App\Domain\Documento\EmitirVersion;
 use App\Domain\Documento\Enums\EstadoGeneracion;
 use App\Domain\Documento\GenerarDocumento;
 use App\Domain\Documento\Jobs\GenerarDocumentoJob;
@@ -206,7 +207,7 @@ it('registra el fallo con su mensaje cuando Gotenberg no responde', function ():
     $job = new GenerarDocumentoJob($version->id, $this->organizacion->id);
 
     try {
-        $job->handle(app(GenerarDocumento::class));
+        $job->handle(app(GenerarDocumento::class), app(EmitirVersion::class));
     } catch (Throwable $e) {
         // El `catch` del servicio no marca «fallida»: eso lo hace `failed()`,
         // después del último intento, para no decir que falló algo que Horizon

@@ -71,6 +71,16 @@ final class ColumnasTabla
                 ['clave' => 'evidencias', 'titulo' => 'Evidencia', 'ancho' => '1.28in'],
                 ['clave' => 'correspondencias', 'titulo' => 'Correspondencia ISO', 'ancho' => '0.95in'],
             ],
+
+            /*
+             * Un documento redactado no tiene tabla larga: su contenido lo
+             * escribe la organización y no sale de ninguna consulta. Lista vacía
+             * y no una excepción, porque quien llame a esto está pintando un
+             * documento y no tiene por qué saber de qué tipo es.
+             */
+            TipoDocumento::Politica,
+            TipoDocumento::Norma,
+            TipoDocumento::Procedimiento => [],
         };
     }
 
@@ -80,6 +90,11 @@ final class ColumnasTabla
         return match ($tipo) {
             TipoDocumento::SoaIso => 'Controles del Anexo A',
             TipoDocumento::DdaEns => 'Medidas del Anexo II',
+
+            // Sin tabla no hay recuento que etiquetar.
+            TipoDocumento::Politica,
+            TipoDocumento::Norma,
+            TipoDocumento::Procedimiento => '',
         };
     }
 }

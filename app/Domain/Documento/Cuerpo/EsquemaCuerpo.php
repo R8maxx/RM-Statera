@@ -135,9 +135,24 @@ final class EsquemaCuerpo
      * que se ha editado a mano— y el control de versiones no puede llevar dentro
      * la huella del PDF que lo contiene.
      *
+     * **`portada_ficha` entró con el flujo de aprobación (§ 4.5)**, y es lo que
+     * hace que la firma llegue al papel. Esa ficha se materializaba UNA vez, al
+     * crear el cuerpo, así que se quedaba congelada con la fecha de aquel día, la
+     * etiqueta «Borrador» y sin aprobación: el PDF que se le entrega al auditor
+     * llevaría en portada los datos de la primera vez que alguien pulsó
+     * «Generar». No es narrativa que nadie redacte —organización, código,
+     * versión, fecha, clasificación y quién firmó son identificación, y tienen que
+     * coincidir con el registro—, así que recalcularla es lo correcto aunque
+     * sobreescriba una edición manual; que se editó, lo declaran las limitaciones.
+     *
      * @var list<string>
      */
-    public const SIEMPRE_RECALCULADOS = ['portada_pie', 'limitaciones_sistema', 'control_versiones'];
+    public const SIEMPRE_RECALCULADOS = [
+        'portada_ficha',
+        'portada_pie',
+        'limitaciones_sistema',
+        'control_versiones',
+    ];
 
     /** Marcas de texto. `cifra` es la monoespaciada tabular del documento. */
     public const MARCAS = ['bold', 'italic', 'link', 'cifra', 'suave'];

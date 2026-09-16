@@ -49,13 +49,20 @@ it('salen siempre, con o sin limitaciones propias', function (): void {
 
     $conPropias = implode(' ', ($this->contenido)()->limitaciones);
 
-    // Tres frases de las limitaciones de fábrica, una por bloque. La primera
-    // decía «módulo de riesgos» y cambió al llegar el § 4.3: lo que se fija aquí
-    // es que los bloques de fábrica siguen saliendo, no su redacción exacta
-    // —de eso se ocupa `ContenidoSoaTest`—.
+    /*
+     * Tres frases de las limitaciones de fábrica, una por bloque. Lo que se fija
+     * aquí es que los bloques siguen saliendo, no su redacción exacta —de eso se
+     * ocupa `ContenidoSoaTest`—.
+     *
+     * La de aprobación va por su segunda redacción: decía que la herramienta «no
+     * implementa un flujo de aprobación» y eso pasó a ser **falso en el PDF que
+     * se le entrega al auditor** cuando llegó el § 4.5. Mismo tratamiento que ya
+     * se le dio a la del análisis de riesgos con el § 4.3: no se borra, se
+     * precisa qué es lo que la herramienta sigue sin hacer.
+     */
     foreach ([
         'no exige que todo control aplicable tenga un riesgo detrás',
-        'no implementa un flujo de aprobación',
+        'no incorpora firma electrónica',
         'derechos de autor',
     ] as $frase) {
         expect($sinPropias)->toContain($frase);

@@ -6,16 +6,19 @@ namespace App\Domain\Documento\Models;
 
 use App\Domain\Auditoria\Concerns\RegistraTraza;
 use App\Domain\Documento\Enums\ClasificacionDocumental;
+use App\Domain\Documento\Enums\EstadoDocumental;
 use App\Domain\Documento\Enums\TipoDocumento;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
 use App\Domain\Sistema\Models\Sistema;
 use App\Models\User;
 use Database\Factories\DocumentoFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Carbon;
 
 /**
  * La serie documental: «la SoA del SGSI», no una entrega concreta de ella.
@@ -35,6 +38,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property ClasificacionDocumental $clasificacion
  * @property ?int $responsable_id
  * @property ?string $notas
+ * @property ?int $periodicidad_revision_meses
+ * @property bool $exige_acuse
  */
 class Documento extends Model
 {
@@ -55,6 +60,8 @@ class Documento extends Model
         'clasificacion',
         'responsable_id',
         'notas',
+        'periodicidad_revision_meses',
+        'exige_acuse',
     ];
 
     /** @return BelongsTo<Sistema, $this> */
@@ -134,6 +141,90 @@ class Documento extends Model
     }
 
     /**
+     * La versión vigente: la que está aprobada y todavía no ha sido sustituida.
+     *
+     * Hay como mucho una, y lo garantiza el índice único parcial
+     * `documento_versiones_aprobada_vigente` — el mismo mecanismo que el del
+     * borrador, y que el de la valoración vigente de un riesgo.
+     *
+     * No es lo mismo que `ultimaVersionEmitida()`: ésa es la última que se
+     * entregó, y bajo el flujo de aprobación toda entrega está firmada, pero las
+     * versiones que se emitieron antes de que el flujo existiera se archivaron
+     * como obsoletas sin firmante. Un documento así tiene última versión y no
+     * tiene versión vigente, y eso es lo cierto.
+     *
+     * @return HasOne<DocumentoVersion, $this>
+     */
+    public function versionAprobada(): HasOne
+    {
+        return $this->hasOne(DocumentoVersion::class)->where('estado', EstadoDocumental::Aprobado->value);
+    }
+
+    /** Si hay que acusar recibo de sus versiones aprobadas. */
+    public function exigeAcuse(): bool
+    {
+        return (bool) $this->exige_acuse;
+    }
+
+    /**
+     * Los que se han pasado de la fecha de revisión que ellos mismos fijaron.
+     *
+     * Va por `whereHas` y no por `join` por lo de siempre: un documento con
+     * varias versiones saldría repetido y la paginación contaría mal.
+     *
+     * **Lo cuentan a la vez el indicador del panel, el filtro de la tabla y el
+     * aviso diario**, y por eso la condición se escribe una sola vez aquí. Con la
+     * condición duplicada, el día que cambie una el correo dirá 12 y la pantalla
+     * enseñará 9, y a partir de ahí nadie se fía de ninguno de los dos.
+     *
+     * @param  Builder<$this>  $query
+     */
+    public function scopeRevisionVencida(Builder $query): void
+    {
+        $query->whereHas(
+            'versionAprobada',
+            // Estrictamente anterior a hoy: lo que vence hoy todavía no se ha
+            // pasado, igual que en `Tarea::vencidas()` y en `caducadas()`.
+            fn (Builder $version) => $version
+                ->whereNotNull('fecha_proxima_revision')
+                ->whereDate('fecha_proxima_revision', '<', Carbon::today()),
+        );
+    }
+
+    /**
+     * Los que están esperando una firma.
+     *
+     * Mira el borrador vivo y no la versión vigente: lo que está en revisión es
+     * lo que todavía no se ha entregado. Un documento aprobado con una versión
+     * nueva en revisión sale aquí, y es correcto — hay algo esperando a alguien.
+     *
+     * @param  Builder<$this>  $query
+     */
+    public function scopeEnRevision(Builder $query): void
+    {
+        $query->whereHas(
+            'versiones',
+            fn (Builder $version) => $version->where('estado', EstadoDocumental::EnRevision->value),
+        );
+    }
+
+    /**
+     * Los que toca revisar dentro de la ventana, sin haberse pasado todavía.
+     *
+     * @param  Builder<$this>  $query
+     */
+    public function scopePorRevisar(Builder $query, int $dias = 30): void
+    {
+        $query->whereHas(
+            'versionAprobada',
+            fn (Builder $version) => $version
+                ->whereNotNull('fecha_proxima_revision')
+                ->whereDate('fecha_proxima_revision', '>=', Carbon::today())
+                ->whereDate('fecha_proxima_revision', '<=', Carbon::today()->addDays($dias)),
+        );
+    }
+
+    /**
      * El número que le tocaría a la siguiente entrega.
      *
      * Se calcula consultando, no guardando un contador: un contador y las filas
@@ -172,6 +263,8 @@ class Documento extends Model
         return [
             'tipo' => TipoDocumento::class,
             'clasificacion' => ClasificacionDocumental::class,
+            'periodicidad_revision_meses' => 'integer',
+            'exige_acuse' => 'boolean',
         ];
     }
 

@@ -23,6 +23,15 @@ final readonly class RegistroGeneradores
         return $this->contenedor->make(match ($tipo) {
             TipoDocumento::SoaIso => DeclaracionAplicabilidadIso::class,
             TipoDocumento::DdaEns => DeclaracionAplicabilidadEns::class,
+
+            /*
+             * Los tres redactados comparten generador: lo que los separa es qué
+             * dicen y en qué nivel de la jerarquía están, no cómo se producen.
+             * En la tubería son el mismo documento.
+             */
+            TipoDocumento::Politica,
+            TipoDocumento::Norma,
+            TipoDocumento::Procedimiento => DocumentoRedactado::class,
         });
     }
 }
