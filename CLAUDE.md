@@ -103,8 +103,10 @@ El orden importa: el catálogo y el motor son la parte más específica del domi
 9. ✅ Flujo de aprobación documental con acuse de lectura (§ 4.5): estado del
    documento, firma de la dirección, obsolescencia de la versión anterior,
    periodicidad de revisión con su aviso, y la segunda familia de documentos —los
-   **redactados**: política, norma y procedimiento—. De la fase 2 queda **el plan
-   de adecuación**.
+   **redactados**: política, norma y procedimiento—.
+10. ✅ Plan de adecuación del ENS (§ 4.18), el tercer documento calculado. Con él
+    la **fase 2** —«el papel formal»— queda completa: riesgos con metodología,
+    documentos con flujo de aprobación, y SoA, DdA y plan de adecuación.
 
 ## El catálogo
 
@@ -248,8 +250,12 @@ al auditor**, que es peor que una limitación ausente. No se borraron: se precis
 herramienta sigue sin hacer —no exige que todo control aplicable tenga un riesgo detrás, ni comprueba
 que el análisis cubra el alcance entero—, mismo tratamiento que ya se le había dado a la limitación
 del flujo de aprobación. En la DdA se separaron las dos mitades: el análisis de riesgos existe y no
-figura ahí **por diseño** —una Declaración de Aplicabilidad declara medidas, no riesgos—; el plan de
-adecuación sigue pendiente de módulo.
+figura ahí **por diseño** —una Declaración de Aplicabilidad declara medidas, no riesgos—.
+
+**Y se volvió a reescribir al llegar el plan de adecuación**, por tercera vez y por lo mismo: la DdA
+decía que el plan «sigue pendiente: su módulo no está implantado» y eso pasó a ser falso en el PDF
+entregado. Ahora dice que el plan existe, en documento aparte, y **por qué no figura ahí** — que es
+una decisión y no una carencia. `ContenidoDdaTest` clava que la frase vieja no vuelva.
 
 ---
 
@@ -381,6 +387,91 @@ PDF que alguien aprueba. Un hueco vacío no se pinta —ni él ni su título—,
 genérica, no. Lo que sí trae es la introducción, porque `org.1` pide literalmente que la política
 declare objetivos, compromiso de la dirección y a quién obliga: eso es lo que la § 4.5 llama
 «plantilla base».
+
+---
+
+## El plan de adecuación
+
+El tercer documento **calculado**, y el que cierra la fase 2. Hace la pregunta contraria a una
+declaración: la DdA dice qué medidas se exigen y cómo está cada una; el plan lista **sólo las que no
+están implantadas**, con quién responde, para cuándo y cuánto cuesta. Es el documento que junta el
+§ 4.4 con el § 4.7, y no hizo falta ninguna tabla nueva: `implantaciones.fecha_objetivo` y
+`responsable_id` estaban desde la primera migración, y `tareas.coste_estimado` llevaba desde el
+principio con un comentario que decía que era «para el plan de adecuación» — y **no lo leía nadie**.
+
+**`DeclaracionAplicabilidad` pasó a llamarse `DocumentoCalculado`.** La clase es la tubería —la
+consulta por tipo de requisito, el agrupado por el nodo padre, las correspondencias cruzadas— y no un
+género documental; con un plan heredando de ella el nombre mentía. Hace pareja con
+`DocumentoRedactado`, que es el otro lado de la frontera que define `TipoDocumento::esRedactado()`.
+Mismo caso que `IndicadorInventario` → `Indicador`.
+
+**Y `resumen()` se volvió abstracto en el movimiento.** Las cifras de una declaración —porcentaje
+implantado, excluidos— **no significan nada** sobre filas que son todas pendientes por construcción:
+darían cero siempre. Heredar una implementación que un hijo no debe llamar es una mina que no caza
+ningún `match` exhaustivo, así que las dos declaraciones la reciben por el trait
+`Concerns\ResumeLaAplicabilidad` y el plan escribe la suya. Lo mismo con la fila: los quince campos de
+una medida del ENS viven en `Concerns\ArmaFilaDelAnexoII`, porque `FilaRequisito` es `readonly` y PHP
+no tiene `clone with` — sin el trait, el plan copiaba las quince asignaciones.
+
+**El fallo caro de este módulo es el coste, y se cuenta dos veces si nadie lo impide.**
+`implantacion_tarea` es N:M: una actuación hace avanzar varias medidas a la vez, así que sumar la
+columna presupuestaría tres veces una tarea que cubre tres medidas — en el documento que se le lleva a
+la dirección a pedir dinero. El total lo calcula `Tarea\Coste::total()` **sobre tareas distintas**, y
+la columna sigue imputando a cada medida lo suyo: los dos números son correctos y **no cuadran entre
+sí**, así que el documento lo dice por escrito. Es el mismo argumento aritmético que dejó las subtareas
+fuera de `tareas` y que hizo N:M a riesgo↔activo.
+
+**`Domain\Tarea\Coste` existe por eso**, y de paso recoge el formato del euro, que estaba escrito dos
+veces —la columna de la tabla y la ficha— e iba camino de la tercera. Mismo criterio que `Tarea\Plazo`.
+
+**Cuatro scopes nuevos en `Implantacion`**, que hasta ahora sólo tenía `aplicables()` y `delSistema()`:
+`pendientes()`, `objetivoVencido()`, `sinFechaObjetivo()` y `sinTrabajo()`. Los invocan por nombre la
+cifra del panel, los filtros de `/implantaciones` y la consulta del plan, que es lo que garantiza que
+pulsar el número enseñe exactamente ese número. **«Pendientes» era una cifra del panel que no se podía
+pulsar**, y llegar a esa lista exigía marcar a mano «aplica» y tres de los cuatro estados. Van con las
+columnas cualificadas —`implantaciones.estado`— porque quien los llama suele traer `requisitos` unida.
+`fecha_objetivo` existía desde el principio y **no se comparaba con hoy en ningún punto del producto**;
+aquí empieza a significar algo.
+
+**Dos fuentes nuevas**: `resumen_plan`, porque las cifras de una declaración tienen otra forma, y
+`tabla_sin_trabajo`, que repite las medidas pendientes sin ninguna tarea abierta detrás. La duplicación
+es deliberada, igual que la tabla de exclusiones de la SoA: es lo que la dirección va a mirar seguro.
+**Un plan completo no es el que no tiene ninguna, es el que las declara.**
+
+**El denominador va impreso y con palabras.** «51 de 52» y, debajo, «al sistema se le exigen 52 medidas
+del Anexo II, de las cuales 1 figura implantada; este plan recoge las 51 restantes». Sin eso una tabla
+de 51 filas se lee como si al sistema se le exigieran 51. Y las implantadas salen **por resta** y no
+por una segunda consulta con la condición contraria: `pendientes()` es exactamente «aplicable y no
+implantada», así que escribir `where estado = implantado` sería la misma regla por segunda vez.
+
+**`documentos_sistema_check` se reescribió**, y la migración anterior pedía expresamente que no se
+tocara. Su razón seguía siendo buena y por eso hay que decir por qué deja de valer: estaba en negativo
+—`tipo NOT IN ('soa_iso','dda_ens')`— para que un tipo **de ámbito organizativo** no obligara a
+rehacerlo, y política, norma y procedimiento lo eran. El plan es el primer tipo **calculado** que llega
+detrás, y un plan sin sistema no es un documento raro, es un documento imposible. Ahora la lista se
+construye desde el enum filtrando `! esRedactado()`.
+
+**El `CHECK` no lo prueba `migrate:fresh`.** Los `CHECK` de tipo se construyen desde `TipoDocumento::cases()`
+**en ejecución**, así que sobre una base recién migrada ya incluyen el tipo nuevo aunque falte la
+migración: ningún test se pone rojo si se olvida. `PlanExigeSistemaTest` prueba la mitad que sí importa
+—que la base rechaza un plan sin sistema— y hay que correr `migrate`, no sólo `fresh`.
+
+**Y tres frases más pasaron a ser falsas con el plan dentro**, todas corregidas: `limitacionesBase()`
+decía «sobre N requisitos registrados» contando sólo las filas —en un plan, 51 habiendo 52 exigibles—;
+la ficha del documento pintaba «N requisitos · N excluidos · N implantados», que en un plan es «0
+excluidos · 0 implantados» para siempre, y ahora el recuento lo escribe el servidor según el tipo; y el
+mensaje de `GuardarDocumentoRequest` decía «La %s es de %s», que con un tipo masculino salía «La Plan
+ENS» (y el «de el ENS» ya estaba mal antes).
+
+**Lo que el plan declara que no hace**: no contrasta plazos contra capacidad, no ordena las medidas por
+dependencia, no exige que toda medida pendiente tenga fecha o responsable, y **el calendario de
+obligaciones todavía no incluye las fechas objetivo** — el aviso diario y la vista de mes siguen
+recogiendo sólo tareas y evidencias. Esa cuarta `Fuente` es un trabajo aparte; mientras tanto va
+declarada, que es lo que este proyecto hace con lo que aún no puede afirmar.
+
+```sh
+php artisan documentos:generar PLA-ENS-01 --html   # sigue siendo el bucle rápido
+```
 
 ---
 
@@ -873,15 +964,24 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
   pide** —un `__call` se traga `setFontStyle()` en silencio—, así que el estilo base baja hasta cada
   `addText`. Lo cazó Larastan.
 
-- **Dos cabos sueltos anotados del módulo de documentos, que siguen abiertos:**
-  1. `CuerpoRenderizadoTest` monta todo sobre ISO, así que los bloques exclusivos del ENS
-     —`tabla_derivacion`, `notas_anexo_ii` y `tabla_madurez`— no tienen ninguna aserción sobre su HTML
-     materializado. `CuerpoSeguroTest` recorre los dos tipos, pero sobre el **esqueleto** de fábrica,
-     con los huecos sin rellenar.
-  2. `MaterializarCuerpo` cierra su `match` con `default => []`. Una fuente nueva añadida a
-     `EsquemaCuerpo::FUENTES` y olvidada ahí produce un bloque **vacío** en el PDF sin ningún error.
-     `EsquemaEnDosIdiomasTest` compara PHP con TypeScript, pero nadie compara `FUENTES` contra las
-     ramas del `match`.
+- **Los dos `match` sobre cadenas de `MaterializarCuerpo` fallan ruidosamente, y antes no.** Los dos
+  —la fuente de un bloque y la clave de una columna— cerraban con un `default` silencioso: una fuente
+  declarada en `EsquemaCuerpo::FUENTES` y olvidada allí se materializaba como un grupo **vacío**, o sea
+  un apartado que desaparece del PDF sin ningún error, y una columna olvidada salía como una raya en
+  las noventa y tres filas. PHPStan no los señala porque no son `match` sobre un enum. Ahora los dos
+  lanzan `LogicException`, que es seguro porque `recorrer()` sólo entra si `EsquemaCuerpo::esFuente()`
+  y las claves de columna las declara código, nunca un dato de usuario.
+
+  **Y por eso no hay test de regex**, que fue lo primero que se pensó copiando a `EsquemaEnDosIdiomasTest`:
+  aquél parsea el fichero fuente porque el otro lado es TypeScript y no se puede leer desde PHP. Aquí
+  los dos lados son PHP, así que `HuecosCalculadosTest` recorre `FUENTES` y las columnas de cada tipo y
+  comprueba que ninguna rama salta. **Se parametriza solo** para el cuarto documento calculado.
+
+- **Cabo suelto que sigue abierto:** `CuerpoRenderizadoTest` monta todo sobre ISO, así que los bloques
+  exclusivos del ENS —`tabla_derivacion`, `notas_anexo_ii`, `tabla_madurez`— y los dos del plan
+  —`resumen_plan`, `tabla_sin_trabajo`— no tienen ninguna aserción sobre su HTML materializado.
+  `CuerpoSeguroTest` recorre los tipos, pero sobre el **esqueleto** de fábrica, con los huecos sin
+  rellenar.
 
 - **Los avisos son un resumen diario por organización, y de momento sólo por correo.** `avisos:enviar`
   recorre las organizaciones con `ContextoOrganizacion::paraOrganizacion()`, una cada vez: un comando

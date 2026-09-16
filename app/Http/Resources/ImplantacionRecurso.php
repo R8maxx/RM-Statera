@@ -162,6 +162,15 @@ final class ImplantacionRecurso extends Recurso
                 EstadoImplantacion::cases(),
             )),
             Filtro::booleano('aplica', 'Aplica'),
+            /*
+             * Los tres por scope, apuntando a los mismos que cuentan el panel y
+             * el plan de adecuación. «Pendiente» era hasta ahora una cifra del
+             * panel que no se podía pulsar, y llegar a esa lista a mano exigía
+             * marcar «aplica» y tres de los cuatro estados.
+             */
+            Filtro::porScope('pendientes', 'Pendiente', 'pendientes'),
+            Filtro::porScope('objetivo_vencido', 'Fecha objetivo pasada', 'objetivoVencido'),
+            Filtro::porScope('sin_trabajo', 'Sin trabajo planificado', 'sinTrabajo'),
             Filtro::multiSelect('nivel_madurez', 'Madurez', array_map(
                 static fn (NivelMadurez $nivel): Opcion => new Opcion($nivel->value, $nivel->etiqueta()),
                 NivelMadurez::cases(),

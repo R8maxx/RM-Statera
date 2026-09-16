@@ -499,15 +499,54 @@ class DocumentoController extends Controller
             // fichero que se le entrega al auditor.
             'huella' => $version->hash_sha256,
             'tamano' => $version->tamano,
-            'totalRequisitos' => $version->total_requisitos,
-            'totalExcluidos' => $version->total_excluidos,
-            'totalImplantados' => $version->total_implantados,
+            /*
+             * El recuento lo escribe el servidor y no la plantilla, porque no
+             * significa lo mismo en todos los documentos: en una declaración son
+             * los requisitos con sus excluidos e implantados, y en un plan de
+             * adecuación las filas son **todas** pendientes por construcción, así
+             * que «0 excluidos · 0 implantados» sería un dato falso al lado del
+             * enlace de descarga.
+             */
+            'recuento' => $this->recuentoDeVersion($version),
             'motivo' => $version->motivo,
             'error' => $version->error,
             'quien' => $version->generadaPor?->name,
             'emitida' => $version->emitida_en?->toDateTimeString(),
             'creada' => $version->created_at->toDateTimeString(),
         ];
+    }
+
+    /**
+     * Qué contiene una versión, en una línea y dicho según el documento que es.
+     *
+     * Devuelve nulo cuando no hay nada que contar: un documento redactado no
+     * tiene filas, y una versión que todavía no se ha generado tampoco.
+     */
+    private function recuentoDeVersion(DocumentoVersion $version): ?string
+    {
+        if ($version->total_requisitos === null) {
+            return null;
+        }
+
+        return match ($version->documento->tipo) {
+            TipoDocumento::SoaIso, TipoDocumento::DdaEns => sprintf(
+                '%d requisitos · %d excluidos · %d implantados',
+                $version->total_requisitos,
+                (int) $version->total_excluidos,
+                (int) $version->total_implantados,
+            ),
+
+            // En un plan todas las filas son pendientes: decir cuántas están
+            // implantadas sería decir siempre cero, y no porque no haya ninguna.
+            TipoDocumento::PlanAdecuacionEns => sprintf(
+                '%d medidas pendientes',
+                $version->total_requisitos,
+            ),
+
+            TipoDocumento::Politica,
+            TipoDocumento::Norma,
+            TipoDocumento::Procedimiento => null,
+        };
     }
 
     /**

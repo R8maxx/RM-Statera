@@ -27,8 +27,11 @@ use App\Http\Resources\Implantacion\Correspondencia;
  * documento: una DdA que exige de más en silencio, o que se come una
  * alternativa entre refuerzos, es exactamente lo que un auditor detecta.
  */
-final class DeclaracionAplicabilidadEns extends DeclaracionAplicabilidad
+final class DeclaracionAplicabilidadEns extends DocumentoCalculado
 {
+    use Concerns\ArmaFilaDelAnexoII;
+    use Concerns\ResumeLaAplicabilidad;
+
     public function tipo(): TipoDocumento
     {
         return TipoDocumento::DdaEns;
@@ -65,14 +68,15 @@ final class DeclaracionAplicabilidadEns extends DeclaracionAplicabilidad
                 'alcance' => $sistema?->alcance_declarado,
                 'categoria' => $sistema?->categoria()?->etiqueta(),
             ],
-            resumen: $this->resumenDe($documento, $filas),
+            resumen: $this->resumen($documento, $filas),
             filas: $filas,
             limitaciones: [
                 'El **análisis de riesgos** (`op.pl.1`) se gestiona en la herramienta y **no se '
                 .'reproduce en este documento**: una Declaración de Aplicabilidad declara medidas, no '
                 .'riesgos. La herramienta **todavía no genera el documento de análisis y tratamiento '
-                .'de riesgos**, que ha de aportarse por separado, y el **plan de adecuación** sigue '
-                .'pendiente: su módulo no está implantado.',
+                .'de riesgos**, que ha de aportarse por separado. El **plan de adecuación** sí se '
+                .'genera, en documento aparte: **no figura aquí por diseño**, porque una Declaración '
+                .'de Aplicabilidad declara la situación y no el calendario de las medidas que faltan.',
 
                 'Los **roles ENS** —responsable de la información, del servicio, de seguridad, del '
                 .'sistema y administrador de la seguridad del sistema— están **pendientes de '
@@ -97,38 +101,9 @@ final class DeclaracionAplicabilidadEns extends DeclaracionAplicabilidad
     /** @param  array<int, list<Correspondencia>>  $correspondencias */
     protected function fila(Implantacion $implantacion, array $correspondencias): FilaRequisito
     {
-        $requisito = $implantacion->requisito;
-
-        return new FilaRequisito(
-            grupo: $this->grupo($implantacion),
-            codigo: $requisito->codigo,
-            titulo: $requisito->titulo,
-            aplica: $implantacion->aplica,
-            estado: $implantacion->estado->value,
-            estadoEtiqueta: $implantacion->estado->etiqueta(),
-            estadoTono: $implantacion->estado->value,
-            justificacion: $implantacion->justificacion,
-            exigencia: $implantacion->exigencia_calculada?->etiqueta(),
-            origenExigencia: $implantacion->origen_exigencia?->etiqueta(),
-            // Sólo cuando la exigencia viene de modular por una dimensión: en el
-            // resto de casos la columna diría algo que no explica nada.
-            dimensionModuladora: $implantacion->dimension_moduladora?->nombre(),
-            madurez: $implantacion->nivel_madurez?->etiqueta(),
-            madurezValor: $implantacion->nivel_madurez?->valor(),
-            responsable: $implantacion->responsable?->name,
-            evidencias: $this->evidenciasDe($implantacion),
-            correspondencias: $this->codigosCorrespondientes($implantacion, $correspondencias),
-        );
-    }
-
-    /** El nodo del que cuelga la medida: `org`, `op.acc`, `mp.info`… */
-    private function grupo(Implantacion $implantacion): string
-    {
-        $padre = $implantacion->requisito->padre;
-
-        return $padre === null
-            ? 'Anexo II'
-            : "{$padre->codigo} · {$padre->titulo}";
+        // Los cuatro campos del plan de adecuación se quedan a nulo: una
+        // declaración dice cómo está una medida, no qué se va a hacer con ella.
+        return $this->filaDelAnexoII($implantacion, $correspondencias);
     }
 
     /**

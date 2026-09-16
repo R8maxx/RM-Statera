@@ -16,7 +16,7 @@ use App\Domain\Documento\Narrativa\ResolverNarrativa;
  * **Es la otra familia de documentos, y no se parece a las declaraciones.** Una
  * Declaración de Aplicabilidad es una consulta sobre `implantaciones` congelada
  * en un PDF; una política no sale de ninguna consulta —la redacta alguien— y por
- * eso esta clase no hereda de `DeclaracionAplicabilidad`: no tiene filas que
+ * eso esta clase no hereda de `DocumentoCalculado`: no tiene filas que
  * construir, ni tabla que componer, ni correspondencias cruzadas que resolver.
  * Lo único que comparte con ellas es la portada, el historial y las limitaciones,
  * que están en un trait.

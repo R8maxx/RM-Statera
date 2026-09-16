@@ -74,6 +74,7 @@ final class CuerpoDeFabrica
             ...match ($this->tipo) {
                 TipoDocumento::SoaIso => $this->cuerpoIso(),
                 TipoDocumento::DdaEns => $this->cuerpoEns(),
+                TipoDocumento::PlanAdecuacionEns => $this->cuerpoPlan(),
 
                 /*
                  * Un documento redactado no tiene cuerpo calculado: entre el
@@ -131,6 +132,39 @@ final class CuerpoDeFabrica
                 Nodo::encabezado(2, 'Controles excluidos y su justificación'),
                 ...$this->prosa(SeccionNarrativa::NotaExclusiones),
                 Nodo::hueco('tabla_exclusiones'),
+            ]),
+        ];
+    }
+
+    /**
+     * El plan: primero cuánto falta, luego qué falta, y al final lo que no tiene
+     * a nadie detrás.
+     *
+     * No lleva derivación de la categoría ni madurez por marco: eso lo declara la
+     * DdA, que es el documento de al lado, y repetirlo aquí sería pedirle al
+     * auditor que contraste dos copias de la misma tabla.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function cuerpoPlan(): array
+    {
+        return [
+            Nodo::de('seccion', [], [
+                Nodo::encabezado(2, 'Situación de partida'),
+                ...$this->prosa(SeccionNarrativa::NotaResumen),
+                Nodo::hueco('resumen_plan'),
+                Nodo::hueco('resumen_grafica'),
+            ]),
+
+            Nodo::de('seccion', [], [
+                Nodo::encabezado(2, 'Medidas pendientes y su plan'),
+                ...$this->prosa(SeccionNarrativa::NotaTabla),
+                Nodo::hueco('tabla_requisitos'),
+            ]),
+
+            Nodo::de('seccion', [], [
+                Nodo::encabezado(2, 'Medidas sin trabajo planificado'),
+                Nodo::hueco('tabla_sin_trabajo'),
             ]),
         ];
     }
@@ -193,11 +227,11 @@ final class CuerpoDeFabrica
         $propias = $this->prosa(SeccionNarrativa::LimitacionesPropias);
 
         return Nodo::de('seccion', [], [
-            // «Declaración» sólo si lo es: una política no declara aplicabilidad
-            // de nada, y el título llegaría al PDF diciendo lo contrario.
-            Nodo::encabezado(2, $this->tipo->esRedactado()
-                ? 'Limitaciones de este documento'
-                : 'Limitaciones de esta declaración'),
+            // «Declaración» sólo si lo es: ni una política ni un plan declaran
+            // aplicabilidad de nada, y el título llegaría al PDF diciendo lo
+            // contrario. La cadena la decide el enum, porque el resolutor que
+            // repone este bloque cuando alguien lo borra necesita la misma.
+            Nodo::encabezado(2, $this->tipo->tituloLimitaciones()),
             Nodo::hueco('limitaciones_sistema'),
             ...($propias === [] ? [] : [
                 Nodo::encabezado(3, 'Limitaciones declaradas por la organización'),

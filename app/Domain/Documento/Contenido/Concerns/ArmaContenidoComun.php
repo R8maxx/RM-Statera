@@ -12,7 +12,7 @@ use Illuminate\Support\Carbon;
 /**
  * Lo que toda entrega lleva, sea una declaración calculada o un texto redactado.
  *
- * Estaba dentro de `DeclaracionAplicabilidad`, que era su único sitio posible
+ * Estaba dentro de `DocumentoCalculado`, que era su único sitio posible
  * mientras los dos únicos documentos fueran declaraciones. Con los documentos
  * redactados dejó de serlo, y **las limitaciones son el motivo de fondo**: son lo
  * que el documento declara que no puede afirmar, y tener dos copias de esa lista
@@ -129,8 +129,16 @@ trait ArmaContenidoComun
              * una fecha que no cuadra con el registro es un hallazgo barato de
              * encontrar.
              */
+            /*
+             * «Las filas de este documento» y no «los requisitos registrados»:
+             * el plan de adecuación lista sólo lo pendiente, así que la frase
+             * anterior decía «sobre 51 requisitos registrados» habiendo 52
+             * exigibles. Una cifra falsa, y precisamente en el apartado donde el
+             * documento declara lo que no puede afirmar. El denominador completo
+             * lo imprime el resumen, que es su sitio.
+             */
             'Datos extraídos el '.Carbon::now()->format('d/m/Y \a \l\a\s H:i T')
-            .($filas === [] ? '.' : ' sobre '.count($filas).' requisitos registrados.'),
+            .($filas === [] ? '.' : ' sobre las '.count($filas).' filas que recoge este documento.'),
         ];
 
         if ($version->documento->exigeAcuse()) {

@@ -11,14 +11,20 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  *
  * Hay dos familias y no se parecen en nada.
  *
- * **Las declaraciones de aplicabilidad se calculan.** Son **dos consultas
- * distintas sobre `implantaciones`**, no dos ficheros que alguien mantiene en
- * paralelo. Lo que las separa no es el formato, es la naturaleza de la pregunta:
- * en ISO la aplicabilidad es una **decisión** que hay que justificar control a
- * control, y en el ENS es un **cálculo** del motor de categorización que hay que
- * poder rastrear hasta la valoración de las cinco dimensiones. De ahí que la SoA
- * lleve dos columnas de justificación y la DdA lleve origen de la exigencia,
- * refuerzo y dimensión moduladora.
+ * **Los documentos calculados salen de una consulta sobre `implantaciones`**, no
+ * de ficheros que alguien mantiene en paralelo. Lo que separa a las dos
+ * declaraciones no es el formato, es la naturaleza de la pregunta: en ISO la
+ * aplicabilidad es una **decisión** que hay que justificar control a control, y
+ * en el ENS es un **cálculo** del motor de categorización que hay que poder
+ * rastrear hasta la valoración de las cinco dimensiones. De ahí que la SoA lleve
+ * dos columnas de justificación y la DdA lleve origen de la exigencia, refuerzo
+ * y dimensión moduladora.
+ *
+ * **El plan de adecuación es el tercero, y hace la pregunta contraria.** Una
+ * declaración dice qué se exige y cómo está; un plan lista sólo **lo que falta**,
+ * con quién lo lleva, para cuándo y cuánto cuesta. Por eso no hereda las cifras
+ * de las declaraciones: sobre filas que son todas pendientes, «porcentaje
+ * implantado» daría siempre cero.
  *
  * **Los documentos redactados los escribe la organización.** Una política no se
  * deriva de ninguna tabla: la redacta alguien y la firma la dirección. Son los
@@ -30,15 +36,16 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * El cuarto nivel de esa jerarquía —el **registro**— no entra: un registro es la
  * salida de un procedimiento, no un documento que Statera redacte y versione.
  *
- * La lista seguirá creciendo —plan de adecuación, acta de la revisión por la
- * dirección, informe de auditoría interna, informe de estado— y por eso el
- * `CHECK` de la tabla enumera valores en vez de usar un tipo enum de PostgreSQL.
+ * La lista seguirá creciendo —acta de la revisión por la dirección, informe de
+ * auditoría interna, informe de estado— y por eso el `CHECK` de la tabla enumera
+ * valores en vez de usar un tipo enum de PostgreSQL.
  */
 #[TypeScript]
 enum TipoDocumento: string
 {
     case SoaIso = 'soa_iso';
     case DdaEns = 'dda_ens';
+    case PlanAdecuacionEns = 'plan_adecuacion_ens';
 
     case Politica = 'politica';
     case Norma = 'norma';
@@ -49,6 +56,7 @@ enum TipoDocumento: string
         return match ($this) {
             self::SoaIso => 'Declaración de Aplicabilidad (ISO 27001)',
             self::DdaEns => 'Declaración de Aplicabilidad (ENS)',
+            self::PlanAdecuacionEns => 'Plan de adecuación (ENS)',
             self::Politica => 'Política',
             self::Norma => 'Norma',
             self::Procedimiento => 'Procedimiento',
@@ -61,6 +69,7 @@ enum TipoDocumento: string
         return match ($this) {
             self::SoaIso => 'SoA',
             self::DdaEns => 'DdA',
+            self::PlanAdecuacionEns => 'Plan ENS',
             self::Politica => 'Política',
             self::Norma => 'Norma',
             self::Procedimiento => 'Procedimiento',
@@ -77,8 +86,27 @@ enum TipoDocumento: string
     public function esRedactado(): bool
     {
         return match ($this) {
-            self::SoaIso, self::DdaEns => false,
+            self::SoaIso, self::DdaEns, self::PlanAdecuacionEns => false,
             self::Politica, self::Norma, self::Procedimiento => true,
+        };
+    }
+
+    /**
+     * Cómo se titula el apartado donde el sistema declara lo que no puede afirmar.
+     *
+     * Vive aquí porque lo preguntan dos sitios —el esqueleto de fábrica y el
+     * resolutor que repone el bloque cuando alguien lo borra— y con la cadena
+     * escrita dos veces, el documento entregado se titula de una forma y el
+     * reparado de otra.
+     *
+     * **«Declaración» sólo cuando lo es.** Una política no declara aplicabilidad
+     * de nada y un plan de adecuación tampoco: lista lo que falta por hacer.
+     */
+    public function tituloLimitaciones(): string
+    {
+        return match ($this) {
+            self::SoaIso, self::DdaEns => 'Limitaciones de esta declaración',
+            self::PlanAdecuacionEns, self::Politica, self::Norma, self::Procedimiento => 'Limitaciones de este documento',
         };
     }
 
@@ -97,7 +125,7 @@ enum TipoDocumento: string
     {
         return match ($this) {
             self::SoaIso => 'ISO27001-2022',
-            self::DdaEns => 'ENS-RD311-2022',
+            self::DdaEns, self::PlanAdecuacionEns => 'ENS-RD311-2022',
             self::Politica, self::Norma, self::Procedimiento => null,
         };
     }

@@ -405,6 +405,27 @@ class DesarrolloSeeder extends Seeder
             $politica->codigo,
             $politica->id,
         ));
+
+        /*
+         * Y el plan de adecuación, que es el tercer calculado y el que cierra la
+         * fase 2. Sale del mismo sistema que la DdA a propósito: los dos se leen
+         * uno al lado del otro —qué se exige y cómo está, frente a qué falta— y
+         * así se ve que las cifras de los dos cuadran.
+         */
+        $plan = Documento::query()->firstOrCreate(
+            ['codigo' => 'PLA-ENS-01'],
+            [
+                'sistema_id' => $sistema->id,
+                'titulo' => 'Plan de adecuación al ENS',
+                'tipo' => TipoDocumento::PlanAdecuacionEns->value,
+            ],
+        );
+
+        $this->command->info(sprintf(
+            'Plan %s listo para generar (php artisan documentos:generar %s --html).',
+            $plan->codigo,
+            $plan->codigo,
+        ));
     }
 
     /**
@@ -583,6 +604,9 @@ class DesarrolloSeeder extends Seeder
      * vencida, una en curso vinculada a dos requisitos de golpe y una sin
      * responsable.
      *
+     * La primera lleva además coste estimado, porque vinculada a dos medidas es
+     * la que hace visible que el plan de adecuación suma su coste una sola vez.
+     *
      * Son las tres situaciones que el panel y el aviso diario tienen que saber
      * contar, y montarlas a mano cada vez que se refresca la base cuesta más que
      * escribirlas aquí.
@@ -607,6 +631,12 @@ class DesarrolloSeeder extends Seeder
             'origen' => OrigenTarea::BrechaImplantacion->value,
             'prioridad' => PrioridadTarea::Alta->value,
             'fecha_limite' => Carbon::today()->subDays(6),
+            /*
+             * Con coste, y vinculada a DOS medidas a la vez: es la que enseña la
+             * deduplicación del plan de adecuación. La columna le imputa 950 € a
+             * cada una de las dos y el total suma 950, no 1.900.
+             */
+            'coste_estimado' => '950.00',
         ], null, $accesos);
 
         // Una con lista de comprobación, para que se vea el «2/4» sin montarlo

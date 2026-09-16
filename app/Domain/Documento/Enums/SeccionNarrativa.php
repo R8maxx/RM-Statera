@@ -76,8 +76,13 @@ enum SeccionNarrativa: string
         }
 
         return match ($this) {
-            // La derivación de la categoría y la madurez por marco sólo existen
-            // en el ENS; las exclusiones de controles, sólo en ISO.
+            /*
+             * La derivación de la categoría y la madurez por marco sólo existen
+             * en la DdA; las exclusiones de controles, sólo en la SoA. El plan de
+             * adecuación no lleva ninguna de las tres —la derivación la declara
+             * la DdA y repetirla sería dar dos copias de la misma tabla— y sí los
+             * ocho restantes: tiene resumen y tiene tabla que explicar.
+             */
             self::NotaDerivacion, self::NotaMadurez => $tipo === TipoDocumento::DdaEns,
             self::NotaExclusiones => $tipo === TipoDocumento::SoaIso,
             default => true,

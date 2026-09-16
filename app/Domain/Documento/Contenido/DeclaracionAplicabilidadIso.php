@@ -33,8 +33,10 @@ use App\Http\Resources\Implantacion\Correspondencia;
  * es **exigir** que todo control aplicable tenga un riesgo detrás ni comprobar
  * que el análisis cubra el alcance entero.
  */
-final class DeclaracionAplicabilidadIso extends DeclaracionAplicabilidad
+final class DeclaracionAplicabilidadIso extends DocumentoCalculado
 {
+    use Concerns\ResumeLaAplicabilidad;
+
     public function tipo(): TipoDocumento
     {
         return TipoDocumento::SoaIso;
@@ -69,7 +71,7 @@ final class DeclaracionAplicabilidadIso extends DeclaracionAplicabilidad
                 'alcance' => $sistema?->alcance_declarado,
                 'exclusionesAlcance' => $sistema?->exclusiones_justificadas,
             ],
-            resumen: $this->resumenDe($documento, $filas),
+            resumen: $this->resumen($documento, $filas),
             filas: $filas,
             limitaciones: [
                 'La **justificación de inclusión** de cada control recoge su origen real: pertenencia '
@@ -113,13 +115,9 @@ final class DeclaracionAplicabilidadIso extends DeclaracionAplicabilidad
     }
 
     /** Los cuatro temas del Anexo A: A.5 organizativos, A.6 personas, A.7 físicos, A.8 tecnológicos. */
-    private function grupo(Implantacion $implantacion): string
+    protected function grupoRaiz(): string
     {
-        $padre = $implantacion->requisito->padre;
-
-        return $padre === null
-            ? 'Anexo A'
-            : "{$padre->codigo} · {$padre->titulo}";
+        return 'Anexo A';
     }
 
     /**

@@ -43,7 +43,7 @@ final class TextosDeFabrica
 
         return match ($seccion) {
             SeccionNarrativa::Introduccion => self::introduccion($tipo),
-            SeccionNarrativa::ObjetoYAlcance => self::objetoYAlcance(),
+            SeccionNarrativa::ObjetoYAlcance => self::objetoYAlcance($tipo),
             SeccionNarrativa::Metodologia => self::metodologia($tipo),
             SeccionNarrativa::NotaTabla => self::notaTabla($tipo),
             SeccionNarrativa::NotaDerivacion => self::notaDerivacion(),
@@ -88,6 +88,12 @@ final class TextosDeFabrica
                 Este documento es la Declaración de Aplicabilidad del sistema, exigida por el Esquema Nacional de Seguridad (Real Decreto 311/2022). Recoge las medidas del Anexo II que le son exigibles según su categoría, de dónde sale esa exigencia, en qué estado de implantación se encuentran y qué evidencia las sostiene.
 
                 La categoría no se elige: se deriva de valorar el perjuicio en las cinco dimensiones de seguridad, y esa derivación se imprime entera en el apartado siguiente.
+                MD,
+
+            TipoDocumento::PlanAdecuacionEns => <<<'MD'
+                Este documento es el plan de adecuación del sistema al Esquema Nacional de Seguridad (Real Decreto 311/2022). Recoge las medidas del Anexo II que le son exigibles y **todavía no están implantadas**, con la fecha en que se prevé tenerlas, quién responde de cada una y el trabajo que hay registrado para conseguirlo.
+
+                No repite la Declaración de Aplicabilidad, que es el documento que dice qué se exige y cómo está cada medida: aquí sólo está lo que falta.
                 MD,
 
             // No llegan aquí: `para()` desvía los redactados a `redactado()`
@@ -149,13 +155,30 @@ final class TextosDeFabrica
         };
     }
 
-    private static function objetoYAlcance(): string
+    /**
+     * El objeto no es el mismo en una declaración que en un plan.
+     *
+     * Aquí no había `match` y el plan habría heredado en silencio «dejar
+     * constancia de qué requisitos le son exigibles y en qué situación está cada
+     * uno», que es la descripción de una declaración. No habría roto nada: habría
+     * salido impreso.
+     */
+    private static function objetoYAlcance(TipoDocumento $tipo): string
     {
-        return <<<'MD'
-            El objeto de este documento es dejar constancia, ante la dirección y ante un auditor, de qué requisitos le son exigibles al sistema y en qué situación está cada uno.
+        $objeto = match ($tipo) {
+            TipoDocumento::SoaIso, TipoDocumento::DdaEns => 'El objeto de este documento es dejar constancia, ante la dirección y ante un auditor, de qué requisitos le son exigibles al sistema y en qué situación está cada uno.',
+            TipoDocumento::PlanAdecuacionEns => 'El objeto de este documento es dejar constancia, ante la dirección y ante un auditor, de qué le queda al sistema para cumplir el Esquema Nacional de Seguridad, en qué plazo se prevé conseguirlo y quién responde de cada medida.',
 
-            El alcance es el del sistema identificado en la portada, con el alcance declarado y las exclusiones que allí figuran. Los activos, las evidencias y las tareas que lo sostienen se gestionan en la herramienta y no se reproducen aquí.
-            MD;
+            // No llegan aquí: `para()` desvía los redactados antes.
+            TipoDocumento::Politica,
+            TipoDocumento::Norma,
+            TipoDocumento::Procedimiento => '',
+        };
+
+        return $objeto."\n\n"
+            .'El alcance es el del sistema identificado en la portada, con el alcance declarado y las '
+            .'exclusiones que allí figuran. Los activos, las evidencias y las tareas que lo sostienen '
+            .'se gestionan en la herramienta y no se reproducen aquí.';
     }
 
     private static function metodologia(TipoDocumento $tipo): string
@@ -163,6 +186,7 @@ final class TextosDeFabrica
         $derivacion = match ($tipo) {
             TipoDocumento::SoaIso => 'Los controles del Anexo A se consideran aplicables de partida. Excluir uno exige registrar el motivo, y esa justificación se imprime en el apartado de controles excluidos: sin motivo, la herramienta no permite la exclusión.',
             TipoDocumento::DdaEns => 'El conjunto de medidas exigibles se deriva de la categoría del sistema, que a su vez es el máximo de los niveles asignados a las cinco dimensiones de seguridad. Ninguna medida se marca a mano.',
+            TipoDocumento::PlanAdecuacionEns => 'El conjunto de medidas exigibles se deriva de la categoría del sistema, y de él entran en este plan las que no figuran como implantadas. La fecha objetivo y el responsable son los que consten en cada medida; el trabajo asociado son las tareas abiertas vinculadas a ella.',
 
             // No llegan aquí: `SeccionNarrativa::aplicaA()` no ofrece este hueco
             // a un documento redactado, que no deriva nada de ninguna tabla.
@@ -191,6 +215,12 @@ final class TextosDeFabrica
                 Una medida por fila, agrupadas por el nodo del que cuelgan. «Origen de la exigencia» dice de dónde sale lo que se exige: de la categoría del sistema, de modular por el nivel de una dimensión concreta, de un perfil de cumplimiento o del propio catálogo.
 
                 **Los refuerzos del Anexo II se acumulan**: «Refuerzo 2» significa «hasta el refuerzo 2», es decir, R1 y R2, no sólo R2.
+                MD,
+
+            TipoDocumento::PlanAdecuacionEns => <<<'MD'
+                Una medida pendiente por fila, agrupadas por el nodo del que cuelgan y en el orden del Anexo II. «Trabajo planificado» son las tareas **abiertas** vinculadas a la medida, con su plazo; las cerradas y las descartadas no figuran.
+
+                **El coste de la columna y el coste total no suman lo mismo, y es correcto.** Una misma tarea puede hacer avanzar varias medidas a la vez: la columna se la imputa a cada una de ellas y el total la cuenta una sola vez.
                 MD,
 
             // No llegan aquí: un documento redactado no tiene tabla que explicar.

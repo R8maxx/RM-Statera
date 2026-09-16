@@ -106,9 +106,15 @@ class GuardarDocumentoRequest extends FormRequest
                     return;
                 }
 
+                /*
+                 * Sin concordancia de género que cuadrar: «La SoA es de…»
+                 * dejaba de funcionar en cuanto entró un tipo masculino —«La
+                 * Plan ENS»—, y el «de el ENS» ya estaba mal antes. El nombre
+                 * del tipo va entrecomillado y la frase se construye alrededor.
+                 */
                 $validator->errors()->add('sistema_id', sprintf(
-                    'La %s es de %s; el sistema «%s» está declarado bajo %s.',
-                    $tipo->etiquetaCorta(),
+                    '«%s» corresponde a %s; el sistema «%s» está declarado bajo %s.',
+                    $tipo->etiqueta(),
                     $tipo->marcoEsperado() === 'ISO27001-2022' ? 'ISO 27001' : 'el ENS',
                     $sistema->nombre,
                     $sistema->marco->nombre,

@@ -23,6 +23,7 @@ final readonly class RegistroGeneradores
         return $this->contenedor->make(match ($tipo) {
             TipoDocumento::SoaIso => DeclaracionAplicabilidadIso::class,
             TipoDocumento::DdaEns => DeclaracionAplicabilidadEns::class,
+            TipoDocumento::PlanAdecuacionEns => PlanAdecuacionEns::class,
 
             /*
              * Los tres redactados comparten generador: lo que los separa es qué

@@ -11,6 +11,7 @@ use App\Domain\Aviso\Fuente;
 use App\Domain\Aviso\RejillaMes;
 use App\Domain\Implantacion\Models\Implantacion;
 use App\Domain\Tarea\CambiarEstadoTarea;
+use App\Domain\Tarea\Coste;
 use App\Domain\Tarea\CrearTarea;
 use App\Domain\Tarea\Enums\EstadoTarea;
 use App\Domain\Tarea\Enums\OrigenTarea;
@@ -544,7 +545,11 @@ class TareaController extends Controller
             'fecha_limite' => $tarea->fecha_limite?->toDateString(),
             'fecha_cierre' => $tarea->fecha_cierre?->toDateString(),
             'haVencido' => $tarea->haVencido(),
+            // El número crudo lo necesita el formulario para reeditarlo; el
+            // texto lo escribe el dominio, que es quien lo escribe también en la
+            // tabla y en el plan de adecuación.
             'coste_estimado' => $tarea->coste_estimado,
+            'coste' => Coste::deLaTarea($tarea),
             'notas' => $tarea->notas,
         ];
     }

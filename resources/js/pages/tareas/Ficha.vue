@@ -51,6 +51,7 @@ const props = defineProps<{
         fecha_cierre: string | null;
         haVencido: boolean;
         coste_estimado: string | null;
+        coste: string | null;
         notas: string | null;
     };
     vinculos: Vinculo[];
@@ -68,11 +69,9 @@ const fecha = (valor: string | null): string => (valor ? formatoFecha.format(new
 const fechaHora = (valor: string): string =>
     new Date(valor).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' });
 
-const coste = computed(() =>
-    props.tarea.coste_estimado === null
-        ? null
-        : `${Number(props.tarea.coste_estimado).toLocaleString('es-ES', { minimumFractionDigits: 2 })} €`,
-);
+// Ya viene escrito del servidor: el euro se formatea en `Domain\Tarea\Coste`,
+// que es lo que lee también la tabla y el plan de adecuación.
+const coste = computed(() => props.tarea.coste);
 
 /*
  * Descartar exige motivo y el resto no. Pedirlo siempre convertiría en un

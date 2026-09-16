@@ -13,17 +13,28 @@ use App\Domain\Implantacion\Enums\EstadoImplantacion;
 use App\Domain\Implantacion\Models\Implantacion;
 use App\Http\Resources\Implantacion\Correspondencia;
 use App\Http\Resources\Panel\SegmentoEstado;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
- * Lo que comparten la SoA de ISO y la DdA del ENS.
+ * Lo que comparte todo documento que sale de una consulta sobre `implantaciones`.
  *
- * Las dos son consultas sobre `implantaciones` —nunca documentos mantenidos a
- * mano— y las dos contestan a las mismas tres preguntas: qué aplica, cómo se
- * cumple y dónde está la prueba. Lo que cambia es la naturaleza de la primera,
- * y por eso cada subclase arma sus propias columnas.
+ * Hace pareja con `DocumentoRedactado`, que es el otro lado de la frontera que
+ * define `TipoDocumento::esRedactado()`: aquí el contenido lo calcula el motor y
+ * allí lo escribe la organización.
+ *
+ * **Se llamaba `DeclaracionAplicabilidad`**, y el nombre dejó de ser cierto al
+ * entrar el plan de adecuación: un plan no declara aplicabilidad, lista lo que
+ * falta por hacer. Lo que esta clase aporta —la consulta por tipo de requisito,
+ * el agrupado por el nodo padre, las correspondencias cruzadas en dos consultas y
+ * las evidencias ya formateadas— no es de un género documental, es la tubería.
+ * Mismo caso que `IndicadorInventario` → `Indicador`: la forma era genérica y el
+ * nombre mentía.
+ *
+ * Lo que cambia entre un hijo y otro es qué filas entran y qué cifras las
+ * resumen, y por eso las dos cosas son abstractas.
  */
-abstract class DeclaracionAplicabilidad implements GeneradorDocumento
+abstract class DocumentoCalculado implements GeneradorDocumento
 {
     /*
      * La portada, el historial y las limitaciones son de cualquier entrega y no
@@ -58,6 +69,26 @@ abstract class DeclaracionAplicabilidad implements GeneradorDocumento
     /** `control` para el Anexo A de ISO, `medida` para el Anexo II del ENS. */
     abstract protected function tipoDeRequisito(): string;
 
+    /** El epígrafe de las filas que cuelgan de la raíz: «Anexo A», «Anexo II». */
+    abstract protected function grupoRaiz(): string;
+
+    /**
+     * El epígrafe bajo el que se agrupa una fila.
+     *
+     * **Un solo salto al padre y no la rama entera**: para `op.acc.4` el grupo
+     * es `op.acc`, no `op`. La rama completa se recorre con la CTE recursiva de
+     * `Requisito::ruta()`, que es lo que pinta la ficha; aquí agrupar por el
+     * bisabuelo dejaría medio Anexo II bajo un mismo epígrafe.
+     */
+    protected function grupo(Implantacion $implantacion): string
+    {
+        $padre = $implantacion->requisito->padre;
+
+        return $padre === null
+            ? $this->grupoRaiz()
+            : "{$padre->codigo} · {$padre->titulo}";
+    }
+
     /** @param  array<int, list<Correspondencia>>  $correspondencias */
     abstract protected function fila(Implantacion $implantacion, array $correspondencias): FilaRequisito;
 
@@ -77,17 +108,32 @@ abstract class DeclaracionAplicabilidad implements GeneradorDocumento
      */
     protected function implantaciones(Documento $documento): Collection
     {
-        return Implantacion::query()
-            ->select('implantaciones.*')
-            ->join('requisitos', 'requisitos.id', '=', 'implantaciones.requisito_id')
-            ->where('implantaciones.sistema_id', $documento->sistema_id)
-            ->where('requisitos.tipo', $this->tipoDeRequisito())
+        return $this->consultaDeRequisitos($documento)
             // Sin esto, noventa y tres controles son doscientas consultas y el
             // documento se come el tiempo de la cola.
             ->with(['requisito.padre', 'requisito.marco', 'responsable', 'evidencias', 'riesgos'])
             ->orderBy('requisitos.orden')
             ->orderBy('requisitos.id')
             ->get();
+    }
+
+    /**
+     * El universo de este documento, sin filtrar ni ordenar.
+     *
+     * Existe para que un hijo pueda contar sobre **exactamente** las mismas
+     * filas que lista, sin reescribir el join ni el filtro por tipo. El plan de
+     * adecuación lo usa para su denominador: cuántas medidas se le exigen al
+     * sistema, de las que su tabla enseña sólo las que faltan.
+     *
+     * @return Builder<Implantacion>
+     */
+    protected function consultaDeRequisitos(Documento $documento): Builder
+    {
+        return Implantacion::query()
+            ->select('implantaciones.*')
+            ->join('requisitos', 'requisitos.id', '=', 'implantaciones.requisito_id')
+            ->where('implantaciones.sistema_id', $documento->sistema_id)
+            ->where('requisitos.tipo', $this->tipoDeRequisito());
     }
 
     /**
@@ -134,75 +180,23 @@ abstract class DeclaracionAplicabilidad implements GeneradorDocumento
     }
 
     /**
-     * Las cifras, todas con su denominador.
+     * Las cifras del documento, todas con su denominador.
      *
-     * **Se cuentan sobre las filas que este documento lista**, no sobre las
-     * implantaciones del sistema y menos aún sobre las de la organización. Un
-     * sistema de ISO lleva, además de los 93 controles del Anexo A, las
-     * cláusulas 4 a 10 —el sistema de gestión— y el documento no las enseña: la
-     * barra decía 122 y la tabla que tiene debajo decía 93.
+     * **Es abstracto y no heredado a propósito.** Las dos declaraciones lo
+     * resuelven igual —`Concerns\ResumeLaAplicabilidad`, que cuenta cuántos
+     * aplican y qué porcentaje está implantado— y el plan de adecuación **no
+     * puede usar eso**: sus filas son todas pendientes por construcción, así que
+     * «porcentaje implantado» daría siempre cero sobre una tabla en la que ese
+     * cero no significa nada.
      *
-     * Es el mismo criterio que ya rige en el panel de inventario: cada cifra se
-     * cuenta con el mismo alcance que tiene lo que enseña al lado.
+     * Heredar aquí una implementación que un hijo no debe llamar es una mina que
+     * no caza ningún `match` exhaustivo: el día que alguien la invocara, el
+     * documento imprimiría una cifra falsa sin ningún error.
      *
      * @param  list<FilaRequisito>  $filas
      * @return array<string, mixed>
      */
-    protected function resumenDe(Documento $documento, array $filas): array
-    {
-        /*
-         * La madurez también se cuenta sobre las filas del documento y no sobre
-         * todas las del sistema, por el mismo motivo que los tramos: un sistema
-         * de ISO lleva además las cláusulas 4 a 10, y una media que las incluya
-         * no es la media de los controles del Anexo A.
-         */
-        $valoradas = array_values(array_filter(
-            $filas,
-            static fn (FilaRequisito $f): bool => $f->aplica && $f->madurezValor !== null,
-        ));
-
-        $madurez = [
-            'evaluadas' => count($valoradas),
-            // Sin ninguna valorada la media no es cero: es que no se sabe.
-            'media' => $valoradas === [] ? null : round(array_sum(array_map(
-                static fn (FilaRequisito $f): int => (int) $f->madurezValor,
-                $valoradas,
-            )) / count($valoradas), 1),
-        ];
-
-        $aplicables = count(array_filter($filas, static fn (FilaRequisito $f): bool => $f->aplica));
-        $implantados = count(array_filter($filas, static fn (FilaRequisito $f): bool => $f->estado === 'implantado'));
-
-        return [
-            'total' => count($filas),
-            /*
-             * Cuántos requisitos tiene el marco entero, que puede ser MÁS que
-             * los que salen en el documento: en el ENS, una categoría básica
-             * sólo exige 52 de las 73 medidas del Anexo II.
-             *
-             * Sin este denominador la tabla dice «52 medidas del Anexo II» y se
-             * lee como si el Anexo II tuviera 52. Que falten veintiuna es una
-             * consecuencia correcta de la categorización, pero el auditor tiene
-             * que poder verla, no deducirla.
-             */
-            'enElMarco' => $this->requisitosDelMarco($documento),
-            'aplicables' => $aplicables,
-            'excluidos' => count($filas) - $aplicables,
-            'implantados' => $implantados,
-            // Sin nada exigible el porcentaje no es cero: es que no hay nada que
-            // medir, y un 0 % ahí diría lo contrario de lo que pasa.
-            'porcentaje' => $aplicables === 0 ? null : (int) round($implantados * 100 / $aplicables),
-            'sinEvidencia' => count(array_filter(
-                $filas,
-                static fn (FilaRequisito $f): bool => $f->aplica && ! $f->tieneEvidencia(),
-            )),
-            'madurezMedia' => $madurez['media'],
-            'madurezEvaluadas' => $madurez['evaluadas'],
-            // Los tramos se cuentan sobre las MISMAS filas que lista el
-            // documento, no sobre todas las del sistema.
-            'segmentos' => $this->segmentosDe($filas),
-        ];
-    }
+    abstract protected function resumen(Documento $documento, array $filas): array;
 
     /**
      * El reparto por estado de lo que este documento lista.
@@ -220,12 +214,17 @@ abstract class DeclaracionAplicabilidad implements GeneradorDocumento
      * distinguen con protanopia —ΔE 5.7, por debajo del suelo de 6— y meter el
      * azul entre los dos sube la peor pareja contigua a 14.0.
      *
+     * `$orden` lo pasa quien lista un subconjunto: el plan de adecuación no
+     * enseña el tramo «Implantado», porque sobre una tabla que es toda pendiente
+     * sería un cero fijo ocupando la cuarta parte de la leyenda.
+     *
      * @param  list<FilaRequisito>  $filas
+     * @param  list<EstadoImplantacion>|null  $orden
      * @return list<SegmentoEstado>
      */
-    protected function segmentosDe(array $filas): array
+    protected function segmentosDe(array $filas, ?array $orden = null): array
     {
-        $orden = [
+        $orden ??= [
             EstadoImplantacion::Implantado,
             EstadoImplantacion::Planificado,
             EstadoImplantacion::EnProgreso,

@@ -128,9 +128,21 @@ const pruebas = computed(() => [
  * que no es lo mismo que cero y se pinta como una raya.
  */
 const metricas = computed(() => [
-    { etiqueta: 'Sistemas en alcance', valor: props.resumen.sistemas, prefijo: '', decimales: 0, apoyo: null as string | null },
-    { etiqueta: 'Requisitos aplicables', valor: props.resumen.aplicables, prefijo: '', decimales: 0, apoyo: null },
-    { etiqueta: 'Pendientes', valor: props.resumen.pendientes, prefijo: '', decimales: 0, apoyo: null },
+    { etiqueta: 'Sistemas en alcance', valor: props.resumen.sistemas, prefijo: '', decimales: 0, apoyo: null as string | null, enlace: null as string | null },
+    { etiqueta: 'Requisitos aplicables', valor: props.resumen.aplicables, prefijo: '', decimales: 0, apoyo: null, enlace: null },
+    {
+        etiqueta: 'Pendientes',
+        valor: props.resumen.pendientes,
+        prefijo: '',
+        decimales: 0,
+        apoyo: null,
+        /*
+         * La única de las cuatro que lleva a alguna parte, y es la única que
+         * pide acción. El filtro apunta al mismo scope con el que se cuenta la
+         * cifra, así que la lista enseña exactamente lo que dice el número.
+         */
+        enlace: '/implantaciones?filter[pendientes]=1',
+    },
     {
         etiqueta: 'Madurez media',
         valor: props.resumen.madurezMedia,
@@ -138,6 +150,7 @@ const metricas = computed(() => [
         prefijo: 'L',
         decimales: 1,
         apoyo: madurez.value.apoyo,
+        enlace: null,
     },
 ]);
 </script>
@@ -188,7 +201,16 @@ const metricas = computed(() => [
                                     :key="metrica.etiqueta"
                                     :class="indice > 0 && 'sm:pl-4'"
                                 >
-                                    <dt class="text-xs text-muted-foreground">{{ metrica.etiqueta }}</dt>
+                                    <dt class="text-xs text-muted-foreground">
+                                        <Link
+                                            v-if="metrica.enlace"
+                                            :href="metrica.enlace"
+                                            class="underline-offset-4 hover:underline"
+                                        >
+                                            {{ metrica.etiqueta }}
+                                        </Link>
+                                        <template v-else>{{ metrica.etiqueta }}</template>
+                                    </dt>
                                     <dd class="cifra mt-0.5 text-2xl font-semibold tracking-tight">
                                         <Cifra
                                             v-if="metrica.valor !== null"

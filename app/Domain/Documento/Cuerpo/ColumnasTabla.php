@@ -73,6 +73,25 @@ final class ColumnasTabla
             ],
 
             /*
+             * El plan no repite las columnas de la DdA: ahí sobran «Aplica»
+             * —todas aplican, si no no estarían— y «Justificación», que es de
+             * una exclusión que aquí no existe. Lo que entra en su lugar es lo
+             * que convierte una lista en un plan: para cuándo, quién, qué
+             * trabajo hay apuntado, cuánto cuesta y qué riesgo lo motiva.
+             */
+            TipoDocumento::PlanAdecuacionEns => [
+                ['clave' => 'codigo', 'titulo' => 'Medida', 'ancho' => '0.65in'],
+                ['clave' => 'titulo', 'titulo' => 'Título', 'ancho' => '1.85in'],
+                ['clave' => 'exigencia', 'titulo' => 'Exigencia', 'ancho' => '0.6in'],
+                ['clave' => 'estado', 'titulo' => 'Estado', 'ancho' => '0.72in'],
+                ['clave' => 'responsable', 'titulo' => 'Responsable', 'ancho' => '0.85in'],
+                ['clave' => 'fechaObjetivo', 'titulo' => 'Fecha objetivo', 'ancho' => '0.85in'],
+                ['clave' => 'tareas', 'titulo' => 'Trabajo planificado', 'ancho' => '2.4in'],
+                ['clave' => 'coste', 'titulo' => 'Coste estimado', 'ancho' => '0.8in'],
+                ['clave' => 'riesgos', 'titulo' => 'Riesgo que la motiva', 'ancho' => '0.95in'],
+            ],
+
+            /*
              * Un documento redactado no tiene tabla larga: su contenido lo
              * escribe la organización y no sale de ninguna consulta. Lista vacía
              * y no una excepción, porque quien llame a esto está pintando un
@@ -90,6 +109,9 @@ final class ColumnasTabla
         return match ($tipo) {
             TipoDocumento::SoaIso => 'Controles del Anexo A',
             TipoDocumento::DdaEns => 'Medidas del Anexo II',
+            // Lo que cuenta la tabla del plan no son las medidas del Anexo II,
+            // son las que faltan. El denominador va aparte, en su propia cifra.
+            TipoDocumento::PlanAdecuacionEns => 'Medidas pendientes',
 
             // Sin tabla no hay recuento que etiquetar.
             TipoDocumento::Politica,

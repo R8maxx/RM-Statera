@@ -13,10 +13,12 @@ namespace App\Domain\Documento\Contenido;
  * tests afirman sobre esto y no sobre el HTML, que es lo que hace que probar el
  * contenido no dependa de cómo esté maquetado.
  *
- * Sirve para las dos declaraciones y por eso tiene campos que sólo llena una:
- * `justificacionInclusion` es de ISO —donde la aplicabilidad es una decisión que
- * hay que justificar— y `exigencia`, `origenExigencia` y `dimensionModuladora`
- * son del ENS —donde es un cálculo que hay que poder rastrear—.
+ * Sirve para los tres documentos calculados y por eso tiene campos que sólo llena
+ * uno: `justificacionInclusion` es de ISO —donde la aplicabilidad es una decisión
+ * que hay que justificar—, `exigencia`, `origenExigencia` y `dimensionModuladora`
+ * son del ENS —donde es un cálculo que hay que poder rastrear— y los cuatro
+ * últimos son del plan de adecuación, que no pregunta cómo está una medida sino
+ * qué se va a hacer con ella.
  */
 final readonly class FilaRequisito
 {
@@ -24,6 +26,8 @@ final readonly class FilaRequisito
      * @param  string  $grupo  El epígrafe bajo el que se agrupa: «A.5 Controles organizativos», «op.acc».
      * @param  list<string>  $evidencias  Título y fecha de cada prueba, ya formateados.
      * @param  list<string>  $correspondencias  Códigos del otro marco que cubren lo mismo.
+     * @param  list<string>  $tareas  El trabajo abierto que hay detrás, ya formateado.
+     * @param  list<string>  $riesgos  Los riesgos que esta medida trata, por su código.
      */
     public function __construct(
         public string $grupo,
@@ -43,6 +47,10 @@ final readonly class FilaRequisito
         public ?string $responsable = null,
         public array $evidencias = [],
         public array $correspondencias = [],
+        public ?string $fechaObjetivo = null,
+        public array $tareas = [],
+        public ?string $costeEstimado = null,
+        public array $riesgos = [],
     ) {}
 
     /**
@@ -89,6 +97,13 @@ final readonly class FilaRequisito
             responsable: $texto('responsable'),
             evidencias: $lista('evidencias'),
             correspondencias: $lista('correspondencias'),
+            fechaObjetivo: $texto('fechaObjetivo'),
+            tareas: $lista('tareas'),
+            // Ya formateado —«1.800,00 €»— y no un número: lo que se congela es
+            // lo que se imprime, y así el `.docx` no reformatea moneda por su
+            // cuenta ni discrepa del PDF cuya huella lleva dentro.
+            costeEstimado: $texto('costeEstimado'),
+            riesgos: $lista('riesgos'),
         );
     }
 

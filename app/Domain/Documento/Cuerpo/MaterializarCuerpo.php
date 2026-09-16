@@ -7,11 +7,12 @@ namespace App\Domain\Documento\Cuerpo;
 use App\Domain\Documento\Contenido\ContenidoDocumento;
 use App\Domain\Documento\Contenido\FilaRequisito;
 use App\Domain\Documento\Enums\TipoDocumento;
+use LogicException;
 
 /**
  * Rellena los huecos calculados del cuerpo con lo que dice el registro.
  *
- * Es el puente entre las dos mitades del producto: `DeclaracionAplicabilidad`
+ * Es el puente entre las dos mitades del producto: `DocumentoCalculado`
  * sigue consultando `implantaciones` y produciendo un `ContenidoDocumento`
  * exactamente igual que antes, y esto lo convierte en nodos del documento. Lo
  * que antes hacían once parciales de Blade se hace aquí, con el mismo marcado y
@@ -44,8 +45,10 @@ final class MaterializarCuerpo
         'portada_ficha' => 'la ficha de la portada',
         'portada_pie' => 'el pie de la portada',
         'resumen_cifras' => 'las cifras del resumen',
+        'resumen_plan' => 'las cifras del plan',
         'resumen_grafica' => 'la gráfica del resumen',
         'tabla_requisitos' => 'la tabla de requisitos',
+        'tabla_sin_trabajo' => 'la tabla de medidas sin trabajo planificado',
         'tabla_exclusiones' => 'la tabla de exclusiones',
         'tabla_derivacion' => 'la derivación de la categoría',
         'notas_anexo_ii' => 'las notas del Anexo II',
@@ -117,15 +120,29 @@ final class MaterializarCuerpo
             'portada_ficha' => $this->portadaFicha($contenido),
             'portada_pie' => $this->portadaPie($editado, $tipo),
             'resumen_cifras' => $this->resumenCifras($contenido, $tipo),
+            'resumen_plan' => $this->resumenPlan($contenido),
             'resumen_grafica' => $this->resumenGrafica($contenido),
             'tabla_requisitos' => $this->tablaRequisitos($contenido, $tipo),
+            'tabla_sin_trabajo' => $this->tablaSinTrabajo($contenido),
             'tabla_exclusiones' => $this->tablaExclusiones($contenido),
             'tabla_derivacion' => $this->tablaDerivacion($contenido),
             'notas_anexo_ii' => $this->notasAnexoII($contenido),
             'tabla_madurez' => $this->tablaMadurez($contenido),
             'limitaciones_sistema' => $this->limitaciones($contenido, $editado, $tocados),
             'control_versiones' => $this->controlVersiones($contenido),
-            default => [],
+
+            /*
+             * El `match` es sobre una cadena y no sobre un enum, así que PHPStan
+             * no señala la rama que falta: una fuente nueva declarada en
+             * `EsquemaCuerpo::FUENTES` y olvidada aquí se materializaba como un
+             * grupo **vacío**, o sea un apartado que desaparece del PDF sin que
+             * nada avise.
+             *
+             * `recorrer()` sólo entra aquí si `EsquemaCuerpo::esFuente()`, de
+             * modo que esto no lo puede provocar un cuerpo editado por nadie:
+             * sólo una fuente declarada y sin materializador.
+             */
+            default => throw new LogicException("Fuente sin materializador: {$fuente}."),
         };
 
         return Nodo::calculado($fuente, 'grupo', $hijos);
@@ -353,6 +370,52 @@ final class MaterializarCuerpo
     }
 
     /**
+     * Las cifras del plan de adecuación, que no son las de una declaración.
+     *
+     * **El denominador va delante y no implícito.** Una tabla de treinta y tres
+     * filas sin él se lee como si al sistema se le exigieran treinta y tres
+     * medidas; lo que dice de verdad es que de cincuenta y dos exigidas hay
+     * diecinueve puestas y éstas son las que faltan. La frase de debajo lo dice
+     * con palabras, igual que hace la DdA con las medidas que su categoría no le
+     * exige.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function resumenPlan(ContenidoDocumento $contenido): array
+    {
+        $r = $contenido->resumen;
+
+        $total = $this->entero($r, 'total');
+        $exigibles = $this->entero($r, 'exigibles');
+        $implantadas = $this->entero($r, 'implantadas');
+        $sinEstimar = $this->entero($r, 'costeSinEstimar');
+        $coste = $this->cadena($r, 'costeTotal');
+
+        $cifras = Nodo::de('cifras', [], [
+            $this->cifra((string) $total, 'de '.$exigibles, 'Medidas en este plan'),
+            $this->cifra((string) $implantadas, 'de '.$exigibles, 'Ya implantadas'),
+            $this->cifra((string) $this->entero($r, 'sinFecha'), 'de '.$total, 'Sin fecha objetivo'),
+            $this->cifra((string) $this->entero($r, 'fueraDePlazo'), 'de '.$total, 'Fuera de plazo'),
+            $this->cifra((string) $this->entero($r, 'sinTrabajo'), 'de '.$total, 'Sin trabajo planificado'),
+            $this->cifra(
+                $coste ?? '—',
+                $sinEstimar === 0 ? null : $sinEstimar.' sin estimar',
+                'Coste estimado',
+            ),
+        ]);
+
+        $nodos = [$cifras];
+
+        $nodos[] = Nodo::parrafo(
+            'Al sistema se le exigen '.$exigibles.' medidas del Anexo II, de las cuales '.$implantadas.
+            ' figuran implantadas. Este plan recoge las '.$total.' restantes.',
+            'suave',
+        );
+
+        return $nodos;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function cifra(string $valor, ?string $de, string $etiqueta): array
@@ -487,8 +550,93 @@ final class MaterializarCuerpo
                 ? Nodo::celda([Nodo::texto('—', ['suave'])])
                 : Nodo::celda([Nodo::texto(implode(', ', $fila->correspondencias), ['cifra'])]),
 
-            default => Nodo::celdaTexto('—'),
+            // Las cuatro del plan de adecuación. Ninguna se deja en blanco: en
+            // un plan, lo que falta ES el contenido, y una celda vacía se lee
+            // como un descuido de maquetación en vez de como un hallazgo.
+            'fechaObjetivo' => $fila->fechaObjetivo === null
+                ? Nodo::celda([Nodo::texto('Sin fecha', ['suave'])])
+                : Nodo::celda([Nodo::texto($fila->fechaObjetivo, ['cifra'])]),
+
+            'tareas' => $fila->tareas === []
+                ? Nodo::celda([Nodo::texto('Sin trabajo planificado', ['suave'])])
+                : Nodo::celda([Nodo::texto(implode('; ', $fila->tareas))]),
+
+            'coste' => $fila->costeEstimado === null
+                ? Nodo::celda([Nodo::texto('Sin estimar', ['suave'])])
+                : Nodo::celda([Nodo::texto($fila->costeEstimado, ['cifra'])]),
+
+            'riesgos' => $fila->riesgos === []
+                ? Nodo::celda([Nodo::texto('—', ['suave'])])
+                : Nodo::celda([Nodo::texto(implode(', ', $fila->riesgos), ['cifra'])]),
+
+            /*
+             * Una columna declarada en `ColumnasTabla` y olvidada aquí salía
+             * como una raya en las noventa y tres filas del documento, sin
+             * ningún error: la cabecera con su título y la columna entera
+             * vacía. Las claves no llegan de fuera —las declara
+             * `ColumnasTabla::para()`, que es código—, así que esto sólo puede
+             * dispararlo un descuido de programación y nunca un dato de
+             * usuario.
+             */
+            default => throw new LogicException("Columna sin celda en MaterializarCuerpo: {$clave}."),
         };
+    }
+
+    // --- Plan: lo que no tiene a nadie detrás -------------------------------
+
+    /**
+     * Las medidas pendientes de las que nadie ha apuntado qué va a hacer.
+     *
+     * Repite filas que ya salen en la tabla larga, y la duplicación es
+     * deliberada por el mismo motivo que la de exclusiones en la SoA: es lo que
+     * la dirección y el auditor van a mirar seguro, y hacerles filtrar treinta y
+     * tres filas para encontrar seis sería hacerles trabajar de más.
+     *
+     * Un plan completo no es el que no tiene ninguna, es el que las declara.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function tablaSinTrabajo(ContenidoDocumento $contenido): array
+    {
+        $sinTrabajo = array_values(array_filter(
+            $contenido->filas,
+            static fn (FilaRequisito $fila): bool => $fila->tareas === [],
+        ));
+
+        $total = $this->entero($contenido->resumen, 'total');
+
+        if ($sinTrabajo === []) {
+            return [Nodo::parrafo(
+                'Todas las medidas de este plan tienen al menos una tarea abierta asociada.',
+                'vacio',
+            )];
+        }
+
+        $filas = [Nodo::fila([
+            Nodo::cabeceraCelda('Medida', '0.9in', 'col'),
+            Nodo::cabeceraCelda('Título', '3.2in', 'col'),
+            Nodo::cabeceraCelda('Responsable', '1.6in', 'col'),
+            Nodo::cabeceraCelda('Fecha objetivo', null, 'col'),
+        ])];
+
+        foreach ($sinTrabajo as $fila) {
+            $filas[] = Nodo::fila([
+                Nodo::celdaTexto($fila->codigo, 'codigo'),
+                Nodo::celdaTexto($fila->titulo),
+                Nodo::celdaTexto($fila->responsable ?? 'Sin asignar'),
+                Nodo::celdaTexto($fila->fechaObjetivo ?? 'Sin fecha'),
+            ]);
+        }
+
+        return [
+            Nodo::parrafo(
+                count($sinTrabajo).' de las '.$total.' medidas de este plan no tienen ninguna tarea '.
+                'abierta asociada. Eso no significa que no se esté trabajando en ellas: significa que '.
+                'no consta en el registro, y por tanto no se puede seguir ni presupuestar.',
+                'suave',
+            ),
+            Nodo::de('table', ['clase' => 'fija'], $filas),
+        ];
     }
 
     // --- ISO: las exclusiones -----------------------------------------------

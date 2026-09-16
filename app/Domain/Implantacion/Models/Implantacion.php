@@ -147,16 +147,84 @@ class Implantacion extends Model
         return $this->hasMany(ImplantacionTransicion::class)->orderBy('created_at')->orderBy('id');
     }
 
+    /*
+     * Las columnas van cualificadas —`implantaciones.estado`, no `estado`—
+     * porque quien invoca estos scopes suele venir con `requisitos` unida:
+     * la consulta de la tabla, la de los documentos y la del panel. Hoy no
+     * chocaría con nada, pero `marcos` ya tiene una columna `estado` y el
+     * catálogo va a crecer; el error que sale entonces es un «column reference
+     * is ambiguous» que no menciona el scope.
+     */
+
     /** @param Builder<$this> $query */
     public function scopeAplicables(Builder $query): void
     {
-        $query->where('aplica', true);
+        $query->where('implantaciones.aplica', true);
     }
 
     /** @param Builder<$this> $query */
     public function scopeDelSistema(Builder $query, int $sistemaId): void
     {
-        $query->where('sistema_id', $sistemaId);
+        $query->where('implantaciones.sistema_id', $sistemaId);
+    }
+
+    /**
+     * Lo que se le exige al sistema y todavía no está implantado.
+     *
+     * Es **la** consulta del plan de adecuación, y a la vez la cifra
+     * «Pendientes» del panel y el filtro de la tabla: los tres invocan este
+     * scope y no repiten la condición, que es lo que evita que el panel diga 12
+     * y la lista enseñe 9.
+     *
+     * No hace falta excluir `no_aplica`: un `CHECK` de la tabla acopla
+     * `(estado = 'no_aplica') = (NOT aplica)`, así que lo aplicable nunca está
+     * en ese estado. Añadirlo «por si acaso» sugeriría que la base puede
+     * incumplirlo.
+     *
+     * @param  Builder<$this>  $query
+     */
+    public function scopePendientes(Builder $query): void
+    {
+        $query->aplicables()->where('implantaciones.estado', '!=', EstadoImplantacion::Implantado->value);
+    }
+
+    /**
+     * Pendientes a las que se les pasó la fecha que alguien se puso.
+     *
+     * `fecha_objetivo` existía desde la primera migración y **no se comparaba
+     * con hoy en ningún punto del producto**: se podía escribir, filtrar por
+     * rango y nada más. Aquí empieza a significar algo.
+     *
+     * @param  Builder<$this>  $query
+     */
+    public function scopeObjetivoVencido(Builder $query): void
+    {
+        $query->pendientes()->whereDate('implantaciones.fecha_objetivo', '<', now()->toDateString());
+    }
+
+    /** @param Builder<$this> $query */
+    public function scopeSinFechaObjetivo(Builder $query): void
+    {
+        $query->pendientes()->whereNull('implantaciones.fecha_objetivo');
+    }
+
+    /**
+     * Pendientes sin ninguna tarea abierta detrás.
+     *
+     * El hallazgo que el plan de adecuación existe para enseñar: un requisito
+     * que se exige, que no está puesto y del que nadie ha apuntado qué va a
+     * hacer. `whereDoesntHave` y no un `join`, por lo mismo que en el inventario:
+     * con dos tareas la implantación saldría dos veces y la cuenta mentiría.
+     *
+     * @param  Builder<$this>  $query
+     */
+    public function scopeSinTrabajo(Builder $query): void
+    {
+        $query->pendientes()->whereDoesntHave('tareas', static function (Builder $tareas): void {
+            /** @var Builder<Tarea> $tareas */
+            // El mismo scope que cuentan el aviso diario y el tablero.
+            $tareas->abiertas();
+        });
     }
 
     /**

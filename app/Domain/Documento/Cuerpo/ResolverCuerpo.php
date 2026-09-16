@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Documento\Cuerpo;
 
 use App\Domain\Documento\Contenido\ContenidoDocumento;
+use App\Domain\Documento\Enums\TipoDocumento;
 use App\Domain\Documento\Models\Documento;
 use App\Domain\Documento\Models\DocumentoCuerpo;
 use Illuminate\Support\Facades\DB;
@@ -29,10 +30,15 @@ final readonly class ResolverCuerpo
     /**
      * El título con el que vuelve un bloque blindado que alguien borró.
      *
+     * **El de las limitaciones no está aquí**: depende del tipo de documento
+     * —una política y un plan no declaran aplicabilidad de nada— y lo decide
+     * `TipoDocumento::tituloLimitaciones()`, que es el mismo que usa el esqueleto
+     * de fábrica. Con la cadena escrita en los dos sitios, el documento entregado
+     * se titulaba de una forma y el reparado de otra.
+     *
      * @var array<string, string>
      */
     private const TITULOS = [
-        'limitaciones_sistema' => 'Limitaciones de esta declaración',
         'control_versiones' => 'Control de versiones',
     ];
 
@@ -51,7 +57,7 @@ final readonly class ResolverCuerpo
         $fila = $this->fila($documento, $contenido);
 
         return $this->materializar->soloEstos(
-            $this->asegurarBlindados($fila->cuerpo),
+            $this->asegurarBlindados($fila->cuerpo, $documento->tipo),
             $contenido,
             $documento->tipo,
             EsquemaCuerpo::SIEMPRE_RECALCULADOS,
@@ -77,12 +83,14 @@ final readonly class ResolverCuerpo
      * @param  array<string, mixed>  $cuerpo
      * @return array<string, mixed>
      */
-    private function asegurarBlindados(array $cuerpo): array
+    private function asegurarBlindados(array $cuerpo, TipoDocumento $tipo): array
     {
         $presentes = $this->fuentesPresentes($cuerpo);
         $hijos = is_array($cuerpo['content'] ?? null) ? array_values($cuerpo['content']) : [];
 
-        foreach (self::TITULOS as $fuente => $titulo) {
+        $titulos = ['limitaciones_sistema' => $tipo->tituloLimitaciones()] + self::TITULOS;
+
+        foreach ($titulos as $fuente => $titulo) {
             if (in_array($fuente, $presentes, true)) {
                 continue;
             }

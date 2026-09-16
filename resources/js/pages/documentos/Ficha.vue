@@ -39,9 +39,7 @@ interface VersionEnCurso extends Version {
     descargable: boolean;
     emisible: boolean;
     error: string | null;
-    totalRequisitos: number | null;
-    totalExcluidos: number | null;
-    totalImplantados: number | null;
+    recuento: string | null;
 }
 
 const props = defineProps<{
@@ -233,9 +231,7 @@ const kb = (bytes: number | null | undefined): string =>
                         />
                         <span v-if="versionEnCurso.descargable" class="text-sm text-muted-foreground">
                             {{ kb(versionEnCurso.tamano) }}
-                            · {{ versionEnCurso.totalRequisitos }} requisitos
-                            · {{ versionEnCurso.totalExcluidos }} excluidos
-                            · {{ versionEnCurso.totalImplantados }} implantados
+                            <template v-if="versionEnCurso.recuento">· {{ versionEnCurso.recuento }}</template>
                         </span>
                     </div>
 

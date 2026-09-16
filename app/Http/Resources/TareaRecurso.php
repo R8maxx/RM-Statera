@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Resources;
 
 use App\Domain\Autorizacion\Enums\Permiso;
+use App\Domain\Tarea\Coste;
 use App\Domain\Tarea\Enums\EstadoTarea;
 use App\Domain\Tarea\Enums\OrigenTarea;
 use App\Domain\Tarea\Enums\PrioridadTarea;
@@ -119,9 +120,7 @@ final class TareaRecurso extends Recurso
             Columna::fecha('fecha_cierre', 'Cerrada')->ordenable()->oculta(),
             Columna::numero('coste_estimado', 'Coste estimado')
                 ->oculta()
-                ->formato(fn (Tarea $tarea): ?string => $tarea->coste_estimado === null
-                    ? null
-                    : number_format((float) $tarea->coste_estimado, 2, ',', '.').' €'),
+                ->formato(fn (Tarea $tarea): ?string => Coste::deLaTarea($tarea)),
             Columna::fechaHora('created_at', 'Alta')->ordenable()->oculta(),
         ];
     }

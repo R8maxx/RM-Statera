@@ -55,6 +55,13 @@ class DocumentoFactory extends Factory
         return $this->deTipo(TipoDocumento::DdaEns)->state(fn (): array => ['codigo' => 'DDA-ENS-01']);
     }
 
+    /** El plan de adecuación: calculado como las dos declaraciones, y también con sistema. */
+    public function plan(): self
+    {
+        return $this->deTipo(TipoDocumento::PlanAdecuacionEns)
+            ->state(fn (): array => ['codigo' => 'PLA-ENS-01']);
+    }
+
     /**
      * Una política: documento redactado, de la organización entera.
      *

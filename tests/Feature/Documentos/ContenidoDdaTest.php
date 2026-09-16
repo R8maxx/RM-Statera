@@ -168,6 +168,25 @@ it('declara que faltan los riesgos y los roles ENS, en vez de dejarlos en blanco
         ->toContain('pendientes de designación');
 });
 
+/*
+ * Reescrita al entrar el plan de adecuación, y por el mismo motivo por el que se
+ * reescribieron las dos de riesgos con el § 4.3 y la del flujo de aprobación con
+ * el § 4.5: decir que el módulo no está implantado pasó a ser **falso en el PDF
+ * que se le entrega al auditor**, que es peor que una limitación ausente.
+ *
+ * Sin este test la frase se tuerce otra vez en la siguiente entrega y nadie se
+ * entera hasta que alguien lea el PDF.
+ */
+it('ya no dice que el plan de adecuación esté sin implantar', function (): void {
+    $limitaciones = implode(' ', ($this->declaracion)(uniformeArray('bajo'))->limitaciones);
+
+    expect($limitaciones)
+        ->not->toContain('el **plan de adecuación** sigue pendiente')
+        ->not->toContain('su módulo no está implantado')
+        // Y sí dice por qué no figura aquí, que es una decisión y no una carencia.
+        ->toContain('no figura aquí por diseño');
+});
+
 /** Las cinco dimensiones al mismo nivel, en la forma que espera `valoracion()`. */
 function uniformeArray(string $nivel): array
 {

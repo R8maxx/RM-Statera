@@ -137,13 +137,17 @@ final class ResumenCumplimiento
         ];
     }
 
-    /** Lo exigible que todavía no está implantado. */
+    /**
+     * Lo exigible que todavía no está implantado.
+     *
+     * Por el scope y no repitiendo la condición: es el mismo que usan el filtro
+     * de `/implantaciones` y la consulta del plan de adecuación, y con la regla
+     * escrita tres veces, el día que cambie una el panel diría 12 y la lista
+     * enseñaría 9.
+     */
     public function pendientes(): int
     {
-        return Implantacion::query()
-            ->where('aplica', true)
-            ->whereNot('estado', EstadoImplantacion::Implantado->value)
-            ->count();
+        return Implantacion::query()->pendientes()->count();
     }
 
     /**
