@@ -107,6 +107,21 @@ El orden importa: el catálogo y el motor son la parte más específica del domi
 10. ✅ Plan de adecuación del ENS (§ 4.18), el tercer documento calculado. Con él
     la **fase 2** —«el papel formal»— queda completa: riesgos con metodología,
     documentos con flujo de aprobación, y SoA, DdA y plan de adecuación.
+11. ✅ Auditorías (§ 4.12), que abre la **fase 3** —«el ciclo vivo»—: los tres
+    tipos, checklist generada desde el catálogo, hallazgos, y el cierre que
+    congela e inmoviliza lo auditado.
+12. ✅ No conformidades y acciones correctivas (§ 4.13), la otra mitad del módulo
+    anterior: un hallazgo sin tratamiento detrás no cierra ningún ciclo. Causa
+    raíz, acciones correctivas —que son **tareas**— y la **verificación de
+    eficacia**, que es el paso que la cláusula 10.2 pide y el que más se olvida.
+    Con esto el ciclo se recorre entero: auditar, encontrar, tratar y comprobar.
+
+    La **fase 3 sigue abierta**. De ella queda la revisión por la dirección
+    (§ 4.15), el calendario de obligaciones completo (§ 4.16) y los otros dos
+    tercios del flujo de conformidad (§ 4.17). Del cuadro de mando (§ 4.14) hay lo
+    que cada módulo aporta al panel —cumplimiento, inventario, plan de acción y no
+    conformidades—; faltan los indicadores con objetivo y periodicidad y las
+    series históricas, que son otra cosa.
 
 ## El catálogo
 
@@ -274,6 +289,17 @@ decía que el plan «sigue pendiente: su módulo no está implantado» y eso pas
 entregado. Ahora dice que el plan existe, en documento aparte, y **por qué no figura ahí** — que es
 una decisión y no una carencia. `ContenidoDdaTest` clava que la frase vieja no vuelva.
 
+**Y por cuarta vez con las auditorías (§ 4.12 y § 4.13).** Decía que «el módulo de auditorías no está
+implantado», y con el ciclo entero dentro eso era falso en el PDF entregado. Ahora dice que las
+auditorías se registran, que su resultado no figura ahí **por diseño** —una Declaración de
+Aplicabilidad declara la situación de cada medida, no el resultado de quien la revisó— y **qué sigue
+sin hacer la herramienta**: el informe de auditoría como documento, el programa anual, y comprobar que
+el alcance auditado cubra lo exigible. Ese último punto es el que vale: sin esa comprobación, «esta
+medida no tiene hallazgos» se lee como «esta medida se auditó y estaba conforme», que es el mismo
+argumento por el que un punto de la checklist distingue `pendiente` de `conforme`. El test comprueba
+las dos mitades —que la frase vieja no vuelve **y que la nueva sigue declarando lo que falta**—, porque
+si sólo mirara la primera daría por bueno borrar la limitación entera.
+
 ---
 
 ## Los textos de un documento
@@ -404,6 +430,257 @@ PDF que alguien aprueba. Un hueco vacío no se pinta —ni él ni su título—,
 genérica, no. Lo que sí trae es la introducción, porque `org.1` pide literalmente que la política
 declare objetivos, compromiso de la dirección y a quién obliga: eso es lo que la § 4.5 llama
 «plantilla base».
+
+---
+
+## Las auditorías
+
+§ 4.12, la cláusula 9.2 de ISO, y la primera pieza de la **fase 3**. Tres tablas —`auditorias`,
+`auditoria_puntos`, `hallazgos`— y cuatro desvíos de la § 2.2, cada uno con su motivo en la cabecera
+de la migración.
+
+**Cerrarla es lo que la vuelve un hecho**, y lo garantiza el **tercer trigger de inmutabilidad** del
+producto, hermano de los de `documento_versiones` y `riesgo_valoraciones`. A partir del cierre, ni la
+checklist ni los hallazgos admiten cambios: si se pudieran reescribir desde PHP, bastaría con pasar un
+`no_conforme` a `conforme` y borrar el hallazgo para que la auditoría del año pasado dijera otra cosa.
+Con su puerta, como los otros dos: de `cerrada` se vuelve a `en_curso` —reabrir— y **nunca a
+`planificada`**, que sería decir que nunca se hizo.
+
+**Y al cerrar se congela lo derivado.** Cada punto guarda la exigencia y el estado que la implantación
+tenía ese día. Sin eso, revalorar el sistema en octubre cambiaría bajo los pies el denominador de la
+auditoría de marzo y la fila **mentiría** — el mismo motivo por el que `riesgo_valoraciones` congela su
+escala y sus salvaguardas. De ahí que `CerrarAuditoria` congele **antes** de marcar el estado: al revés,
+el trigger bloquea el propio congelado con un error que habla de la checklist y no del orden.
+
+**`sistema_id` es obligatorio y `marco_id` no existe.** § 2.2 dibuja lo contrario, pero ella misma
+define `sistemas` como «la unidad de alcance y de certificación»: el SGSI **es** un sistema. Sin él no
+hay checklist, que es la mitad del módulo — el mismo argumento que ya se escribió para el plan de
+adecuación. Y con el sistema puesto, `marco_id` sería el mismo dato en dos sitios que pueden
+desincronizarse.
+
+**Un punto no se puede marcar «no aplica».** La checklist se precarga desde lo aplicable, así que todo
+punto lo es **por construcción**: un auditor marcando «no aplica» estaría contradiciendo una derivación
+legal desde un desplegable, que es lo que prohíbe el invariante 4. Lo que sí necesita decir es
+`fuera_de_muestra`, que es una decisión suya sobre el alcance y no sobre la aplicabilidad. Y
+`pendiente` no es `conforme`, que es el argumento de `EstadoControl::PorConfirmar`: sin la checklist,
+la ausencia de hallazgo se lee como conformidad y una auditoría por muestreo miente.
+
+**Los hallazgos cuelgan del punto, no de la pareja (auditoría, requisito)** —con la pareja, nada
+impediría un punto «conforme» con una no conformidad encima del mismo requisito—, y su
+`auditoria_punto_id` es **nullable** contra la letra de § 2.2: una auditoría ISO produce hallazgos que
+no cuelgan de ninguna medida —«el programa de auditoría interna no está definido»— y con la columna
+obligatoria acabarían colgados de un requisito arbitrario.
+
+### La checklist: el primer `Recurso` acotado a un padre
+
+Es **pantalla propia** (`/auditorias/{auditoria}/checklist`) y no un bloque de la ficha: son 52 medidas
+en categoría básica y unas **122** en un sistema de ISO —los 93 controles del Anexo A más las cláusulas
+4 a 10, el mismo 122-contra-93 que ya mordió a la SoA—. A ese tamaño hacen falta filtros, orden y
+marcado en bloque. Precedente de forma: `/tareas/tablero` y `/activos/etiquetas`.
+
+**La auditoría entra por el constructor.** `Recurso::consulta()` no recibe argumentos y sólo lo llama
+`ConsultaRecurso`; cambiar esa firma contaminaría las once implementaciones para que la use una.
+
+**Y el aislamiento tiene aquí un eje que no existía.** Las tres capas tapan el cruce entre
+organizaciones; entre dos auditorías de la **misma** organización no hay nada. Así que el `where` de la
+consulta es la frontera y no un filtro, la acción masiva acota por `auditoria_id` además de por los ids,
+y todo lo que cuelga de `{auditoria}` va con `scopeBindings()`.
+
+**`Inertia::once()` colisionaba, y hay test.** La definición viaja con la clave `recurso:{clave}` y el
+cliente la reclama por esa clave **copiando el valor viejo**: dos checklists con la misma clave harían
+que la segunda se pintara con la definición de la primera, incluida la URL de su acción masiva. Por eso
+`RespondeConRecurso::tabla()` acepta un sufijo de caché y `clave()` **se queda estable**: `clave()` es
+además el nombre con el que la vista de columnas se guarda en el navegador y con el que se nombra el
+CSV, así que hacerla dinámica guardaría una vista por auditoría —y quien ordena sus columnas las
+perdería en la siguiente— y metería dos puntos en el nombre del fichero. Las columnas son idénticas
+auditoría a auditoría: compartir la vista es lo que se quiere.
+
+**La checklist entera cabe en una página** (`porPagina` 100, con escalón de 200 que no existe en el
+resto del producto). `DataTable` limpia la selección cada vez que cambia `meta`, así que paginar la
+borra: sin eso, «marcar veinte conformes de golpe» obliga a empezar de nuevo en cada página.
+
+**La acción masiva marca `conforme` y sólo `conforme`**, por `update` masivo y no por bucle tolerante.
+Lo primero, porque «no conforme» y «observación» piden un hallazgo detrás y marcar cuarenta de golpe
+fabricaría cuarenta huecos —el argumento que dejó `descartada` fuera de la masiva de tareas—. Lo
+segundo, porque el bucle de implantaciones existe para rechazar filas según su máquina de estados, y un
+punto no tiene: el recuento de rechazadas sería siempre cero, un mensaje que miente sobre su propio
+esfuerzo.
+
+**La guarda del cierre está en el dominio aunque el trigger también lo impida.** Un `update` sobre una
+auditoría cerrada levanta el `RAISE EXCEPTION` y sube como `QueryException` sin capturar: el usuario ve
+el 500 genérico y el mensaje de la base —sin tildes, porque es SQL— no lo lee nadie.
+
+**Los puntos no llevan `RegistraTraza`, y es deliberado.** Un `update` masivo por Query Builder no
+dispara eventos, así que la traza aparecería en el camino de uno en uno y no en el masivo: media traza
+es peor que ninguna, que es el razonamiento que ya está escrito para `marcarRevisados`. Y cerrar una
+auditoría ISO escribiría 122 eventos que no dicen nada que el cierre no diga. **La limitación que eso
+deja**: «¿quién marcó conforme esta línea?» se contesta con `auditorias.auditor` y nada más fino. Para
+una auditoría basta —el acta la firma el auditor, no cada casilla—, pero es una limitación y no una
+ausencia.
+
+**`RegistrarAuditoria` existe por una línea**, el `refresh()`: `estado` lo pone la base y la instancia
+recién creada llega sin él, así que lo primero que lo lea revienta con un «call to a member function on
+null» que no menciona la palabra «estado». Es lo mismo que ya le pasó a `CrearTarea` y a
+`GenerarDocumento::encolar()`. Aquí mordió en el seeder.
+
+**`Auditoria::puntos()` no lleva joins ni orden**, y tuvo los dos durante un rato. El *route model
+binding* acotado resuelve `{punto}` a través de la relación con un `where` **sin cualificar**: con
+`implantaciones` y `requisitos` unidas, la consulta muere con «column reference "id" is ambiguous», un
+error que no menciona ni la ruta ni la relación. Una relación dice de quién cuelga qué; cómo se ordena
+es de quien consulta.
+
+**El rol `Auditor` lee y no escribe**, y conviene decirlo porque el nombre del rol y el del módulo
+coinciden y parece un olvido: este rol es el auditor **externo** que § 4.19 describe como de sólo
+lectura, y quien registra la auditoría interna es el responsable de seguridad. Dejarle escribir sería
+que quien audita redactara el acta de su propia auditoría.
+
+---
+
+## Las no conformidades
+
+§ 4.13, la cláusula 10.2 de ISO y la otra mitad del módulo anterior. Un hallazgo dice qué se encontró;
+esto dice por qué pasó, qué se hizo, quién responde y **si funcionó**. Tres tablas —`no_conformidades`,
+`no_conformidad_tarea` y `no_conformidad_transiciones`— y cuatro desvíos de la § 2.2, con el primero
+dando forma al resto.
+
+**`accion_correctiva` no es una columna de texto: es una tarea.** Una acción correctiva tiene
+responsable, plazo, estado y coste, que es literalmente `tareas`. Con una columna de texto, el trabajo
+correctivo quedaría fuera del tablero, del calendario, del aviso diario y del presupuesto del plan de
+adecuación — cinco sitios donde hay que verlo. Y el vínculo es **N:M**, como `implantacion_tarea`:
+«implantar MFA» cierra a la vez una no conformidad de la auditoría ISO y otra de la autoevaluación del
+ENS.
+
+**Dos columnas de fecha y dos `CHECK`, no una.** `fecha_cierre` es cuándo se dio por tratada y
+`fecha_verificacion` cuándo se comprobó que la corrección sirvió. Son dos momentos distintos —la
+eficacia se mira semanas después, cuando hay con qué mirarla— y con una sola columna la verificación
+que llega en noviembre no tiene dónde fecharse. `anulada` entra en el acoplamiento del cierre por el
+mismo argumento que metió `descartada` en el de tareas: la pregunta del auditor es «¿desde cuándo dejó
+de estar abierta?».
+
+**`eficacia_verificada` no es un booleano, es un estado.** Como bandera sería el mismo dato que
+`estado = 'verificada'` en dos sitios que pueden desincronizarse. Lo que sí merece columna es
+`resultado_verificacion`: **qué** se comprobó. Mismo reparto que `nota_aceptacion` en riesgos.
+
+**La verificación fallida no es un estado, es la vuelta a `en_tratamiento`.** Un `no_eficaz` se
+quedaría puesto sobre una no conformidad que sigue viva y volvería a contarse como cerrada en cuanto
+alguien lo mirara por encima. Precedente exacto: `EstadoAuditoria::Cerrada → EnCurso`. Y esa vuelta
+**suelta las tres columnas de la verificación**, no sólo la fecha: dejar el resultado puesto sin su
+fecha sería enseñar una comprobación que ya no consta. No se pierde nada, porque al verificar el texto
+se copia además a la nota de la transición.
+
+**Tres transiciones exigen motivo escrito**, y la regla vive en el dominio y no en el `FormRequest`
+porque vale también para un importador: anular —«esto no era una no conformidad»—, verificar —donde la
+nota *es* el resultado— y reabrir el tratamiento —donde «qué falló» es lo único que explica el ir y
+venir—. El motivo de `anulada` va en la nota y no en columna propia, como `descartada` en tareas.
+
+**`no_conformidades.verificar` es el quinto verbo de supervisión**, junto a `sistemas.valorar`,
+`riesgos.aceptar` y `documentos.aprobar`, y es el que mejor explica la familia: comprobar que una
+acción correctiva funcionó no puede hacerlo quien la ejecutó. El técnico trata la no conformidad
+entera y no la firma. Y sí, `no_conformidades.*` rompe el patrón de una palabra de los otros nueve
+módulos: se queda así porque casa con la tabla y con la ruta, y tres nombres para la misma cosa
+cuestan más que un guion bajo.
+
+### El doble vínculo, que es el fallo caro
+
+`Implantacion::sinTrabajo()` mira `implantacion_tarea`. Una acción correctiva colgada **sólo** de la no
+conformidad no está ahí, así que el plan de adecuación imprimiría «sin trabajo planificado» sobre una
+medida que sí lo tiene — en la tabla que la dirección mira seguro. Por eso
+`VincularAccionCorrectiva::vincular()` ata los dos vínculos, y cuatro precisiones:
+
+1. **Vive en la acción de dominio y no en el controlador.** Si sólo lo hiciera el formulario de alta,
+   la tarea que alguien vincule más tarde desde la ficha no lo tendría y el falso positivo volvería por
+   la otra puerta.
+2. **Cubre una parte de los casos.** Hace falta hallazgo **con punto de checklist**: ahí hay medida
+   detrás. Una no conformidad suelta, o de un hallazgo sobre el sistema de gestión, no tiene a qué
+   apuntar, y forzarla contra una implantación arbitraria es el vicio que `OrigenTarea::Propia` existe
+   para evitar.
+3. **No depende del estado de la auditoría.** Escribir en la pivote no pasa por el trigger de
+   inmutabilidad —que blinda la checklist y los hallazgos, no lo que cuelga de ellos—, y es lo
+   correcto: las no conformidades se tratan **después** de cerrar. Pero es donde uno espera un error,
+   así que hay test.
+4. **Desvincular no suelta el vínculo con la medida.** No hay forma de saber si lo puso esto o una
+   persona desde la ficha de la implantación, y quitarlo a ciegas borraría trabajo planificado a mano.
+
+Ninguna de las trece cifras que cuentan tareas se mueve al vincular: todas cuentan filas de `tareas` y
+esto no crea ninguna. Lo que sube es el total del plan de adecuación, porque trabajo que era invisible
+pasa a estar presupuestado. `Coste::total()` sigue contando cada tarea una vez.
+
+**`OrigenTarea::NoConformidad` no está en § 4.7 y es el que de verdad usa una auditoría.** La
+especificación enumera «hallazgo», y una tarea no cuelga nunca de un hallazgo: cuelga de la no
+conformidad que lo trata. `Hallazgo` sigue declarado y sin ofrecerse, y desde el § 4.13 **por otro
+motivo** —no es que falte su módulo, es que hay un eslabón por medio—; esa frase estaba escrita en el
+enum y pasó a ser falsa en cuanto llegó el § 4.12.
+
+**El origen de una acción correctiva se pone, no se pregunta**, como en `/tareas/crear?implantacion=`:
+preguntarlo invita a cambiarlo. `AbrirAccionCorrectiva` es además el único camino que produce tareas
+con ese origen, y vive en `Domain\NoConformidad` y no en `Domain\Tarea` por la dirección de la
+dependencia: este módulo sabe de tareas, y el plan de acción no tiene por qué saber de no
+conformidades.
+
+**Un hallazgo se trata una vez**, y lo impone un índice único sobre `hallazgo_id`. Sin él, «hallazgos
+sin tratar» dependería de cuál de las dos filas se mirase. En PostgreSQL los nulos son distintos entre
+sí, así que el mismo índice deja pasar todas las no conformidades sueltas que hagan falta. Y el
+hallazgo va con `nullOnDelete` y no con cascada, a diferencia de casi todo el módulo: borrar el
+hallazgo de una auditoría abierta no puede llevarse por delante la prueba de que se trató.
+
+**`Tarea\Plazo` tiene desde aquí un segundo cliente**, y por eso la regla se extrajo a `Plazo::para()`:
+una no conformidad también es «algo abierto con una fecha para cuándo», y una segunda copia de
+«vencida en rojo, sin plazo en gris» es cómo se acaba con dos pantallas que discrepan. Se queda en
+`Domain\Tarea` porque es donde nació; si llega un tercer contexto, se mueve al lado de `Indicador`.
+
+**El rojo de este registro es de «Fuera de plazo» y de «Sin verificar»**, y ninguno de los estados.
+La gravedad la lleva el tipo del hallazgo —`TipoHallazgo::NcMayor` sí es rojo— y pintar de rojo el
+estado dejaría el registro entero en rojo por estar haciendo su trabajo. «Sin verificar» lo gasta
+porque es la cláusula 10.2 e) sin hacer, y es el paso que el auditor comprueba **precisamente porque es
+el que todo el mundo se salta**.
+
+### En el panel (§ 4.14)
+
+**Dos bloques nuevos, y los dos contestan a la misma pregunta por separado.** La tarjeta de no
+conformidades dice qué se rompió y si se arregló; el reparto por origen del plan de acción dice de
+dónde sale el trabajo que hay abierto. Van detrás del cumplimiento y del plan por el mismo orden de
+siempre: qué falta → quién lo está haciendo → qué se rompió por el camino.
+
+**«Sin verificar» sube al panel, y es la única cifra del módulo que está por la norma y no por la
+pantalla.** Una no conformidad cerrada y sin verificar se lee como resuelta y no lo está, y la cláusula
+10.2 e) es el paso que el auditor comprueba **precisamente porque es el que todo el mundo se salta**.
+Va en rojo, en la misma línea que lo vencido.
+
+**Sin porcentaje de cerradas**, como el plan de acción no lleva porcentaje de tareas hechas: esa cifra
+sube al cerrar y baja al registrar una nueva, así que castigaría por auditar bien.
+
+**El reparto por estado de este módulo sí incluye los estados cerrados**, a diferencia del de tareas,
+que sólo cuenta lo abierto. La pregunta es otra: en tareas es «en qué punto está lo que queda» y aquí
+es «cuántas de las que hemos encontrado hemos llegado a verificar». Sin `verificada` en la barra, la
+única cifra que pide la norma no se vería.
+
+**`OrigenTarea::tono()` devuelve tres tonos para siete orígenes, y no hay familia `origen:*`.** Era lo
+previsto y no sale: siete colores distinguibles no existen en la paleta —los únicos siete medidos son
+los `--tipo-*`, y un origen no es un tipo de activo— y el reparto se pinta con `GraficaBarras`, donde
+**cada barra lleva su etiqueta escrita**. Con el nombre al lado el color no tiene que identificar, así
+que dice lo que de verdad se mira: **ámbar lo reactivo** —hallazgo, no conformidad, incidente—, **azul
+lo planificado** —brecha, riesgo, revisión por la dirección— y **gris la iniciativa propia**. Un plan
+que es casi todo ámbar es una organización apagando fuegos; un arcoíris de siete colores no contesta
+eso. Y ninguno gasta rojo: una acción correctiva no es un incumplimiento, es lo que hay que hacer con
+uno.
+
+**La tarjeta no se manda a quien no tiene `no_conformidades.ver`.** Conectar dos módulos abre una
+puerta lateral al registro del otro sin que nadie la decida — misma regla que el bloque de riesgos de
+la ficha de un activo. Hoy los tres roles del § 4.19 lo tienen, así que la guarda no la ejerce nadie;
+el test la comprueba quitándole el permiso **al rol** y no al usuario, porque `revokePermissionTo`
+sobre la persona no quita lo que hereda y el test pasaría por el motivo equivocado.
+
+**Lo que este módulo declara que no hace todavía**, y está escrito además en la limitación de la DdA:
+el informe de auditoría interna como documento generado, el programa anual de auditoría, comprobar que
+el alcance auditado cubra lo exigible, y la cuarta `Fuente` del calendario de obligaciones —la
+`fecha_prevista` de una no conformidad vence el mismo día que sus acciones correctivas, y el calendario
+pintaría tres chips para un solo compromiso—.
+
+**Y el § 4.17 se queda a un tercio.** El flujo de conformidad de categoría básica son tres pasos
+—autoevaluación → Declaración de Conformidad → publicación del distintivo— y de esos existe el primero:
+`TipoAuditoria::Autoevaluacion` con su checklist y sus hallazgos. La Declaración de Conformidad es un
+cuarto documento calculado y el distintivo es un trámite ante el CCN; ninguno de los dos entra aquí. Se
+declara por escrito, que es lo que este proyecto hace con lo que aún no puede afirmar.
 
 ---
 
@@ -683,7 +960,7 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
 
 - **`--acento` (violeta de marca) y `--accent` (superficie de hover de shadcn) son cosas distintas y tienen nombres distintos a propósito.** `--accent` es el teal pálido que pintan el ítem activo del sidebar, el menú, el desplegable y el select; unificarlo con el acento de marca los rompe todos a la vez. El violeta vive en `--acento`, `--acento-suave`, `--acento-borde` y la escala `--violeta-*`.
 
-- **El violeta se queda en cuatro sitios y sólo cuatro:** el filete de `CabeceraPagina` (uno por pantalla), la variante `acento` del botón —reservada a flujos de revisión y auditoría, y hoy en «Aprobar y entregar»—, el token `--estado-en-revision` —que desde el § 4.5 **sí tiene flujo detrás**: es el badge de una versión esperando firma, y el único badge de estado que gasta violeta— y la balanza del acceso. **No** en enlaces, **no** en el anillo de foco y **no** en el resto de badges de estado. El reparto es 60/30/10 y el violeta que se ve en todas partes deja de ser acento.
+- **El violeta se queda en cuatro sitios y sólo cuatro:** el filete de `CabeceraPagina` (uno por pantalla), la variante `acento` del botón —reservada a flujos de revisión y auditoría, y hoy en «Aprobar y entregar»—, el token `--estado-en-revision` —que desde el § 4.5 **sí tiene flujo detrás**: es el badge de una versión esperando firma— y la balanza del acceso. Ese token tiene desde el § 4.13 **dos dueños**, y no es una grieta: el otro es `EstadoNoConformidad::Cerrada`, «tratada y pendiente de verificar», que significa exactamente lo mismo —hecho y esperando a que alguien con potestad lo confirme—. Un token con dos dueños que quieren decir lo mismo sigue significando algo; el violeta se rompe cuando pasa a ser decoración, no cuando lo usa el segundo flujo de revisión del producto. **No** en enlaces, **no** en el anillo de foco y **no** en el resto de badges de estado. El reparto es 60/30/10 y el violeta que se ve en todas partes deja de ser acento.
 
 - **La balanza del panel de acceso es la única animación decorativa del producto**, y contradice a propósito el «lo decorativo no entra» de `lib/motion.ts`. El motivo: el panel se mira quince segundos antes de entrar, no ocho horas, y está fuera del chrome de trabajo. A cambio se apaga en tres condiciones —`prefers-reduced-motion`, pestaña en segundo plano y por debajo de `lg`— y en las tres se pinta un solo fotograma quieto. Es canvas 2D a mano (`lib/balanza.ts` + `components/BalanzaPixeles.vue`), sin librería: para setecientos puntos no hace falta un motor 3D, y aquí cada dependencia hay que justificarla en una revisión. La geometría sale del `viewBox` de `Logotipo.vue`, así que lo que gira **es** el logotipo; si alguien redibuja el símbolo, hay que redibujar la nube. **El tamaño lo decide la caja, nunca una medida escrita a mano:** `extension()` mide cuánto ocupa la figura en el fotograma más ancho de toda la vuelta y de ahí sale el `tam` que cabe, así que basta con meter el componente en un `flex-1` para que se adapte a la ventana y ningún platillo se sale en ningún ángulo. Volver a poner anchos en `rem` por punto de ruptura es el error que ya se cometió una vez.
 

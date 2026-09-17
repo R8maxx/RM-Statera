@@ -5,6 +5,7 @@ import BarraSegmentada, { type Segmento } from '@/components/BarraSegmentada.vue
 import EstadoVacio from '@/components/EstadoVacio.vue';
 import PrimerosPasos from '@/components/PrimerosPasos.vue';
 import ResumenInventarioPanelCard from '@/components/activo/ResumenInventarioPanel.vue';
+import ResumenNoConformidadesPanel from '@/components/no-conformidad/ResumenNoConformidadesPanel.vue';
 import ResumenPlanPanel from '@/components/tarea/ResumenPlanPanel.vue';
 import GraficaBarras, { type Barra } from '@/components/grafica/GraficaBarras.vue';
 import {
@@ -43,6 +44,12 @@ const props = defineProps<{
     porMarco: AvanceMarco[];
     inventario: App.Http.Resources.Panel.ResumenInventarioPanel;
     plan: App.Http.Resources.Panel.ResumenPlanPanel;
+    /*
+     * Nulo cuando quien mira no tiene `no_conformidades.ver`. Lo decide el
+     * servidor: conectar dos módulos abre una puerta lateral al registro del otro
+     * si el frontend es quien elige qué esconder.
+     */
+    noConformidades: App.Http.Resources.Panel.ResumenNoConformidadesPanel | null;
 }>();
 
 const { variantesEntrada, variantesEscalonado } = useMovimientoReducido();
@@ -296,6 +303,21 @@ const metricas = computed(() => [
             -->
             <motion.section v-if="plan.total > 0" :variants="variantesEntrada">
                 <ResumenPlanPanel :plan="plan" />
+            </motion.section>
+
+            <!-- ── No conformidades ───────────────────────────────────────── -->
+            <!--
+                Detrás del plan de acción y por lo mismo que aquél va detrás del
+                cumplimiento: éste dice qué se está haciendo y esto dice qué se
+                rompió por el camino. Con el registro vacío no se pinta: una
+                tarjeta de ceros enseña a no mirar la tarjeta, y aquí el vacío es
+                además el estado normal de quien todavía no ha auditado.
+            -->
+            <motion.section
+                v-if="noConformidades && noConformidades.total > 0"
+                :variants="variantesEntrada"
+            >
+                <ResumenNoConformidadesPanel :resumen="noConformidades" />
             </motion.section>
 
             <!-- ── Por marco ──────────────────────────────────────────────── -->

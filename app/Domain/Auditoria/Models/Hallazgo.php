@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Auditoria\Models;
 
 use App\Domain\Auditoria\Enums\TipoHallazgo;
+use App\Domain\NoConformidad\Models\NoConformidad;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
 use App\Domain\Traza\Concerns\RegistraTraza;
 use Database\Factories\Auditoria\HallazgoFactory;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * Lo que el auditor encontró.
@@ -66,12 +68,22 @@ class Hallazgo extends Model
     }
 
     /**
-     * Los que la cláusula 10.2 obliga a tratar.
+     * El tratamiento, cuando lo tiene.
      *
-     * La relación con `no_conformidades` —y el scope de «sin tratar» que sale de
-     * ella— llega con el § 4.13, que es la otra mitad de este módulo: un hallazgo
-     * sin no conformidad detrás no cierra nada. Hasta entonces esto es sólo la
-     * frontera entre lo que obliga y lo que avisa.
+     * `hasOne` y no `hasMany` porque la base lo impone con un índice único sobre
+     * `no_conformidades.hallazgo_id`: un hallazgo se trata una vez. Con dos filas,
+     * «sin tratar» dependería de cuál se mirara y el registro enseñaría el mismo
+     * hecho dos veces.
+     *
+     * @return HasOne<NoConformidad, $this>
+     */
+    public function noConformidad(): HasOne
+    {
+        return $this->hasOne(NoConformidad::class);
+    }
+
+    /**
+     * Los que la cláusula 10.2 obliga a tratar.
      *
      * @param  Builder<$this>  $query
      */
@@ -81,6 +93,22 @@ class Hallazgo extends Model
             TipoHallazgo::NcMayor->value,
             TipoHallazgo::NcMenor->value,
         ]);
+    }
+
+    /**
+     * Los que obligan a abrir una no conformidad y no la tienen.
+     *
+     * Es la costura entre las dos mitades del módulo, y la que hay que poder
+     * enseñar: una no conformidad mayor sin tratamiento detrás es un hallazgo de
+     * la auditoría siguiente. **No incluye la anulada**: anular es decidir que
+     * aquello no era una no conformidad, y eso sí es tratarlo — con su motivo
+     * escrito, que es lo que el auditor va a leer.
+     *
+     * @param  Builder<$this>  $query
+     */
+    public function scopeSinTratar(Builder $query): void
+    {
+        $query->noConformidades()->whereDoesntHave('noConformidad');
     }
 
     /** @return array<string, string> */

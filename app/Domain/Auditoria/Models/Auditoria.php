@@ -87,22 +87,24 @@ class Auditoria extends Model
     }
 
     /**
-     * La checklist, en el orden del marco.
+     * La checklist.
      *
-     * `requisitos.orden` y no el código: ordenar por texto pondría `op.acc.10`
-     * antes que `op.acc.2`, que es el mismo motivo por el que lo hacen los
-     * documentos.
+     * **Sin joins y sin orden**, a propósito. El orden del marco —`requisitos.orden`,
+     * porque por código en texto `op.acc.10` iría antes que `op.acc.2`— lo pone
+     * `ChecklistRecurso`, que es quien la pinta.
+     *
+     * Aquí tuvo joins durante un rato y fue un error concreto: el *route model
+     * binding* acotado resuelve `{punto}` a través de esta relación con un
+     * `where` **sin cualificar**, así que con `implantaciones` y `requisitos`
+     * unidas la consulta muere con «column reference "id" is ambiguous» — un
+     * error que no menciona ni la ruta ni la relación. Una relación es de quién
+     * cuelga de quién; cómo se ordena es de quien consulta.
      *
      * @return HasMany<AuditoriaPunto, $this>
      */
     public function puntos(): HasMany
     {
-        return $this->hasMany(AuditoriaPunto::class)
-            ->join('implantaciones', 'implantaciones.id', '=', 'auditoria_puntos.implantacion_id')
-            ->join('requisitos', 'requisitos.id', '=', 'implantaciones.requisito_id')
-            ->select('auditoria_puntos.*')
-            ->orderBy('requisitos.orden')
-            ->orderBy('requisitos.id');
+        return $this->hasMany(AuditoriaPunto::class);
     }
 
     /** @return HasMany<Hallazgo, $this> */

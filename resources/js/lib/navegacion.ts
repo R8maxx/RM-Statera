@@ -2,11 +2,13 @@ import {
     BoxesIcon,
     ClipboardCheckIcon,
     ClipboardListIcon,
+    ClipboardXIcon,
     FileTextIcon,
     LayoutDashboardIcon,
     LayoutTemplateIcon,
     ListTodoIcon,
     PaperclipIcon,
+    SearchCheckIcon,
     ServerIcon,
     ShieldAlertIcon,
     type LucideIcon,
@@ -72,6 +74,33 @@ export const navegacion: GrupoNavegacion[] = [
                 href: '/tareas',
                 icono: ListTodoIcon,
                 alias: ['plan de acción', 'plan', 'pendientes', 'acciones', 'kanban', 'to-do', 'deberes'],
+            },
+            {
+                titulo: 'Auditorías',
+                href: '/auditorias',
+                icono: SearchCheckIcon,
+                /*
+                 * Sin el alias «revisión», que ya es de `/revisiones` —las del
+                 * inventario— y volverá a hacer falta para la revisión por la
+                 * dirección (§ 4.15). Dos entradas que responden a la misma
+                 * palabra dejan la paleta de comandos sin poder desempatar.
+                 */
+                /*
+                 * Y sin «no conformidades», que era alias suyo mientras el
+                 * § 4.13 no existía y ahora **es el título de otra entrada**.
+                 * Dejarlo aquí sería el mismo empate que se evitó con
+                 * «revisión»: quien teclea eso quiere el registro, no la
+                 * auditoría de la que salió.
+                 */
+                alias: ['auditoría interna', 'hallazgos', 'autoevaluación', '9.2', 'checklist'],
+            },
+            {
+                titulo: 'No conformidades',
+                href: '/no-conformidades',
+                icono: ClipboardXIcon,
+                // `nc` y `10.2` son lo que se teclea sabiendo de qué va; «causa
+                // raíz» y «eficacia» son lo que se busca estando ya dentro.
+                alias: ['nc', 'acciones correctivas', 'causa raíz', 'eficacia', '10.2', 'mejora continua'],
             },
             {
                 titulo: 'Documentos',

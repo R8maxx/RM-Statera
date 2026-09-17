@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Tarea;
 
 use App\Domain\Tarea\Enums\EstadoTarea;
+use App\Domain\Tarea\Enums\OrigenTarea;
 use App\Domain\Tarea\Enums\PrioridadTarea;
 use App\Domain\Tarea\Models\Tarea;
 use App\Http\Resources\Panel\Indicador;
@@ -99,7 +100,40 @@ final class ResumenPlanDeAccion
             sinResponsable: Tarea::query()->sinResponsable()->count(),
             porEstado: $this->porEstado(),
             porPrioridad: $this->porPrioridad(),
+            porOrigen: $this->porOrigen(),
         );
+    }
+
+    /**
+     * El reparto de lo abierto por origen, de dónde sale el trabajo.
+     *
+     * **Existe porque «40 tareas abiertas» mezcla dos cosas que no se gestionan
+     * igual**: la deuda que alguien planificó —una brecha de implantación, el
+     * tratamiento de un riesgo— y el trabajo correctivo que viene de algo que ya
+     * falló. Un plan que es casi todo lo segundo es una organización apagando
+     * fuegos, y eso no se ve en el total.
+     *
+     * En el orden del enum, que va de lo más reactivo a lo más propio, y sin los
+     * orígenes a cero: cuatro barras de las que tres están vacías no son un
+     * reparto, son la lista de valores posibles. Los tres orígenes cuyo módulo no
+     * existe se caen solos por ahí.
+     *
+     * @return list<Reparto>
+     */
+    private function porOrigen(): array
+    {
+        $conteos = $this->contar('origen', fn (Builder $consulta) => $consulta->abiertas());
+
+        return $this->conValor(array_map(
+            fn (OrigenTarea $origen): Reparto => new Reparto(
+                clave: $origen->value,
+                etiqueta: $origen->etiqueta(),
+                valor: $conteos[$origen->value] ?? 0,
+                tono: $origen->tono(),
+                filtro: "filter[origen]={$origen->value}",
+            ),
+            OrigenTarea::cases(),
+        ));
     }
 
     /**

@@ -23,6 +23,15 @@ use Illuminate\Support\Carbon;
  * El rojo (`caducada`) sale de aquí y de ningún otro sitio de la tabla: una
  * tarea vencida es de las pocas cosas del dominio que van mal de verdad, y si
  * además los estados llevaran rojo, el plazo dejaría de saltar a la vista.
+ *
+ * **Desde el § 4.13 tiene un segundo cliente**, las no conformidades, que
+ * también son «algo abierto con una fecha para cuándo». De ahí que la regla viva
+ * en `para()` y que `de()` sea sólo la traducción de una tarea: el argumento de
+ * los tres sitios vale igual para cinco, y una segunda copia de «vencida en rojo,
+ * sin plazo en gris» es exactamente cómo se acaba con dos pantallas que
+ * discrepan. Se queda en `Domain\Tarea` porque es donde nació y donde se lee
+ * tres de las cinco veces; si llega un tercer contexto, se mueve al lado de
+ * `Indicador`, que hizo ese mismo viaje.
  */
 final readonly class Plazo
 {
@@ -35,24 +44,51 @@ final readonly class Plazo
 
     public static function de(Tarea $tarea): self
     {
-        if ($tarea->estado->esCerrada()) {
-            return new self($tarea->fecha_cierre?->toDateString(), 'Cerrada', 'no_aplica', false);
+        return self::para(
+            $tarea->fecha_limite,
+            $tarea->estado->esCerrada(),
+            $tarea->fecha_cierre,
+            $tarea->haVencido(),
+        );
+    }
+
+    /**
+     * La regla, sin saber de qué registro viene.
+     *
+     * `$vencido` se recibe en vez de deducirse de la fecha porque cada contexto
+     * ya tiene escrito qué significa —`Tarea::haVencido()`,
+     * `NoConformidad::haVencido()`— y deducirlo aquí sería la misma condición por
+     * segunda vez, que es justo lo que esta clase existe para evitar.
+     *
+     * `$etiquetaCerrada` la pone quien llama: «Cerrada» en una tarea y «Tratada»
+     * en una no conformidad, que ahí todavía le falta la verificación de eficacia
+     * y llamarla cerrada sería decir que está resuelta.
+     */
+    public static function para(
+        ?Carbon $fecha,
+        bool $cerrado,
+        ?Carbon $fechaCierre,
+        bool $vencido,
+        string $etiquetaCerrada = 'Cerrada',
+    ): self {
+        if ($cerrado) {
+            return new self($fechaCierre?->toDateString(), $etiquetaCerrada, 'no_aplica', false);
         }
 
-        if ($tarea->fecha_limite === null) {
+        if ($fecha === null) {
             return new self(null, 'Sin plazo', 'no_iniciado', false);
         }
 
-        $fecha = $tarea->fecha_limite->toDateString();
+        $texto = $fecha->toDateString();
 
-        if ($tarea->haVencido()) {
-            return new self($fecha, 'Vencida', 'caducada', true);
+        if ($vencido) {
+            return new self($texto, 'Vencida', 'caducada', true);
         }
 
-        $dias = (int) Carbon::today()->diffInDays($tarea->fecha_limite, false);
+        $dias = (int) Carbon::today()->diffInDays($fecha, false);
 
         return new self(
-            $fecha,
+            $texto,
             match (true) {
                 $dias === 0 => 'Vence hoy',
                 $dias <= 7 => "Vence en {$dias} días",

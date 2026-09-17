@@ -187,6 +187,32 @@ it('ya no dice que el plan de adecuación esté sin implantar', function (): voi
         ->toContain('no figura aquí por diseño');
 });
 
+/*
+ * La cuarta reescritura de una limitación de este documento, y la misma regla:
+ * en cuanto llegaron el § 4.12 y el § 4.13, decir que el módulo de auditorías no
+ * está implantado pasó a ser falso en el PDF entregado. Un auditor respeta una
+ * limitación declarada y suspende una inventada.
+ *
+ * Y lo que se comprueba no es sólo que la frase vieja no vuelva: es que la nueva
+ * **sigue declarando lo que de verdad falta**. Sin esa mitad, esto sería un test
+ * que da por bueno borrar la limitación entera.
+ */
+it('ya no dice que el módulo de auditorías esté sin implantar, y declara lo que sí falta', function (): void {
+    $limitaciones = implode(' ', ($this->declaracion)(uniformeArray('bajo'))->limitaciones);
+
+    expect($limitaciones)
+        ->not->toContain('módulo de auditorías (§ 4.12) no está implantado')
+        ->not->toContain('No se recoge el resultado de auditoría')
+        // Lo que la herramienta sí hace ya.
+        ->toContain('se registran en la herramienta')
+        // Y lo que sigue sin hacer, incluido el que de verdad importa: sin
+        // comprobar la cobertura del muestreo, «sin hallazgos» se lee como
+        // «revisada y conforme».
+        ->toContain('informe de auditoría')
+        ->toContain('programa anual')
+        ->toContain('no significa que se haya revisado');
+});
+
 /** Las cinco dimensiones al mismo nivel, en la forma que espera `valoracion()`. */
 function uniformeArray(string $nivel): array
 {

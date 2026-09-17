@@ -2,15 +2,21 @@
 
 declare(strict_types=1);
 
+use App\Domain\Autorizacion\Enums\Permiso;
+use App\Domain\Autorizacion\Enums\Rol;
 use App\Domain\Catalogo\Enums\TipoRequisito;
 use App\Domain\Catalogo\Models\Marco;
 use App\Domain\Catalogo\Models\Requisito;
 use App\Domain\Implantacion\Models\Implantacion;
+use App\Domain\NoConformidad\Enums\EstadoNoConformidad;
+use App\Domain\NoConformidad\Models\NoConformidad;
 use App\Domain\Sistema\Models\Sistema;
 use App\Domain\Tarea\Enums\EstadoTarea;
+use App\Domain\Tarea\Enums\OrigenTarea;
 use App\Domain\Tarea\Models\Tarea;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia;
+use Spatie\Permission\Models\Role;
 
 /*
 |--------------------------------------------------------------------------
@@ -153,4 +159,87 @@ it('lleva el plan de acción, con lo abierto sobre el total', function (): void 
             ->where('plan.abiertas', 3)
             ->where('plan.vencidas', 1)
             ->has('plan.porEstado'));
+});
+
+/*
+ * El reparto por origen, que llegó con el § 4.13. Existe porque «40 tareas
+ * abiertas» mezcla la deuda que alguien planificó con el trabajo correctivo que
+ * sale de algo que ya falló, y son dos cosas que no se gestionan igual.
+ *
+ * Se cuenta **sobre lo abierto**, como los otros dos repartos, y los orígenes a
+ * cero no salen: cuatro barras de las que tres están vacías no son un reparto,
+ * son la lista de valores posibles.
+ */
+it('reparte el plan por origen, sobre lo abierto y sin los orígenes vacíos', function (): void {
+    ['usuario' => $usuario] = escenarioDePanel();
+
+    Tarea::factory()->count(2)->create(['origen' => OrigenTarea::Propia->value]);
+    Tarea::factory()->create(['origen' => OrigenTarea::NoConformidad->value]);
+    // Cerrada: no está pendiente, así que no entra en el reparto.
+    Tarea::factory()->enEstado(EstadoTarea::Hecha)->create(['origen' => OrigenTarea::Riesgo->value]);
+
+    $this->actingAs($usuario)
+        ->get('/panel')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->has('plan.porOrigen', 2)
+            // En el orden del enum, que va de lo más reactivo a lo más propio.
+            ->where('plan.porOrigen.0.clave', OrigenTarea::NoConformidad->value)
+            ->where('plan.porOrigen.0.valor', 1)
+            ->where('plan.porOrigen.1.clave', OrigenTarea::Propia->value)
+            ->where('plan.porOrigen.1.valor', 2));
+});
+
+/*
+ * La tercera pregunta del panel (§ 4.14): qué ha fallado y si se arregló.
+ *
+ * Lo que se clava aquí es que **«sin verificar» sube al panel**, porque es la
+ * única cifra del módulo que está por la norma y no por la pantalla: una no
+ * conformidad cerrada y sin verificar se lee como resuelta y no lo está.
+ */
+it('lleva las no conformidades, con lo abierto y lo que falta por verificar', function (): void {
+    ['usuario' => $usuario] = escenarioDePanel();
+
+    NoConformidad::factory()->create();
+    NoConformidad::factory()->enEstado(EstadoNoConformidad::EnTratamiento)->create();
+    NoConformidad::factory()->enEstado(EstadoNoConformidad::Cerrada)->create();
+    NoConformidad::factory()->enEstado(EstadoNoConformidad::Verificada)->create();
+
+    $this->actingAs($usuario)
+        ->get('/panel')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->where('noConformidades.total', 4)
+            ->where('noConformidades.abiertas', 2)
+            ->where('noConformidades.sinVerificar', 1)
+            // El reparto incluye los estados cerrados, a diferencia del de
+            // tareas: aquí la pregunta es cuántas se han llegado a verificar.
+            ->has('noConformidades.porEstado', 4));
+});
+
+/*
+ * Conectar dos módulos abre una puerta lateral al registro del otro si el
+ * frontend es quien decide qué esconder. Lo decide el servidor, como ya se
+ * decidió con el bloque de riesgos de la ficha de un activo.
+ */
+it('no manda las no conformidades a quien no puede verlas', function (): void {
+    ['usuario' => $usuario] = escenarioDePanel();
+
+    NoConformidad::factory()->create();
+
+    /*
+     * El permiso se le quita **al rol** y no al usuario: los tres roles del
+     * § 4.19 llevan hoy `no_conformidades.ver`, así que `revokePermissionTo`
+     * sobre la persona no quita nada —spatie mira también lo que hereda del rol—
+     * y el test pasaría por el motivo equivocado. Que hoy no haya ningún rol sin
+     * este permiso no vuelve inútil la guarda: la lista de `Rol::permisos()` es
+     * literal y cambia.
+     */
+    Role::query()
+        ->where('name', Rol::ResponsableSeguridad->value)
+        ->where('organizacion_id', $usuario->organizacion_id)
+        ->firstOrFail()
+        ->revokePermissionTo(Permiso::NoConformidadesVer->value);
+
+    $this->actingAs($usuario->fresh())
+        ->get('/panel')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina->where('noConformidades', null));
 });

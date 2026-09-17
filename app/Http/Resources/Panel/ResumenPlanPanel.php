@@ -16,6 +16,10 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * No hay porcentaje de completado y es deliberado: esa cifra sube al cerrar y
  * baja al apuntar trabajo nuevo, así que mide actividad y no salud. Lo que
  * alarma es `vencidas`, y va aparte.
+ *
+ * `porOrigen` llegó con el § 4.13, y por lo mismo que los otros dos repartos: el
+ * total mezcla la deuda que alguien planificó con el trabajo correctivo que sale
+ * de algo que ya falló, y son dos cosas que no se gestionan igual.
  */
 #[TypeScript]
 final class ResumenPlanPanel
@@ -23,6 +27,7 @@ final class ResumenPlanPanel
     /**
      * @param  list<Reparto>  $porEstado
      * @param  list<Reparto>  $porPrioridad
+     * @param  list<Reparto>  $porOrigen  De dónde sale el trabajo: ver `ResumenPlanDeAccion::porOrigen()`.
      */
     public function __construct(
         public readonly int $total,
@@ -31,5 +36,6 @@ final class ResumenPlanPanel
         public readonly int $sinResponsable,
         public readonly array $porEstado,
         public readonly array $porPrioridad,
+        public readonly array $porOrigen,
     ) {}
 }

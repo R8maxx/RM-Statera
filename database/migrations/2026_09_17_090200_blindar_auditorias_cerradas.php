@@ -125,8 +125,14 @@ return new class extends Migration
             /*
              * Aquí sí entra `DELETE`, a diferencia del trigger de la auditoría:
              * borrar un hallazgo de una auditoría cerrada es precisamente el
-             * gesto contra el que existe esto. El borrado en cascada desde
-             * `auditorias` no pasa por aquí porque la fila padre desaparece.
+             * gesto contra el que existe esto.
+             *
+             * **El borrado en cascada SÍ pasa por aquí**, y este comentario decía
+             * lo contrario. PostgreSQL ejecuta el `DELETE` sobre las filas hijas
+             * y sus triggers de fila se disparan; quien lo deja pasar es que la
+             * auditoría ya no está y la comprobación no encuentra fila. Lo
+             * arregla `2026_09_17_090300_arreglar_blindaje_en_borrado`, que
+             * además corrige que en un `DELETE` no existe `NEW`.
              */
             DB::statement(<<<SQL
                 CREATE TRIGGER {$tabla}_inmutables

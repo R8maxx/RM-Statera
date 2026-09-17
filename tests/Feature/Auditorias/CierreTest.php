@@ -165,6 +165,13 @@ it('una auditoría cerrada no admite hallazgos nuevos ni con SQL en crudo', func
     ]);
 })->throws(QueryException::class);
 
+/*
+ * Este exige **el mensaje del blindaje** y no la clase de excepción pelada, y no
+ * es cosmética: con la primera versión del trigger este test pasaba por el motivo
+ * equivocado. En un `DELETE`, PL/pgSQL no asigna `NEW`, así que la función
+ * reventaba con «record "new" is not assigned yet» antes de llegar a mirar si la
+ * auditoría estaba cerrada — que también es una `QueryException`, y verde.
+ */
 it('un hallazgo de una auditoría cerrada no se puede borrar', function (): void {
     ($this->medida)('op.acc.1', 1);
     $auditoria = ($this->auditoria)();
@@ -175,7 +182,57 @@ it('un hallazgo de una auditoría cerrada no se puede borrar', function (): void
     app(CerrarAuditoria::class)->cerrar($auditoria, usuarioCon());
 
     DB::table('hallazgos')->where('id', $hallazgo->id)->delete();
-})->throws(QueryException::class);
+})->throws(QueryException::class, 'esta cerrada');
+
+/*
+ * La otra mitad, que es la que estaba rota de verdad: mientras la auditoría está
+ * abierta, borrar un hallazgo es lo normal —el auditor se equivoca de tipo y lo
+ * vuelve a poner— y el trigger no puede estorbar.
+ */
+it('un hallazgo de una auditoría abierta sí se puede borrar', function (): void {
+    $auditoria = ($this->auditoria)();
+    $hallazgo = Hallazgo::factory()->create(['auditoria_id' => $auditoria->id]);
+
+    $hallazgo->delete();
+
+    expect(Hallazgo::query()->whereKey($hallazgo->id)->exists())->toBeFalse();
+});
+
+it('un punto de una auditoría abierta sí se puede borrar', function (): void {
+    $medida = ($this->medida)('op.acc.1', 1);
+    $auditoria = ($this->auditoria)();
+    app(PrecargarChecklist::class)($auditoria);
+
+    $punto = AuditoriaPunto::query()->where('implantacion_id', $medida->id)->firstOrFail();
+    $punto->delete();
+
+    expect(AuditoriaPunto::query()->whereKey($punto->id)->exists())->toBeFalse();
+});
+
+/*
+ * El borrado en cascada **sí dispara los triggers de fila** de las hijas, contra
+ * lo que decía el comentario original. Con la primera versión, borrar un sistema
+ * que tuviera una auditoría registrada reventaba, y no lo cazaba nadie porque
+ * ningún test de sistemas crea auditorías.
+ *
+ * Se prueba sobre una auditoría **cerrada**, que es el caso peor: el trigger
+ * tiene que dejar pasar la cascada aunque la fila esté blindada contra ediciones.
+ */
+it('borrar el sistema se lleva por delante su auditoría cerrada', function (): void {
+    $medida = ($this->medida)('op.acc.1', 1);
+    $auditoria = ($this->auditoria)();
+    app(PrecargarChecklist::class)($auditoria);
+    Hallazgo::factory()->create(['auditoria_id' => $auditoria->id]);
+
+    app(CerrarAuditoria::class)->empezar($auditoria);
+    app(CerrarAuditoria::class)->cerrar($auditoria, usuarioCon());
+
+    $this->sistema->delete();
+
+    expect(Auditoria::query()->whereKey($auditoria->id)->exists())->toBeFalse()
+        ->and(Hallazgo::query()->where('auditoria_id', $auditoria->id)->exists())->toBeFalse()
+        ->and(AuditoriaPunto::query()->where('auditoria_id', $auditoria->id)->exists())->toBeFalse();
+});
 
 it('la propia auditoría cerrada tampoco se reescribe', function (): void {
     $auditoria = ($this->auditoria)();

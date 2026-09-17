@@ -83,8 +83,30 @@ final class DeclaracionAplicabilidadEns extends DocumentoCalculado
                 .'designación en la herramienta** (módulo de personas, § 4.8). Su ausencia aquí no '
                 .'significa que no estén designados en la organización.',
 
-                'No se recoge el resultado de auditoría ni de autoevaluación: el módulo de '
-                .'auditorías (§ 4.12) no está implantado.',
+                /*
+                 * Cuarta reescritura de una limitación de este documento, y por
+                 * el mismo motivo que las tres anteriores —las dos de riesgos con
+                 * el § 4.3, la del flujo de aprobación con el § 4.5 y la del plan
+                 * con el § 4.18—: decir que el módulo de auditorías no está
+                 * implantado pasó a ser **falso en el PDF que se le entrega al
+                 * auditor** en cuanto llegaron el § 4.12 y el § 4.13, y una
+                 * limitación inventada se suspende; una declarada, se respeta.
+                 *
+                 * Lo que queda dicho es lo que de verdad sigue sin hacerse, y el
+                 * último punto es el que importa: sin comprobar la cobertura del
+                 * muestreo, «esta medida no tiene hallazgos» se lee como «esta
+                 * medida se auditó y estaba conforme». Es el mismo argumento que
+                 * hace que un punto de la checklist distinga `pendiente` de
+                 * `conforme`.
+                 */
+                'Las **auditorías y autoevaluaciones** se registran en la herramienta, con su '
+                .'checklist, sus hallazgos y el tratamiento de las no conformidades; su resultado '
+                .'**no figura aquí por diseño**, porque una Declaración de Aplicabilidad declara la '
+                .'situación de cada medida y no el resultado de quien la revisó. Lo que la '
+                .'herramienta **todavía no hace**: generar el informe de auditoría como documento, '
+                .'llevar el programa anual de auditoría, y **comprobar que el alcance auditado '
+                .'cubra las medidas exigibles** — de modo que la ausencia de hallazgos sobre una '
+                .'medida no significa que se haya revisado.',
 
                 ...$this->limitacionesBase($version, $filas),
             ],

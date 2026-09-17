@@ -98,6 +98,14 @@ enum Rol: string
                 // Ve las auditorías y no las registra: quien audita responde de
                 // lo que escribe, y el técnico es parte de lo auditado.
                 Permiso::AuditoriasVer,
+                /*
+                 * Las no conformidades sí las trata entero —analizar la causa y
+                 * sacar adelante la acción correctiva es su trabajo— y **no las
+                 * verifica**: comprobar que sirvió no puede hacerlo quien lo hizo.
+                 * Misma línea que separa redactar un documento de firmarlo.
+                 */
+                Permiso::NoConformidadesVer,
+                Permiso::NoConformidadesGestionar,
                 Permiso::DocumentosVer,
                 Permiso::DocumentosRedactar,
             ],
@@ -118,6 +126,7 @@ enum Rol: string
                 Permiso::RiesgosVer,
                 Permiso::TareasVer,
                 Permiso::AuditoriasVer,
+                Permiso::NoConformidadesVer,
                 Permiso::DocumentosVer,
             ],
         };

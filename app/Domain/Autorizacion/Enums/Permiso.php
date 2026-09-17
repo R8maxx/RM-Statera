@@ -30,6 +30,17 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * política no debe poder firmarla — y como aprobar es lo que numera y congela el
  * PDF, este permiso es también el que decide quién entrega al auditor.
  *
+ * `no_conformidades.verificar` es el **quinto** verbo de esa familia, y el que la
+ * explica mejor: comprobar que una acción correctiva funcionó no puede hacerlo
+ * quien la ejecutó. Es la cláusula 10.2 e) entera —«revisar la eficacia»—, y sin
+ * separarlo, cerrar el tratamiento y declarar que sirvió serían el mismo gesto
+ * hecho por la misma persona, que es exactamente lo que el auditor comprueba.
+ *
+ * Y sí, `no_conformidades.*` rompe el patrón de una sola palabra que llevan los
+ * otros nueve módulos. Se queda así porque casa con la tabla —`no_conformidades`—
+ * y con la ruta —`/no-conformidades`—, y el dominio se nombra en español: tres
+ * nombres distintos para la misma cosa cuesta más que un guion bajo de más.
+ *
  * Acusar la lectura NO lleva permiso propio, como no lo lleva `/perfil`: se
  * escribe sobre uno mismo y no redefine nada de la organización. Basta con poder
  * ver el documento.
@@ -82,6 +93,10 @@ enum Permiso: string
     case AuditoriasVer = 'auditorias.ver';
     case AuditoriasGestionar = 'auditorias.gestionar';
 
+    case NoConformidadesVer = 'no_conformidades.ver';
+    case NoConformidadesGestionar = 'no_conformidades.gestionar';
+    case NoConformidadesVerificar = 'no_conformidades.verificar';
+
     case DocumentosVer = 'documentos.ver';
     case DocumentosGenerar = 'documentos.generar';
     case DocumentosAprobar = 'documentos.aprobar';
@@ -108,6 +123,9 @@ enum Permiso: string
             self::TareasGestionar => 'Crear tareas, asignarlas y moverlas de estado',
             self::AuditoriasVer => 'Ver las auditorías, su checklist y sus hallazgos',
             self::AuditoriasGestionar => 'Registrar auditorías, revisar la checklist y cerrarlas',
+            self::NoConformidadesVer => 'Ver las no conformidades y su tratamiento',
+            self::NoConformidadesGestionar => 'Abrir no conformidades, analizarlas y vincular acciones correctivas',
+            self::NoConformidadesVerificar => 'Verificar la eficacia de una acción correctiva',
             self::DocumentosVer => 'Ver los documentos y descargar sus versiones',
             self::DocumentosGenerar => 'Crear documentos, generar borradores y mandarlos a revisión',
             self::DocumentosAprobar => 'Aprobar documentos y entregar la versión firmada',

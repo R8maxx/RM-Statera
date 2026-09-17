@@ -3,11 +3,13 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\ActivoController;
+use App\Http\Controllers\AuditoriaController;
 use App\Http\Controllers\DocumentoController;
 use App\Http\Controllers\DocumentoCuerpoController;
 use App\Http\Controllers\EvidenciaController;
 use App\Http\Controllers\ImplantacionController;
 use App\Http\Controllers\MetodologiaRiesgoController;
+use App\Http\Controllers\NoConformidadController;
 use App\Http\Controllers\PanelController;
 use App\Http\Controllers\PerfilController;
 use App\Http\Controllers\PlantillaDocumentoController;
@@ -313,6 +315,132 @@ Route::middleware('auth')->group(function (): void {
         Route::delete('/tareas/{tarea}/implantaciones/{implantacion}', [TareaController::class, 'desvincular'])
             ->name('tareas.implantaciones.desvincular');
     });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Auditorías
+    |--------------------------------------------------------------------------
+    |
+    | § 4.12, y la cláusula 9.2 de ISO. El rol `Auditor` lee y no escribe: es el
+    | auditor externo que viene de fuera, y quien registra la auditoría interna es
+    | el responsable de seguridad. Dejarle escribir sería que quien audita
+    | redactara el acta de su propia auditoría.
+    |
+    | `scopeBindings()` en todo lo que cuelga de `{auditoria}`: el scope global de
+    | organización tapa el cruce entre clientes, y entre dos auditorías de la
+    | misma organización no hay nada que lo tape. Sin él, una línea de la checklist
+    | de otra auditoría se resolvería sin más.
+    |
+    */
+
+    Route::middleware('can:auditorias.ver')->group(function (): void {
+        Route::get('/auditorias', [AuditoriaController::class, 'index'])->name('auditorias.index');
+
+        // Antes que `{auditoria}`, para que `crear` no se lea como un id.
+        Route::get('/auditorias/crear', [AuditoriaController::class, 'create'])
+            ->middleware(['can:auditorias.gestionar', ExigirDosFactores::class])
+            ->name('auditorias.create');
+
+        Route::get('/auditorias/{auditoria}', [AuditoriaController::class, 'show'])->name('auditorias.show');
+
+        /*
+         * La checklist es una pantalla propia y no un bloque de la ficha: son 52
+         * medidas en categoría básica y unas 122 en un sistema de ISO, y a ese
+         * tamaño hacen falta filtros, orden y marcado en bloque. Mismo criterio
+         * que las tres pantallas del plan de acción.
+         */
+        Route::get('/auditorias/{auditoria}/checklist', [AuditoriaController::class, 'checklist'])
+            ->name('auditorias.checklist');
+    });
+
+    Route::middleware(['can:auditorias.gestionar', ExigirDosFactores::class])
+        ->scopeBindings()
+        ->group(function (): void {
+            Route::post('/auditorias', [AuditoriaController::class, 'store'])->name('auditorias.store');
+            Route::get('/auditorias/{auditoria}/editar', [AuditoriaController::class, 'edit'])->name('auditorias.edit');
+            Route::put('/auditorias/{auditoria}', [AuditoriaController::class, 'update'])->name('auditorias.update');
+            Route::delete('/auditorias/{auditoria}', [AuditoriaController::class, 'destroy'])->name('auditorias.destroy');
+
+            Route::post('/auditorias/{auditoria}/estado', [AuditoriaController::class, 'transicion'])
+                ->name('auditorias.transicion');
+
+            Route::post('/auditorias/{auditoria}/checklist', [AuditoriaController::class, 'precargar'])
+                ->name('auditorias.checklist.precargar');
+
+            // Antes que `{punto}`: `resultado` no es un identificador.
+            Route::post('/auditorias/{auditoria}/checklist/resultado', [AuditoriaController::class, 'marcarConformes'])
+                ->name('auditorias.checklist.conformes');
+
+            Route::put('/auditorias/{auditoria}/checklist/{punto}', [AuditoriaController::class, 'revisar'])
+                ->name('auditorias.checklist.revisar');
+
+            Route::post('/auditorias/{auditoria}/hallazgos', [AuditoriaController::class, 'registrarHallazgo'])
+                ->name('auditorias.hallazgos.registrar');
+            Route::delete('/auditorias/{auditoria}/hallazgos/{hallazgo}', [AuditoriaController::class, 'retirarHallazgo'])
+                ->name('auditorias.hallazgos.retirar');
+        });
+
+    /*
+    |--------------------------------------------------------------------------
+    | No conformidades
+    |--------------------------------------------------------------------------
+    |
+    | § 4.13, y la cláusula 10.2 de ISO. La otra mitad del módulo de auditorías:
+    | un hallazgo sin tratamiento detrás no cierra ningún ciclo.
+    |
+    | **Tres permisos y no dos.** `verificar` está separado de `gestionar` porque
+    | comprobar que una acción correctiva funcionó no puede hacerlo quien la
+    | ejecutó, que es la cláusula 10.2 e) entera. La ruta de transición es una
+    | sola —el destino manda—, así que ese permiso se comprueba dentro del
+    | controlador y no aquí.
+    |
+    | `scopeBindings()` en lo que cuelga de `{no_conformidad}`: la acción
+    | correctiva de otra no conformidad no se desvincula desde ésta.
+    |
+    */
+
+    Route::middleware('can:no_conformidades.ver')->group(function (): void {
+        Route::get('/no-conformidades', [NoConformidadController::class, 'index'])
+            ->name('no-conformidades.index');
+
+        // Antes que `{no_conformidad}`, para que `crear` no se lea como un id.
+        Route::get('/no-conformidades/crear', [NoConformidadController::class, 'create'])
+            ->middleware(['can:no_conformidades.gestionar', ExigirDosFactores::class])
+            ->name('no-conformidades.create');
+
+        Route::get('/no-conformidades/{no_conformidad}', [NoConformidadController::class, 'show'])
+            ->name('no-conformidades.show');
+    });
+
+    Route::middleware(['can:no_conformidades.gestionar', ExigirDosFactores::class])
+        ->scopeBindings()
+        ->group(function (): void {
+            Route::post('/no-conformidades', [NoConformidadController::class, 'store'])
+                ->name('no-conformidades.store');
+            Route::get('/no-conformidades/{no_conformidad}/editar', [NoConformidadController::class, 'edit'])
+                ->name('no-conformidades.edit');
+            Route::put('/no-conformidades/{no_conformidad}', [NoConformidadController::class, 'update'])
+                ->name('no-conformidades.update');
+            Route::delete('/no-conformidades/{no_conformidad}', [NoConformidadController::class, 'destroy'])
+                ->name('no-conformidades.destroy');
+
+            /*
+             * Una sola ruta para todo el ciclo, verificar incluido: el destino es
+             * lo que decide, y el permiso extra lo comprueba el controlador. Dos
+             * rutas obligarían al cliente a saber cuál usar para cada transición.
+             */
+            Route::post('/no-conformidades/{no_conformidad}/estado', [NoConformidadController::class, 'transicion'])
+                ->name('no-conformidades.transicion');
+
+            // Antes que `{tarea}`: `vincular` no es un identificador.
+            Route::post('/no-conformidades/{no_conformidad}/acciones/vincular', [NoConformidadController::class, 'vincularAccion'])
+                ->name('no-conformidades.acciones.vincular');
+
+            Route::post('/no-conformidades/{no_conformidad}/acciones', [NoConformidadController::class, 'abrirAccion'])
+                ->name('no-conformidades.acciones.abrir');
+            Route::delete('/no-conformidades/{no_conformidad}/acciones/{tarea}', [NoConformidadController::class, 'desvincularAccion'])
+                ->name('no-conformidades.acciones.desvincular');
+        });
 
     /*
     |--------------------------------------------------------------------------

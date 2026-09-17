@@ -33,6 +33,16 @@ enum TipoAuditoria: string
         };
     }
 
+    /** La forma corta, para el badge de una tabla. */
+    public function etiquetaCorta(): string
+    {
+        return match ($this) {
+            self::Interna => 'Interna',
+            self::Externa => 'Externa',
+            self::Autoevaluacion => 'Autoevaluación',
+        };
+    }
+
     public function descripcion(): string
     {
         return match ($this) {

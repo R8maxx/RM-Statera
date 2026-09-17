@@ -11,6 +11,16 @@ use App\Domain\Activo\Enums\TipoActivo;
 use App\Domain\Activo\Models\Activo;
 use App\Domain\Activo\Models\RevisionInventario;
 use App\Domain\Activo\RegistrarDependencia;
+use App\Domain\Auditoria\CerrarAuditoria;
+use App\Domain\Auditoria\Enums\ResultadoPunto;
+use App\Domain\Auditoria\Enums\TipoAuditoria;
+use App\Domain\Auditoria\Enums\TipoHallazgo;
+use App\Domain\Auditoria\Models\Auditoria;
+use App\Domain\Auditoria\Models\Hallazgo;
+use App\Domain\Auditoria\PrecargarChecklist;
+use App\Domain\Auditoria\RegistrarAuditoria;
+use App\Domain\Auditoria\RegistrarHallazgo;
+use App\Domain\Auditoria\RevisarPunto;
 use App\Domain\Autorizacion\Enums\Rol;
 use App\Domain\Autorizacion\SembrarRoles;
 use App\Domain\Catalogo\Enums\Dimension;
@@ -26,6 +36,12 @@ use App\Domain\Implantacion\CambiarEstado;
 use App\Domain\Implantacion\Enums\EstadoImplantacion;
 use App\Domain\Implantacion\GeneradorImplantaciones;
 use App\Domain\Implantacion\Models\Implantacion;
+use App\Domain\NoConformidad\AbrirAccionCorrectiva;
+use App\Domain\NoConformidad\CambiarEstadoNoConformidad;
+use App\Domain\NoConformidad\Enums\EstadoNoConformidad;
+use App\Domain\NoConformidad\Enums\OrigenNoConformidad;
+use App\Domain\NoConformidad\Models\NoConformidad;
+use App\Domain\NoConformidad\RegistrarNoConformidad;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Organizacion\Models\Organizacion;
 use App\Domain\Riesgo\AceptarRiesgo;
@@ -146,7 +162,222 @@ class DesarrolloSeeder extends Seeder
         $this->inventarioDeEjemplo($sistema);
         $this->planDeAccionDeEjemplo($sistema);
         $this->analisisDeRiesgosDeEjemplo($sistema);
+        $this->auditoriasDeEjemplo($sistema);
+        $this->noConformidadesDeEjemplo($sistema);
         $this->documentoDeEjemplo($sistema);
+    }
+
+    /**
+     * Dos auditorías, y cada una enseña lo que la otra no puede.
+     *
+     * **La cerrada es la que más vale**, y por eso va primero: es el único estado
+     * que el trigger blinda —su checklist y sus hallazgos dejan de poder tocarse—
+     * y el único en el que los puntos llevan congelado lo que la medida decía ese
+     * día. Montarla a mano para probar el blindaje cuesta cinco pasos.
+     *
+     * La segunda se queda **en curso y a medias**: es el estado normal de trabajo,
+     * y con ella se ve la checklist recorriéndose y la acción masiva funcionando.
+     */
+    private function auditoriasDeEjemplo(Sistema $sistema): void
+    {
+        if (Auditoria::query()->count() > 0) {
+            return;
+        }
+
+        $registrarAuditoria = app(RegistrarAuditoria::class);
+        $precargar = app(PrecargarChecklist::class);
+        $revisar = app(RevisarPunto::class);
+        $registrar = app(RegistrarHallazgo::class);
+        $cerrar = app(CerrarAuditoria::class);
+
+        // --- La del año pasado, cerrada con dos hallazgos -------------------
+
+        $cerrada = $registrarAuditoria([
+            'sistema_id' => $sistema->id,
+            'codigo' => 'AUD-2025-01',
+            'tipo' => TipoAuditoria::Interna->value,
+            'fecha' => Carbon::today()->subMonths(8),
+            'auditor' => 'Consultora externa de ejemplo',
+            'alcance' => 'Muestreo de las medidas de control de acceso y de explotación.',
+        ]);
+
+        $precargar($cerrada);
+        $cerrar->empezar($cerrada);
+
+        $puntos = $cerrada->puntos()->with('implantacion.requisito')->get();
+
+        foreach ($puntos as $indice => $punto) {
+            // Dos no conformes, el resto conformes: una auditoría que no
+            // encuentra nada no enseña nada.
+            $revisar->marcar(
+                $punto,
+                $indice < 2 ? ResultadoPunto::NoConforme : ResultadoPunto::Conforme,
+                $indice < 2 ? 'No se encontró constancia documental durante la revisión.' : null,
+            );
+        }
+
+        foreach ($puntos->take(2) as $indice => $punto) {
+            $registrar->registrar(
+                $cerrada,
+                $indice === 0 ? TipoHallazgo::NcMenor : TipoHallazgo::Observacion,
+                $indice === 0
+                    ? 'La medida está implantada pero no hay registro de su revisión periódica.'
+                    : 'El procedimiento existe y no está referenciado desde la política.',
+                $punto,
+            );
+        }
+
+        // Y uno que no cuelga de ninguna medida, que es el caso que § 2.2 no
+        // contemplaba: un hallazgo sobre el sistema de gestión.
+        $registrar->registrar(
+            $cerrada,
+            TipoHallazgo::Observacion,
+            'El programa anual de auditoría no está formalizado.',
+        );
+
+        $cerrar->cerrar(
+            $cerrada,
+            User::query()->where('organizacion_id', $sistema->organizacion_id)->first(),
+            'Dos desviaciones menores sobre el muestreo revisado. Sin no conformidades mayores.',
+        );
+
+        // --- La de este año, a medias --------------------------------------
+
+        $enCurso = $registrarAuditoria([
+            'sistema_id' => $sistema->id,
+            'codigo' => 'AUD-2026-01',
+            'tipo' => TipoAuditoria::Autoevaluacion->value,
+            'fecha' => Carbon::today()->subDays(10),
+            'alcance' => 'Autoevaluación del ENS para la renovación de la conformidad.',
+        ]);
+
+        $precargar($enCurso);
+        $cerrar->empezar($enCurso);
+
+        foreach ($enCurso->puntos()->limit(6)->get() as $punto) {
+            $revisar->marcar($punto, ResultadoPunto::Conforme);
+        }
+
+        $this->command->info(sprintf(
+            'Auditorías: %s cerrada con %d hallazgos y %s en curso.',
+            $cerrada->codigo,
+            $cerrada->hallazgos()->count(),
+            $enCurso->codigo,
+        ));
+    }
+
+    /**
+     * Tres no conformidades, y cada una enseña un tramo distinto de la 10.2.
+     *
+     * **La verificada es la que más vale**, como la auditoría cerrada: es el único
+     * estado que recorre el ciclo entero —tratamiento, cierre y comprobación de
+     * eficacia, con sus dos fechas y dos firmantes distintos— y montarlo a mano
+     * cuesta cuatro transiciones. Va además colgada del hallazgo de la auditoría
+     * cerrada, así que enseña la costura entre las dos mitades del módulo **y** el
+     * doble vínculo: su acción correctiva cuenta como trabajo sobre la medida.
+     *
+     * La segunda se queda **pendiente de verificar**, que es el indicador que más
+     * importa del registro: cerrada se lee como resuelta y no lo está.
+     *
+     * Y la tercera, **abierta, vencida y sin acción correctiva**, que es la que
+     * enciende las dos alertas a la vez.
+     */
+    private function noConformidadesDeEjemplo(Sistema $sistema): void
+    {
+        if (NoConformidad::query()->count() > 0) {
+            return;
+        }
+
+        $registrar = app(RegistrarNoConformidad::class);
+        $cambiar = app(CambiarEstadoNoConformidad::class);
+        $abrirAccion = app(AbrirAccionCorrectiva::class);
+
+        $responsable = User::query()->where('email', 'responsable@statera.test')->first();
+        $tecnico = User::query()->where('email', 'tecnico@statera.test')->first();
+
+        // --- La del año pasado, recorrida entera ---------------------------
+
+        $hallazgo = Hallazgo::query()->sinTratar()->orderBy('id')->first();
+
+        if ($hallazgo !== null) {
+            $cerrada = $registrar([
+                'codigo' => 'NC-2025-01',
+                'origen' => OrigenNoConformidad::Auditoria->value,
+                'hallazgo_id' => $hallazgo->id,
+                'descripcion' => 'No hay constancia de la revisión periódica de la medida auditada.',
+                'correccion_inmediata' => 'Se hizo la revisión pendiente y se dejó el acta firmada.',
+                'analisis_causa_raiz' => 'El procedimiento fija la periodicidad y no dice quién la convoca, '
+                    .'así que nadie la convocaba.',
+                'responsable_id' => $tecnico?->id,
+                'fecha_deteccion' => Carbon::today()->subMonths(8),
+                'fecha_prevista' => Carbon::today()->subMonths(6),
+            ], $responsable);
+
+            $abrirAccion($cerrada, [
+                'titulo' => 'Asignar la convocatoria de la revisión periódica en el procedimiento',
+                'prioridad' => PrioridadTarea::Alta->value,
+                'responsable_id' => $tecnico?->id,
+                'fecha_limite' => Carbon::today()->subMonths(6),
+                'coste_estimado' => 0,
+            ], $responsable);
+
+            $cambiar($cerrada, EstadoNoConformidad::EnTratamiento, $tecnico);
+            $cambiar($cerrada, EstadoNoConformidad::Cerrada, $tecnico);
+
+            /*
+             * Y la firma la pone otro: quien ejecuta el tratamiento no verifica su
+             * eficacia, que es la razón entera de que `no_conformidades.verificar`
+             * sea un permiso aparte.
+             */
+            $cambiar(
+                $cerrada,
+                EstadoNoConformidad::Verificada,
+                $responsable,
+                'Muestreo de las dos últimas revisiones: las dos convocadas y con acta.',
+            );
+        }
+
+        // --- La de este año, tratada y sin verificar ------------------------
+
+        $pendiente = $registrar([
+            'codigo' => 'NC-2026-01',
+            'origen' => OrigenNoConformidad::Propia->value,
+            'descripcion' => 'Dos cuentas de administración seguían activas tras la baja de sus titulares.',
+            'correccion_inmediata' => 'Las dos cuentas se deshabilitaron el mismo día.',
+            'analisis_causa_raiz' => 'La baja de personal no dispara ninguna revisión de accesos.',
+            'responsable_id' => $tecnico?->id,
+            'fecha_deteccion' => Carbon::today()->subMonths(2),
+            'fecha_prevista' => Carbon::today()->addMonth(),
+        ], $responsable);
+
+        $abrirAccion($pendiente, [
+            'titulo' => 'Enlazar la baja de personal con la revisión de accesos',
+            'prioridad' => PrioridadTarea::Critica->value,
+            'responsable_id' => $tecnico?->id,
+            'fecha_limite' => Carbon::today()->addWeeks(2),
+            'coste_estimado' => 900,
+        ], $responsable);
+
+        $cambiar($pendiente, EstadoNoConformidad::EnTratamiento, $tecnico);
+        $cambiar($pendiente, EstadoNoConformidad::Cerrada, $tecnico);
+
+        // --- La que enciende las alertas ------------------------------------
+
+        $registrar([
+            'codigo' => 'NC-2026-02',
+            'origen' => OrigenNoConformidad::Propia->value,
+            'descripcion' => 'Las copias de seguridad no se restauran nunca para comprobar que sirven.',
+            'responsable_id' => null,
+            'fecha_deteccion' => Carbon::today()->subMonths(3),
+            'fecha_prevista' => Carbon::today()->subWeeks(3),
+        ], $responsable);
+
+        $this->command->info(sprintf(
+            'No conformidades: %d registradas, de ellas %d sin cerrar y %d sin verificar.',
+            NoConformidad::query()->count(),
+            NoConformidad::query()->abiertas()->count(),
+            NoConformidad::query()->pendientesDeVerificar()->count(),
+        ));
     }
 
     /**

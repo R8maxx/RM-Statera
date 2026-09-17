@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Domain\Activo\ResumenInventario;
+use App\Domain\Autorizacion\Enums\Permiso;
 use App\Domain\Implantacion\Enums\EstadoImplantacion;
 use App\Domain\Implantacion\ResumenCumplimiento;
+use App\Domain\NoConformidad\RegistroNoConformidades;
 use App\Domain\Sistema\Models\Sistema;
 use App\Domain\Tarea\ResumenPlanDeAccion;
 use App\Http\Resources\Panel\ResumenEvidencias;
@@ -30,6 +32,7 @@ class PanelController extends Controller
         ResumenCumplimiento $resumen,
         ResumenInventario $inventario,
         ResumenPlanDeAccion $plan,
+        RegistroNoConformidades $noConformidades,
     ): Response {
         $sistemas = Sistema::query()
             ->with('marco')
@@ -85,6 +88,25 @@ class PanelController extends Controller
             // El plan de acción contesta la otra mitad de «cómo va la cosa»: el
             // cumplimiento dice qué falta y esto dice quién lo está haciendo.
             'plan' => $plan->paraElPanel(),
+            /*
+             * Y esto contesta la tercera: qué ha fallado y si se arregló. § 4.14
+             * pide «no conformidades abiertas» entre los indicadores del cuadro
+             * de mando.
+             *
+             * **No se manda si quien mira no tiene `no_conformidades.ver`.**
+             * Conectar dos módulos abre una puerta lateral al registro del otro
+             * sin que nadie la decida; es la misma regla que ya se escribió para
+             * el bloque de riesgos de la ficha de un activo. El frontend decide
+             * qué pinta y nunca qué autoriza.
+             */
+            'noConformidades' => $this->puedeVerNoConformidades()
+                ? $noConformidades->paraElPanel()
+                : null,
         ]);
+    }
+
+    private function puedeVerNoConformidades(): bool
+    {
+        return request()->user()?->can(Permiso::NoConformidadesVer->value) ?? false;
     }
 }
