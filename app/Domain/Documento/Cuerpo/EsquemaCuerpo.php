@@ -125,6 +125,13 @@ final class EsquemaCuerpo
         'tabla_derivacion',
         'notas_anexo_ii',
         'tabla_madurez',
+        // Las cuatro del análisis del contexto (§ 4.1). Ninguna es una tabla de
+        // requisitos: lo que imprimen son cuestiones, partes interesadas, la
+        // declaración del cambio climático y el alcance de cada sistema.
+        'dafo_cuadrantes',
+        'tabla_partes_interesadas',
+        'declaracion_climatica',
+        'alcance_sistemas',
         'limitaciones_sistema',
         'control_versiones',
     ];

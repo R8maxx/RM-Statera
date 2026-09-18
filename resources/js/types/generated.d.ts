@@ -18,7 +18,7 @@ export type TipoHallazgo = 'nc_mayor' | 'nc_menor' | 'observacion' | 'oportunida
 }
 namespace Autorizacion {
 namespace Enums {
-export type Permiso = 'panel.ver' | 'sistemas.ver' | 'sistemas.gestionar' | 'sistemas.valorar' | 'implantaciones.ver' | 'implantaciones.gestionar' | 'evidencias.ver' | 'evidencias.gestionar' | 'activos.ver' | 'activos.gestionar' | 'riesgos.ver' | 'riesgos.gestionar' | 'riesgos.aceptar' | 'tareas.ver' | 'tareas.gestionar' | 'auditorias.ver' | 'auditorias.gestionar' | 'no_conformidades.ver' | 'no_conformidades.gestionar' | 'no_conformidades.verificar' | 'documentos.ver' | 'documentos.generar' | 'documentos.aprobar' | 'documentos.redactar' | 'documentos.plantillas';
+export type Permiso = 'panel.ver' | 'contexto.ver' | 'contexto.gestionar' | 'contexto.aprobar' | 'sistemas.ver' | 'sistemas.gestionar' | 'sistemas.valorar' | 'implantaciones.ver' | 'implantaciones.gestionar' | 'evidencias.ver' | 'evidencias.gestionar' | 'activos.ver' | 'activos.gestionar' | 'riesgos.ver' | 'riesgos.gestionar' | 'riesgos.aceptar' | 'tareas.ver' | 'tareas.gestionar' | 'auditorias.ver' | 'auditorias.gestionar' | 'no_conformidades.ver' | 'no_conformidades.gestionar' | 'no_conformidades.verificar' | 'documentos.ver' | 'documentos.generar' | 'documentos.aprobar' | 'documentos.redactar' | 'documentos.plantillas';
 export type Rol = 'responsable_seguridad' | 'tecnico' | 'auditor';
 }
 }
@@ -54,6 +54,17 @@ export type NivelDimension = 'na' | 'bajo' | 'medio' | 'alto';
 export type OrigenExigencia = 'categoria' | 'modulacion_dimension' | 'perfil' | 'catalogo';
 }
 }
+namespace Contexto {
+namespace Enums {
+export type Ambito = 'interno' | 'externo';
+export type EstadoAnalisis = 'borrador' | 'aprobado' | 'obsoleto';
+export type MateriaCuestion = 'legal_regulatorio' | 'tecnologico' | 'economico' | 'organizativo' | 'social' | 'ambiental' | 'competitivo' | 'contractual';
+export type NaturalezaRequisito = 'legal' | 'contractual' | 'expectativa';
+export type Signo = 'favorable' | 'adverso';
+export type TipoCuestion = 'fortaleza' | 'debilidad' | 'oportunidad' | 'amenaza';
+export type TipoParteInteresada = 'cliente' | 'empleado' | 'direccion' | 'proveedor' | 'regulador' | 'socio' | 'sociedad' | 'accionista';
+}
+}
 namespace Documento {
 namespace Enums {
 export type ClasificacionDocumental = 'publico' | 'uso_interno' | 'confidencial';
@@ -61,7 +72,7 @@ export type EstadoDocumental = 'borrador' | 'en_revision' | 'aprobado' | 'rechaz
 export type EstadoGeneracion = 'encolada' | 'generando' | 'generada' | 'fallida';
 export type OrigenTexto = 'plantilla' | 'propio';
 export type SeccionNarrativa = 'introduccion' | 'objeto_y_alcance' | 'metodologia' | 'nota_resumen' | 'nota_tabla' | 'nota_derivacion' | 'nota_madurez' | 'nota_exclusiones' | 'conclusiones' | 'limitaciones_propias' | 'aprobacion';
-export type TipoDocumento = 'soa_iso' | 'dda_ens' | 'plan_adecuacion_ens' | 'politica' | 'norma' | 'procedimiento';
+export type TipoDocumento = 'soa_iso' | 'dda_ens' | 'plan_adecuacion_ens' | 'analisis_contexto' | 'politica' | 'norma' | 'procedimiento';
 }
 }
 namespace Evidencia {
@@ -97,7 +108,7 @@ export type EstadoSistema = 'borrador' | 'activo' | 'archivado';
 namespace Tarea {
 namespace Enums {
 export type EstadoTarea = 'pendiente' | 'en_curso' | 'bloqueada' | 'hecha' | 'descartada';
-export type OrigenTarea = 'hallazgo' | 'no_conformidad' | 'riesgo' | 'brecha_implantacion' | 'incidente' | 'revision_direccion' | 'propia';
+export type OrigenTarea = 'hallazgo' | 'no_conformidad' | 'riesgo' | 'brecha_implantacion' | 'contexto' | 'incidente' | 'revision_direccion' | 'propia';
 export type PrioridadTarea = 'baja' | 'media' | 'alta' | 'critica';
 }
 }
@@ -245,6 +256,19 @@ readonly etiqueta: string,
 readonly valor: number,
 readonly tono: string,
 readonly filtro: string | null,
+};
+export type ResumenContextoPanel = {
+readonly analisisVigente: string | null,
+readonly fechaAnalisis: string | null,
+readonly mesesDesdeElAnalisis: number | null,
+readonly hayBorrador: boolean,
+readonly cuestiones: number,
+readonly porTipo: App.Http.Resources.Panel.Reparto[],
+readonly sinRiesgo: number,
+readonly partes: number,
+readonly requisitosQueObligan: number,
+readonly obligacionesSinCubrir: number,
+readonly climaPertinente: boolean | null,
 };
 export type ResumenEvidencias = {
 readonly total: number,

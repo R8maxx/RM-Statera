@@ -8,6 +8,7 @@ use App\Domain\Catalogo\Enums\Dimension;
 use App\Domain\Catalogo\Enums\Exigencia;
 use App\Domain\Catalogo\Models\Requisito;
 use App\Domain\Categorizacion\Enums\OrigenExigencia;
+use App\Domain\Contexto\Models\RequisitoInteresado;
 use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Implantacion\Enums\EstadoImplantacion;
 use App\Domain\Implantacion\Enums\NivelMadurez;
@@ -139,6 +140,28 @@ class Implantacion extends Model
         return $this->belongsToMany(Riesgo::class, 'riesgo_implantacion')
             ->withPivot(['nota', 'vinculada_por_id', 'created_at'])
             ->orderBy('riesgos.codigo');
+    }
+
+    /**
+     * Los requisitos de partes interesadas que esta medida cubre.
+     *
+     * La inversa de `RequisitoInteresado::implantaciones()`, y hace por la
+     * cláusula 4.2 lo mismo que `riesgos()` hace por el análisis de riesgos: deja
+     * que la Declaración de Aplicabilidad justifique la inclusión de un control
+     * con «exigido por el regulador X» sin registrar el vínculo por segunda vez.
+     * ISO 6.1.3 d) admite esa justificación igual que admite el tratamiento de un
+     * riesgo.
+     *
+     * @return BelongsToMany<RequisitoInteresado, $this>
+     */
+    public function requisitosInteresados(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            RequisitoInteresado::class,
+            'implantacion_requisito_interesado',
+            'implantacion_id',
+            'requisito_interesado_id',
+        )->withPivot(['vinculada_por_id', 'created_at']);
     }
 
     /** @return HasMany<ImplantacionTransicion, $this> */

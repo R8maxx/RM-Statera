@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Domain\Documento\Contenido;
 
 use App\Domain\Categorizacion\Enums\OrigenExigencia;
+use App\Domain\Contexto\Models\RequisitoInteresado;
 use App\Domain\Documento\Enums\TipoDocumento;
 use App\Domain\Documento\Models\Documento;
 use App\Domain\Documento\Models\DocumentoVersion;
 use App\Domain\Implantacion\Models\Implantacion;
 use App\Http\Resources\Implantacion\Correspondencia;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
  * La Declaración de Aplicabilidad de ISO/IEC 27001:2022 (cláusula 6.1.3 d).
@@ -47,6 +49,21 @@ final class DeclaracionAplicabilidadIso extends DocumentoCalculado
         return 'control';
     }
 
+    /**
+     * Las mismas de la base, más lo que exige cada parte interesada.
+     *
+     * Se carga **aquí y no en la base** porque es la única declaración que lo
+     * imprime: la DdA justifica la exigencia desde la categoría del sistema y el
+     * plan no justifica nada. Una consulta de más para tres documentos que no la
+     * usan es el tipo de coste que se acumula sin que nadie lo vea.
+     *
+     * @return Collection<int, Implantacion>
+     */
+    protected function implantaciones(Documento $documento): Collection
+    {
+        return parent::implantaciones($documento)->load('requisitosInteresados.parteInteresada');
+    }
+
     public function construir(Documento $documento, DocumentoVersion $version, array $parametros = []): ContenidoDocumento
     {
         $implantaciones = $this->implantaciones($documento);
@@ -74,12 +91,25 @@ final class DeclaracionAplicabilidadIso extends DocumentoCalculado
             resumen: $this->resumen($documento, $filas),
             filas: $filas,
             limitaciones: [
+                /*
+                 * Reescrita al llegar el § 4.1: la lista de orígenes que enumeraba
+                 * pasó a estar incompleta en el PDF entregado en cuanto la columna
+                 * empezó a imprimir «exigido por» una parte interesada. Una
+                 * limitación que describe mal lo que hay encima es peor que no
+                 * tenerla.
+                 */
                 'La **justificación de inclusión** de cada control recoge su origen real: pertenencia '
                 .'al Anexo A, tratamiento de un riesgo del registro cuando el control está vinculado '
-                .'como salvaguarda, exigencia legal derivada del ENS y decisión motivada. **La '
+                .'como salvaguarda, exigencia legal derivada del ENS, requisito de una parte '
+                .'interesada cuando obliga —legal o contractual— y decisión motivada. **La '
                 .'herramienta no exige que todo control aplicable tenga un riesgo detrás ni comprueba '
                 .'que el análisis de riesgos cubra el alcance completo**, de modo que la ausencia de '
                 .'referencia a un riesgo no significa que no exista, sino que no se ha vinculado.',
+
+                'Lo que un control dice estar cubriendo por exigencia de una parte interesada es lo '
+                .'que la organización ha declarado en su análisis del contexto. **Statera no comprueba '
+                .'que ese requisito exista realmente ni que la medida lo satisfaga**: registra el '
+                .'vínculo que alguien estableció y lo hace trazable.',
 
                 'Los títulos de control siguen ISO/IEC 27002:2022. **La redacción íntegra de los '
                 .'controles no se reproduce** aquí por estar protegida por derechos de autor.',
@@ -170,6 +200,28 @@ final class DeclaracionAplicabilidadIso extends DocumentoCalculado
          */
         if ($implantacion->riesgos->isNotEmpty()) {
             $motivos[] = 'tratamiento del riesgo '.$implantacion->riesgos->pluck('codigo')->implode(', ');
+        }
+
+        /*
+         * Lo que exige una parte interesada, cuando obliga. Es la cláusula 4.2
+         * pagando lo suyo: un requisito legal de un regulador o una cláusula de un
+         * contrato son justificación de inclusión tan válida para ISO 6.1.3 d)
+         * como el tratamiento de un riesgo.
+         *
+         * **Sólo lo que obliga.** Una expectativa —«que las medidas no impidan
+         * trabajar»— es una razón para tener en cuenta un control, no para
+         * declararlo aplicable, y meterla aquí llenaría la columna de motivos que
+         * no sostienen nada.
+         */
+        $exigentes = $implantacion->requisitosInteresados
+            ->filter(static fn (RequisitoInteresado $requisito): bool => $requisito->naturaleza->obliga())
+            ->map(static fn (RequisitoInteresado $requisito): ?string => $requisito->parteInteresada?->nombre)
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($exigentes->isNotEmpty()) {
+            $motivos[] = 'exigido por '.$exigentes->implode(', ');
         }
 
         if ($implantacion->origen_exigencia === OrigenExigencia::Perfil) {

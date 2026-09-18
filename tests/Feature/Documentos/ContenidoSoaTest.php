@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 use App\Domain\Catalogo\Importador\ImportadorCatalogo;
 use App\Domain\Catalogo\Models\Marco;
+use App\Domain\Contexto\Enums\NaturalezaRequisito;
+use App\Domain\Contexto\Models\ParteInteresada;
+use App\Domain\Contexto\Models\RequisitoInteresado;
+use App\Domain\Contexto\VincularImplantacionARequisito;
 use App\Domain\Documento\Contenido\ContenidoDocumento;
 use App\Domain\Documento\Contenido\DeclaracionAplicabilidadIso;
 use App\Domain\Documento\Contenido\FilaRequisito;
@@ -117,6 +121,57 @@ it('justifica la inclusión desde el riesgo cuando el control es una salvaguarda
     expect($fila->justificacionInclusion)
         ->toStartWith('Anexo A')
         ->toContain('tratamiento del riesgo R-014');
+});
+
+/*
+ * La tercera justificación, y la que trae el § 4.1: lo que exige una parte
+ * interesada cuando obliga. ISO 6.1.3 d) admite un requisito legal o contractual
+ * igual que admite el tratamiento de un riesgo, y es lo que convierte el registro
+ * de la cláusula 4.2 en algo que se entrega en vez de en un papel aparte.
+ */
+it('justifica la inclusión desde lo que exige una parte interesada', function (): void {
+    $implantacion = Implantacion::query()
+        ->join('requisitos', 'requisitos.id', '=', 'implantaciones.requisito_id')
+        ->where('requisitos.codigo', 'A.5.15')
+        ->select('implantaciones.*')
+        ->firstOrFail();
+
+    $parte = ParteInteresada::factory()->create(['nombre' => 'Administraciones cliente']);
+    $requisito = RequisitoInteresado::factory()->for($parte, 'parteInteresada')->legal()->create();
+
+    app(VincularImplantacionARequisito::class)->vincular($requisito, $implantacion, null);
+
+    $fila = collect(($this->construir)()->filas)
+        ->firstOrFail(static fn (FilaRequisito $f): bool => $f->codigo === 'A.5.15');
+
+    expect($fila->justificacionInclusion)
+        ->toStartWith('Anexo A')
+        ->toContain('exigido por Administraciones cliente');
+});
+
+/*
+ * **Sólo lo que obliga.** Una expectativa es una razón para tener en cuenta un
+ * control, no para declararlo aplicable, y meterla llenaría la columna de motivos
+ * que no sostienen nada.
+ */
+it('una expectativa no justifica la inclusión de ningún control', function (): void {
+    $implantacion = Implantacion::query()
+        ->join('requisitos', 'requisitos.id', '=', 'implantaciones.requisito_id')
+        ->where('requisitos.codigo', 'A.5.15')
+        ->select('implantaciones.*')
+        ->firstOrFail();
+
+    $parte = ParteInteresada::factory()->create(['nombre' => 'Personal propio']);
+    $requisito = RequisitoInteresado::factory()->for($parte, 'parteInteresada')
+        ->deNaturaleza(NaturalezaRequisito::Expectativa)
+        ->create();
+
+    app(VincularImplantacionARequisito::class)->vincular($requisito, $implantacion, null);
+
+    $fila = collect(($this->construir)()->filas)
+        ->firstOrFail(static fn (FilaRequisito $f): bool => $f->codigo === 'A.5.15');
+
+    expect($fila->justificacionInclusion)->not->toContain('Personal propio');
 });
 
 it('añade la exigencia legal del ENS cuando el mapeo cruzado la encuentra', function (): void {

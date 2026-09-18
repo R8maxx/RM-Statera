@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Activo\ResumenInventario;
 use App\Domain\Autorizacion\Enums\Permiso;
+use App\Domain\Contexto\RegistroContexto;
 use App\Domain\Implantacion\Enums\EstadoImplantacion;
 use App\Domain\Implantacion\ResumenCumplimiento;
 use App\Domain\NoConformidad\RegistroNoConformidades;
@@ -33,6 +34,7 @@ class PanelController extends Controller
         ResumenInventario $inventario,
         ResumenPlanDeAccion $plan,
         RegistroNoConformidades $noConformidades,
+        RegistroContexto $contexto,
     ): Response {
         $sistemas = Sistema::query()
             ->with('marco')
@@ -102,11 +104,26 @@ class PanelController extends Controller
             'noConformidades' => $this->puedeVerNoConformidades()
                 ? $noConformidades->paraElPanel()
                 : null,
+            /*
+             * Y esto es la pregunta de antes de todas: de qué entorno estamos
+             * hablando. Va la última en el panel porque se consulta menos que las
+             * otras cuatro —el contexto se revisa una vez al año y el cumplimiento
+             * todas las semanas—, y va con la misma guarda de permiso que las no
+             * conformidades y por el mismo motivo.
+             */
+            'contexto' => $this->puedeVerContexto()
+                ? $contexto->paraElPanel()
+                : null,
         ]);
     }
 
     private function puedeVerNoConformidades(): bool
     {
         return request()->user()?->can(Permiso::NoConformidadesVer->value) ?? false;
+    }
+
+    private function puedeVerContexto(): bool
+    {
+        return request()->user()?->can(Permiso::ContextoVer->value) ?? false;
     }
 }

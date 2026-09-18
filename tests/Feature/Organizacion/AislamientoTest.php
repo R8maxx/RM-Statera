@@ -6,6 +6,7 @@ use App\Domain\Activo\Models\Activo;
 use App\Domain\Activo\RegistrarDependencia;
 use App\Domain\Catalogo\Models\Marco;
 use App\Domain\Catalogo\Models\Requisito;
+use App\Domain\Contexto\Models\CuestionContexto;
 use App\Domain\Implantacion\Models\Implantacion;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Organizacion\Models\Organizacion;
@@ -54,6 +55,14 @@ beforeEach(function (): void {
 
         $servicio->sistemas()->attach($sistema->id, ['organizacion_id' => $this->{$clave}->id]);
 
+        /*
+         * Y una cuestión del contexto (§ 4.1). El DAFO de una organización es lo
+         * más confidencial que va a guardar aquí —sus debilidades escritas por
+         * ella misma—, así que entra en el dataset del aislamiento como los
+         * cuatro que ya estaban.
+         */
+        CuestionContexto::factory()->create();
+
         $this->{$clave.'Sistema'} = $sistema;
         $this->{$clave.'Activo'} = $servicio;
     }
@@ -79,6 +88,7 @@ it('el scope global no devuelve filas de otra organización', function (string $
     ValoracionDimension::class,
     Implantacion::class,
     Activo::class,
+    CuestionContexto::class,
 ]);
 
 it('rellena organizacion_id solo al crear', function (): void {

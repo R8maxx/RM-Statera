@@ -26,6 +26,23 @@ use App\Domain\Autorizacion\SembrarRoles;
 use App\Domain\Catalogo\Enums\Dimension;
 use App\Domain\Catalogo\Models\Marco;
 use App\Domain\Categorizacion\Enums\NivelDimension;
+use App\Domain\Contexto\AbrirTareaDeCuestion;
+use App\Domain\Contexto\AnalisisEnCurso;
+use App\Domain\Contexto\AprobarAnalisis;
+use App\Domain\Contexto\Enums\Ambito;
+use App\Domain\Contexto\Enums\MateriaCuestion;
+use App\Domain\Contexto\Enums\NaturalezaRequisito;
+use App\Domain\Contexto\Enums\TipoCuestion;
+use App\Domain\Contexto\Enums\TipoParteInteresada;
+use App\Domain\Contexto\GuardarRequisitosInteresado;
+use App\Domain\Contexto\Models\AnalisisContexto;
+use App\Domain\Contexto\Models\CuestionContexto;
+use App\Domain\Contexto\Models\ParteInteresada;
+use App\Domain\Contexto\RegistrarCuestion;
+use App\Domain\Contexto\RegistrarParteInteresada;
+use App\Domain\Contexto\RetirarDelAnalisis;
+use App\Domain\Contexto\VincularImplantacionARequisito;
+use App\Domain\Contexto\VincularRiesgoACuestion;
 use App\Domain\Documento\Enums\TipoDocumento;
 use App\Domain\Documento\Models\Documento;
 use App\Domain\Evidencia\Enums\PeriodicidadRenovacion;
@@ -164,7 +181,224 @@ class DesarrolloSeeder extends Seeder
         $this->analisisDeRiesgosDeEjemplo($sistema);
         $this->auditoriasDeEjemplo($sistema);
         $this->noConformidadesDeEjemplo($sistema);
+        // Después de riesgos y de implantaciones: el contexto se vincula a los
+        // dos, y sembrarlo antes dejaría el DAFO suelto, que es justo lo que este
+        // módulo existe para evitar.
+        $this->contextoDeEjemplo($organizacion);
         $this->documentoDeEjemplo($sistema);
+    }
+
+    /**
+     * El contexto de la organización: un análisis aprobado y una revisión abierta.
+     *
+     * **Los dos hacen falta para que se vea el módulo entero.** Con sólo el
+     * aprobado, la pantalla de revisiones enseña una fila y nada más; con la
+     * revisión abierta encima —un alta y una baja— se ve lo único que la cláusula
+     * 9.3 pide de verdad: qué ha cambiado.
+     *
+     * El DAFO lleva **dos cuestiones por cuadrante**, para que la matriz no salga
+     * coja, y una de ellas marcada como climática, que es lo que permite enseñar a
+     * qué se refiere la declaración de la enmienda 1:2024 en vez de sólo afirmarla.
+     *
+     * Y tres vínculos, uno de cada clase: una amenaza que abrió un riesgo, una
+     * debilidad con su tarea, y un requisito legal atado a la medida que lo cubre
+     * —que es el que hace que la Declaración de Aplicabilidad pueda imprimirlo—.
+     *
+     * Datos sintéticos, como todo lo demás: ni una cuestión real de nadie.
+     */
+    private function contextoDeEjemplo(Organizacion $organizacion): void
+    {
+        if (AnalisisContexto::query()->count() > 0) {
+            return;
+        }
+
+        $registrarCuestion = app(RegistrarCuestion::class);
+        $registrarParte = app(RegistrarParteInteresada::class);
+        $guardarRequisitos = app(GuardarRequisitosInteresado::class);
+        $enCurso = app(AnalisisEnCurso::class);
+
+        $responsable = User::query()
+            ->where('organizacion_id', $organizacion->id)
+            ->where('email', 'responsable@statera.test')
+            ->first();
+
+        // --- El DAFO ---------------------------------------------------------
+
+        $cuestiones = [
+            ['CTX-01', TipoCuestion::Fortaleza, MateriaCuestion::Organizativo, 'Dirección implicada en seguridad', 'El comité de dirección revisa el estado del SGSI cada trimestre y aprueba el presupuesto de seguridad.'],
+            ['CTX-02', TipoCuestion::Fortaleza, MateriaCuestion::Tecnologico, 'Infraestructura homogénea y reciente', 'Todo el parque de servidores está en una única nube, con plantillas comunes y menos de tres años de antigüedad.'],
+            ['CTX-03', TipoCuestion::Debilidad, MateriaCuestion::Organizativo, 'Equipo de sistemas pequeño', 'Dos personas para toda la operación: las vacaciones y las bajas dejan tareas de seguridad sin cubrir.'],
+            ['CTX-04', TipoCuestion::Debilidad, MateriaCuestion::Tecnologico, 'Inventario de software sin mantener', 'No hay constancia de qué software está instalado en los puestos, así que no se sabe qué hay sin soporte.'],
+            ['CTX-05', TipoCuestion::Oportunidad, MateriaCuestion::Competitivo, 'El ENS abre concursos públicos', 'Acreditar la conformidad con el ENS permite optar a licitaciones a las que hoy no se puede concurrir.'],
+            ['CTX-06', TipoCuestion::Oportunidad, MateriaCuestion::LegalRegulatorio, 'Convergencia con NIS2', 'Buena parte de lo que exige el ENS adelanta trabajo para NIS2, que llegará por otra vía.'],
+            ['CTX-07', TipoCuestion::Amenaza, MateriaCuestion::LegalRegulatorio, 'Endurecimiento del marco regulatorio', 'Los pliegos del sector público empiezan a exigir categoría media donde antes bastaba la básica.'],
+            ['CTX-08', TipoCuestion::Amenaza, MateriaCuestion::Ambiental, 'Olas de calor y continuidad del servicio', 'Los episodios de calor extremo afectan a la climatización del centro de proceso de datos del proveedor y a la disponibilidad del servicio.', true],
+        ];
+
+        foreach ($cuestiones as $fila) {
+            $registrarCuestion([
+                'codigo' => $fila[0],
+                'tipo' => $fila[1]->value,
+                'materia' => $fila[2]->value,
+                'titulo' => $fila[3],
+                'descripcion' => $fila[4],
+                'es_climatica' => $fila[5] ?? false,
+            ], $responsable);
+        }
+
+        // --- Las partes interesadas ------------------------------------------
+
+        $partes = [
+            ['PI-01', 'Administraciones públicas cliente', TipoParteInteresada::Cliente, Ambito::Externo, 'Los organismos que contratan la plataforma y que trasladan el ENS por contrato.'],
+            ['PI-02', 'Centro Criptológico Nacional', TipoParteInteresada::Regulador, Ambito::Externo, 'Supervisa el Esquema Nacional de Seguridad y publica las guías CCN-STIC.'],
+            ['PI-03', 'Personal propio', TipoParteInteresada::Empleado, Ambito::Interno, 'Quienes operan y desarrollan la plataforma.'],
+            ['PI-04', 'Proveedor de nube', TipoParteInteresada::Proveedor, Ambito::Externo, 'Presta la infraestructura sobre la que corre todo el servicio.'],
+        ];
+
+        foreach ($partes as $fila) {
+            $registrarParte([
+                'codigo' => $fila[0],
+                'nombre' => $fila[1],
+                'tipo' => $fila[2]->value,
+                'ambito' => $fila[3]->value,
+                'descripcion' => $fila[4],
+            ], $responsable);
+        }
+
+        /*
+         * Seis requisitos, y las tres naturalezas representadas: sin un ejemplo de
+         * cada una, el indicador de «obligaciones sin cubrir» no se distingue del
+         * recuento total y la diferencia entre exigir y esperar no se ve.
+         */
+        $requisitos = [
+            'PI-01' => [
+                ['Cumplir el ENS en la categoría que fije cada pliego.', NaturalezaRequisito::Legal, 'RD 311/2022, art. 2', 'Sistema categorizado como básico y plan de adecuación en marcha.'],
+                ['Avisar de cualquier incidente de seguridad en menos de 24 horas.', NaturalezaRequisito::Contractual, 'Contrato marco, cláusula 12', null],
+            ],
+            'PI-02' => [
+                ['Declarar la conformidad y publicar el distintivo correspondiente.', NaturalezaRequisito::Legal, 'RD 311/2022, art. 38', null],
+            ],
+            'PI-03' => [
+                ['Que las medidas de seguridad no impidan trabajar.', NaturalezaRequisito::Expectativa, null, 'Se revisa en la encuesta interna anual.'],
+                ['Formación en seguridad de la información al incorporarse.', NaturalezaRequisito::Contractual, 'Convenio interno', null],
+            ],
+            'PI-04' => [
+                ['Mantener la disponibilidad acordada incluso en episodios de calor extremo.', NaturalezaRequisito::Contractual, 'ANS, anexo I', null, true],
+            ],
+        ];
+
+        foreach ($requisitos as $codigo => $lineas) {
+            $parte = ParteInteresada::query()->where('codigo', $codigo)->first();
+
+            if (! $parte instanceof ParteInteresada) {
+                continue;
+            }
+
+            $guardarRequisitos($parte, array_map(static fn (array $linea): array => [
+                'descripcion' => $linea[0],
+                'naturaleza' => $linea[1]->value,
+                'referencia' => $linea[2],
+                'como_se_atiende' => $linea[3],
+                'es_climatico' => $linea[4] ?? false,
+            ], $lineas));
+        }
+
+        $this->vinculosDeContexto($responsable);
+
+        // --- Se firma --------------------------------------------------------
+
+        $borrador = $enCurso->borradorObligatorio($responsable);
+        $borrador->update([
+            'fecha_analisis' => Carbon::today()->subMonths(4),
+            'clima_pertinente' => true,
+            'clima_justificacion' => 'Los episodios de calor extremo afectan a la refrigeración del centro de proceso '
+                .'de datos del proveedor, y con ella a la disponibilidad del servicio. Se recoge como cuestión CTX-08 '
+                .'y se traslada al acuerdo de nivel de servicio con el proveedor de nube.',
+            'nota' => 'Taller de dos horas con dirección, sistemas y desarrollo. Se revisaron los pliegos de las tres '
+                .'últimas licitaciones y el informe de incidentes del año.',
+        ]);
+
+        if ($responsable instanceof User) {
+            app(AprobarAnalisis::class)($borrador->refresh(), $responsable);
+        }
+
+        // --- Y se abre la revisión siguiente ---------------------------------
+
+        /*
+         * Un alta y una baja sobre el análisis ya firmado. Es lo único que hace
+         * visible la pantalla de comparación, que es la que contesta a la entrada
+         * «cambios de contexto» de la cláusula 9.3.
+         */
+        $registrarCuestion([
+            'codigo' => 'CTX-09',
+            'tipo' => TipoCuestion::Oportunidad->value,
+            'materia' => MateriaCuestion::Economico->value,
+            'titulo' => 'Ayudas públicas a la ciberseguridad',
+            'descripcion' => 'La convocatoria de este año cubre parte del coste de las herramientas de monitorización.',
+        ], $responsable);
+
+        $obsoleta = CuestionContexto::query()->where('codigo', 'CTX-02')->first();
+
+        if ($obsoleta instanceof CuestionContexto) {
+            app(RetirarDelAnalisis::class)->cuestion(
+                $obsoleta,
+                'El proveedor ha migrado parte del parque a otra región con hardware distinto, así que la '
+                .'homogeneidad ya no se sostiene.',
+                $responsable,
+            );
+        }
+
+        $this->command->info(sprintf(
+            'Contexto: %d cuestiones, %d partes interesadas, %d análisis.',
+            CuestionContexto::query()->count(),
+            ParteInteresada::query()->count(),
+            AnalisisContexto::query()->count(),
+        ));
+    }
+
+    /**
+     * Los tres vínculos del módulo, uno de cada clase.
+     *
+     * Van antes de aprobar a propósito: la instantánea los congela, y un análisis
+     * firmado que no enseñara ninguno diría que el DAFO no llegó a ninguna parte.
+     */
+    private function vinculosDeContexto(?User $responsable): void
+    {
+        $amenaza = CuestionContexto::query()->where('codigo', 'CTX-07')->first();
+        $riesgo = Riesgo::query()->orderBy('codigo')->first();
+
+        if ($amenaza instanceof CuestionContexto && $riesgo instanceof Riesgo) {
+            app(VincularRiesgoACuestion::class)->vincular($amenaza, $riesgo, $responsable);
+        }
+
+        $debilidad = CuestionContexto::query()->where('codigo', 'CTX-04')->first();
+
+        if ($debilidad instanceof CuestionContexto) {
+            app(AbrirTareaDeCuestion::class)($debilidad, [
+                'titulo' => 'Levantar el inventario de software de los puestos',
+                'descripcion' => 'Extraer la lista de software instalado y contrastarla con las versiones con soporte.',
+                'prioridad' => PrioridadTarea::Alta->value,
+                'fecha_limite' => Carbon::today()->addMonths(2),
+            ], $responsable);
+        }
+
+        /*
+         * El requisito legal atado a una medida. Es el vínculo que paga el módulo:
+         * a partir de aquí la Declaración de Aplicabilidad puede justificar la
+         * inclusión del control con «exigido por las administraciones cliente».
+         */
+        $requisito = ParteInteresada::query()
+            ->where('codigo', 'PI-01')
+            ->first()
+            ?->requisitos()
+            ->where('naturaleza', NaturalezaRequisito::Legal->value)
+            ->first();
+
+        $implantacion = Implantacion::query()->where('aplica', true)->orderBy('id')->first();
+
+        if ($requisito !== null && $implantacion instanceof Implantacion) {
+            app(VincularImplantacionARequisito::class)->vincular($requisito, $implantacion, $responsable);
+        }
     }
 
     /**
@@ -656,6 +890,32 @@ class DesarrolloSeeder extends Seeder
             'Plan %s listo para generar (php artisan documentos:generar %s --html).',
             $plan->codigo,
             $plan->codigo,
+        ));
+
+        /*
+         * Y el análisis del contexto, el cuarto calculado y el primero **sin
+         * sistema**: las cuestiones internas y externas y las partes interesadas
+         * son de la organización entera. Sirve además de prueba viva de que el
+         * `CHECK` reescrito deja pasar un calculado de ámbito organizativo.
+         *
+         * Lleva acuse de lectura y periodicidad anual: el contexto es lo que la
+         * dirección tiene que volver a mirar cada año, y la revisión vencida la
+         * avisa `Fuente::Documento` sin que haga falta una cuarta fuente.
+         */
+        $contexto = Documento::query()->firstOrCreate(
+            ['codigo' => 'CTX-SGSI-01'],
+            [
+                'sistema_id' => null,
+                'titulo' => 'Análisis del contexto de la organización',
+                'tipo' => TipoDocumento::AnalisisContexto->value,
+                'periodicidad_revision_meses' => 12,
+            ],
+        );
+
+        $this->command->info(sprintf(
+            'Análisis del contexto %s listo para generar (php artisan documentos:generar %s --html).',
+            $contexto->codigo,
+            $contexto->codigo,
         ));
     }
 

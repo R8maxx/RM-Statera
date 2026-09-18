@@ -26,6 +26,13 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * de las declaraciones: sobre filas que son todas pendientes, «porcentaje
  * implantado» daría siempre cero.
  *
+ * **El análisis del contexto es el cuarto calculado, y rompe una equivalencia que
+ * hasta ahora se daba por buena.** Sale de una consulta —el DAFO y las partes
+ * interesadas congelados al aprobar la revisión— y por tanto no es redactado; pero
+ * **no cuelga de un sistema**, porque las cuestiones internas y externas y las
+ * partes interesadas son de la organización entera. Hasta aquí «calculado» y
+ * «exige sistema» eran lo mismo, y de ahí sale `exigeSistema()`.
+ *
  * **Los documentos redactados los escribe la organización.** Una política no se
  * deriva de ninguna tabla: la redacta alguien y la firma la dirección. Son los
  * tres niveles de la jerarquía del § 4.5 —política → norma → procedimiento— y
@@ -46,6 +53,7 @@ enum TipoDocumento: string
     case SoaIso = 'soa_iso';
     case DdaEns = 'dda_ens';
     case PlanAdecuacionEns = 'plan_adecuacion_ens';
+    case AnalisisContexto = 'analisis_contexto';
 
     case Politica = 'politica';
     case Norma = 'norma';
@@ -57,6 +65,7 @@ enum TipoDocumento: string
             self::SoaIso => 'Declaración de Aplicabilidad (ISO 27001)',
             self::DdaEns => 'Declaración de Aplicabilidad (ENS)',
             self::PlanAdecuacionEns => 'Plan de adecuación (ENS)',
+            self::AnalisisContexto => 'Análisis del contexto de la organización',
             self::Politica => 'Política',
             self::Norma => 'Norma',
             self::Procedimiento => 'Procedimiento',
@@ -70,6 +79,7 @@ enum TipoDocumento: string
             self::SoaIso => 'SoA',
             self::DdaEns => 'DdA',
             self::PlanAdecuacionEns => 'Plan ENS',
+            self::AnalisisContexto => 'Contexto',
             self::Politica => 'Política',
             self::Norma => 'Norma',
             self::Procedimiento => 'Procedimiento',
@@ -80,14 +90,40 @@ enum TipoDocumento: string
      * Si el contenido lo escribe la organización en vez de calcularlo el motor.
      *
      * Es la frontera que decide casi todo lo demás: un documento redactado no
-     * lleva tabla de requisitos, no exige sistema, no tiene marco que casar y sus
-     * huecos narrativos son otros.
+     * lleva tabla de requisitos, no tiene marco que casar y sus huecos narrativos
+     * son otros.
+     *
+     * **Lo que ya no decide es si exige sistema.** Lo decidió hasta el análisis del
+     * contexto, porque hasta entonces los tres calculados eran de un sistema y los
+     * tres redactados de la organización; esa coincidencia se rompió y lo que hacía
+     * de ella una regla —el `CHECK` de `documentos`— se mudó a `exigeSistema()`.
      */
     public function esRedactado(): bool
     {
         return match ($this) {
-            self::SoaIso, self::DdaEns, self::PlanAdecuacionEns => false,
+            self::SoaIso, self::DdaEns, self::PlanAdecuacionEns, self::AnalisisContexto => false,
             self::Politica, self::Norma, self::Procedimiento => true,
+        };
+    }
+
+    /**
+     * Si el documento no significa nada sin un sistema detrás.
+     *
+     * Una Declaración de Aplicabilidad o un plan de adecuación sin sistema no son
+     * un documento raro, son un documento imposible: sus filas salen de la
+     * categorización de un sistema concreto. Una política y un análisis del
+     * contexto son de la organización entera.
+     *
+     * Lo consume el `CHECK` `documentos_sistema_check` y el `FormRequest`. Y **no
+     * se deduce de `esRedactado()`**, que es lo que hacía hasta ahora: las dos
+     * cosas coincidían por accidente hasta que llegó un calculado de ámbito
+     * organizativo.
+     */
+    public function exigeSistema(): bool
+    {
+        return match ($this) {
+            self::SoaIso, self::DdaEns, self::PlanAdecuacionEns => true,
+            self::AnalisisContexto, self::Politica, self::Norma, self::Procedimiento => false,
         };
     }
 
@@ -106,7 +142,8 @@ enum TipoDocumento: string
     {
         return match ($this) {
             self::SoaIso, self::DdaEns => 'Limitaciones de esta declaración',
-            self::PlanAdecuacionEns, self::Politica, self::Norma, self::Procedimiento => 'Limitaciones de este documento',
+            self::PlanAdecuacionEns, self::AnalisisContexto,
+            self::Politica, self::Norma, self::Procedimiento => 'Limitaciones de este documento',
         };
     }
 
@@ -120,13 +157,18 @@ enum TipoDocumento: string
      * declara conformidad con un marco concreto, así que exigirle uno sería
      * inventarse una restricción. Quien lo consuma tiene que tratar el nulo como
      * «no hay nada que casar», nunca como «no se ha rellenado».
+     *
+     * **También nulo en el análisis del contexto**, y por dos motivos a la vez: no
+     * cuelga de ningún sistema, así que no hay marco con el que contrastarlo; y
+     * aunque las cláusulas 4.1 y 4.2 sean de ISO, el contexto de la organización es
+     * el mismo para todos los marcos que se le apliquen.
      */
     public function marcoEsperado(): ?string
     {
         return match ($this) {
             self::SoaIso => 'ISO27001-2022',
             self::DdaEns, self::PlanAdecuacionEns => 'ENS-RD311-2022',
-            self::Politica, self::Norma, self::Procedimiento => null,
+            self::AnalisisContexto, self::Politica, self::Norma, self::Procedimiento => null,
         };
     }
 

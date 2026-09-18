@@ -30,6 +30,14 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * política no debe poder firmarla — y como aprobar es lo que numera y congela el
  * PDF, este permiso es también el que decide quién entrega al auditor.
  *
+ * `contexto.aprobar` es el **sexto** verbo de esa familia, y el más obvio de
+ * todos: aprobar el análisis del contexto es la dirección declarando cuál es la
+ * situación de la organización, y de ahí cuelgan el alcance del SGSI y la entrada
+ * de «cambios de contexto» que pide la cláusula 9.3. Registrar y describir una
+ * debilidad es trabajo operativo y lo hace el técnico; firmar que ése es el
+ * contexto —y congelarlo, porque aprobar es lo que congela— no lo es. Misma línea
+ * que separa valorar un riesgo de aceptarlo.
+ *
  * `no_conformidades.verificar` es el **quinto** verbo de esa familia, y el que la
  * explica mejor: comprobar que una acción correctiva funcionó no puede hacerlo
  * quien la ejecutó. Es la cláusula 10.2 e) entera —«revisar la eficacia»—, y sin
@@ -70,6 +78,10 @@ enum Permiso: string
 {
     case PanelVer = 'panel.ver';
 
+    case ContextoVer = 'contexto.ver';
+    case ContextoGestionar = 'contexto.gestionar';
+    case ContextoAprobar = 'contexto.aprobar';
+
     case SistemasVer = 'sistemas.ver';
     case SistemasGestionar = 'sistemas.gestionar';
     case SistemasValorar = 'sistemas.valorar';
@@ -107,6 +119,9 @@ enum Permiso: string
     {
         return match ($this) {
             self::PanelVer => 'Ver el panel',
+            self::ContextoVer => 'Ver el contexto y las partes interesadas',
+            self::ContextoGestionar => 'Registrar cuestiones, partes interesadas y sus requisitos',
+            self::ContextoAprobar => 'Aprobar el análisis del contexto',
             self::SistemasVer => 'Ver los sistemas',
             self::SistemasGestionar => 'Dar de alta y editar sistemas',
             self::SistemasValorar => 'Valorar dimensiones y recalcular',

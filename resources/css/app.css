@@ -284,6 +284,37 @@
     --tipo-personal-suave: oklch(0.955 0.028 325);
 
     /*
+     * Los cuatro cuadrantes del DAFO (§ 4.1). Tercera familia semántica, y la
+     * más profunda de las tres: L 0.40 y croma 0.16, frente a L 0.52 / 0.13 de
+     * los estados y L 0.47 / 0.10 de los tipos. Esa profundidad es lo que hace
+     * que se lea como una familia propia, porque **el hue ya no da para más**:
+     * los nueve tipos ocupan la rueda entera.
+     *
+     * Los hues van por pares y no sueltos, que es lo que hace legible un 2×2:
+     * verde 175 y azul 255 son lo favorable —dentro y fuera—, y ocre 55 y
+     * magenta 340 lo adverso. **Ninguno entra en el rojo** (destructive está en
+     * 27): una debilidad apuntada en un análisis no es algo que ya va mal, es
+     * algo que la organización ha sabido ver.
+     *
+     * ΔE 10.7 en el peor par de la familia —el mejor de las tres, por encima de
+     * los 7.6 de los estados y de los 5.2 de los tipos—, y contraste 6.80 en el
+     * peor caso. Contra el resto de la paleta la peor pareja es
+     * `dafo-fortaleza ↔ destructive`, a 2.7 con protanopía: un verde oscuro y un
+     * rojo colapsan sobre el mismo eje, y esa convivencia ya existía —
+     * `destructive ↔ tipo-soportes` está en 3.6—. La cargan el icono y el texto,
+     * que es lo que DESIGN.md §3 manda cuando el color no llega. Cifras medidas
+     * por `PaletaTest`.
+     */
+    --dafo-fortaleza: oklch(0.40 0.16 175);
+    --dafo-fortaleza-suave: oklch(0.955 0.04 175);
+    --dafo-oportunidad: oklch(0.40 0.16 255);
+    --dafo-oportunidad-suave: oklch(0.955 0.04 255);
+    --dafo-debilidad: oklch(0.40 0.16 55);
+    --dafo-debilidad-suave: oklch(0.955 0.04 55);
+    --dafo-amenaza: oklch(0.40 0.16 340);
+    --dafo-amenaza-suave: oklch(0.955 0.04 340);
+
+    /*
      * Fondos de fila de tabla, y el motivo de que sean tokens y no `bg-muted/50`
      * a secas.
      *
@@ -436,6 +467,20 @@
     --tipo-personal: oklch(0.79 0.09 325);
     --tipo-personal-suave: oklch(0.3 0.04 325);
 
+    /*
+     * El DAFO en oscuro: mismos hues, luminosidad al revés entre texto y fondo.
+     * No se reutiliza ni un valor del tema claro —L 0.40 sobre un fondo oscuro no
+     * se lee—. El peor contraste del conjunto sube a 7.10.
+     */
+    --dafo-fortaleza: oklch(0.8 0.12 175);
+    --dafo-fortaleza-suave: oklch(0.3 0.055 175);
+    --dafo-oportunidad: oklch(0.8 0.12 255);
+    --dafo-oportunidad-suave: oklch(0.3 0.055 255);
+    --dafo-debilidad: oklch(0.8 0.12 55);
+    --dafo-debilidad-suave: oklch(0.3 0.055 55);
+    --dafo-amenaza: oklch(0.8 0.12 340);
+    --dafo-amenaza-suave: oklch(0.3 0.055 340);
+
     /* Sobre el fondo oscuro el acento es el 400 (5.55:1). Nunca el 600. */
     --acento: var(--violeta-400);
     --acento-foreground: oklch(0.17 0.02 220);
@@ -538,6 +583,15 @@
     --color-tipo-instalaciones-suave: var(--tipo-instalaciones-suave);
     --color-tipo-personal: var(--tipo-personal);
     --color-tipo-personal-suave: var(--tipo-personal-suave);
+
+    --color-dafo-fortaleza: var(--dafo-fortaleza);
+    --color-dafo-fortaleza-suave: var(--dafo-fortaleza-suave);
+    --color-dafo-oportunidad: var(--dafo-oportunidad);
+    --color-dafo-oportunidad-suave: var(--dafo-oportunidad-suave);
+    --color-dafo-debilidad: var(--dafo-debilidad);
+    --color-dafo-debilidad-suave: var(--dafo-debilidad-suave);
+    --color-dafo-amenaza: var(--dafo-amenaza);
+    --color-dafo-amenaza-suave: var(--dafo-amenaza-suave);
 
     --color-fila-hover: var(--fila-hover);
     --color-fila-seleccionada: var(--fila-seleccionada);

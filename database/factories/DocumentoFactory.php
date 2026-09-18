@@ -79,6 +79,24 @@ class DocumentoFactory extends Factory
         ]);
     }
 
+    /**
+     * El análisis del contexto: **calculado y sin sistema**.
+     *
+     * Es el único estado que ejercita la frontera nueva. Hasta él, «calculado» y
+     * «exige sistema» eran lo mismo, y un test que quisiera comprobar que el
+     * `CHECK` reescrito deja pasar un calculado de ámbito organizativo no tenía
+     * con qué hacerlo.
+     */
+    public function analisisContexto(): self
+    {
+        return $this->deTipo(TipoDocumento::AnalisisContexto)->state(fn (): array => [
+            'codigo' => 'CTX-SGSI-01',
+            'titulo' => 'Análisis del contexto de la organización',
+            'sistema_id' => null,
+            'periodicidad_revision_meses' => 12,
+        ]);
+    }
+
     public function conPeriodicidad(?int $meses): self
     {
         return $this->state(fn (): array => ['periodicidad_revision_meses' => $meses]);

@@ -28,11 +28,31 @@ final class Paleta
      */
     public static function estados(string $tema): array
     {
+        return self::familia('estado', $tema);
+    }
+
+    /**
+     * Los `--dafo-*` de un tema, en `oklch`. Los cuatro cuadrantes del § 4.1.
+     *
+     * @return array<string, array{float, float, float}>
+     */
+    public static function cuadrantesDafo(string $tema): array
+    {
+        return self::familia('dafo', $tema);
+    }
+
+    /**
+     * Los tokens de una familia semántica, leídos del CSS que de verdad pinta.
+     *
+     * @return array<string, array{float, float, float}>
+     */
+    private static function familia(string $prefijo, string $tema): array
+    {
         $bloque = self::bloque($tema);
         $tokens = [];
 
         preg_match_all(
-            '/--(estado-[a-z-]+):\s*oklch\(([\d.]+)\s+([\d.]+)\s+([\d.]+)\)/',
+            '/--('.$prefijo.'-[a-z-]+):\s*oklch\(([\d.]+)\s+([\d.]+)\s+([\d.]+)\)/',
             $bloque,
             $coincidencias,
             PREG_SET_ORDER,
@@ -52,7 +72,27 @@ final class Paleta
      */
     public static function paresDeEstado(string $tema): array
     {
-        $tokens = self::estados($tema);
+        return self::emparejar(self::estados($tema));
+    }
+
+    /**
+     * Los pares texto/fondo de cada cuadrante del DAFO.
+     *
+     * @return array<string, array{texto: array{float, float, float}, fondo: array{float, float, float}}>
+     */
+    public static function paresDeDafo(string $tema): array
+    {
+        return self::emparejar(self::cuadrantesDafo($tema));
+    }
+
+    /**
+     * Empareja cada token con su `-suave`.
+     *
+     * @param  array<string, array{float, float, float}>  $tokens
+     * @return array<string, array{texto: array{float, float, float}, fondo: array{float, float, float}}>
+     */
+    private static function emparejar(array $tokens): array
+    {
         $pares = [];
 
         foreach ($tokens as $nombre => $valor) {

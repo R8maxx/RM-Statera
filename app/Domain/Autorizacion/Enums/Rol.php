@@ -84,6 +84,15 @@ enum Rol: string
 
             self::Tecnico => [
                 Permiso::PanelVer,
+                /*
+                 * El contexto lo escribe entero y **no lo aprueba**: apuntar una
+                 * debilidad o un requisito de un regulador es trabajo de quien
+                 * está metido en el día a día, y declarar que ése es el contexto
+                 * de la organización es de dirección. Misma línea que separa
+                 * valorar un riesgo de aceptarlo.
+                 */
+                Permiso::ContextoVer,
+                Permiso::ContextoGestionar,
                 Permiso::SistemasVer,
                 Permiso::ImplantacionesVer,
                 Permiso::ImplantacionesGestionar,
@@ -119,6 +128,7 @@ enum Rol: string
              */
             self::Auditor => [
                 Permiso::PanelVer,
+                Permiso::ContextoVer,
                 Permiso::SistemasVer,
                 Permiso::ImplantacionesVer,
                 Permiso::EvidenciasVer,

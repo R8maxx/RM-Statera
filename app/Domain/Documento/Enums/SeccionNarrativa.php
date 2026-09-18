@@ -75,6 +75,23 @@ enum SeccionNarrativa: string
             ], true);
         }
 
+        /*
+         * El análisis del contexto es calculado y aun así **no tiene resumen de
+         * cifras ni exclusiones ni categoría que derivar**: lo que enseña son dos
+         * tablas de texto. De los once le quedan siete —los cinco de prosa más la
+         * metodología, que aquí es «cómo se hizo el análisis», y la nota de la
+         * tabla, que explica cómo se leen los cuadrantes—. Ofrecerle los otros
+         * cuatro sería ofrecerle explicar cifras que no existen.
+         */
+        if ($tipo === TipoDocumento::AnalisisContexto) {
+            return ! in_array($this, [
+                self::NotaResumen,
+                self::NotaDerivacion,
+                self::NotaMadurez,
+                self::NotaExclusiones,
+            ], true);
+        }
+
         return match ($this) {
             /*
              * La derivación de la categoría y la madurez por marco sólo existen

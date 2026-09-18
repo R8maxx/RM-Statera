@@ -96,7 +96,14 @@ final class ColumnasTabla
              * escribe la organización y no sale de ninguna consulta. Lista vacía
              * y no una excepción, porque quien llame a esto está pintando un
              * documento y no tiene por qué saber de qué tipo es.
+             *
+             * **El análisis del contexto tampoco, y sí tiene tablas.** Es la única
+             * excepción a la equivalencia «calculado = tabla de requisitos»: sus
+             * dos tablas son de cuestiones y de partes interesadas, y no de filas
+             * del catálogo. Sus columnas las declara cada materializador, porque
+             * son dos tablas distintas y esto sólo sabe describir una.
              */
+            TipoDocumento::AnalisisContexto,
             TipoDocumento::Politica,
             TipoDocumento::Norma,
             TipoDocumento::Procedimiento => [],
@@ -113,7 +120,8 @@ final class ColumnasTabla
             // son las que faltan. El denominador va aparte, en su propia cifra.
             TipoDocumento::PlanAdecuacionEns => 'Medidas pendientes',
 
-            // Sin tabla no hay recuento que etiquetar.
+            // Sin tabla larga no hay recuento que etiquetar.
+            TipoDocumento::AnalisisContexto,
             TipoDocumento::Politica,
             TipoDocumento::Norma,
             TipoDocumento::Procedimiento => '',

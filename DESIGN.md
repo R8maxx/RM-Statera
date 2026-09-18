@@ -219,6 +219,33 @@ En oscuro, mismos tonos con luminosidad invertida entre texto y fondo; el peor c
 
 Las cifras salen de convertir los `oklch` de `app.css` a sRGB y medir; si se retoca un tono, se vuelven a medir. La misma regla que los semánticos.
 
+### DAFO — contexto
+
+Tercera familia semántica, para los cuatro cuadrantes del análisis del contexto (§ 4.1). Un estado dice *cómo va* algo, un tipo dice *qué es* y un cuadrante dice *dónde cae*: las tres preguntas conviven en el panel, así que las tres necesitan paleta propia.
+
+**Lo que la separa no es el hue, es la profundidad.** L 0.40 y croma 0.16, frente a L 0.52 / 0.13 de los estados y L 0.47 / 0.10 de los tipos. No es una preferencia: los nueve `--tipo-*` ocupan ya la rueda de hue entera, y una tercera familia que sólo se moviera de tono no se leería como familia. Bajar la luminosidad es lo que le da identidad.
+
+**Los hues van por pares, no sueltos.** Es lo que hace legible un 2×2: verde 175 y azul 255 son lo favorable —dentro y fuera—, ocre 55 y magenta 340 lo adverso. Así el color dice las dos cosas a la vez: de qué mitad es, por la temperatura, y qué cuadrante exacto, por el tono.
+
+| Token | Hex | Fondo suave | Contraste | Icono | Cuadrante |
+|---|---|---|---|---|---|
+| `dafo-fortaleza` | `#006043` | `#D6FAEF` | 6.80 | `ShieldCheck` | Fortaleza — interna, a favor |
+| `dafo-oportunidad` | `#00439A` | `#DFF2FF` | 8.05 | `Lightbulb` | Oportunidad — externa, a favor |
+| `dafo-debilidad` | `#832000` | `#FFEAD7` | 8.28 | `ShieldAlert` | Debilidad — interna, en contra |
+| `dafo-amenaza` | `#7A1162` | `#FFE6F9` | 8.61 | `CloudLightning` | Amenaza — externa, en contra |
+
+En oscuro, mismos hues con la luminosidad invertida entre texto y fondo (L 0.8 / 0.3); el peor contraste del conjunto sube a 7.10.
+
+**Las tres cifras que mandan aquí, medidas:**
+
+- **Contraste 6.80 en el peor caso**, y 7.10 en oscuro. Los cuatro pasan AA con margen.
+- **ΔE 10.7 en el peor par de la familia** (`oportunidad` ↔ `amenaza`), muy por encima del suelo de 6 — y el mejor de las tres familias, por delante de los 7.6 de los estados y de los 5.2 de los tipos. Aquí el suelo se exige **entero y sin excepciones declaradas**, a diferencia de las otras dos: la matriz enseña los cuatro cuadrantes a la vez, uno al lado del otro.
+- **ΔE 2.7 en el peor par contra el resto de la paleta** (`dafo-fortaleza` ↔ `destructive`), y eso **no llega al suelo**. Un verde oscuro y un rojo colapsan sobre el mismo eje con protanopía. Es una convivencia que la paleta ya tenía —`destructive` ↔ `tipo-soportes` está en 3.6 y `en-progreso` ↔ `tipo-comunicaciones` en 3.9—, y la cargan el icono y el texto: nunca aparecen en la misma lista, y el badge lleva los tres canales.
+
+**Ninguno de los cuatro entra en el rojo**, que sigue teniendo sus tres dueños. Una debilidad apuntada en un análisis del contexto no es algo que ya va mal: es algo que la organización ha sabido ver y ha escrito, y pintarla de alarma enseña a no escribirla. El ocre de `debilidad` es un `#832000` profundo, a ocho puntos de luminosidad y once de croma del `#C9302D` de `destructive`.
+
+Lo mide `PaletaTest`, que lee estos tokens de `app.css` y no de esta tabla: si alguien aclara un `--dafo-*` para «que se vea mejor», el test lo dice antes de que llegue a la pantalla.
+
 ### Degradados
 
 Reservados a portadas de informe y cabeceras de material comercial. **Nunca** en botones, tarjetas, cabeceras de tabla ni sobre el símbolo, que es plano por decisión (§2).

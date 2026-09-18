@@ -3,6 +3,7 @@ import {
     ClipboardCheckIcon,
     ClipboardListIcon,
     ClipboardXIcon,
+    CompassIcon,
     FileTextIcon,
     LayoutDashboardIcon,
     LayoutTemplateIcon,
@@ -11,6 +12,7 @@ import {
     SearchCheckIcon,
     ServerIcon,
     ShieldAlertIcon,
+    UsersIcon,
     type LucideIcon,
 } from '@lucide/vue';
 
@@ -115,6 +117,25 @@ export const navegacion: GrupoNavegacion[] = [
     {
         titulo: 'Alcance',
         entradas: [
+            /*
+             * Delante de Sistemas porque es lo que va delante en la norma: el
+             * contexto (4.1) y las partes interesadas (4.2) son lo que determina
+             * el alcance (4.3), que es lo que declara un sistema.
+             */
+            {
+                titulo: 'Contexto',
+                href: '/contexto',
+                icono: CompassIcon,
+                // `dafo` y `swot` son lo que se teclea sabiendo qué se busca; los
+                // cuatro cuadrantes, lo que se teclea sin acordarse del nombre.
+                alias: ['dafo', 'swot', '4.1', 'cuestiones', 'debilidades', 'amenazas', 'fortalezas', 'oportunidades', 'cambio climático'],
+            },
+            {
+                titulo: 'Partes interesadas',
+                href: '/partes-interesadas',
+                icono: UsersIcon,
+                alias: ['4.2', 'requisitos legales', 'reguladores', 'expectativas', 'clientes', 'stakeholders'],
+            },
             {
                 titulo: 'Sistemas',
                 href: '/sistemas',

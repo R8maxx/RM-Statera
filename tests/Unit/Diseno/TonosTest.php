@@ -33,9 +33,9 @@ function tonosDelCliente(): array
 {
     $fuente = (string) file_get_contents(base_path('resources/js/lib/tonos.ts'));
 
-    // Las cinco tablas de tonos, más los alias, que también son nombres válidos.
+    // Las tablas de tonos, más los alias, que también son nombres válidos.
     preg_match_all(
-        '/const (?:estados|ordinales|prioridades|procedencia|tipos|propios|alias): Record<string, (?:Tono|string)> = \{(.*?)\n\};/s',
+        '/const (?:estados|ordinales|prioridades|procedencia|tipos|dafo|propios|alias): Record<string, (?:Tono|string)> = \{(.*?)\n\};/s',
         $fuente,
         $bloques,
     );

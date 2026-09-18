@@ -24,6 +24,7 @@ final readonly class RegistroGeneradores
             TipoDocumento::SoaIso => DeclaracionAplicabilidadIso::class,
             TipoDocumento::DdaEns => DeclaracionAplicabilidadEns::class,
             TipoDocumento::PlanAdecuacionEns => PlanAdecuacionEns::class,
+            TipoDocumento::AnalisisContexto => AnalisisDelContexto::class,
 
             /*
              * Los tres redactados comparten generador: lo que los separa es qué

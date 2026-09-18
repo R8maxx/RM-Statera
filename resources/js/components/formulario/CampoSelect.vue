@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/select';
 import type { Opcion } from '@/lib/formularios';
 
-defineProps<{
+const props = defineProps<{
     nombre: string;
     etiqueta: string;
     opciones: Opcion[];
@@ -18,9 +18,39 @@ defineProps<{
     requerido?: boolean;
     deshabilitado?: boolean;
     placeholder?: string;
+    /**
+     * El valor con el que arranca cuando nadie lo gobierna con `v-model`.
+     *
+     * **Existía de facto antes que la prop.** Cinco formularios le pasaban
+     * `:valor-inicial` —`auditorias/Formulario`, `no-conformidades/Formulario` y
+     * `no-conformidades/Ficha`— dando por hecho que funcionaba como en
+     * `CampoTexto`, y no era una prop: caía como atributo suelto sobre el `<div>`
+     * de `CampoBase` y no hacía nada. El desplegable abría vacío al editar, y en
+     * los dos campos obligatorios —el origen de una no conformidad y el sistema de
+     * una auditoría— la edición fallaba la validación con un campo que el usuario
+     * juraría haber dejado puesto.
+     *
+     * Se añade en lugar de quitarla de los cinco sitios porque la asimetría era el
+     * fallo: un juego de campos donde `CampoTexto` acepta `valorInicial` y
+     * `CampoSelect` no es un juego que invita a este error una vez por formulario.
+     *
+     * **Sólo se lee al montar.** A partir de ahí manda el usuario, como en
+     * `CampoTexto`: un `watch` que siguiera la prop pisaría lo que alguien acabara
+     * de elegir cada vez que el padre se repintara.
+     */
+    valorInicial?: string | null;
 }>();
 
 const modelo = defineModel<string | undefined>();
+
+/*
+ * `v-model` gana si el padre lo gobierna; si no, arranca en `valorInicial`. Sin la
+ * comprobación de `undefined`, un formulario con las dos cosas puestas perdería lo
+ * que el padre ya tenía en el modelo.
+ */
+if (modelo.value === undefined && props.valorInicial != null) {
+    modelo.value = props.valorInicial;
+}
 </script>
 
 <template>

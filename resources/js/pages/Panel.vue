@@ -5,6 +5,7 @@ import BarraSegmentada, { type Segmento } from '@/components/BarraSegmentada.vue
 import EstadoVacio from '@/components/EstadoVacio.vue';
 import PrimerosPasos from '@/components/PrimerosPasos.vue';
 import ResumenInventarioPanelCard from '@/components/activo/ResumenInventarioPanel.vue';
+import ResumenContextoPanel from '@/components/contexto/ResumenContextoPanel.vue';
 import ResumenNoConformidadesPanel from '@/components/no-conformidad/ResumenNoConformidadesPanel.vue';
 import ResumenPlanPanel from '@/components/tarea/ResumenPlanPanel.vue';
 import GraficaBarras, { type Barra } from '@/components/grafica/GraficaBarras.vue';
@@ -50,6 +51,7 @@ const props = defineProps<{
      * si el frontend es quien elige qué esconder.
      */
     noConformidades: App.Http.Resources.Panel.ResumenNoConformidadesPanel | null;
+    contexto: App.Http.Resources.Panel.ResumenContextoPanel | null;
 }>();
 
 const { variantesEntrada, variantesEscalonado } = useMovimientoReducido();
@@ -318,6 +320,20 @@ const metricas = computed(() => [
                 :variants="variantesEntrada"
             >
                 <ResumenNoConformidadesPanel :resumen="noConformidades" />
+            </motion.section>
+
+            <!-- ── Contexto de la organización ────────────────────────────── -->
+            <!--
+                La última de las cinco, y no por ser menos importante: el contexto
+                se revisa una vez al año y el cumplimiento todas las semanas, así
+                que arriba va lo que se mira a diario. Con el registro vacío no se
+                pinta, como las demás.
+            -->
+            <motion.section
+                v-if="contexto && contexto.cuestiones > 0"
+                :variants="variantesEntrada"
+            >
+                <ResumenContextoPanel :resumen="contexto" />
             </motion.section>
 
             <!-- ── Por marco ──────────────────────────────────────────────── -->

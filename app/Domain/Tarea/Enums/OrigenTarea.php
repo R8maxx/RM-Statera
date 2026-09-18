@@ -22,6 +22,13 @@ namespace App\Domain\Tarea\Enums;
  * que este campo existe para contestar. `Hallazgo` se queda declarado y sin
  * ofrecerse, y ahora por ese motivo y no porque falte su módulo.
  *
+ * **`Contexto` tampoco está en § 4.7, y es el segundo que se añade a conciencia.**
+ * Una debilidad del DAFO —«el software de los puestos no está inventariado»— es
+ * trabajo que hay que hacer y no es ninguna de las siete cosas anteriores. No es
+ * un hallazgo, que sale de auditar contra un requisito; ni un riesgo, que tiene
+ * probabilidad, impacto y una decisión de tratamiento detrás. Puede acabar
+ * generando un riesgo, y entonces la tarea de ese riesgo será otra tarea.
+ *
  * `disponible()` es un `match` exhaustivo y no una comparación con `||`: era el
  * único sitio del enum donde olvidarse de un caso nuevo no lo señalaba nadie.
  *
@@ -38,6 +45,7 @@ enum OrigenTarea: string
     case NoConformidad = 'no_conformidad';
     case Riesgo = 'riesgo';
     case BrechaImplantacion = 'brecha_implantacion';
+    case Contexto = 'contexto';
     case Incidente = 'incidente';
     case RevisionDireccion = 'revision_direccion';
     case Propia = 'propia';
@@ -49,6 +57,7 @@ enum OrigenTarea: string
             self::NoConformidad => 'Acción correctiva',
             self::Riesgo => 'Tratamiento de un riesgo',
             self::BrechaImplantacion => 'Requisito pendiente',
+            self::Contexto => 'Cuestión del contexto',
             self::Incidente => 'Incidente',
             self::RevisionDireccion => 'Revisión por la dirección',
             self::Propia => 'Iniciativa propia',
@@ -65,7 +74,7 @@ enum OrigenTarea: string
     public function disponible(): bool
     {
         return match ($this) {
-            self::BrechaImplantacion, self::NoConformidad, self::Propia, self::Riesgo => true,
+            self::BrechaImplantacion, self::Contexto, self::NoConformidad, self::Propia, self::Riesgo => true,
             /*
              * `Hallazgo` sigue sin ofrecerse, y desde el § 4.13 **por otro
              * motivo**: no es que falte su módulo —llegó con el § 4.12—, es que
@@ -112,7 +121,7 @@ enum OrigenTarea: string
     {
         return match ($this) {
             self::Hallazgo, self::NoConformidad, self::Incidente => 'en_progreso',
-            self::BrechaImplantacion, self::Riesgo, self::RevisionDireccion => 'planificado',
+            self::BrechaImplantacion, self::Riesgo, self::Contexto, self::RevisionDireccion => 'planificado',
             self::Propia => 'no_iniciado',
         };
     }

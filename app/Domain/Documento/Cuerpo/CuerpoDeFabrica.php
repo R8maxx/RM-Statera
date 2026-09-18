@@ -75,6 +75,7 @@ final class CuerpoDeFabrica
                 TipoDocumento::SoaIso => $this->cuerpoIso(),
                 TipoDocumento::DdaEns => $this->cuerpoEns(),
                 TipoDocumento::PlanAdecuacionEns => $this->cuerpoPlan(),
+                TipoDocumento::AnalisisContexto => $this->cuerpoContexto(),
 
                 /*
                  * Un documento redactado no tiene cuerpo calculado: entre el
@@ -165,6 +166,47 @@ final class CuerpoDeFabrica
             Nodo::de('seccion', [], [
                 Nodo::encabezado(2, 'Medidas sin trabajo planificado'),
                 Nodo::hueco('tabla_sin_trabajo'),
+            ]),
+        ];
+    }
+
+    /**
+     * El contexto: primero lo que obliga a considerar la enmienda, luego el DAFO,
+     * luego quién exige qué, y al final hasta dónde llega el SGSI.
+     *
+     * **La declaración del cambio climático va la primera y no al final.** Es lo
+     * que la enmienda 1:2024 añadió a las cláusulas 4.1 y 4.2, es una respuesta de
+     * una línea y es de las primeras cosas que un auditor busca desde entonces:
+     * enterrada detrás de dos tablas se lee como que no está.
+     *
+     * El alcance cierra el documento porque es la consecuencia de lo anterior
+     * —4.3 sale de 4.1 y 4.2— y porque es lo único que no se decide aquí: se copia
+     * de cada sistema.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function cuerpoContexto(): array
+    {
+        return [
+            Nodo::de('seccion', [], [
+                Nodo::encabezado(2, 'Cambio climático'),
+                Nodo::hueco('declaracion_climatica'),
+            ]),
+
+            Nodo::de('seccion', [], [
+                Nodo::encabezado(2, 'Cuestiones internas y externas'),
+                ...$this->prosa(SeccionNarrativa::NotaTabla),
+                Nodo::hueco('dafo_cuadrantes'),
+            ]),
+
+            Nodo::de('seccion', [], [
+                Nodo::encabezado(2, 'Partes interesadas y sus requisitos'),
+                Nodo::hueco('tabla_partes_interesadas'),
+            ]),
+
+            Nodo::de('seccion', [], [
+                Nodo::encabezado(2, 'Alcance declarado de los sistemas'),
+                Nodo::hueco('alcance_sistemas'),
             ]),
         ];
     }

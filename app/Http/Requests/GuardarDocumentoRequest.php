@@ -33,14 +33,17 @@ class GuardarDocumentoRequest extends FormRequest
 
         return [
             /*
-             * El sistema es obligatorio en una declaración de aplicabilidad —el
-             * alcance y la categoría salen de él— y **opcional en un documento
-             * redactado**: una política de seguridad es de la organización
-             * entera y normalmente no cuelga de ningún sistema. El `CHECK` de la
-             * tabla dice lo mismo, escrito en negativo.
+             * El sistema es obligatorio en una declaración de aplicabilidad y en un
+             * plan de adecuación —el alcance y la categoría salen de él— y
+             * **opcional en lo que es de la organización entera**: una política de
+             * seguridad y un análisis del contexto no cuelgan de ningún sistema. El
+             * `CHECK` de la tabla dice lo mismo, escrito en negativo.
              */
             'sistema_id' => [
-                $tipo?->esRedactado() === true ? 'nullable' : 'required',
+                // `exigeSistema()` y no `! esRedactado()`: el análisis del contexto
+                // es calculado y de ámbito organizativo, y las dos cosas dejaron de
+                // ser la misma con él.
+                $tipo?->exigeSistema() === true ? 'required' : 'nullable',
                 'integer', 'exists:sistemas,id',
             ],
             'tipo' => ['required', Rule::enum(TipoDocumento::class)],

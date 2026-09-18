@@ -53,6 +53,10 @@ final class MaterializarCuerpo
         'tabla_derivacion' => 'la derivación de la categoría',
         'notas_anexo_ii' => 'las notas del Anexo II',
         'tabla_madurez' => 'la madurez por marco',
+        'dafo_cuadrantes' => 'las cuestiones del contexto',
+        'tabla_partes_interesadas' => 'la tabla de partes interesadas',
+        'declaracion_climatica' => 'la declaración sobre el cambio climático',
+        'alcance_sistemas' => 'el alcance declarado de cada sistema',
         'limitaciones_sistema' => 'las limitaciones del sistema',
         'control_versiones' => 'el control de versiones',
     ];
@@ -128,6 +132,10 @@ final class MaterializarCuerpo
             'tabla_derivacion' => $this->tablaDerivacion($contenido),
             'notas_anexo_ii' => $this->notasAnexoII($contenido),
             'tabla_madurez' => $this->tablaMadurez($contenido),
+            'dafo_cuadrantes' => $this->dafoCuadrantes($contenido),
+            'tabla_partes_interesadas' => $this->tablaPartesInteresadas($contenido),
+            'declaracion_climatica' => $this->declaracionClimatica($contenido),
+            'alcance_sistemas' => $this->alcanceSistemas($contenido),
             'limitaciones_sistema' => $this->limitaciones($contenido, $editado, $tocados),
             'control_versiones' => $this->controlVersiones($contenido),
 
@@ -798,6 +806,350 @@ final class MaterializarCuerpo
                 Nodo::celdaTexto($this->entero($marco, 'evaluadas').' de '.$exigibles),
                 // Sin ninguna evaluada la media no es L0: es que no se sabe.
                 Nodo::celdaTexto($media === null ? 'Sin evaluar' : 'L'.$media),
+            ]);
+        }
+
+        return [Nodo::de('table', [], $filas)];
+    }
+
+    // --- Contexto de la organización (§ 4.1) ---------------------------------
+
+    /**
+     * El DAFO: una tabla por cuadrante, en el orden en que se lee la matriz.
+     *
+     * **Cuatro tablas y no una rejilla 2×2.** En pantalla el DAFO es una matriz
+     * porque cabe de un vistazo; en papel, un cuadrante con doce cuestiones
+     * partiría la rejilla a mitad de página y dejaría columnas huérfanas. Cuatro
+     * tablas con su título cada una se parten limpio y conservan lo único que la
+     * matriz aporta: qué cuadrante es cada cosa, escrito.
+     *
+     * **El ámbito y el signo van escritos bajo cada título.** En pantalla los
+     * llevan la posición y el color; aquí no hay posición, y el color no puede
+     * cargar solo con dos ejes. Es la misma regla de DESIGN.md § 11 aplicada al
+     * papel.
+     *
+     * Un cuadrante vacío **se imprime igual**, con su línea de «ninguna». Un DAFO
+     * sin oportunidades es una organización que sólo ha mirado lo que le puede
+     * salir mal, y esconder el apartado esconde justamente eso.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function dafoCuadrantes(ContenidoDocumento $contenido): array
+    {
+        $cuadrantes = $contenido->extras['dafo'] ?? [];
+
+        if (! is_array($cuadrantes) || $cuadrantes === []) {
+            return [Nodo::parrafo(
+                'No hay ninguna cuestión registrada en el análisis del contexto.',
+                'vacio',
+            )];
+        }
+
+        $nodos = [];
+
+        foreach ($cuadrantes as $cuadrante) {
+            if (! is_array($cuadrante)) {
+                continue;
+            }
+
+            $cuestiones = $cuadrante['cuestiones'] ?? [];
+            $cuestiones = is_array($cuestiones) ? $cuestiones : [];
+
+            $nodos[] = Nodo::encabezado(3, $this->cadena($cuadrante, 'etiqueta') ?? '—', null, 'separado');
+            $nodos[] = Nodo::de('paragraph', ['clase' => 'pequeno_suave'], [
+                Nodo::texto(sprintf(
+                    '%s · %s · %d %s',
+                    $this->cadena($cuadrante, 'ambito') ?? '—',
+                    $this->cadena($cuadrante, 'signo') ?? '—',
+                    count($cuestiones),
+                    count($cuestiones) === 1 ? 'cuestión' : 'cuestiones',
+                )),
+            ]);
+
+            if ($cuestiones === []) {
+                $nodos[] = Nodo::parrafo('Ninguna registrada.', 'vacio');
+
+                continue;
+            }
+
+            $filas = [Nodo::fila([
+                Nodo::cabeceraCelda('Cód.', '0.7in', 'col'),
+                Nodo::cabeceraCelda('Cuestión', '3.6in', 'col'),
+                Nodo::cabeceraCelda('Materia', '1.5in', 'col'),
+                Nodo::cabeceraCelda('Responsable', '1.3in', 'col'),
+                Nodo::cabeceraCelda('Riesgos', '1.6in', 'col'),
+                Nodo::cabeceraCelda('Trabajo', '1.0in', 'col'),
+            ])];
+
+            foreach ($cuestiones as $cuestion) {
+                if (! is_array($cuestion)) {
+                    continue;
+                }
+
+                $riesgos = $cuestion['riesgos'] ?? [];
+                $riesgos = is_array($riesgos) ? array_values(array_filter($riesgos, 'is_string')) : [];
+
+                $titulo = $this->cadena($cuestion, 'titulo') ?? '—';
+                $descripcion = $this->cadena($cuestion, 'descripcion');
+                $clima = ($cuestion['esClimatica'] ?? false) === true;
+
+                $celdaCuestion = [Nodo::texto($titulo, ['bold'])];
+
+                if ($clima) {
+                    $celdaCuestion[] = Nodo::texto(' · cambio climático', ['suave']);
+                }
+
+                if ($descripcion !== null) {
+                    $celdaCuestion[] = Nodo::de('hardBreak');
+                    $celdaCuestion[] = Nodo::texto($descripcion);
+                }
+
+                $filas[] = Nodo::fila([
+                    Nodo::celdaTexto($this->cadena($cuestion, 'codigo') ?? '—', 'codigo'),
+                    Nodo::celda($celdaCuestion),
+                    Nodo::celdaTexto($this->cadena($cuestion, 'materiaEtiqueta') ?? '—'),
+                    Nodo::celdaTexto($this->cadena($cuestion, 'responsable') ?? 'Sin asignar'),
+                    // Los códigos y no un recuento: «R-014» dice cuál, y «1» no.
+                    Nodo::celdaTexto($riesgos === [] ? 'Ninguno' : implode(', ', $riesgos), 'codigo'),
+                    Nodo::celdaTexto($this->entero($cuestion, 'tareas') === 0
+                        ? 'Nada apuntado'
+                        : $this->entero($cuestion, 'tareas').' tarea(s)'),
+                ]);
+            }
+
+            $nodos[] = Nodo::de('table', [], $filas);
+        }
+
+        return $nodos;
+    }
+
+    /**
+     * Las partes interesadas y lo que exige cada una. Cláusula 4.2.
+     *
+     * **Una fila por requisito y el código de la parte repetido**, en vez de
+     * agrupar con `rowspan`. Una celda combinada que cae justo en un salto de
+     * página deja la mitad de la tabla sin cabecera de grupo, y en un documento de
+     * archivo eso no se puede arreglar desplazándose.
+     *
+     * Una parte sin nada escrito **también sale**: es la que hay que mirar, porque
+     * declarar a un regulador y no decir qué exige es la mitad de la cláusula.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function tablaPartesInteresadas(ContenidoDocumento $contenido): array
+    {
+        $partes = $contenido->extras['partes'] ?? [];
+
+        if (! is_array($partes) || $partes === []) {
+            return [Nodo::parrafo('No hay ninguna parte interesada registrada.', 'vacio')];
+        }
+
+        $filas = [Nodo::fila([
+            Nodo::cabeceraCelda('Cód.', '0.6in', 'col'),
+            Nodo::cabeceraCelda('Parte interesada', '1.8in', 'col'),
+            Nodo::cabeceraCelda('Tipo', '1.3in', 'col'),
+            Nodo::cabeceraCelda('Ámbito', '0.7in', 'col'),
+            Nodo::cabeceraCelda('Qué exige o espera', '2.9in', 'col'),
+            Nodo::cabeceraCelda('Naturaleza', '1.0in', 'col'),
+            Nodo::cabeceraCelda('Cómo se atiende', '1.9in', 'col'),
+        ])];
+
+        foreach ($partes as $parte) {
+            if (! is_array($parte)) {
+                continue;
+            }
+
+            $requisitos = $parte['requisitos'] ?? [];
+            $requisitos = is_array($requisitos) ? $requisitos : [];
+
+            $identidad = [
+                Nodo::celdaTexto($this->cadena($parte, 'codigo') ?? '—', 'codigo'),
+                Nodo::celdaTexto($this->cadena($parte, 'nombre') ?? '—'),
+                Nodo::celdaTexto($this->cadena($parte, 'tipoEtiqueta') ?? '—'),
+                Nodo::celdaTexto($this->cadena($parte, 'ambitoEtiqueta') ?? '—'),
+            ];
+
+            if ($requisitos === []) {
+                $filas[] = Nodo::fila([
+                    ...$identidad,
+                    Nodo::celdaTexto('Sin requisitos escritos'),
+                    Nodo::celdaTexto('—'),
+                    Nodo::celdaTexto('—'),
+                ]);
+
+                continue;
+            }
+
+            foreach ($requisitos as $requisito) {
+                if (! is_array($requisito)) {
+                    continue;
+                }
+
+                $filas[] = Nodo::fila([
+                    ...$identidad,
+                    Nodo::celda($this->celdaRequisito($requisito)),
+                    Nodo::celdaTexto($this->cadena($requisito, 'naturalezaEtiqueta') ?? '—'),
+                    Nodo::celda($this->celdaCobertura($requisito)),
+                ]);
+            }
+        }
+
+        return [Nodo::de('table', [], $filas)];
+    }
+
+    /**
+     * Qué pide, con su referencia debajo si la tiene.
+     *
+     * @param  array<string, mixed>  $requisito
+     * @return list<array<string, mixed>>
+     */
+    private function celdaRequisito(array $requisito): array
+    {
+        $celda = [Nodo::texto($this->cadena($requisito, 'descripcion') ?? '—')];
+
+        if (($requisito['esClimatico'] ?? false) === true) {
+            $celda[] = Nodo::texto(' · cambio climático', ['suave']);
+        }
+
+        $referencia = $this->cadena($requisito, 'referencia');
+
+        if ($referencia !== null) {
+            $celda[] = Nodo::de('hardBreak');
+            $celda[] = Nodo::texto($referencia, ['cifra']);
+        }
+
+        return $celda;
+    }
+
+    /**
+     * Las medidas que lo cubren, o la falta de ellas.
+     *
+     * **Sólo se señala la ausencia en lo que obliga.** Una expectativa sin medida
+     * detrás no es una laguna; decirlo con las mismas palabras que un requisito
+     * legal sin cubrir sería hacer que el documento señalara treinta cosas donde
+     * hay tres.
+     *
+     * @param  array<string, mixed>  $requisito
+     * @return list<array<string, mixed>>
+     */
+    private function celdaCobertura(array $requisito): array
+    {
+        $implantaciones = $requisito['implantaciones'] ?? [];
+        $implantaciones = is_array($implantaciones) ? $implantaciones : [];
+
+        if ($implantaciones === []) {
+            $texto = $this->cadena($requisito, 'comoSeAtiende');
+
+            if ($texto !== null) {
+                return [Nodo::texto($texto)];
+            }
+
+            return ($requisito['obliga'] ?? false) === true
+                ? [Nodo::texto('Sin ninguna medida registrada', ['bold'])]
+                : [Nodo::texto('—')];
+        }
+
+        $celda = [];
+
+        foreach ($implantaciones as $i => $implantacion) {
+            if (! is_array($implantacion)) {
+                continue;
+            }
+
+            if ($i > 0) {
+                $celda[] = Nodo::de('hardBreak');
+            }
+
+            $celda[] = Nodo::texto($this->cadena($implantacion, 'requisito') ?? '—', ['cifra']);
+            $celda[] = Nodo::texto(' · '.($this->cadena($implantacion, 'estadoEtiqueta') ?? '—'));
+        }
+
+        return $celda === [] ? [Nodo::texto('—')] : $celda;
+    }
+
+    /**
+     * La determinación sobre el cambio climático, que exige la enmienda 1:2024.
+     *
+     * **Va en caja y no en una línea más.** La norma no pide apuntar cuestiones
+     * climáticas: pide **determinar si** el cambio climático es pertinente, y es
+     * de las primeras cosas que un auditor busca desde 2024. Una respuesta
+     * enterrada en un párrafo se lee como que no está.
+     *
+     * Sin contestar **se dice**, en vez de omitir el apartado: la ausencia de la
+     * declaración es exactamente el hallazgo.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function declaracionClimatica(ContenidoDocumento $contenido): array
+    {
+        $clima = $contenido->extras['clima'] ?? [];
+        $clima = is_array($clima) ? $clima : [];
+
+        $pertinente = $clima['pertinente'] ?? null;
+
+        $respuesta = match ($pertinente) {
+            true => 'Sí: el cambio climático es una cuestión pertinente para la organización.',
+            false => 'No: el cambio climático no se considera una cuestión pertinente para la organización.',
+            default => 'Sin determinar.',
+        };
+
+        $nodos = [
+            Nodo::de('caja', ['variante' => 'marca'], [
+                Nodo::encabezado(4, '¿Es pertinente el cambio climático?'),
+                Nodo::de('paragraph', [], [Nodo::texto($respuesta, ['bold'])]),
+            ]),
+        ];
+
+        $justificacion = $this->cadena($clima, 'justificacion');
+
+        if ($justificacion !== null) {
+            $nodos[] = Nodo::parrafo($justificacion);
+        }
+
+        return $nodos;
+    }
+
+    /**
+     * El alcance declarado de cada sistema, congelado el día de la aprobación.
+     *
+     * Es la cláusula 4.3, y vive en `sistemas` desde la primera migración: aquí no
+     * se reescribe, se copia. Lo que este documento le añade es la fecha —qué
+     * decía **entonces**—, que es lo que ese campo no tenía.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function alcanceSistemas(ContenidoDocumento $contenido): array
+    {
+        $sistemas = $contenido->extras['alcance'] ?? [];
+
+        if (! is_array($sistemas) || $sistemas === []) {
+            return [Nodo::parrafo(
+                'La organización no tiene ningún sistema activo, así que no hay alcance declarado que recoger.',
+                'vacio',
+            )];
+        }
+
+        $filas = [Nodo::fila([
+            Nodo::cabeceraCelda('Cód.', '0.8in', 'col'),
+            Nodo::cabeceraCelda('Sistema', '2.2in', 'col'),
+            Nodo::cabeceraCelda('Marco', '1.0in', 'col'),
+            Nodo::cabeceraCelda('Alcance declarado', '3.5in', 'col'),
+            Nodo::cabeceraCelda('Exclusiones justificadas', '2.5in', 'col'),
+        ])];
+
+        foreach ($sistemas as $sistema) {
+            if (! is_array($sistema)) {
+                continue;
+            }
+
+            $filas[] = Nodo::fila([
+                Nodo::celdaTexto($this->cadena($sistema, 'codigo') ?? '—', 'codigo'),
+                Nodo::celdaTexto($this->cadena($sistema, 'nombre') ?? '—'),
+                Nodo::celdaTexto($this->cadena($sistema, 'marco') ?? '—', 'codigo'),
+                // «Sin declarar» y no una celda vacía: un alcance en blanco es un
+                // hallazgo, y una celda vacía parece un error de maquetación.
+                Nodo::celdaTexto($this->cadena($sistema, 'alcanceDeclarado') ?? 'Sin declarar'),
+                Nodo::celdaTexto($this->cadena($sistema, 'exclusiones') ?? 'Ninguna declarada'),
             ]);
         }
 

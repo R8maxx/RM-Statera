@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Http\Controllers\ActivoController;
 use App\Http\Controllers\AuditoriaController;
+use App\Http\Controllers\ContextoController;
+use App\Http\Controllers\CuestionContextoController;
 use App\Http\Controllers\DocumentoController;
 use App\Http\Controllers\DocumentoCuerpoController;
 use App\Http\Controllers\EvidenciaController;
@@ -11,6 +13,7 @@ use App\Http\Controllers\ImplantacionController;
 use App\Http\Controllers\MetodologiaRiesgoController;
 use App\Http\Controllers\NoConformidadController;
 use App\Http\Controllers\PanelController;
+use App\Http\Controllers\ParteInteresadaController;
 use App\Http\Controllers\PerfilController;
 use App\Http\Controllers\PlantillaDocumentoController;
 use App\Http\Controllers\RevisionInventarioController;
@@ -55,6 +58,127 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/perfil/dos-factores', [PerfilController::class, 'dosFactores'])
         ->middleware('password.confirm')
         ->name('perfil.dos-factores');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Contexto de la organización (§ 4.1) y partes interesadas (4.2)
+    |--------------------------------------------------------------------------
+    |
+    | Tres verbos y no dos. `contexto.aprobar` está aparte de `contexto.gestionar`
+    | por lo mismo que `riesgos.aceptar` y `documentos.aprobar`: apuntar una
+    | debilidad es trabajo operativo y declarar que ése es el contexto de la
+    | organización —congelándolo, porque aprobar es lo que congela— es de
+    | dirección.
+    |
+    | `/contexto` es la vista de lectura —la matriz del DAFO— y
+    | `/contexto/cuestiones` la tabla donde se trabaja, igual que `/tareas` y
+    | `/tareas/tablero`. Las rutas literales van antes que las de parámetro:
+    | `analisis` y `cuestiones` no son identificadores.
+    |
+    | `scopeBindings()` en todo lo anidado: el scope global tapa el cruce entre
+    | clientes, pero entre dos partes interesadas de la MISMA organización no hay
+    | nada, y sin él `/partes-interesadas/3/requisitos/9` resolvería el requisito 9
+    | fuese o no de la parte 3.
+    |
+    */
+
+    Route::middleware('can:contexto.ver')->group(function (): void {
+        Route::get('/contexto', [ContextoController::class, 'index'])->name('contexto.index');
+
+        Route::get('/contexto/analisis', [ContextoController::class, 'analisis'])->name('contexto.analisis.index');
+
+        Route::get('/contexto/cuestiones', [CuestionContextoController::class, 'index'])
+            ->name('contexto.cuestiones.index');
+
+        Route::get('/contexto/cuestiones/crear', [CuestionContextoController::class, 'create'])
+            ->middleware(['can:contexto.gestionar', ExigirDosFactores::class])
+            ->name('contexto.cuestiones.create');
+
+        Route::get('/contexto/cuestiones/{cuestion}', [CuestionContextoController::class, 'show'])
+            ->name('contexto.cuestiones.show');
+
+        Route::get('/contexto/analisis/{analisis}', [ContextoController::class, 'mostrarAnalisis'])
+            ->name('contexto.analisis.show');
+    });
+
+    Route::middleware(['can:contexto.gestionar', ExigirDosFactores::class])
+        ->scopeBindings()
+        ->group(function (): void {
+            Route::put('/contexto/analisis', [ContextoController::class, 'guardarAnalisis'])
+                ->name('contexto.analisis.update');
+
+            Route::post('/contexto/cuestiones', [CuestionContextoController::class, 'store'])
+                ->name('contexto.cuestiones.store');
+            Route::get('/contexto/cuestiones/{cuestion}/editar', [CuestionContextoController::class, 'edit'])
+                ->name('contexto.cuestiones.edit');
+            Route::put('/contexto/cuestiones/{cuestion}', [CuestionContextoController::class, 'update'])
+                ->name('contexto.cuestiones.update');
+            Route::delete('/contexto/cuestiones/{cuestion}', [CuestionContextoController::class, 'destroy'])
+                ->name('contexto.cuestiones.destroy');
+
+            // Retirar es lo que se usa; borrar es la salida de emergencia.
+            Route::post('/contexto/cuestiones/{cuestion}/retirada', [CuestionContextoController::class, 'retirar'])
+                ->name('contexto.cuestiones.retirar');
+
+            // Antes que `{riesgo}` y que `{tarea}`: «vincular» no es un identificador.
+            Route::post('/contexto/cuestiones/{cuestion}/riesgos', [CuestionContextoController::class, 'vincularRiesgo'])
+                ->name('contexto.cuestiones.riesgos.vincular');
+            Route::delete('/contexto/cuestiones/{cuestion}/riesgos/{riesgo}', [CuestionContextoController::class, 'desvincularRiesgo'])
+                ->name('contexto.cuestiones.riesgos.desvincular');
+
+            Route::post('/contexto/cuestiones/{cuestion}/tareas/vincular', [CuestionContextoController::class, 'vincularTarea'])
+                ->name('contexto.cuestiones.tareas.vincular');
+            Route::post('/contexto/cuestiones/{cuestion}/tareas', [CuestionContextoController::class, 'abrirTarea'])
+                ->name('contexto.cuestiones.tareas.abrir');
+            Route::delete('/contexto/cuestiones/{cuestion}/tareas/{tarea}', [CuestionContextoController::class, 'desvincularTarea'])
+                ->name('contexto.cuestiones.tareas.desvincular');
+        });
+
+    /*
+     * Aprobar va con su permiso y con segundo factor: es lo que numera el
+     * análisis, congela la instantánea y lo vuelve inmutable.
+     */
+    Route::middleware(['can:contexto.aprobar', ExigirDosFactores::class])->group(function (): void {
+        Route::post('/contexto/analisis/{analisis}/aprobacion', [ContextoController::class, 'aprobar'])
+            ->name('contexto.analisis.aprobar');
+    });
+
+    Route::middleware('can:contexto.ver')->group(function (): void {
+        Route::get('/partes-interesadas', [ParteInteresadaController::class, 'index'])
+            ->name('partes-interesadas.index');
+
+        Route::get('/partes-interesadas/crear', [ParteInteresadaController::class, 'create'])
+            ->middleware(['can:contexto.gestionar', ExigirDosFactores::class])
+            ->name('partes-interesadas.create');
+
+        Route::get('/partes-interesadas/{parte}', [ParteInteresadaController::class, 'show'])
+            ->name('partes-interesadas.show');
+    });
+
+    Route::middleware(['can:contexto.gestionar', ExigirDosFactores::class])
+        ->scopeBindings()
+        ->group(function (): void {
+            Route::post('/partes-interesadas', [ParteInteresadaController::class, 'store'])
+                ->name('partes-interesadas.store');
+            Route::get('/partes-interesadas/{parte}/editar', [ParteInteresadaController::class, 'edit'])
+                ->name('partes-interesadas.edit');
+            Route::put('/partes-interesadas/{parte}', [ParteInteresadaController::class, 'update'])
+                ->name('partes-interesadas.update');
+            Route::delete('/partes-interesadas/{parte}', [ParteInteresadaController::class, 'destroy'])
+                ->name('partes-interesadas.destroy');
+
+            Route::post('/partes-interesadas/{parte}/retirada', [ParteInteresadaController::class, 'retirar'])
+                ->name('partes-interesadas.retirar');
+
+            // La lista entera en una petición, como la de comprobación de una tarea.
+            Route::put('/partes-interesadas/{parte}/requisitos', [ParteInteresadaController::class, 'guardarRequisitos'])
+                ->name('partes-interesadas.requisitos.update');
+
+            Route::post('/partes-interesadas/{parte}/requisitos/{requisito}/implantaciones', [ParteInteresadaController::class, 'vincularImplantacion'])
+                ->name('partes-interesadas.implantaciones.vincular');
+            Route::delete('/partes-interesadas/{parte}/requisitos/{requisito}/implantaciones/{implantacion}', [ParteInteresadaController::class, 'desvincularImplantacion'])
+                ->name('partes-interesadas.implantaciones.desvincular');
+        });
 
     /*
     |--------------------------------------------------------------------------

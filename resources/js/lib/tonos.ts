@@ -249,6 +249,52 @@ const tipos: Record<string, Tono> = {
     },
 };
 
+/*
+ * Los cuatro cuadrantes del DAFO (§ 4.1), familia aparte con prefijo propio.
+ *
+ * **Tercera familia semántica y la más profunda de las tres** —L 0.40, croma
+ * 0.16—, porque el hue ya no daba para más: los nueve `tipo:*` ocupan la rueda
+ * entera. Lo que la separa de estados y tipos es la profundidad, no el tono.
+ *
+ * Los hues van por pares, que es lo que hace legible un 2×2: verde y azul lo
+ * favorable, ocre y magenta lo adverso. Ninguno entra en el rojo, que sigue
+ * siendo de lo que ya va mal.
+ *
+ * ΔE 10.7 en el peor par de la familia, el mejor de las tres. Aun así el icono
+ * no es opcional: contra `destructive` la peor pareja queda en 2.7 con
+ * protanopía, y ahí el color no puede cargar solo.
+ */
+const dafo: Record<string, Tono> = {
+    'dafo:fortaleza': {
+        badge: 'bg-dafo-fortaleza-suave text-dafo-fortaleza',
+        punto: null,
+        relleno: 'bg-dafo-fortaleza',
+        tramo: 'bg-dafo-fortaleza',
+        icono: null,
+    },
+    'dafo:oportunidad': {
+        badge: 'bg-dafo-oportunidad-suave text-dafo-oportunidad',
+        punto: null,
+        relleno: 'bg-dafo-oportunidad',
+        tramo: 'bg-dafo-oportunidad',
+        icono: null,
+    },
+    'dafo:debilidad': {
+        badge: 'bg-dafo-debilidad-suave text-dafo-debilidad',
+        punto: null,
+        relleno: 'bg-dafo-debilidad',
+        tramo: 'bg-dafo-debilidad',
+        icono: null,
+    },
+    'dafo:amenaza': {
+        badge: 'bg-dafo-amenaza-suave text-dafo-amenaza',
+        punto: null,
+        relleno: 'bg-dafo-amenaza',
+        tramo: 'bg-dafo-amenaza',
+        icono: null,
+    },
+};
+
 const neutro: Tono = {
     badge: 'bg-muted text-muted-foreground',
     punto: 'bg-muted-foreground',
@@ -257,7 +303,7 @@ const neutro: Tono = {
     icono: null,
 };
 
-const mapa: Record<string, Tono> = { ...estados, ...ordinales, ...prioridades, ...procedencia, ...tipos };
+const mapa: Record<string, Tono> = { ...estados, ...ordinales, ...prioridades, ...procedencia, ...tipos, ...dafo };
 
 for (const [nombre, destino] of Object.entries(alias)) {
     mapa[nombre] = mapa[destino];

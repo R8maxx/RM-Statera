@@ -27,14 +27,37 @@ declare(strict_types=1);
  * La ruta va literal y no por `database_path()`: el dataset de Pest se resuelve
  * antes de que arranque la aplicación, así que ahí todavía no hay contenedor.
  *
+ * **Recorre los subdirectorios**, y antes no. El `glob` original miraba sólo el
+ * primer nivel, así que las factories agrupadas por contexto —`NoConformidad/`,
+ * `Auditoria/`, `Riesgo/`, `Catalogo/`, `Contexto/`— quedaban fuera: cinco de las
+ * diecinueve rutas, y justo las de los módulos más recientes. Un test que existe
+ * para impedir una recaída y que no mira donde se escribe el código nuevo es peor
+ * que no tenerlo, porque da por cubierto lo que no cubre.
+ *
+ * El espacio de nombres sale del directorio, que es lo que hace PSR-4:
+ * `NoConformidad/NoConformidadFactory.php` →
+ * `Database\Factories\NoConformidad\NoConformidadFactory`.
+ *
  * @return list<string>
  */
 function factoriesDelProyecto(): array
 {
-    $ficheros = glob(__DIR__.'/../../../database/factories/*Factory.php') ?: [];
+    $raiz = __DIR__.'/../../../database/factories';
+
+    $ficheros = array_merge(
+        glob($raiz.'/*Factory.php') ?: [],
+        glob($raiz.'/*/*Factory.php') ?: [],
+    );
 
     return array_values(array_map(
-        static fn (string $ruta): string => 'Database\\Factories\\'.basename($ruta, '.php'),
+        static function (string $ruta) use ($raiz): string {
+            $relativa = substr($ruta, strlen($raiz) + 1, -strlen('.php'));
+
+            // Normaliza antes de separar: `glob` devuelve la ruta con el separador
+            // del patrón, y el patrón lo compone `__DIR__`, que en Windows trae
+            // contrabarras.
+            return 'Database\\Factories\\'.str_replace('/', '\\', str_replace('\\', '/', $relativa));
+        },
         $ficheros,
     ));
 }

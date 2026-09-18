@@ -96,6 +96,14 @@ final class TextosDeFabrica
                 No repite la Declaración de Aplicabilidad, que es el documento que dice qué se exige y cómo está cada medida: aquí sólo está lo que falta.
                 MD,
 
+            TipoDocumento::AnalisisContexto => <<<'MD'
+                Este documento recoge el análisis del contexto de la organización: las cuestiones internas y externas pertinentes para la seguridad de la información —cláusula 4.1 de ISO/IEC 27001:2022— y las partes interesadas con sus requisitos —cláusula 4.2—, junto con el alcance declarado de cada sistema —cláusula 4.3—.
+
+                Recoge además, como exige la enmienda 1:2024, la determinación de si el cambio climático es una cuestión pertinente para la organización.
+
+                Refleja la revisión aprobada en la fecha que figura en la portada. Lo que aquí se imprime quedó congelado ese día: si el contexto ha cambiado desde entonces, lo recogerá la revisión siguiente.
+                MD,
+
             // No llegan aquí: `para()` desvía los redactados a `redactado()`
             // antes, porque su introducción no es la de una declaración.
             TipoDocumento::Politica,
@@ -168,6 +176,7 @@ final class TextosDeFabrica
         $objeto = match ($tipo) {
             TipoDocumento::SoaIso, TipoDocumento::DdaEns => 'El objeto de este documento es dejar constancia, ante la dirección y ante un auditor, de qué requisitos le son exigibles al sistema y en qué situación está cada uno.',
             TipoDocumento::PlanAdecuacionEns => 'El objeto de este documento es dejar constancia, ante la dirección y ante un auditor, de qué le queda al sistema para cumplir el Esquema Nacional de Seguridad, en qué plazo se prevé conseguirlo y quién responde de cada medida.',
+            TipoDocumento::AnalisisContexto => 'El objeto de este documento es dejar constancia de cuáles son las cuestiones internas y externas pertinentes para la seguridad de la información de la organización, quiénes son sus partes interesadas y qué exige o espera cada una. Es lo que piden las cláusulas 4.1 y 4.2 de ISO/IEC 27001:2022.',
 
             // No llegan aquí: `para()` desvía los redactados antes.
             TipoDocumento::Politica,
@@ -175,10 +184,22 @@ final class TextosDeFabrica
             TipoDocumento::Procedimiento => '',
         };
 
-        return $objeto."\n\n"
-            .'El alcance es el del sistema identificado en la portada, con el alcance declarado y las '
-            .'exclusiones que allí figuran. Los activos, las evidencias y las tareas que lo sostienen '
-            .'se gestionan en la herramienta y no se reproducen aquí.';
+        /*
+         * El párrafo del alcance es de los documentos que cuelgan de un sistema.
+         * El análisis del contexto es de la organización entera y recoge el
+         * alcance **de todos** sus sistemas en un apartado propio: heredarlo aquí
+         * dejaría impreso «el sistema identificado en la portada» en un documento
+         * que no tiene ninguno.
+         */
+        $alcance = $tipo === TipoDocumento::AnalisisContexto
+            ? 'El ámbito es la organización entera, no un sistema concreto. El alcance declarado de cada '
+                .'sistema del que la organización responde figura en su propio apartado, tal como estaba el '
+                .'día en que se aprobó esta revisión.'
+            : 'El alcance es el del sistema identificado en la portada, con el alcance declarado y las '
+                .'exclusiones que allí figuran. Los activos, las evidencias y las tareas que lo sostienen '
+                .'se gestionan en la herramienta y no se reproducen aquí.';
+
+        return $objeto."\n\n".$alcance;
     }
 
     private static function metodologia(TipoDocumento $tipo): string
@@ -187,6 +208,7 @@ final class TextosDeFabrica
             TipoDocumento::SoaIso => 'Los controles del Anexo A se consideran aplicables de partida. Excluir uno exige registrar el motivo, y esa justificación se imprime en el apartado de controles excluidos: sin motivo, la herramienta no permite la exclusión.',
             TipoDocumento::DdaEns => 'El conjunto de medidas exigibles se deriva de la categoría del sistema, que a su vez es el máximo de los niveles asignados a las cinco dimensiones de seguridad. Ninguna medida se marca a mano.',
             TipoDocumento::PlanAdecuacionEns => 'El conjunto de medidas exigibles se deriva de la categoría del sistema, y de él entran en este plan las que no figuran como implantadas. La fecha objetivo y el responsable son los que consten en cada medida; el trabajo asociado son las tareas abiertas vinculadas a ella.',
+            TipoDocumento::AnalisisContexto => 'Las cuestiones se clasifican en los cuatro cuadrantes de un análisis DAFO. El ámbito —interno o externo— y el signo —a favor o en contra— no se eligen: se derivan del cuadrante, que es lo que define la matriz.',
 
             // No llegan aquí: `SeccionNarrativa::aplicaA()` no ofrece este hueco
             // a un documento redactado, que no deriva nada de ninguna tabla.
@@ -195,8 +217,18 @@ final class TextosDeFabrica
             TipoDocumento::Procedimiento => '',
         };
 
-        return $derivacion."\n\n"
-            .'El estado de implantación y el nivel de madurez los mantiene la persona responsable de cada requisito, y cada cambio queda registrado con su fecha y su autor.';
+        /*
+         * El segundo párrafo habla de estados de implantación, que en el análisis
+         * del contexto no existen. Lo que se mantiene y se revisa aquí es otra
+         * cosa: el propio análisis, entero y con su fecha.
+         */
+        $mantenimiento = $tipo === TipoDocumento::AnalisisContexto
+            ? 'El contexto se revisa entero, no cuestión a cuestión: cada revisión se aprueba con su fecha '
+                .'y su firma, y desde ese momento deja de poder modificarse. Lo que entra y lo que sale de '
+                .'una revisión a la siguiente queda registrado con el motivo de cada baja.'
+            : 'El estado de implantación y el nivel de madurez los mantiene la persona responsable de cada requisito, y cada cambio queda registrado con su fecha y su autor.';
+
+        return $derivacion."\n\n".$mantenimiento;
     }
 
     /**
@@ -221,6 +253,12 @@ final class TextosDeFabrica
                 Una medida pendiente por fila, agrupadas por el nodo del que cuelgan y en el orden del Anexo II. «Trabajo planificado» son las tareas **abiertas** vinculadas a la medida, con su plazo; las cerradas y las descartadas no figuran.
 
                 **El coste de la columna y el coste total no suman lo mismo, y es correcto.** Una misma tarea puede hacer avanzar varias medidas a la vez: la columna se la imputa a cada una de ellas y el total la cuenta una sola vez.
+                MD,
+
+            TipoDocumento::AnalisisContexto => <<<'MD'
+                Las cuestiones van agrupadas por cuadrante: fortalezas y debilidades son **internas** —están en manos de la organización— y oportunidades y amenazas **externas**. La columna «Riesgos» indica los riesgos del análisis de riesgos que declaran venir de esa cuestión, que es lo que pide la cláusula 6.1.1 cuando dice que la apreciación de riesgos se hace considerando el contexto.
+
+                En la tabla de partes interesadas, la naturaleza de cada requisito dice con qué fuerza ata: lo **legal** y lo **contractual** obligan, y una **expectativa** no. Una expectativa sin medida detrás no es una laguna.
                 MD,
 
             // No llegan aquí: un documento redactado no tiene tabla que explicar.

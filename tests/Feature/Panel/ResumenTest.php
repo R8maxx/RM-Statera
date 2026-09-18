@@ -7,6 +7,8 @@ use App\Domain\Autorizacion\Enums\Rol;
 use App\Domain\Catalogo\Enums\TipoRequisito;
 use App\Domain\Catalogo\Models\Marco;
 use App\Domain\Catalogo\Models\Requisito;
+use App\Domain\Contexto\Enums\TipoCuestion;
+use App\Domain\Contexto\Models\CuestionContexto;
 use App\Domain\Implantacion\Models\Implantacion;
 use App\Domain\NoConformidad\Enums\EstadoNoConformidad;
 use App\Domain\NoConformidad\Models\NoConformidad;
@@ -242,4 +244,53 @@ it('no manda las no conformidades a quien no puede verlas', function (): void {
     $this->actingAs($usuario->fresh())
         ->get('/panel')
         ->assertInertia(fn (AssertableInertia $pagina) => $pagina->where('noConformidades', null));
+});
+
+/*
+|--------------------------------------------------------------------------
+| El contexto de la organización (§ 4.1)
+|--------------------------------------------------------------------------
+|
+| Es la quinta tarjeta y la que contesta a la pregunta de antes de todas: de qué
+| entorno estamos hablando. Lo que se clava aquí es que la cifra que importa es
+| **desde cuándo** —un análisis de hace tres años ya no describe a nadie— y que el
+| reparto del DAFO enseña los cuatro cuadrantes, vacíos incluidos.
+|
+*/
+
+it('lleva el contexto, con su reparto del DAFO y lo que falta por atar', function (): void {
+    ['usuario' => $usuario] = escenarioDePanel();
+
+    CuestionContexto::factory()->deTipo(TipoCuestion::Amenaza)->count(2)->create();
+    CuestionContexto::factory()->deTipo(TipoCuestion::Fortaleza)->create();
+
+    $this->actingAs($usuario)
+        ->get('/panel')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->where('contexto.cuestiones', 3)
+            // Las dos amenazas, que son las adversas sin riesgo vinculado.
+            ->where('contexto.sinRiesgo', 2)
+            // Sin análisis aprobado todavía: es el estado de partida y se dice.
+            ->where('contexto.analisisVigente', null)
+            // Los cuatro cuadrantes, incluido el que está a cero: un DAFO sin
+            // oportunidades es justo lo que hay que poder ver.
+            ->has('contexto.porTipo', 4));
+});
+
+it('no manda el contexto a quien no puede verlo', function (): void {
+    ['usuario' => $usuario] = escenarioDePanel();
+
+    CuestionContexto::factory()->create();
+
+    // Al rol y no al usuario, por lo mismo que en las no conformidades:
+    // `revokePermissionTo` sobre la persona no quita lo que hereda del rol.
+    Role::query()
+        ->where('name', Rol::ResponsableSeguridad->value)
+        ->where('organizacion_id', $usuario->organizacion_id)
+        ->firstOrFail()
+        ->revokePermissionTo(Permiso::ContextoVer->value);
+
+    $this->actingAs($usuario->fresh())
+        ->get('/panel')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina->where('contexto', null));
 });

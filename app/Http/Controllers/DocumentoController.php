@@ -543,6 +543,13 @@ class DocumentoController extends Controller
                 $version->total_requisitos,
             ),
 
+            /*
+             * El análisis del contexto es calculado y aun así no tiene tabla de
+             * requisitos: lo que cuenta son cuestiones y partes interesadas, y esas
+             * cifras están en la instantánea, no en las tres columnas
+             * denormalizadas. Decir «0 requisitos» sería peor que no decir nada.
+             */
+            TipoDocumento::AnalisisContexto,
             TipoDocumento::Politica,
             TipoDocumento::Norma,
             TipoDocumento::Procedimiento => null,
