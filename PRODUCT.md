@@ -52,7 +52,7 @@ Cuatro cosas que una hoja de cálculo no hace, y que un gestor de cumplimiento g
 
 **Superficies construidas**, todas tras el login:
 
-`/panel` · `/sistemas` (+ valoración) · `/implantaciones` · `/activos` (+ etiquetas QR) · `/evidencias` · `/tareas` (+ tablero, calendario) · `/riesgos` (+ metodología) · `/documentos` (+ plantillas, cuerpo editable, versiones) · `/revisiones` · `/perfil` (+ segundo factor)
+`/panel` · `/contexto` (+ análisis, cuestiones) · `/partes-interesadas` · `/sistemas` (+ valoración) · `/implantaciones` · `/activos` (+ etiquetas QR) · `/evidencias` · `/tareas` (+ tablero, calendario) · `/riesgos` (+ metodología) · `/auditorias` (+ checklist) · `/no-conformidades` · `/indicadores` · `/documentos` (+ plantillas, cuerpo editable, versiones) · `/revisiones` · `/perfil` (+ segundo factor)
 
 **Entregables que salen de la herramienta:** la SoA de ISO y la DdA del ENS, en PDF/A-3b con su huella, almacenados y no regenerados; más una copia de trabajo en `.docx` construida desde la instantánea de la versión, nunca desde una consulta nueva.
 
@@ -62,9 +62,11 @@ Cuatro cosas que una hoja de cálculo no hace, y que un gestor de cumplimiento g
 
 ## Capabilities and Constraints
 
-**Construido** (§ de la especificación): catálogo normativo importable y versionado, motor de categorización ENS, implantaciones con transiciones y recálculo, capa de recursos genérica, inventario de activos con grafo de dependencias (4.2), documentos con Gotenberg y narrativa editable (4.5), evidencias (4.6), plan de acción con tablero y calendario (4.7, 4.16 parcial), análisis de riesgos con MAGERIT (4.3).
+**Construido** (§ de la especificación): catálogo normativo importable y versionado, motor de categorización ENS, implantaciones con transiciones y recálculo, capa de recursos genérica, contexto de la organización con DAFO y partes interesadas (4.1), inventario de activos con grafo de dependencias (4.2), análisis de riesgos con MAGERIT (4.3), documentos con Gotenberg, flujo de aprobación y narrativa editable (4.5), evidencias (4.6), plan de acción con tablero y calendario (4.7, 4.16 parcial), auditorías con checklist y hallazgos (4.12), no conformidades con verificación de eficacia (4.13), indicadores y mediciones con serie histórica (4.14).
 
-**Pendiente de los 19 módulos:** contexto y alcance (4.1), personas (4.8), proveedores (4.9), incidentes (4.10), continuidad (4.11), auditorías (4.12), no conformidades (4.13), métricas (4.14), revisión por la dirección (4.15), conformidad (4.17), informes y exportación (4.18), usuarios y permisos como módulo (4.19).
+**Pendiente de los 19 módulos:** personas (4.8), proveedores (4.9), incidentes (4.10), continuidad (4.11), revisión por la dirección (4.15), el calendario de obligaciones completo (4.16), dos tercios del flujo de conformidad (4.17) e informes y exportación (4.18).
+
+**Y tres huecos que no son un módulo de la lista**, anotados porque son los que bloquean al 4.15: los **objetivos de seguridad** (cláusula 6.2), las **oportunidades de mejora** (10.1, que hoy sólo existen dentro de una auditoría) y la **comunicación** (7.4). Los tres tienen requisito en el catálogo y su implantación esperando, y ninguno tiene dónde escribirse — que es exactamente lo que le pasaba al 4.1 hasta que se construyó.
 
 **Fuera de alcance, y sigue estándolo:** facturación y suscripciones, registro self-service, panel de superadministración, white-labeling, integraciones con SIEM o escáneres, aplicación móvil. NIS2 no se carga todavía, pero el modelo de marcos tiene que admitirla sin cambios estructurales.
 

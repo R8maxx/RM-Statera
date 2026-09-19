@@ -109,6 +109,15 @@ enum Permiso: string
     case NoConformidadesGestionar = 'no_conformidades.gestionar';
     case NoConformidadesVerificar = 'no_conformidades.verificar';
 
+    /*
+     * El seguimiento y la medición de la cláusula 9.1. Dos verbos y no tres:
+     * aquí no hay nada que firmar —una medición es un dato, no una decisión—, y
+     * el verbo de supervisión de este ciclo llegará con los objetivos de la 6.2,
+     * que sí se aprueban.
+     */
+    case IndicadoresVer = 'indicadores.ver';
+    case IndicadoresGestionar = 'indicadores.gestionar';
+
     case DocumentosVer = 'documentos.ver';
     case DocumentosGenerar = 'documentos.generar';
     case DocumentosAprobar = 'documentos.aprobar';
@@ -141,6 +150,8 @@ enum Permiso: string
             self::NoConformidadesVer => 'Ver las no conformidades y su tratamiento',
             self::NoConformidadesGestionar => 'Abrir no conformidades, analizarlas y vincular acciones correctivas',
             self::NoConformidadesVerificar => 'Verificar la eficacia de una acción correctiva',
+            self::IndicadoresVer => 'Ver los indicadores y su serie histórica',
+            self::IndicadoresGestionar => 'Definir indicadores y registrar mediciones',
             self::DocumentosVer => 'Ver los documentos y descargar sus versiones',
             self::DocumentosGenerar => 'Crear documentos, generar borradores y mandarlos a revisión',
             self::DocumentosAprobar => 'Aprobar documentos y entregar la versión firmada',

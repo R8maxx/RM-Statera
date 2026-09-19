@@ -10,6 +10,7 @@ use App\Http\Controllers\DocumentoController;
 use App\Http\Controllers\DocumentoCuerpoController;
 use App\Http\Controllers\EvidenciaController;
 use App\Http\Controllers\ImplantacionController;
+use App\Http\Controllers\IndicadorController;
 use App\Http\Controllers\MetodologiaRiesgoController;
 use App\Http\Controllers\NoConformidadController;
 use App\Http\Controllers\PanelController;
@@ -708,6 +709,56 @@ Route::middleware('auth')->group(function (): void {
         Route::put('/documentos/{documento}/cuerpo', [DocumentoCuerpoController::class, 'update'])
             ->name('documentos.cuerpo.update');
     });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Indicadores y mediciones (§ 4.14, cláusula 9.1)
+    |--------------------------------------------------------------------------
+    |
+    | Dos verbos y no tres. En este módulo no hay nada que firmar: una medición
+    | es un dato que se toma, no una decisión que alguien aprueba. El verbo de
+    | supervisión de este ciclo llega con los objetivos de la 6.2, que sí se
+    | comprometen y sí se aprueban.
+    |
+    | `scopeBindings()` en lo que cuelga de `{indicador}`: la medición de otro
+    | indicador no se borra desde éste.
+    |
+    */
+
+    Route::middleware('can:indicadores.ver')->group(function (): void {
+        Route::get('/indicadores', [IndicadorController::class, 'index'])
+            ->name('indicadores.index');
+
+        // Antes que `{indicador}`, para que `crear` no se lea como un id.
+        Route::get('/indicadores/crear', [IndicadorController::class, 'create'])
+            ->middleware(['can:indicadores.gestionar', ExigirDosFactores::class])
+            ->name('indicadores.create');
+
+        Route::get('/indicadores/{indicador}', [IndicadorController::class, 'show'])
+            ->name('indicadores.show');
+    });
+
+    Route::middleware(['can:indicadores.gestionar', ExigirDosFactores::class])
+        ->scopeBindings()
+        ->group(function (): void {
+            Route::post('/indicadores', [IndicadorController::class, 'store'])
+                ->name('indicadores.store');
+            Route::get('/indicadores/{indicador}/editar', [IndicadorController::class, 'edit'])
+                ->name('indicadores.edit');
+            Route::put('/indicadores/{indicador}', [IndicadorController::class, 'update'])
+                ->name('indicadores.update');
+            Route::delete('/indicadores/{indicador}', [IndicadorController::class, 'destroy'])
+                ->name('indicadores.destroy');
+
+            // El mismo trabajo que hace el comando de las 07:30, a mano.
+            Route::post('/indicadores/{indicador}/medicion', [IndicadorController::class, 'medir'])
+                ->name('indicadores.medir');
+
+            Route::post('/indicadores/{indicador}/mediciones', [IndicadorController::class, 'registrarMedicion'])
+                ->name('indicadores.mediciones.store');
+            Route::delete('/indicadores/{indicador}/mediciones/{medicion}', [IndicadorController::class, 'eliminarMedicion'])
+                ->name('indicadores.mediciones.destroy');
+        });
 
     /*
     |--------------------------------------------------------------------------

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories\Contexto;
 
+use App\Domain\Contexto\AnalisisEnCurso;
 use App\Domain\Contexto\Enums\MateriaCuestion;
 use App\Domain\Contexto\Enums\TipoCuestion;
 use App\Domain\Contexto\Models\AnalisisContexto;
@@ -14,9 +15,18 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  * Cuestiones del DAFO sintéticas. Ni una real de ningún cliente.
  *
  * Nace **vigente**: sin `analisis_baja_id` y sin motivo, que el `CHECK` acopla en
- * las dos direcciones. El análisis de alta se crea si no se le pasa uno, porque la
- * foránea es obligatoria — una cuestión sin saber desde cuándo existe no es una
- * cuestión del contexto, es una nota.
+ * las dos direcciones.
+ *
+ * **El análisis de alta se resuelve con `AnalisisEnCurso`, no acuñando uno nuevo.**
+ * Es la misma regla que el producto: hay un borrador como mucho por organización
+ * —lo garantiza el índice único parcial `analisis_contexto_borrador_unico`— y el
+ * primer gesto de escritura lo estrena. Con `AnalisisContextoFactory::new()` en la
+ * definición, la **segunda** cuestión de un test acuñaba un segundo borrador y
+ * moría con una violación de índice único que no menciona la palabra «análisis»;
+ * y aunque la base lo hubiera admitido, un DAFO repartido entre tres borradores no
+ * es un escenario que pueda darse por la interfaz, así que el test no probaría
+ * nada. Pasar `analisis_alta_id` a mano sigue valiendo —ahí es una decisión
+ * explícita de quien escribe el test— y entonces el borrador ni se estrena.
  *
  * `organizacion_id` no se declara: lo rellena `PerteneceAOrganizacion`.
  *
@@ -39,7 +49,7 @@ class CuestionContextoFactory extends Factory
             'materia' => fake()->randomElement(MateriaCuestion::cases())->value,
             'es_climatica' => false,
             'responsable_id' => null,
-            'analisis_alta_id' => AnalisisContextoFactory::new(),
+            'analisis_alta_id' => fn (): int => app(AnalisisEnCurso::class)->borradorObligatorio()->id,
             'analisis_baja_id' => null,
             'motivo_baja' => null,
         ];

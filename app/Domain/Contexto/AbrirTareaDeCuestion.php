@@ -53,7 +53,10 @@ final class AbrirTareaDeCuestion
             ], $autor);
 
             $cuestion->tareas()->syncWithoutDetaching([
-                $tarea->id => ['vinculada_por_id' => $autor?->id],
+                $tarea->id => [
+                    'organizacion_id' => $cuestion->organizacion_id,
+                    'vinculada_por_id' => $autor?->id,
+                ],
             ]);
 
             return $tarea->refresh();
@@ -64,7 +67,10 @@ final class AbrirTareaDeCuestion
     public function vincular(CuestionContexto $cuestion, Tarea $tarea, ?User $usuario = null): void
     {
         $cuestion->tareas()->syncWithoutDetaching([
-            $tarea->id => ['vinculada_por_id' => $usuario?->id],
+            $tarea->id => [
+                'organizacion_id' => $cuestion->organizacion_id,
+                'vinculada_por_id' => $usuario?->id,
+            ],
         ]);
     }
 

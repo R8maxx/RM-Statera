@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories\Contexto;
 
+use App\Domain\Contexto\AnalisisEnCurso;
 use App\Domain\Contexto\Enums\Ambito;
 use App\Domain\Contexto\Enums\TipoParteInteresada;
 use App\Domain\Contexto\Models\AnalisisContexto;
@@ -16,6 +17,10 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  * Nace **vigente**, con el ámbito coherente con el tipo aunque la columna no lo
  * exija: una parte de prueba con un regulador marcado «interno» no rompe nada y
  * ensucia cualquier test que mire el reparto por ámbito.
+ *
+ * El análisis de alta se resuelve con `AnalisisEnCurso` y por el mismo motivo que
+ * en `CuestionContextoFactory`: hay un borrador como mucho, y acuñar uno por fila
+ * revienta contra el índice único parcial en cuanto un test crea la segunda.
  *
  * `organizacion_id` no se declara: lo rellena `PerteneceAOrganizacion`.
  *
@@ -39,7 +44,7 @@ class ParteInteresadaFactory extends Factory
             'ambito' => ($tipo->ambitoSugerido() ?? Ambito::Externo)->value,
             'descripcion' => fake()->sentence(),
             'responsable_id' => null,
-            'analisis_alta_id' => AnalisisContextoFactory::new(),
+            'analisis_alta_id' => fn (): int => app(AnalisisEnCurso::class)->borradorObligatorio()->id,
             'analisis_baja_id' => null,
             'motivo_baja' => null,
         ];

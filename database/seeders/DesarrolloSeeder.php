@@ -53,6 +53,13 @@ use App\Domain\Implantacion\CambiarEstado;
 use App\Domain\Implantacion\Enums\EstadoImplantacion;
 use App\Domain\Implantacion\GeneradorImplantaciones;
 use App\Domain\Implantacion\Models\Implantacion;
+use App\Domain\Metrica\Enums\CalculoIndicador;
+use App\Domain\Metrica\Enums\OrigenMedicion;
+use App\Domain\Metrica\Enums\Periodicidad;
+use App\Domain\Metrica\Enums\SentidoIndicador;
+use App\Domain\Metrica\Enums\UnidadIndicador;
+use App\Domain\Metrica\RegistrarIndicador;
+use App\Domain\Metrica\RegistrarMedicion;
 use App\Domain\NoConformidad\AbrirAccionCorrectiva;
 use App\Domain\NoConformidad\CambiarEstadoNoConformidad;
 use App\Domain\NoConformidad\Enums\EstadoNoConformidad;
@@ -185,7 +192,117 @@ class DesarrolloSeeder extends Seeder
         // dos, y sembrarlo antes dejaría el DAFO suelto, que es justo lo que este
         // módulo existe para evitar.
         $this->contextoDeEjemplo($organizacion);
+        // El último: mide sobre todo lo anterior, así que sembrarlo antes daría
+        // series de ceros que no enseñan nada.
+        $this->indicadoresDeEjemplo($sistema);
         $this->documentoDeEjemplo($sistema);
+    }
+
+    /**
+     * El cuadro de indicadores: cuatro, y cada uno enseña una cosa distinta.
+     *
+     * Mismo criterio que los cuatro riesgos y las tres no conformidades: un
+     * seeder que siembra cuatro filas iguales no enseña el módulo, enseña la
+     * tabla. Aquí hay **uno en objetivo con serie**, para que la gráfica tenga
+     * algo que dibujar; **uno fuera de objetivo**, que es el ámbar; **uno
+     * manual y nunca medido**, que es la promesa sin cumplir; y **uno con el
+     * periodo vencido**, que es el único rojo del módulo y la cláusula 9.1 sin
+     * hacer.
+     *
+     * Las series se siembran **hacia atrás desde el periodo cerrado**, con
+     * `RegistrarMedicion`, que es el mismo camino que usa el comando: sembrar
+     * filas a pelo se saltaría el congelado del objetivo y la serie mentiría
+     * sobre contra qué se juzgó cada trimestre.
+     *
+     * Datos sintéticos, como todo lo demás.
+     */
+    private function indicadoresDeEjemplo(Sistema $sistema): void
+    {
+        $registrar = app(RegistrarIndicador::class);
+        $medir = app(RegistrarMedicion::class);
+
+        // --- El que va bien, con cuatro trimestres detrás -------------------
+        $cobertura = $registrar([
+            'codigo' => 'IND-01',
+            'nombre' => 'Medidas del Anexo II implantadas',
+            'descripcion' => 'El avance de la adecuación al ENS sobre lo que se le exige al sistema.',
+            'origen' => OrigenMedicion::Calculado->value,
+            'calculo' => CalculoIndicador::CumplimientoImplantado->value,
+            'marco_id' => $sistema->marco_id,
+            'unidad' => UnidadIndicador::Porcentaje->value,
+            'sentido' => SentidoIndicador::MayorMejor->value,
+            'periodicidad' => Periodicidad::Trimestral->value,
+            'objetivo' => 60,
+        ]);
+
+        // Cuatro trimestres hacia atrás con una progresión creíble: una serie de
+        // un punto no es una serie, y la gráfica es la mitad del módulo.
+        foreach ([[4, 18.0], [3, 27.0], [2, 46.0], [1, 63.0]] as [$atras, $valor]) {
+            [$inicio, $fin] = Periodicidad::Trimestral->periodoDe(Carbon::today()->subMonths($atras * 3));
+
+            $medir->manual($cobertura, $inicio, $fin, [
+                'valor' => $valor,
+                'numerador' => (int) round($valor * 52 / 100),
+                'denominador' => 52,
+            ]);
+        }
+
+        // --- El que se queda corto, que es el ámbar ------------------------
+        $evidencias = $registrar([
+            'codigo' => 'IND-02',
+            'nombre' => 'Evidencias caducadas',
+            'descripcion' => 'Pruebas que ya no prueban: el requisito sigue diciendo «implantado» y la prueba ha vencido.',
+            'origen' => OrigenMedicion::Calculado->value,
+            'calculo' => CalculoIndicador::EvidenciasCaducadas->value,
+            'unidad' => UnidadIndicador::Recuento->value,
+            'sentido' => SentidoIndicador::MenorMejor->value,
+            'periodicidad' => Periodicidad::Trimestral->value,
+            'objetivo' => 0,
+        ]);
+
+        [$inicio, $fin] = Periodicidad::Trimestral->periodoAnteriorA(Carbon::today());
+        $medir->calculada($evidencias, $inicio, $fin);
+
+        /*
+         * --- El manual y nunca medido -------------------------------------
+         *
+         * Enseña lo que la 9.1 pide y esta base de datos no sabe contestar: sin
+         * el módulo de personas (§ 4.8) no hay de dónde sacar el porcentaje de
+         * personal formado, y el indicador manual es lo que impide que eso se
+         * quede sin declarar.
+         */
+        $registrar([
+            'codigo' => 'IND-03',
+            'nombre' => 'Personal con formación en seguridad al día',
+            'descripcion' => 'Lo exige mp.per.4 del ENS y la cláusula 7.2 de ISO. La cifra no sale de Statera.',
+            'origen' => OrigenMedicion::Manual->value,
+            'formula_o_fuente' => 'Recuento sobre la lista de asistencia firmada de la formación anual, dividido por la plantilla a 31 de diciembre.',
+            'unidad' => UnidadIndicador::Porcentaje->value,
+            'sentido' => SentidoIndicador::MayorMejor->value,
+            'periodicidad' => Periodicidad::Anual->value,
+            'objetivo' => 95,
+        ]);
+
+        /*
+         * --- El que se saltó su periodo, que es el rojo --------------------
+         *
+         * Mensual y sin ninguna medición: el periodo cerrado pasó sin cifra, y
+         * eso es la cláusula 9.1 sin hacer. Es el aviso que hay que ver en el
+         * panel el primer día, igual que el residual sin respaldo en riesgos.
+         */
+        $registrar([
+            'codigo' => 'IND-04',
+            'nombre' => 'Tareas del plan de acción fuera de plazo',
+            'descripcion' => 'Trabajo comprometido que no se hizo a tiempo.',
+            'origen' => OrigenMedicion::Calculado->value,
+            'calculo' => CalculoIndicador::TareasVencidas->value,
+            'unidad' => UnidadIndicador::Recuento->value,
+            'sentido' => SentidoIndicador::MenorMejor->value,
+            'periodicidad' => Periodicidad::Mensual->value,
+            'objetivo' => 2,
+        ]);
+
+        $this->command->info('Indicadores: 4 declarados, 1 con serie de 4 trimestres, 1 sin medir y 1 con el periodo vencido.');
     }
 
     /**

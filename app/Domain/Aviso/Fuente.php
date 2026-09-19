@@ -9,11 +9,18 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 /**
  * De qué es un vencimiento.
  *
- * Hoy son dos, y § 4.16 —el calendario de obligaciones— tiene una lista larga
- * esperando: revisión por la dirección, auditoría interna, reevaluación de
- * riesgos, formación, pruebas de continuidad, reevaluación de proveedores, el
- * informe INES. Todas se añaden aquí y en `CalendarioVencimientos`, y ni el
- * correo ni el calendario tienen que enterarse.
+ * § 4.16 —el calendario de obligaciones— tiene una lista larga esperando:
+ * revisión por la dirección, auditoría interna, reevaluación de riesgos,
+ * formación, pruebas de continuidad, reevaluación de proveedores, el informe
+ * INES y el periodo de medición de un indicador. Todas se añaden aquí y en
+ * `CalendarioVencimientos`, y ni el correo ni el calendario tienen que
+ * enterarse.
+ *
+ * **Sin recuento en la cabecera, a propósito.** Decía «hoy son dos» y pasó a ser
+ * falso el día que el § 4.5 añadió `Fuente::Documento`, sin que nadie lo notara
+ * —el mismo descuido que la limitación del plan de adecuación, que enumeraba las
+ * fuentes que el calendario sí recoge y se quedó corta a la vez—. Un recuento
+ * dentro de un comentario envejece cada vez que el producto crece; `cases()` no.
  */
 #[TypeScript]
 enum Fuente: string

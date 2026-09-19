@@ -39,7 +39,10 @@ final class VincularRiesgoACuestion
         // `syncWithoutDetaching` y no `attach`: pulsar dos veces no puede reventar
         // con un error de índice único que hable de una restricción de la base.
         $cuestion->riesgos()->syncWithoutDetaching([
-            $riesgo->id => ['vinculada_por_id' => $usuario?->id],
+            $riesgo->id => [
+                'organizacion_id' => $cuestion->organizacion_id,
+                'vinculada_por_id' => $usuario?->id,
+            ],
         ]);
     }
 

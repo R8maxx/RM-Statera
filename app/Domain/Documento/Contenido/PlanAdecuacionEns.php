@@ -127,9 +127,20 @@ final class PlanAdecuacionEns extends DocumentoCalculado
                 .'capacidad, no ordena las medidas por dependencia entre ellas y no exige que toda '
                 .'medida pendiente tenga fecha o responsable.',
 
+                /*
+                 * Esta frase enumeraba lo que el calendario SÍ recoge —«tareas y
+                 * evidencias»— y se quedó corta en cuanto el § 4.5 añadió
+                 * `Fuente::Documento`: pasó a ser falsa en el PDF que se le
+                 * entrega al auditor, que es el fallo que este proyecto ya ha
+                 * pagado cinco veces. Una enumeración dentro de una limitación
+                 * envejece cada vez que el producto crece, así que se quita: lo
+                 * que hay que declarar es lo que **falta**, que es estable.
+                 * Mismo tratamiento que recibió la justificación de inclusión de
+                 * la SoA cuando empezó a imprimir un origen más.
+                 */
                 'El **calendario de obligaciones** (§ 4.16) todavía no incluye las fechas objetivo de '
-                .'las medidas: el aviso diario y la vista de mes recogen el vencimiento de tareas y la '
-                .'caducidad de evidencias, pero no lo que aquí figura como fuera de plazo.',
+                .'las medidas, así que lo que aquí figura como fuera de plazo no aparece ni en el '
+                .'aviso diario ni en la vista de mes.',
 
                 ...$this->limitacionesBase($version, $filas),
             ],

@@ -6,6 +6,7 @@ import EstadoVacio from '@/components/EstadoVacio.vue';
 import PrimerosPasos from '@/components/PrimerosPasos.vue';
 import ResumenInventarioPanelCard from '@/components/activo/ResumenInventarioPanel.vue';
 import ResumenContextoPanel from '@/components/contexto/ResumenContextoPanel.vue';
+import ResumenMetricasPanel from '@/components/metrica/ResumenMetricasPanel.vue';
 import ResumenNoConformidadesPanel from '@/components/no-conformidad/ResumenNoConformidadesPanel.vue';
 import ResumenPlanPanel from '@/components/tarea/ResumenPlanPanel.vue';
 import GraficaBarras, { type Barra } from '@/components/grafica/GraficaBarras.vue';
@@ -52,6 +53,7 @@ const props = defineProps<{
      */
     noConformidades: App.Http.Resources.Panel.ResumenNoConformidadesPanel | null;
     contexto: App.Http.Resources.Panel.ResumenContextoPanel | null;
+    desempeno: App.Http.Resources.Panel.ResumenMetricasPanel | null;
 }>();
 
 const { variantesEntrada, variantesEscalonado } = useMovimientoReducido();
@@ -334,6 +336,19 @@ const metricas = computed(() => [
                 :variants="variantesEntrada"
             >
                 <ResumenContextoPanel :resumen="contexto" />
+            </motion.section>
+
+            <!-- ── Desempeño ──────────────────────────────────────────────── -->
+            <!--
+                La sexta, y la última que llegó. Un indicador trimestral cambia
+                cuatro veces al año, así que arriba sigue yendo lo que se mira a
+                diario. Con el cuadro vacío no se pinta, como las demás.
+            -->
+            <motion.section
+                v-if="desempeno && desempeno.total > 0"
+                :variants="variantesEntrada"
+            >
+                <ResumenMetricasPanel :resumen="desempeno" />
             </motion.section>
 
             <!-- ── Por marco ──────────────────────────────────────────────── -->

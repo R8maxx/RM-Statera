@@ -5,6 +5,7 @@ import {
     ClipboardXIcon,
     CompassIcon,
     FileTextIcon,
+    GaugeIcon,
     LayoutDashboardIcon,
     LayoutTemplateIcon,
     ListTodoIcon,
@@ -103,6 +104,22 @@ export const navegacion: GrupoNavegacion[] = [
                 // `nc` y `10.2` son lo que se teclea sabiendo de qué va; «causa
                 // raíz» y «eficacia» son lo que se busca estando ya dentro.
                 alias: ['nc', 'acciones correctivas', 'causa raíz', 'eficacia', '10.2', 'mejora continua'],
+            },
+            {
+                titulo: 'Indicadores',
+                href: '/indicadores',
+                icono: GaugeIcon,
+                /*
+                 * `9.1` y `kpi` son lo que se teclea sabiendo de qué va;
+                 * «métricas» es el título del § 4.14 en la especificación y
+                 * «cuadro de mando» es como lo llama la dirección.
+                 *
+                 * Sin el alias «objetivos»: la cláusula 6.2 tendrá su propio
+                 * registro y un indicador no es un objetivo —uno mide y el otro
+                 * compromete—. Dejarlo aquí sería el empate que ya se evitó con
+                 * «revisión» y con «no conformidades».
+                 */
+                alias: ['métricas', 'kpi', 'mediciones', 'cuadro de mando', 'seguimiento', '9.1'],
             },
             {
                 titulo: 'Documentos',

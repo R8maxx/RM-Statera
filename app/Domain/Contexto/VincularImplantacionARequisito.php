@@ -34,7 +34,10 @@ final class VincularImplantacionARequisito
     public function vincular(RequisitoInteresado $requisito, Implantacion $implantacion, ?User $usuario = null): void
     {
         $requisito->implantaciones()->syncWithoutDetaching([
-            $implantacion->id => ['vinculada_por_id' => $usuario?->id],
+            $implantacion->id => [
+                'organizacion_id' => $requisito->organizacion_id,
+                'vinculada_por_id' => $usuario?->id,
+            ],
         ]);
     }
 

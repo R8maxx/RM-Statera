@@ -10,6 +10,10 @@ use App\Domain\Catalogo\Models\Requisito;
 use App\Domain\Contexto\Enums\TipoCuestion;
 use App\Domain\Contexto\Models\CuestionContexto;
 use App\Domain\Implantacion\Models\Implantacion;
+use App\Domain\Metrica\Enums\Periodicidad;
+use App\Domain\Metrica\Enums\SentidoIndicador;
+use App\Domain\Metrica\Models\Indicador;
+use App\Domain\Metrica\Models\Medicion;
 use App\Domain\NoConformidad\Enums\EstadoNoConformidad;
 use App\Domain\NoConformidad\Models\NoConformidad;
 use App\Domain\Sistema\Models\Sistema;
@@ -293,4 +297,70 @@ it('no manda el contexto a quien no puede verlo', function (): void {
     $this->actingAs($usuario->fresh())
         ->get('/panel')
         ->assertInertia(fn (AssertableInertia $pagina) => $pagina->where('contexto', null));
+});
+
+/*
+|--------------------------------------------------------------------------
+| El desempeño (§ 4.14, cláusula 9.1)
+|--------------------------------------------------------------------------
+*/
+
+it('cuenta los indicadores con su denominador y reparte por veredicto', function (): void {
+    ['usuario' => $usuario] = escenarioDePanel();
+
+    // En objetivo, fuera de objetivo y retirado: tres casos que se leen distinto.
+    $dentro = Indicador::factory()->conObjetivo(90.0, SentidoIndicador::MayorMejor)->create(['codigo' => 'IND-01']);
+    Medicion::factory()->for($dentro)->con(95.0, 90.0)->create();
+
+    $fuera = Indicador::factory()->conObjetivo(90.0, SentidoIndicador::MayorMejor)->create(['codigo' => 'IND-02']);
+    Medicion::factory()->for($fuera)->con(50.0, 90.0)->create();
+
+    Indicador::factory()->retirado()->create(['codigo' => 'IND-03']);
+
+    $this->actingAs($usuario)
+        ->get('/panel')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            // Los retirados cuentan en el total y no en el seguimiento: su serie
+            // se conserva, y es la que explica por qué se dejó de medir.
+            ->where('desempeno.total', 3)
+            ->where('desempeno.activos', 2)
+            ->where('desempeno.fueraDeObjetivo', 1)
+            // Un indicador nunca medido no está «fuera de objetivo»: está sin
+            // medir, que es la distinción de `EstadoControl::PorConfirmar`.
+            ->where('desempeno.nuncaMedidos', 0)
+            ->has('desempeno.porCumplimiento', 2));
+});
+
+/**
+ * La cifra que está por la norma y no por la pantalla: un periodo que cerró sin
+ * medición es la cláusula 9.1 sin hacer.
+ */
+it('señala el periodo que cerró sin medir', function (): void {
+    ['usuario' => $usuario] = escenarioDePanel();
+
+    Indicador::factory()->conPeriodicidad(Periodicidad::Trimestral)->create(['codigo' => 'IND-01']);
+
+    $this->actingAs($usuario)
+        ->get('/panel')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->where('desempeno.periodoSinMedir', 1)
+            ->where('desempeno.nuncaMedidos', 1));
+});
+
+it('no manda el desempeño a quien no puede verlo', function (): void {
+    ['usuario' => $usuario] = escenarioDePanel();
+
+    Indicador::factory()->create();
+
+    // Al rol y no al usuario, por lo mismo que en las no conformidades y en el
+    // contexto: `revokePermissionTo` sobre la persona no quita lo que hereda.
+    Role::query()
+        ->where('name', Rol::ResponsableSeguridad->value)
+        ->where('organizacion_id', $usuario->organizacion_id)
+        ->firstOrFail()
+        ->revokePermissionTo(Permiso::IndicadoresVer->value);
+
+    $this->actingAs($usuario->fresh())
+        ->get('/panel')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina->where('desempeno', null));
 });

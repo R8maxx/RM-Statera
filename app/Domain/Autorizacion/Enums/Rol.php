@@ -115,6 +115,15 @@ enum Rol: string
                  */
                 Permiso::NoConformidadesVer,
                 Permiso::NoConformidadesGestionar,
+                /*
+                 * Mide y define indicadores. No hay aquí nada que separar: una
+                 * medición es un dato que se toma, no una decisión que se firma,
+                 * y quien está en el día a día es quien sabe de dónde sale la
+                 * cifra. Lo que sí es de dirección —comprometerse a un objetivo—
+                 * vive en la 6.2 y tendrá su propio verbo.
+                 */
+                Permiso::IndicadoresVer,
+                Permiso::IndicadoresGestionar,
                 Permiso::DocumentosVer,
                 Permiso::DocumentosRedactar,
             ],
@@ -137,6 +146,7 @@ enum Rol: string
                 Permiso::TareasVer,
                 Permiso::AuditoriasVer,
                 Permiso::NoConformidadesVer,
+                Permiso::IndicadoresVer,
                 Permiso::DocumentosVer,
             ],
         };

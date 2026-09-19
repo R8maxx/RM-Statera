@@ -9,6 +9,7 @@ use App\Domain\Autorizacion\Enums\Permiso;
 use App\Domain\Contexto\RegistroContexto;
 use App\Domain\Implantacion\Enums\EstadoImplantacion;
 use App\Domain\Implantacion\ResumenCumplimiento;
+use App\Domain\Metrica\RegistroIndicadores;
 use App\Domain\NoConformidad\RegistroNoConformidades;
 use App\Domain\Sistema\Models\Sistema;
 use App\Domain\Tarea\ResumenPlanDeAccion;
@@ -35,6 +36,7 @@ class PanelController extends Controller
         ResumenPlanDeAccion $plan,
         RegistroNoConformidades $noConformidades,
         RegistroContexto $contexto,
+        RegistroIndicadores $indicadores,
     ): Response {
         $sistemas = Sistema::query()
             ->with('marco')
@@ -114,6 +116,20 @@ class PanelController extends Controller
             'contexto' => $this->puedeVerContexto()
                 ? $contexto->paraElPanel()
                 : null,
+            /*
+             * El desempeño (§ 4.14, cláusula 9.1). Va detrás del contexto porque
+             * es lo último que existe y lo que menos se consulta a diario: un
+             * indicador trimestral cambia cuatro veces al año.
+             *
+             * Misma guarda de permiso que los dos anteriores. Hoy los tres roles
+             * del § 4.19 tienen `indicadores.ver`, así que no la ejerce nadie; el
+             * test la comprueba quitándole el permiso **al rol** y no al usuario,
+             * porque `revokePermissionTo` sobre la persona no quita lo que hereda
+             * y el test pasaría por el motivo equivocado.
+             */
+            'desempeno' => $this->puedeVerIndicadores()
+                ? $indicadores->paraElPanel()
+                : null,
         ]);
     }
 
@@ -125,5 +141,10 @@ class PanelController extends Controller
     private function puedeVerContexto(): bool
     {
         return request()->user()?->can(Permiso::ContextoVer->value) ?? false;
+    }
+
+    private function puedeVerIndicadores(): bool
+    {
+        return request()->user()?->can(Permiso::IndicadoresVer->value) ?? false;
     }
 }

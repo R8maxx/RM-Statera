@@ -6,6 +6,7 @@ use App\Domain\Aviso\Console\EnviarAvisosCommand;
 use App\Domain\Catalogo\Console\ImportarCatalogoCommand;
 use App\Domain\Documento\Console\GenerarDocumentoCommand;
 use App\Domain\Implantacion\Console\GenerarImplantacionesCommand;
+use App\Domain\Metrica\Console\MedirIndicadoresCommand;
 use App\Http\Middleware\EstablecerContextoOrganizacion;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
@@ -30,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
         GenerarImplantacionesCommand::class,
         GenerarDocumentoCommand::class,
         EnviarAvisosCommand::class,
+        MedirIndicadoresCommand::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         // El orden importa y no es el que sale por defecto.

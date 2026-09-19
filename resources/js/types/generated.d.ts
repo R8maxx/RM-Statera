@@ -18,7 +18,7 @@ export type TipoHallazgo = 'nc_mayor' | 'nc_menor' | 'observacion' | 'oportunida
 }
 namespace Autorizacion {
 namespace Enums {
-export type Permiso = 'panel.ver' | 'contexto.ver' | 'contexto.gestionar' | 'contexto.aprobar' | 'sistemas.ver' | 'sistemas.gestionar' | 'sistemas.valorar' | 'implantaciones.ver' | 'implantaciones.gestionar' | 'evidencias.ver' | 'evidencias.gestionar' | 'activos.ver' | 'activos.gestionar' | 'riesgos.ver' | 'riesgos.gestionar' | 'riesgos.aceptar' | 'tareas.ver' | 'tareas.gestionar' | 'auditorias.ver' | 'auditorias.gestionar' | 'no_conformidades.ver' | 'no_conformidades.gestionar' | 'no_conformidades.verificar' | 'documentos.ver' | 'documentos.generar' | 'documentos.aprobar' | 'documentos.redactar' | 'documentos.plantillas';
+export type Permiso = 'panel.ver' | 'contexto.ver' | 'contexto.gestionar' | 'contexto.aprobar' | 'sistemas.ver' | 'sistemas.gestionar' | 'sistemas.valorar' | 'implantaciones.ver' | 'implantaciones.gestionar' | 'evidencias.ver' | 'evidencias.gestionar' | 'activos.ver' | 'activos.gestionar' | 'riesgos.ver' | 'riesgos.gestionar' | 'riesgos.aceptar' | 'tareas.ver' | 'tareas.gestionar' | 'auditorias.ver' | 'auditorias.gestionar' | 'no_conformidades.ver' | 'no_conformidades.gestionar' | 'no_conformidades.verificar' | 'indicadores.ver' | 'indicadores.gestionar' | 'documentos.ver' | 'documentos.generar' | 'documentos.aprobar' | 'documentos.redactar' | 'documentos.plantillas';
 export type Rol = 'responsable_seguridad' | 'tecnico' | 'auditor';
 }
 }
@@ -85,6 +85,16 @@ namespace Implantacion {
 namespace Enums {
 export type EstadoImplantacion = 'no_iniciado' | 'planificado' | 'en_progreso' | 'implantado' | 'no_aplica';
 export type NivelMadurez = 'l0' | 'l1' | 'l2' | 'l3' | 'l4' | 'l5';
+}
+}
+namespace Metrica {
+namespace Enums {
+export type CalculoIndicador = 'cumplimiento_implantado' | 'implantaciones_pendientes' | 'implantadas_sin_evidencia' | 'madurez_media' | 'evidencias_caducadas' | 'tareas_vencidas' | 'tareas_sin_responsable' | 'no_conformidades_abiertas' | 'no_conformidades_sin_verificar' | 'riesgos_sobre_umbral' | 'activos_sin_cifrar' | 'activos_sin_revisar';
+export type CumplimientoIndicador = 'en_objetivo' | 'fuera_de_objetivo' | 'sin_objetivo' | 'sin_medir';
+export type OrigenMedicion = 'calculado' | 'manual';
+export type Periodicidad = 'mensual' | 'trimestral' | 'semestral' | 'anual';
+export type SentidoIndicador = 'mayor_mejor' | 'menor_mejor';
+export type UnidadIndicador = 'porcentaje' | 'recuento' | 'dias' | 'euros';
 }
 }
 namespace NoConformidad {
@@ -234,6 +244,23 @@ readonly estadoEtiqueta: string,
 readonly aplica: boolean,
 };
 }
+namespace Metrica {
+export type PuntoSerie = {
+readonly periodo: string,
+readonly etiqueta: string,
+readonly valor: number,
+readonly valorEscrito: string,
+readonly objetivo: number | null,
+readonly objetivoEscrito: string | null,
+readonly fraccion: string | null,
+readonly cumplimiento: string,
+readonly cumplimientoEtiqueta: string,
+readonly tono: string,
+readonly icono: string,
+readonly origen: string,
+readonly nota: string | null,
+};
+}
 namespace Panel {
 export type AvanceMarco = {
 readonly codigo: string,
@@ -284,6 +311,14 @@ readonly cifrado: App.Http.Resources.Panel.Reparto[],
 readonly copia: App.Http.Resources.Panel.Reparto[],
 readonly porTipo: App.Http.Resources.Panel.Reparto[],
 readonly porCicloDeVida: App.Http.Resources.Panel.Reparto[],
+};
+export type ResumenMetricasPanel = {
+readonly total: number,
+readonly activos: number,
+readonly periodoSinMedir: number,
+readonly nuncaMedidos: number,
+readonly fueraDeObjetivo: number,
+readonly porCumplimiento: App.Http.Resources.Panel.Reparto[],
 };
 export type ResumenNoConformidadesPanel = {
 readonly total: number,
