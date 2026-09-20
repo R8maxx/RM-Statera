@@ -38,6 +38,12 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * contexto —y congelarlo, porque aprobar es lo que congela— no lo es. Misma línea
  * que separa valorar un riesgo de aceptarlo.
  *
+ * `objetivos.aprobar` es el **séptimo** verbo de esa familia, y el que cierra el
+ * ciclo que abrió el § 4.14: el módulo de indicadores se quedó a propósito con dos
+ * verbos porque una medición es un dato que se toma, no una decisión que se firma.
+ * Un objetivo sí se firma —es a lo que la organización se obliga— y sin este verbo
+ * quien apunta la cifra sería también quien se compromete con ella.
+ *
  * `no_conformidades.verificar` es el **quinto** verbo de esa familia, y el que la
  * explica mejor: comprobar que una acción correctiva funcionó no puede hacerlo
  * quien la ejecutó. Es la cláusula 10.2 e) entera —«revisar la eficacia»—, y sin
@@ -110,13 +116,48 @@ enum Permiso: string
     case NoConformidadesVerificar = 'no_conformidades.verificar';
 
     /*
+     * Las oportunidades de mejora de la cláusula 10.1. **Dos verbos y no tres, y
+     * es lo que las separa de las no conformidades de al lado**: una mejora no
+     * la firma nadie. No hay eficacia que verificar porque no había nada roto, y
+     * no hay compromiso que aprobar porque nadie se obligó a ella — cuando una
+     * mejora se convierte en un compromiso, lo que nace es un objetivo de la 6.2,
+     * que sí tiene su verbo.
+     */
+    case MejorasVer = 'mejoras.ver';
+    case MejorasGestionar = 'mejoras.gestionar';
+
+    /*
      * El seguimiento y la medición de la cláusula 9.1. Dos verbos y no tres:
      * aquí no hay nada que firmar —una medición es un dato, no una decisión—, y
-     * el verbo de supervisión de este ciclo llegará con los objetivos de la 6.2,
-     * que sí se aprueban.
+     * el verbo de supervisión de este ciclo es `objetivos.aprobar`, que llegó
+     * con la 6.2 justo debajo.
      */
     case IndicadoresVer = 'indicadores.ver';
     case IndicadoresGestionar = 'indicadores.gestionar';
+
+    /*
+     * Los objetivos de seguridad de la cláusula 6.2, y **el séptimo verbo de
+     * supervisión** del producto. Medir es un dato y comprometerse a una cifra
+     * es una decisión: aprobar un objetivo es la dirección declarando a qué se
+     * obliga este año, con su plazo y sus recursos. Quien lo redacta es quien
+     * está en el día a día; quien lo firma, no — misma línea que separa valorar
+     * un riesgo de aceptarlo y redactar un documento de emitirlo.
+     */
+    case ObjetivosVer = 'objetivos.ver';
+    case ObjetivosGestionar = 'objetivos.gestionar';
+    case ObjetivosAprobar = 'objetivos.aprobar';
+
+    /*
+     * La revisión por la dirección (cláusula 9.3), y **el octavo verbo de
+     * supervisión**. Es el más literal de todos: la cláusula se llama «revisión
+     * por la dirección», así que aprobar el acta no es que convenga que lo haga la
+     * dirección, es que la norma no admite otra cosa. Preparar la reunión, recoger
+     * las entradas y redactar las conclusiones es trabajo de quien lleva el SGSI;
+     * firmar que la dirección lo ha revisado, no.
+     */
+    case RevisionDireccionVer = 'revision_direccion.ver';
+    case RevisionDireccionGestionar = 'revision_direccion.gestionar';
+    case RevisionDireccionAprobar = 'revision_direccion.aprobar';
 
     case DocumentosVer = 'documentos.ver';
     case DocumentosGenerar = 'documentos.generar';
@@ -150,8 +191,16 @@ enum Permiso: string
             self::NoConformidadesVer => 'Ver las no conformidades y su tratamiento',
             self::NoConformidadesGestionar => 'Abrir no conformidades, analizarlas y vincular acciones correctivas',
             self::NoConformidadesVerificar => 'Verificar la eficacia de una acción correctiva',
+            self::MejorasVer => 'Ver el registro de oportunidades de mejora',
+            self::MejorasGestionar => 'Registrar mejoras, planificarlas y descartarlas con su motivo',
             self::IndicadoresVer => 'Ver los indicadores y su serie histórica',
             self::IndicadoresGestionar => 'Definir indicadores y registrar mediciones',
+            self::ObjetivosVer => 'Ver los objetivos de seguridad y su avance',
+            self::ObjetivosGestionar => 'Proponer objetivos, planificarlos y vincular indicadores y actuaciones',
+            self::ObjetivosAprobar => 'Aprobar objetivos y declarar si se alcanzaron',
+            self::RevisionDireccionVer => 'Ver las revisiones por la dirección y sus actas',
+            self::RevisionDireccionGestionar => 'Convocar revisiones, recoger las entradas y registrar las decisiones',
+            self::RevisionDireccionAprobar => 'Aprobar el acta de una revisión por la dirección',
             self::DocumentosVer => 'Ver los documentos y descargar sus versiones',
             self::DocumentosGenerar => 'Crear documentos, generar borradores y mandarlos a revisión',
             self::DocumentosAprobar => 'Aprobar documentos y entregar la versión firmada',

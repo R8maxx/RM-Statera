@@ -56,6 +56,33 @@ enum TipoHallazgo: string
         return $this === self::NcMayor || $this === self::NcMenor;
     }
 
+    /**
+     * Si el hallazgo se trata abriendo una **oportunidad de mejora** (10.1) y no
+     * una no conformidad (10.2).
+     *
+     * Desde el módulo de mejoras esto no es cosmética: `admiteNoConformidad()`
+     * devuelve `false` para este tipo y el dominio lo rechaza. Tratar una
+     * oportunidad de mejora como no conformidad la etiquetaría de incumplimiento
+     * —y la contaría como tal en el panel, en el indicador del § 4.14 y en la
+     * entrada de la 9.3—, que es exactamente lo que las dos cláusulas separan.
+     */
+    public function abreMejora(): bool
+    {
+        return $this === self::OportunidadMejora;
+    }
+
+    /**
+     * Si el hallazgo puede tratarse como no conformidad.
+     *
+     * Una observación sí: el auditor la escribe como aviso y la organización puede
+     * decidir que sí incumple. Una oportunidad de mejora no, porque por definición
+     * no incumple nada — tiene su propio registro desde la 10.1.
+     */
+    public function admiteNoConformidad(): bool
+    {
+        return ! $this->abreMejora();
+    }
+
     public function icono(): string
     {
         return match ($this) {

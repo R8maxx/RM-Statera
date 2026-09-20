@@ -550,6 +550,7 @@ class DocumentoController extends Controller
              * denormalizadas. Decir «0 requisitos» sería peor que no decir nada.
              */
             TipoDocumento::AnalisisContexto,
+            TipoDocumento::ActaRevision,
             TipoDocumento::Politica,
             TipoDocumento::Norma,
             TipoDocumento::Procedimiento => null,

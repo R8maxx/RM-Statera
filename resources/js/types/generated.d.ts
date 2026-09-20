@@ -18,7 +18,7 @@ export type TipoHallazgo = 'nc_mayor' | 'nc_menor' | 'observacion' | 'oportunida
 }
 namespace Autorizacion {
 namespace Enums {
-export type Permiso = 'panel.ver' | 'contexto.ver' | 'contexto.gestionar' | 'contexto.aprobar' | 'sistemas.ver' | 'sistemas.gestionar' | 'sistemas.valorar' | 'implantaciones.ver' | 'implantaciones.gestionar' | 'evidencias.ver' | 'evidencias.gestionar' | 'activos.ver' | 'activos.gestionar' | 'riesgos.ver' | 'riesgos.gestionar' | 'riesgos.aceptar' | 'tareas.ver' | 'tareas.gestionar' | 'auditorias.ver' | 'auditorias.gestionar' | 'no_conformidades.ver' | 'no_conformidades.gestionar' | 'no_conformidades.verificar' | 'indicadores.ver' | 'indicadores.gestionar' | 'documentos.ver' | 'documentos.generar' | 'documentos.aprobar' | 'documentos.redactar' | 'documentos.plantillas';
+export type Permiso = 'panel.ver' | 'contexto.ver' | 'contexto.gestionar' | 'contexto.aprobar' | 'sistemas.ver' | 'sistemas.gestionar' | 'sistemas.valorar' | 'implantaciones.ver' | 'implantaciones.gestionar' | 'evidencias.ver' | 'evidencias.gestionar' | 'activos.ver' | 'activos.gestionar' | 'riesgos.ver' | 'riesgos.gestionar' | 'riesgos.aceptar' | 'tareas.ver' | 'tareas.gestionar' | 'auditorias.ver' | 'auditorias.gestionar' | 'no_conformidades.ver' | 'no_conformidades.gestionar' | 'no_conformidades.verificar' | 'mejoras.ver' | 'mejoras.gestionar' | 'indicadores.ver' | 'indicadores.gestionar' | 'objetivos.ver' | 'objetivos.gestionar' | 'objetivos.aprobar' | 'revision_direccion.ver' | 'revision_direccion.gestionar' | 'revision_direccion.aprobar' | 'documentos.ver' | 'documentos.generar' | 'documentos.aprobar' | 'documentos.redactar' | 'documentos.plantillas';
 export type Rol = 'responsable_seguridad' | 'tecnico' | 'auditor';
 }
 }
@@ -72,7 +72,7 @@ export type EstadoDocumental = 'borrador' | 'en_revision' | 'aprobado' | 'rechaz
 export type EstadoGeneracion = 'encolada' | 'generando' | 'generada' | 'fallida';
 export type OrigenTexto = 'plantilla' | 'propio';
 export type SeccionNarrativa = 'introduccion' | 'objeto_y_alcance' | 'metodologia' | 'nota_resumen' | 'nota_tabla' | 'nota_derivacion' | 'nota_madurez' | 'nota_exclusiones' | 'conclusiones' | 'limitaciones_propias' | 'aprobacion';
-export type TipoDocumento = 'soa_iso' | 'dda_ens' | 'plan_adecuacion_ens' | 'analisis_contexto' | 'politica' | 'norma' | 'procedimiento';
+export type TipoDocumento = 'soa_iso' | 'dda_ens' | 'plan_adecuacion_ens' | 'analisis_contexto' | 'acta_revision' | 'politica' | 'norma' | 'procedimiento';
 }
 }
 namespace Evidencia {
@@ -85,6 +85,12 @@ namespace Implantacion {
 namespace Enums {
 export type EstadoImplantacion = 'no_iniciado' | 'planificado' | 'en_progreso' | 'implantado' | 'no_aplica';
 export type NivelMadurez = 'l0' | 'l1' | 'l2' | 'l3' | 'l4' | 'l5';
+}
+}
+namespace Mejora {
+namespace Enums {
+export type EstadoMejora = 'propuesta' | 'en_curso' | 'implantada' | 'descartada';
+export type OrigenMejora = 'auditoria' | 'revision_direccion' | 'indicador' | 'propia';
 }
 }
 namespace Metrica {
@@ -103,6 +109,16 @@ export type EstadoNoConformidad = 'abierta' | 'en_tratamiento' | 'cerrada' | 've
 export type OrigenNoConformidad = 'auditoria' | 'incidente' | 'revision_direccion' | 'propia';
 }
 }
+namespace Objetivo {
+namespace Enums {
+export type EstadoObjetivo = 'propuesto' | 'aprobado' | 'alcanzado' | 'no_alcanzado' | 'retirado';
+}
+}
+namespace RevisionDireccion {
+namespace Enums {
+export type EstadoRevision = 'planificada' | 'en_curso' | 'aprobada';
+}
+}
 namespace Riesgo {
 namespace Enums {
 export type DecisionRiesgo = 'mitigar' | 'aceptar' | 'transferir' | 'evitar';
@@ -118,7 +134,7 @@ export type EstadoSistema = 'borrador' | 'activo' | 'archivado';
 namespace Tarea {
 namespace Enums {
 export type EstadoTarea = 'pendiente' | 'en_curso' | 'bloqueada' | 'hecha' | 'descartada';
-export type OrigenTarea = 'hallazgo' | 'no_conformidad' | 'riesgo' | 'brecha_implantacion' | 'contexto' | 'incidente' | 'revision_direccion' | 'propia';
+export type OrigenTarea = 'hallazgo' | 'no_conformidad' | 'mejora' | 'riesgo' | 'brecha_implantacion' | 'contexto' | 'objetivo' | 'incidente' | 'revision_direccion' | 'propia';
 export type PrioridadTarea = 'baja' | 'media' | 'alta' | 'critica';
 }
 }
@@ -326,6 +342,14 @@ readonly abiertas: number,
 readonly vencidas: number,
 readonly sinVerificar: number,
 readonly sinAccion: number,
+readonly porEstado: App.Http.Resources.Panel.Reparto[],
+};
+export type ResumenObjetivosPanel = {
+readonly total: number,
+readonly vivos: number,
+readonly vencidos: number,
+readonly sinIndicador: number,
+readonly sinActuacion: number,
 readonly porEstado: App.Http.Resources.Panel.Reparto[],
 };
 export type ResumenPanel = {

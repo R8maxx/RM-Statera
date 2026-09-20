@@ -76,6 +76,7 @@ final class CuerpoDeFabrica
                 TipoDocumento::DdaEns => $this->cuerpoEns(),
                 TipoDocumento::PlanAdecuacionEns => $this->cuerpoPlan(),
                 TipoDocumento::AnalisisContexto => $this->cuerpoContexto(),
+                TipoDocumento::ActaRevision => $this->cuerpoActa(),
 
                 /*
                  * Un documento redactado no tiene cuerpo calculado: entre el
@@ -207,6 +208,38 @@ final class CuerpoDeFabrica
             Nodo::de('seccion', [], [
                 Nodo::encabezado(2, 'Alcance declarado de los sistemas'),
                 Nodo::hueco('alcance_sistemas'),
+            ]),
+        ];
+    }
+
+    /**
+     * El acta de la revisión por la dirección (cláusula 9.3).
+     *
+     * **Los apartados van en el orden en que la norma enumera las entradas**, y no
+     * en el que resultarían más bonitos: un auditor recorre la 9.3.2 de la a) a la
+     * g) con el acta delante, y reordenarlas le obliga a buscar. La ficha de la
+     * reunión va primero porque es lo que identifica el acta —cuándo, de qué
+     * periodo y quiénes—, y las decisiones al final porque son la salida (9.3.3).
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function cuerpoActa(): array
+    {
+        return [
+            Nodo::de('seccion', [], [
+                Nodo::encabezado(2, 'La reunión'),
+                Nodo::hueco('ficha_revision'),
+            ]),
+
+            Nodo::de('seccion', [], [
+                Nodo::encabezado(2, 'Entradas de la revisión'),
+                ...$this->prosa(SeccionNarrativa::NotaTabla),
+                Nodo::hueco('entradas_revision'),
+            ]),
+
+            Nodo::de('seccion', [], [
+                Nodo::encabezado(2, 'Decisiones y acciones'),
+                Nodo::hueco('tabla_decisiones'),
             ]),
         ];
     }

@@ -77,6 +77,17 @@ class NoConformidadController extends Controller
             return to_route('no-conformidades.show', $hallazgo->noConformidad);
         }
 
+        /*
+         * Y desde la cláusula 10.1, la otra puerta: una oportunidad de mejora no
+         * se trata aquí. Se lleva a su registro con el hallazgo puesto en vez de
+         * dejar rellenar un formulario que el dominio va a rechazar al final.
+         */
+        if ($hallazgo !== null && ! $hallazgo->tipo->admiteNoConformidad()) {
+            Inertia::flash('aviso', 'Una oportunidad de mejora se trata en su propio registro (cláusula 10.1).');
+
+            return redirect()->to("/mejoras/crear?hallazgo={$hallazgo->id}");
+        }
+
         return Inertia::render('no-conformidades/Formulario', [
             'noConformidad' => null,
             'hallazgo' => $hallazgo === null ? null : $this->serializarHallazgo($hallazgo),

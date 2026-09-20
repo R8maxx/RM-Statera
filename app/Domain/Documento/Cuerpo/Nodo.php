@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Documento\Cuerpo;
 
+use LogicException;
+
 /**
  * Constructores de nodos de ProseMirror.
  *
@@ -159,9 +161,38 @@ final class Nodo
         return self::de('grupo', ['fuente' => $fuente]);
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * Un badge de estado, con el tono del dominio.
+     *
+     * **Falla ruidosamente si el tono no está en el mapa del documento**, y antes
+     * no: `RenderizadorCuerpo` cae a `neutro` —un chip gris y sin punto— si no lo
+     * reconoce, así que un generador que emitiera un tono desconocido pintaba el
+     * badge apagado en el PDF que se le entrega al auditor **sin que nada
+     * avisara**. Es el tercer fallo silencioso de esta familia, detrás del de
+     * `IconoTipo` y el de `lib/tonos.ts`.
+     *
+     * La excepción es segura porque **aquí sólo llega código**: los tonos los
+     * escriben los materializadores desde enums del dominio, nunca un cuerpo
+     * editado. El camino del usuario pasa por `SanearCuerpo`, que anula el tono
+     * que no reconoce, y ahí el `?? neutro` del renderizador es lo correcto.
+     *
+     * Mismo razonamiento que los dos `match` sobre cadenas de
+     * `MaterializarCuerpo`, que también cerraban con un `default` silencioso.
+     *
+     * @return array<string, mixed>
+     *
+     * @throws LogicException
+     */
     public static function badge(string $tono, string $texto): array
     {
+        if (! array_key_exists($tono, EsquemaCuerpo::TONOS_BADGE)) {
+            throw new LogicException(sprintf(
+                'El tono «%s» no está en EsquemaCuerpo::TONOS_BADGE, así que este badge saldría gris '
+                .'en el PDF. Declara su clase en documento.css y añádelo al mapa.',
+                $tono,
+            ));
+        }
+
         return self::de('badge', ['tono' => $tono], [self::texto($texto)]);
     }
 

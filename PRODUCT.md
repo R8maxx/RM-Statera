@@ -22,7 +22,7 @@ Esto importa porque el repositorio dice dos cosas distintas: la especificación 
 | Técnico | Implanta y prueba: mueve estados, sube evidencias y las vincula. No redefine el alcance |
 | Auditor | Sólo lectura. Ve el cumplimiento y sus pruebas, y no altera nada de lo que audita |
 
-Dos verbos de permiso están aparte a propósito: `sistemas.valorar` y `riesgos.aceptar`. Firmar que la organización convive con una exposición es de dirección, no de quien la registró — es la razón entera por la que ISO 27001 6.1.3 f) pide la aprobación del propietario del riesgo.
+Los verbos de supervisión están aparte a propósito, y son siempre la misma línea: `sistemas.valorar`, `riesgos.aceptar`, `documentos.aprobar`, `contexto.aprobar`, `no_conformidades.verificar`, `objetivos.aprobar` y `revision_direccion.aprobar`. Firmar que la organización convive con una exposición —o que se compromete a una cifra— es de dirección, no de quien la registró: es la razón entera por la que ISO 27001 6.1.3 f) pide la aprobación del propietario del riesgo.
 
 **Decisión confirmada en esta sesión: se diseña ya para varios clientes**, incluidas categorías ENS media y alta, y para gente que no conoce ni la herramienta ni los marcos. Eso va por delante del encuadre de «fase actual: uso interno, básica» que llevan la especificación y `CLAUDE.md`, y se anota aquí para que nadie lo lea como una contradicción que hay que resolver hacia atrás. Lo que **no** cambia son las exclusiones de alcance: sigue sin haber registro self-service, facturación ni panel de superadministración.
 
@@ -52,9 +52,9 @@ Cuatro cosas que una hoja de cálculo no hace, y que un gestor de cumplimiento g
 
 **Superficies construidas**, todas tras el login:
 
-`/panel` · `/contexto` (+ análisis, cuestiones) · `/partes-interesadas` · `/sistemas` (+ valoración) · `/implantaciones` · `/activos` (+ etiquetas QR) · `/evidencias` · `/tareas` (+ tablero, calendario) · `/riesgos` (+ metodología) · `/auditorias` (+ checklist) · `/no-conformidades` · `/indicadores` · `/documentos` (+ plantillas, cuerpo editable, versiones) · `/revisiones` · `/perfil` (+ segundo factor)
+`/panel` · `/contexto` (+ análisis, cuestiones) · `/partes-interesadas` · `/sistemas` (+ valoración) · `/implantaciones` · `/activos` (+ etiquetas QR) · `/evidencias` · `/tareas` (+ tablero, calendario) · `/riesgos` (+ metodología) · `/auditorias` (+ checklist) · `/no-conformidades` · `/mejoras` · `/indicadores` · `/objetivos` · `/revision-direccion` · `/documentos` (+ plantillas, cuerpo editable, versiones) · `/revisiones` · `/perfil` (+ segundo factor)
 
-**Entregables que salen de la herramienta:** la SoA de ISO y la DdA del ENS, en PDF/A-3b con su huella, almacenados y no regenerados; más una copia de trabajo en `.docx` construida desde la instantánea de la versión, nunca desde una consulta nueva.
+**Entregables que salen de la herramienta:** la SoA de ISO, la DdA del ENS, el plan de adecuación, el análisis del contexto y el acta de la revisión por la dirección, en PDF/A-3b con su huella, almacenados y no regenerados; más una copia de trabajo en `.docx` construida desde la instantánea de la versión, nunca desde una consulta nueva. A ellos se suman los tres redactados —política, norma y procedimiento—.
 
 **Ritmos de uso:** evidencias que caducan, tareas con plazo, revisiones del inventario que hay que registrar, reevaluación de riesgos contra una metodología que la dirección aprueba y firma. Un resumen diario por correo dice cómo está la cosa; si no hay nada que decir, no se envía.
 
@@ -62,18 +62,18 @@ Cuatro cosas que una hoja de cálculo no hace, y que un gestor de cumplimiento g
 
 ## Capabilities and Constraints
 
-**Construido** (§ de la especificación): catálogo normativo importable y versionado, motor de categorización ENS, implantaciones con transiciones y recálculo, capa de recursos genérica, contexto de la organización con DAFO y partes interesadas (4.1), inventario de activos con grafo de dependencias (4.2), análisis de riesgos con MAGERIT (4.3), documentos con Gotenberg, flujo de aprobación y narrativa editable (4.5), evidencias (4.6), plan de acción con tablero y calendario (4.7, 4.16 parcial), auditorías con checklist y hallazgos (4.12), no conformidades con verificación de eficacia (4.13), indicadores y mediciones con serie histórica (4.14).
+**Construido** (§ de la especificación): catálogo normativo importable y versionado, motor de categorización ENS, implantaciones con transiciones y recálculo, capa de recursos genérica, contexto de la organización con DAFO y partes interesadas (4.1), inventario de activos con grafo de dependencias (4.2), análisis de riesgos con MAGERIT (4.3), documentos con Gotenberg, flujo de aprobación y narrativa editable (4.5), evidencias (4.6), plan de acción con tablero y calendario (4.7, 4.16 parcial), auditorías con checklist y hallazgos (4.12), no conformidades con verificación de eficacia (4.13), indicadores y mediciones con serie histórica (4.14) objetivos de seguridad con firma de dirección (cláusula 6.2), oportunidades de mejora (cláusula 10.1) y revisión por la dirección con acta congelada (4.15).
 
-**Pendiente de los 19 módulos:** personas (4.8), proveedores (4.9), incidentes (4.10), continuidad (4.11), revisión por la dirección (4.15), el calendario de obligaciones completo (4.16), dos tercios del flujo de conformidad (4.17) e informes y exportación (4.18).
+**Pendiente de los 19 módulos:** personas (4.8), proveedores (4.9), incidentes (4.10), continuidad (4.11), el calendario de obligaciones completo (4.16), dos tercios del flujo de conformidad (4.17) e informes y exportación (4.18).
 
-**Huecos conocidos que no son un módulo de la lista.** Se anotan aquí porque la lista de diecinueve no los recoge y descubrirlos cuesta una tarde; los tres primeros son los que bloquean al 4.15.
+**Huecos conocidos que no son un módulo de la lista.** Se anotan aquí porque la lista de diecinueve no los recoge y descubrirlos cuesta una tarde.
 
-*Cláusulas con requisito en el catálogo, con su implantación esperando, y sin ningún sitio donde escribirse* — que es exactamente lo que le pasaba al 4.1 hasta que se construyó:
+*Cláusulas con requisito en el catálogo, con su implantación esperando, y sin ningún sitio donde escribirse* — que es exactamente lo que le pasaba al 4.1 hasta que se construyó. Las dos primeras ya están hechas, y con ellas **la revisión por la dirección (4.15) dejó de estar bloqueada y se construyó**:
 
 | Cláusula | Qué falta |
 |---|---|
-| **6.2 Objetivos de seguridad** | Objetivos medibles con su plan: qué, quién, con qué recursos, para cuándo y cómo se evalúan. El 4.14 mide; comprometerse a una cifra es otra cosa |
-| **10.1 Mejora continua** | La oportunidad de mejora sólo existe como `TipoHallazgo::OportunidadMejora` **dentro** de una auditoría; fuera de una no hay dónde apuntarla |
+| ~~**6.2 Objetivos de seguridad**~~ | **Construido.** Objetivos con su plan —qué, quién, con qué recursos, para cuándo— y evaluados por indicadores del 4.14, con firma de dirección y con el histórico del «por qué no se alcanzó» que la 9.3 pregunta |
+| ~~**10.1 Mejora continua**~~ | **Construido.** Registro propio, con su bifurcación cerrada por el dominio: un hallazgo va a no conformidad o a mejora según su tipo, y nunca a las dos. Con él, **las siete entradas de la 9.3 salen ya del producto** |
 | **7.4 Comunicación** | Qué se comunica, cuándo, a quién y quién lo hace. El «a quién» ya está en `partes_interesadas` |
 | **6.3 Planificación de cambios** | Está en el catálogo como requisito `6.3` y citada en la especificación; sin módulo |
 | **5.3 Roles y autoridades** | Los roles ENS y la incompatibilidad que la especificación pide **impedir**. Los PDFs ya lo declaran como limitación |

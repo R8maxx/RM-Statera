@@ -8,11 +8,14 @@ import {
     GaugeIcon,
     LayoutDashboardIcon,
     LayoutTemplateIcon,
+    LightbulbIcon,
     ListTodoIcon,
     PaperclipIcon,
     SearchCheckIcon,
     ServerIcon,
     ShieldAlertIcon,
+    TargetIcon,
+    UserRoundCheckIcon,
     UsersIcon,
     type LucideIcon,
 } from '@lucide/vue';
@@ -103,7 +106,20 @@ export const navegacion: GrupoNavegacion[] = [
                 icono: ClipboardXIcon,
                 // `nc` y `10.2` son lo que se teclea sabiendo de qué va; «causa
                 // raíz» y «eficacia» son lo que se busca estando ya dentro.
-                alias: ['nc', 'acciones correctivas', 'causa raíz', 'eficacia', '10.2', 'mejora continua'],
+                alias: ['nc', 'acciones correctivas', 'causa raíz', 'eficacia', '10.2'],
+            },
+            {
+                titulo: 'Mejoras',
+                href: '/mejoras',
+                icono: LightbulbIcon,
+                /*
+                 * `10.1` es lo que se teclea sabiendo de qué va; «ideas» y
+                 * «propuestas» son lo que se busca sin acordarse del nombre de la
+                 * cláusula. Va justo detrás de No conformidades porque son las dos
+                 * mitades del capítulo 10 y la pregunta al llegar es siempre la
+                 * misma: «¿esto incumple algo o sólo se puede hacer mejor?».
+                 */
+                alias: ['10.1', 'oportunidades de mejora', 'ideas', 'propuestas', 'mejora continua'],
             },
             {
                 titulo: 'Indicadores',
@@ -114,12 +130,41 @@ export const navegacion: GrupoNavegacion[] = [
                  * «métricas» es el título del § 4.14 en la especificación y
                  * «cuadro de mando» es como lo llama la dirección.
                  *
-                 * Sin el alias «objetivos»: la cláusula 6.2 tendrá su propio
-                 * registro y un indicador no es un objetivo —uno mide y el otro
-                 * compromete—. Dejarlo aquí sería el empate que ya se evitó con
-                 * «revisión» y con «no conformidades».
+                 * Sin el alias «objetivos»: la cláusula 6.2 tiene su propio
+                 * registro, justo debajo, y un indicador no es un objetivo —uno
+                 * mide y el otro compromete—. Dejarlo aquí sería el empate que ya
+                 * se evitó con «revisión» y con «no conformidades».
                  */
                 alias: ['métricas', 'kpi', 'mediciones', 'cuadro de mando', 'seguimiento', '9.1'],
+            },
+            {
+                titulo: 'Objetivos',
+                href: '/objetivos',
+                icono: TargetIcon,
+                /*
+                 * `6.2` es lo que se teclea sabiendo de qué va; «metas» y
+                 * «compromisos» son lo que se busca sin acordarse del nombre de
+                 * la cláusula. Va detrás de Indicadores porque es el orden en el
+                 * que se construyó y el que tiene sentido al usarlo: primero hay
+                 * con qué medir y luego a qué comprometerse.
+                 */
+                alias: ['6.2', 'metas', 'compromisos', 'objetivos de seguridad'],
+            },
+            {
+                titulo: 'Revisión por la dirección',
+                href: '/revision-direccion',
+                icono: UserRoundCheckIcon,
+                /*
+                 * `9.3` es lo que se teclea sabiendo de qué va; «acta» y «comité»
+                 * son lo que se busca sin acordarse de la cláusula.
+                 *
+                 * **Y «revisión» a secas NO está**, a propósito: `/revisiones` es
+                 * el registro de revisiones del inventario de activos, y dejar
+                 * aquí ese alias haría que la paleta empatara dos módulos
+                 * distintos con la palabra que más se teclea. Mismo criterio que
+                 * separó «objetivos» de «indicadores».
+                 */
+                alias: ['9.3', 'acta', 'dirección', 'comité', 'revisión por la dirección'],
             },
             {
                 titulo: 'Documentos',

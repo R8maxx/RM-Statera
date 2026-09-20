@@ -11,12 +11,15 @@ use App\Http\Controllers\DocumentoCuerpoController;
 use App\Http\Controllers\EvidenciaController;
 use App\Http\Controllers\ImplantacionController;
 use App\Http\Controllers\IndicadorController;
+use App\Http\Controllers\MejoraController;
 use App\Http\Controllers\MetodologiaRiesgoController;
 use App\Http\Controllers\NoConformidadController;
+use App\Http\Controllers\ObjetivoController;
 use App\Http\Controllers\PanelController;
 use App\Http\Controllers\ParteInteresadaController;
 use App\Http\Controllers\PerfilController;
 use App\Http\Controllers\PlantillaDocumentoController;
+use App\Http\Controllers\RevisionDireccionController;
 use App\Http\Controllers\RevisionInventarioController;
 use App\Http\Controllers\RiesgoController;
 use App\Http\Controllers\SistemaController;
@@ -569,6 +572,124 @@ Route::middleware('auth')->group(function (): void {
 
     /*
     |--------------------------------------------------------------------------
+    | Oportunidades de mejora (cláusula 10.1)
+    |--------------------------------------------------------------------------
+    |
+    | **Dos permisos y no tres**, y es lo que lo separa del bloque de arriba: una
+    | mejora no la firma nadie. No hay eficacia que verificar porque no había nada
+    | roto, y no hay compromiso que aprobar porque nadie se obligó — cuando una
+    | mejora se convierte en compromiso, lo que nace es un objetivo de la 6.2.
+    |
+    | `scopeBindings()` en lo que cuelga de `{mejora}`: la actuación de otra
+    | mejora no se desvincula desde ésta.
+    |
+    */
+
+    Route::middleware('can:mejoras.ver')->group(function (): void {
+        Route::get('/mejoras', [MejoraController::class, 'index'])
+            ->name('mejoras.index');
+
+        // Antes que `{mejora}`, para que `crear` no se lea como un id.
+        Route::get('/mejoras/crear', [MejoraController::class, 'create'])
+            ->middleware(['can:mejoras.gestionar', ExigirDosFactores::class])
+            ->name('mejoras.create');
+
+        Route::get('/mejoras/{mejora}', [MejoraController::class, 'show'])
+            ->name('mejoras.show');
+    });
+
+    Route::middleware(['can:mejoras.gestionar', ExigirDosFactores::class])
+        ->scopeBindings()
+        ->group(function (): void {
+            Route::post('/mejoras', [MejoraController::class, 'store'])
+                ->name('mejoras.store');
+            Route::get('/mejoras/{mejora}/editar', [MejoraController::class, 'edit'])
+                ->name('mejoras.edit');
+            Route::put('/mejoras/{mejora}', [MejoraController::class, 'update'])
+                ->name('mejoras.update');
+            Route::delete('/mejoras/{mejora}', [MejoraController::class, 'destroy'])
+                ->name('mejoras.destroy');
+
+            Route::post('/mejoras/{mejora}/estado', [MejoraController::class, 'transicion'])
+                ->name('mejoras.transicion');
+
+            // Antes que `{tarea}`: `vincular` no es un identificador.
+            Route::post('/mejoras/{mejora}/actuaciones/vincular', [MejoraController::class, 'vincularActuacion'])
+                ->name('mejoras.actuaciones.vincular');
+
+            Route::post('/mejoras/{mejora}/actuaciones', [MejoraController::class, 'abrirActuacion'])
+                ->name('mejoras.actuaciones.abrir');
+            Route::delete('/mejoras/{mejora}/actuaciones/{tarea}', [MejoraController::class, 'desvincularActuacion'])
+                ->name('mejoras.actuaciones.desvincular');
+        });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Revisión por la dirección (cláusula 9.3)
+    |--------------------------------------------------------------------------
+    |
+    | **Ojo con la ruta.** `/revisiones` ya está ocupada por las revisiones del
+    | inventario de activos, que son otra cosa —el «inventario mantenido» de A.5.9
+    | y `op.exp.1`—. Ésta es `/revision-direccion`.
+    |
+    | **Aprobar tiene ruta y permiso propios**, y no pasa por la de transición: no
+    | es un cambio de estado, es el acto que congela las siete entradas de la
+    | 9.3.2 y estampa la firma. La cláusula se llama «revisión por la dirección»,
+    | así que quién firma no es un matiz de permisos.
+    |
+    | `scopeBindings()` en lo que cuelga de `{revision_direccion}`.
+    |
+    */
+
+    Route::middleware('can:revision_direccion.ver')->group(function (): void {
+        Route::get('/revision-direccion', [RevisionDireccionController::class, 'index'])
+            ->name('revision-direccion.index');
+
+        // Antes que `{revision_direccion}`, para que `crear` no se lea como un id.
+        Route::get('/revision-direccion/crear', [RevisionDireccionController::class, 'create'])
+            ->middleware(['can:revision_direccion.gestionar', ExigirDosFactores::class])
+            ->name('revision-direccion.create');
+
+        Route::get('/revision-direccion/{revision_direccion}', [RevisionDireccionController::class, 'show'])
+            ->name('revision-direccion.show');
+    });
+
+    Route::middleware(['can:revision_direccion.gestionar', ExigirDosFactores::class])
+        ->scopeBindings()
+        ->group(function (): void {
+            Route::post('/revision-direccion', [RevisionDireccionController::class, 'store'])
+                ->name('revision-direccion.store');
+            Route::get('/revision-direccion/{revision_direccion}/editar', [RevisionDireccionController::class, 'edit'])
+                ->name('revision-direccion.edit');
+            Route::put('/revision-direccion/{revision_direccion}', [RevisionDireccionController::class, 'update'])
+                ->name('revision-direccion.update');
+            Route::delete('/revision-direccion/{revision_direccion}', [RevisionDireccionController::class, 'destroy'])
+                ->name('revision-direccion.destroy');
+
+            // Empezar la reunión y reabrir un acta firmada. Aprobar no: ver abajo.
+            Route::post('/revision-direccion/{revision_direccion}/estado', [RevisionDireccionController::class, 'transicion'])
+                ->name('revision-direccion.transicion');
+
+            // Antes que `{tarea}`: `vincular` no es un identificador.
+            Route::post('/revision-direccion/{revision_direccion}/decisiones/vincular', [RevisionDireccionController::class, 'vincularDecision'])
+                ->name('revision-direccion.decisiones.vincular');
+
+            Route::post('/revision-direccion/{revision_direccion}/decisiones', [RevisionDireccionController::class, 'abrirDecision'])
+                ->name('revision-direccion.decisiones.abrir');
+            Route::delete('/revision-direccion/{revision_direccion}/decisiones/{tarea}', [RevisionDireccionController::class, 'desvincularDecision'])
+                ->name('revision-direccion.decisiones.desvincular');
+        });
+
+    /*
+     * La firma del acta, con su propio permiso: es el octavo verbo de supervisión
+     * del producto y el más literal de todos.
+     */
+    Route::post('/revision-direccion/{revision_direccion}/aprobacion', [RevisionDireccionController::class, 'aprobar'])
+        ->middleware(['can:revision_direccion.aprobar', ExigirDosFactores::class])
+        ->name('revision-direccion.aprobar');
+
+    /*
+    |--------------------------------------------------------------------------
     | Documentos
     |--------------------------------------------------------------------------
     */
@@ -717,8 +838,8 @@ Route::middleware('auth')->group(function (): void {
     |
     | Dos verbos y no tres. En este módulo no hay nada que firmar: una medición
     | es un dato que se toma, no una decisión que alguien aprueba. El verbo de
-    | supervisión de este ciclo llega con los objetivos de la 6.2, que sí se
-    | comprometen y sí se aprueban.
+    | supervisión de este ciclo es `objetivos.aprobar`, y vive en el bloque de
+    | abajo: comprometerse a una cifra sí se firma.
     |
     | `scopeBindings()` en lo que cuelga de `{indicador}`: la medición de otro
     | indicador no se borra desde éste.
@@ -758,6 +879,72 @@ Route::middleware('auth')->group(function (): void {
                 ->name('indicadores.mediciones.store');
             Route::delete('/indicadores/{indicador}/mediciones/{medicion}', [IndicadorController::class, 'eliminarMedicion'])
                 ->name('indicadores.mediciones.destroy');
+        });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Objetivos de seguridad (cláusula 6.2)
+    |--------------------------------------------------------------------------
+    |
+    | **Tres permisos y no dos**, y es la diferencia con el módulo de arriba:
+    | medir es un dato y comprometerse a una cifra es una decisión. `aprobar`
+    | cubre firmar el objetivo, declarar si se alcanzó y retirarlo — las tres son
+    | de dirección, y las tres se comprueban dentro del controlador porque la
+    | ruta de transición es una sola y el destino es lo que manda.
+    |
+    | `scopeBindings()` en lo que cuelga de `{objetivo}`: el indicador o la
+    | actuación de otro objetivo no se desvinculan desde éste.
+    |
+    */
+
+    Route::middleware('can:objetivos.ver')->group(function (): void {
+        Route::get('/objetivos', [ObjetivoController::class, 'index'])
+            ->name('objetivos.index');
+
+        // Antes que `{objetivo}`, para que `crear` no se lea como un id.
+        Route::get('/objetivos/crear', [ObjetivoController::class, 'create'])
+            ->middleware(['can:objetivos.gestionar', ExigirDosFactores::class])
+            ->name('objetivos.create');
+
+        Route::get('/objetivos/{objetivo}', [ObjetivoController::class, 'show'])
+            ->name('objetivos.show');
+    });
+
+    Route::middleware(['can:objetivos.gestionar', ExigirDosFactores::class])
+        ->scopeBindings()
+        ->group(function (): void {
+            Route::post('/objetivos', [ObjetivoController::class, 'store'])
+                ->name('objetivos.store');
+            Route::get('/objetivos/{objetivo}/editar', [ObjetivoController::class, 'edit'])
+                ->name('objetivos.edit');
+            Route::put('/objetivos/{objetivo}', [ObjetivoController::class, 'update'])
+                ->name('objetivos.update');
+            Route::delete('/objetivos/{objetivo}', [ObjetivoController::class, 'destroy'])
+                ->name('objetivos.destroy');
+
+            /*
+             * Una sola ruta para todo el ciclo, aprobar incluido: el destino es lo
+             * que decide, y el permiso extra lo comprueba el controlador. Dos
+             * rutas obligarían al cliente a saber cuál usar para cada transición.
+             */
+            Route::post('/objetivos/{objetivo}/estado', [ObjetivoController::class, 'transicion'])
+                ->name('objetivos.transicion');
+
+            // Cómo se evalúan los resultados (6.2, planificación e).
+            Route::post('/objetivos/{objetivo}/indicadores', [ObjetivoController::class, 'vincularIndicador'])
+                ->name('objetivos.indicadores.vincular');
+            Route::delete('/objetivos/{objetivo}/indicadores/{indicador}', [ObjetivoController::class, 'desvincularIndicador'])
+                ->name('objetivos.indicadores.desvincular');
+
+            // Qué se hará (6.2, planificación a). Antes que `{tarea}`:
+            // `vincular` no es un identificador.
+            Route::post('/objetivos/{objetivo}/actuaciones/vincular', [ObjetivoController::class, 'vincularActuacion'])
+                ->name('objetivos.actuaciones.vincular');
+
+            Route::post('/objetivos/{objetivo}/actuaciones', [ObjetivoController::class, 'abrirActuacion'])
+                ->name('objetivos.actuaciones.abrir');
+            Route::delete('/objetivos/{objetivo}/actuaciones/{tarea}', [ObjetivoController::class, 'desvincularActuacion'])
+                ->name('objetivos.actuaciones.desvincular');
         });
 
     /*

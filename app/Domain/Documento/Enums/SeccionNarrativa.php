@@ -83,7 +83,14 @@ enum SeccionNarrativa: string
          * tabla, que explica cómo se leen los cuadrantes—. Ofrecerle los otros
          * cuatro sería ofrecerle explicar cifras que no existen.
          */
-        if ($tipo === TipoDocumento::AnalisisContexto) {
+        /*
+         * El acta de revisión (9.3) va en el mismo grupo, y por lo mismo: es
+         * calculada y lo que enseña son las siete entradas, no una tabla de
+         * requisitos con su resumen. Le quedan los siete útiles, y la
+         * «metodología» aquí es cómo se preparó y se celebró la revisión — que es
+         * literalmente lo que la 9.3.1 pide declarar.
+         */
+        if ($tipo === TipoDocumento::AnalisisContexto || $tipo === TipoDocumento::ActaRevision) {
             return ! in_array($this, [
                 self::NotaResumen,
                 self::NotaDerivacion,

@@ -38,10 +38,19 @@ final class CodigoNoConformidad
          * total daría un código ya usado. `substring` sobre el sufijo, y las que
          * no sean numéricas —las que trajo la organización de su hoja— se
          * ignoran, que es lo que hace `NULLIF` con la expresión regular.
+         *
+         * **El `::int` del parámetro no es adorno.** PDO manda el binding como
+         * texto, y `substring(x from '10')` es la forma SQL estándar de
+         * `substring(string from pattern)`: PostgreSQL lo lee como una expresión
+         * regular, no encuentra nada y devuelve NULL. El resultado era que el
+         * máximo salía siempre nulo y **todos los códigos propuestos eran el
+         * `-01`**, que a partir del segundo registro del año choca con el índice
+         * único y sale por pantalla como «el código ya está usado». No lo
+         * cazaba ningún test porque el que había sólo comprobaba el primero.
          */
         $ultimo = NoConformidad::query()
             ->where('codigo', 'like', $prefijo.'%')
-            ->selectRaw("max(nullif(regexp_replace(substring(codigo from ?), '[^0-9]', '', 'g'), '')::int) as ultimo", [strlen($prefijo) + 1])
+            ->selectRaw("max(nullif(regexp_replace(substring(codigo from ?::int), '[^0-9]', '', 'g'), '')::int) as ultimo", [strlen($prefijo) + 1])
             ->value('ultimo');
 
         return $prefijo.sprintf('%02d', ((int) $ultimo) + 1);

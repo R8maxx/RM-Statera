@@ -70,6 +70,13 @@ enum Rol: string
      * cogerlo y cerrarlo es su trabajo diario, y un plan de acción que sólo pueda
      * tocar el responsable de seguridad se queda sin actualizar a la semana.
      *
+     * Los objetivos de seguridad van por la misma regla: el técnico los propone
+     * y los planifica, y firmarlos es de dirección. Y sí, `Tecnico` y `Auditor`
+     * son listas literales y hay que acordarse a mano de cada módulo nuevo:
+     * `ResponsableSeguridad` usa `Permiso::cases()` y se entera solo, y olvidar
+     * las otras dos no rompía nada —el módulo simplemente no aparecía— hasta que
+     * `RolesTest` lo convirtió en rojo.
+     *
      * Los riesgos los registra y los valora el técnico, y **no los acepta**: quien
      * conoce la amenaza y sabe qué salvaguardas hay puestas es quien mejor la mide,
      * pero decidir que la organización convive con una exposición es de dirección.
@@ -116,14 +123,40 @@ enum Rol: string
                 Permiso::NoConformidadesVer,
                 Permiso::NoConformidadesGestionar,
                 /*
+                 * Las mejoras las gestiona entero y **no hay nada que separar**:
+                 * apuntar que algo se puede hacer mejor es trabajo de quien está
+                 * en el día a día, y descartarlo también —con su motivo escrito—.
+                 * No hay verbo de supervisión en este módulo porque no hay nada
+                 * que firmar.
+                 */
+                Permiso::MejorasVer,
+                Permiso::MejorasGestionar,
+                /*
                  * Mide y define indicadores. No hay aquí nada que separar: una
                  * medición es un dato que se toma, no una decisión que se firma,
                  * y quien está en el día a día es quien sabe de dónde sale la
                  * cifra. Lo que sí es de dirección —comprometerse a un objetivo—
-                 * vive en la 6.2 y tendrá su propio verbo.
+                 * vive en la 6.2 y tiene su propio verbo, justo debajo.
                  */
                 Permiso::IndicadoresVer,
                 Permiso::IndicadoresGestionar,
+                /*
+                 * Los objetivos los propone y los planifica —escribir qué se
+                 * hará, con qué recursos y con qué indicador se evalúa es
+                 * trabajo de quien conoce el terreno— y **no los aprueba**:
+                 * comprometer a la organización con una cifra y un plazo es de
+                 * dirección. Es la séptima vez que aparece esta misma línea.
+                 */
+                Permiso::ObjetivosVer,
+                Permiso::ObjetivosGestionar,
+                /*
+                 * Prepara la revisión por la dirección y **no firma el acta**.
+                 * Recoger las entradas y redactar las conclusiones es trabajo de
+                 * quien lleva el SGSI; que la dirección haya revisado el sistema
+                 * lo declara la dirección, y la cláusula se llama justamente así.
+                 */
+                Permiso::RevisionDireccionVer,
+                Permiso::RevisionDireccionGestionar,
                 Permiso::DocumentosVer,
                 Permiso::DocumentosRedactar,
             ],
@@ -146,7 +179,10 @@ enum Rol: string
                 Permiso::TareasVer,
                 Permiso::AuditoriasVer,
                 Permiso::NoConformidadesVer,
+                Permiso::MejorasVer,
                 Permiso::IndicadoresVer,
+                Permiso::ObjetivosVer,
+                Permiso::RevisionDireccionVer,
                 Permiso::DocumentosVer,
             ],
         };

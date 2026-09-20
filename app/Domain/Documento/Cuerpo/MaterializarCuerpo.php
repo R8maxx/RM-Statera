@@ -57,6 +57,9 @@ final class MaterializarCuerpo
         'tabla_partes_interesadas' => 'la tabla de partes interesadas',
         'declaracion_climatica' => 'la declaración sobre el cambio climático',
         'alcance_sistemas' => 'el alcance declarado de cada sistema',
+        'ficha_revision' => 'la ficha de la reunión',
+        'entradas_revision' => 'las entradas de la revisión por la dirección',
+        'tabla_decisiones' => 'la tabla de decisiones',
         'limitaciones_sistema' => 'las limitaciones del sistema',
         'control_versiones' => 'el control de versiones',
     ];
@@ -136,6 +139,9 @@ final class MaterializarCuerpo
             'tabla_partes_interesadas' => $this->tablaPartesInteresadas($contenido),
             'declaracion_climatica' => $this->declaracionClimatica($contenido),
             'alcance_sistemas' => $this->alcanceSistemas($contenido),
+            'ficha_revision' => $this->fichaRevision($contenido),
+            'entradas_revision' => $this->entradasRevision($contenido),
+            'tabla_decisiones' => $this->tablaDecisiones($contenido),
             'limitaciones_sistema' => $this->limitaciones($contenido, $editado, $tocados),
             'control_versiones' => $this->controlVersiones($contenido),
 
@@ -1154,6 +1160,479 @@ final class MaterializarCuerpo
         }
 
         return [Nodo::de('table', [], $filas)];
+    }
+
+    // --- Revisión por la dirección (§ 4.15) ----------------------------------
+
+    /**
+     * La ficha de la reunión: cuándo, de qué periodo, quiénes y quién firmó.
+     *
+     * Va la primera del cuerpo porque es lo que identifica el acta. **El periodo
+     * revisado es el dato que no se puede deducir de ninguna otra parte**: una
+     * revisión del ejercicio pasado se celebra casi siempre en el siguiente, así
+     * que la fecha de la reunión no dice de qué habla el acta.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function fichaRevision(ContenidoDocumento $contenido): array
+    {
+        $r = $contenido->extras['revision'] ?? [];
+
+        if (! is_array($r)) {
+            return [Nodo::parrafo('No hay ninguna revisión que recoger.', 'vacio')];
+        }
+
+        $filas = [
+            Nodo::de('fichaFila', ['clave' => 'Revisión'], [Nodo::texto($this->cadena($r, 'codigo') ?? '—', ['cifra'])]),
+            Nodo::de('fichaFila', ['clave' => 'Celebrada el'], [Nodo::texto($this->cadena($r, 'fecha') ?? '—')]),
+            Nodo::de('fichaFila', ['clave' => 'Periodo revisado'], [Nodo::texto($this->cadena($r, 'periodo') ?? '—')]),
+        ];
+
+        // «Sin registrar» y no una fila ausente: quién asistió a una revisión por
+        // la dirección es lo primero que un auditor comprueba, y una fila que no
+        // está se lee como que el dato no aplica.
+        $filas[] = Nodo::de('fichaFila', ['clave' => 'Asistentes'], [
+            Nodo::texto($this->cadena($r, 'asistentes') ?? 'Sin registrar'),
+        ]);
+
+        $firmante = $this->cadena($r, 'aprobadaPor');
+        $firmada = $this->cadena($r, 'aprobadaEn');
+
+        $filas[] = Nodo::de('fichaFila', ['clave' => 'Acta aprobada por'], [
+            Nodo::texto($firmante === null
+                ? 'Sin firmar'
+                : $firmante.($firmada === null ? '' : ' · '.$firmada)),
+        ]);
+
+        return [Nodo::de('ficha', [], $filas)];
+    }
+
+    /**
+     * Las siete entradas de la cláusula 9.3.2, en el orden en que la norma las
+     * enumera.
+     *
+     * **El orden es el de la norma y no el que quedaría mejor.** Un auditor
+     * recorre la 9.3.2 de la a) a la g) con el acta delante, y reordenarlas le
+     * obliga a buscar cada una.
+     *
+     * Todo sale de la instantánea, congelada al aprobar. Un cero es una entrada
+     * recogida y no una entrada que falte: una organización puede llegar a su
+     * primera revisión sin auditorías en el periodo, y eso es lo que el acta
+     * tiene que decir.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function entradasRevision(ContenidoDocumento $contenido): array
+    {
+        $e = $contenido->extras['entradas'] ?? [];
+
+        if (! is_array($e) || $e === []) {
+            return [Nodo::parrafo(
+                'No hay entradas congeladas para esta revisión. El acta se genera desde lo que se recogió al aprobarla.',
+                'vacio',
+            )];
+        }
+
+        return [
+            ...$this->entradaAccionesPrevias($e),
+            ...$this->entradaContexto($e),
+            ...$this->entradaPartes($e),
+            ...$this->entradaDesempeno($e),
+            ...$this->entradaRiesgos($e),
+            ...$this->entradaMejoras($e),
+        ];
+    }
+
+    /**
+     * a) El estado de las acciones de revisiones previas.
+     *
+     * @param  array<string, mixed>  $entradas
+     * @return list<array<string, mixed>>
+     */
+    private function entradaAccionesPrevias(array $entradas): array
+    {
+        $bloque = $entradas['accionesPrevias'] ?? [];
+        $bloque = is_array($bloque) ? $bloque : [];
+
+        $nodos = [Nodo::encabezado(3, 'a) Estado de las acciones de revisiones previas')];
+
+        $anterior = $bloque['revision'] ?? null;
+        $acciones = is_array($bloque['acciones'] ?? null) ? $bloque['acciones'] : [];
+
+        if (! is_array($anterior)) {
+            $nodos[] = Nodo::parrafo(
+                'Es la primera revisión por la dirección registrada, así que no hay acciones previas que comprobar.',
+                'suave',
+            );
+
+            return $nodos;
+        }
+
+        $nodos[] = Nodo::parrafo(sprintf(
+            'Decisiones de la revisión %s, celebrada el %s: %d de %d siguen abiertas.',
+            $this->cadena($anterior, 'codigo') ?? '—',
+            $this->cadena($anterior, 'fecha') ?? '—',
+            (int) ($bloque['abiertas'] ?? 0),
+            count($acciones),
+        ), 'suave');
+
+        if ($acciones !== []) {
+            $nodos[] = $this->tablaDeAcciones($acciones);
+        }
+
+        return $nodos;
+    }
+
+    /**
+     * b) Los cambios en las cuestiones internas y externas.
+     *
+     * @param  array<string, mixed>  $entradas
+     * @return list<array<string, mixed>>
+     */
+    private function entradaContexto(array $entradas): array
+    {
+        $bloque = is_array($entradas['contexto'] ?? null) ? $entradas['contexto'] : [];
+        $analisis = $bloque['analisis'] ?? null;
+
+        $nodos = [Nodo::encabezado(3, 'b) Cambios en las cuestiones internas y externas')];
+
+        if (! is_array($analisis)) {
+            $nodos[] = Nodo::parrafo(
+                'No hay ningún análisis del contexto aprobado, así que esta entrada no se pudo recoger de la herramienta.',
+                'vacio',
+            );
+
+            return $nodos;
+        }
+
+        $nodos[] = Nodo::parrafo(sprintf(
+            '%s, aprobado el %s, con %d cuestiones vigentes. El detalle figura en su propio documento.',
+            $this->cadena($analisis, 'etiqueta') ?? '—',
+            $this->cadena($analisis, 'fecha') ?? '—',
+            (int) ($bloque['cuestiones'] ?? 0),
+        ), 'suave');
+
+        // El clima va aquí y no en un apartado propio: la enmienda 1:2024 lo pide
+        // como cuestión del contexto, no como entrada aparte de la 9.3.
+        $clima = is_array($bloque['clima'] ?? null) ? $bloque['clima'] : null;
+
+        if ($clima !== null && array_key_exists('pertinente', $clima)) {
+            $nodos[] = Nodo::parrafo(
+                $clima['pertinente'] === true
+                    ? 'El cambio climático se ha determinado pertinente para la organización.'
+                    : 'El cambio climático se ha determinado no pertinente para la organización.',
+                'suave',
+            );
+        }
+
+        return $nodos;
+    }
+
+    /**
+     * c) y e) Las partes interesadas: sus necesidades y su retroalimentación.
+     *
+     * **Las dos entradas comparten apartado y el acta lo dice**, porque Statera
+     * sólo tiene la primera. Repartirlas en dos apartados con el mismo contenido
+     * daría la impresión de que las dos están cubiertas.
+     *
+     * @param  array<string, mixed>  $entradas
+     * @return list<array<string, mixed>>
+     */
+    private function entradaPartes(array $entradas): array
+    {
+        $bloque = is_array($entradas['partesInteresadas'] ?? null) ? $entradas['partesInteresadas'] : [];
+        $partes = is_array($bloque['partes'] ?? null) ? $bloque['partes'] : [];
+
+        $nodos = [Nodo::encabezado(3, 'c) y e) Partes interesadas: necesidades y retroalimentación')];
+
+        if ($partes === []) {
+            $nodos[] = Nodo::parrafo('No hay partes interesadas registradas.', 'vacio');
+
+            return $nodos;
+        }
+
+        $filas = [Nodo::fila([
+            Nodo::cabeceraCelda('Parte interesada', '3.0in', 'col'),
+            Nodo::cabeceraCelda('Tipo', '1.8in', 'col'),
+            Nodo::cabeceraCelda('Ámbito', '1.2in', 'col'),
+            Nodo::cabeceraCelda('Requisitos', '1.0in', 'col'),
+        ])];
+
+        foreach ($partes as $parte) {
+            if (! is_array($parte)) {
+                continue;
+            }
+
+            $filas[] = Nodo::fila([
+                Nodo::celdaTexto($this->cadena($parte, 'nombre') ?? '—'),
+                Nodo::celdaTexto($this->cadena($parte, 'tipo') ?? '—'),
+                Nodo::celdaTexto($this->cadena($parte, 'ambito') ?? '—'),
+                Nodo::celdaTexto((string) (int) ($parte['requisitos'] ?? 0), 'cifra'),
+            ]);
+        }
+
+        $nodos[] = Nodo::de('table', [], $filas);
+
+        $nodos[] = Nodo::parrafo(
+            'La retroalimentación de las partes interesadas —quejas, encuestas y comunicaciones recibidas— '
+            .'no se registra en la herramienta y se aporta fuera de este documento.',
+            'suave',
+        );
+
+        return $nodos;
+    }
+
+    /**
+     * d) El desempeño y la eficacia del sistema de gestión.
+     *
+     * La entrada más larga porque la norma la desglosa en cuatro: no
+     * conformidades, seguimiento y medición, auditorías y **cumplimiento de los
+     * objetivos**.
+     *
+     * @param  array<string, mixed>  $entradas
+     * @return list<array<string, mixed>>
+     */
+    private function entradaDesempeno(array $entradas): array
+    {
+        $d = is_array($entradas['desempeno'] ?? null) ? $entradas['desempeno'] : [];
+
+        $nc = is_array($d['noConformidades'] ?? null) ? $d['noConformidades'] : [];
+        $ind = is_array($d['indicadores'] ?? null) ? $d['indicadores'] : [];
+        $aud = is_array($d['auditorias'] ?? null) ? $d['auditorias'] : [];
+        $obj = is_array($d['objetivos'] ?? null) ? $d['objetivos'] : [];
+
+        $nodos = [
+            Nodo::encabezado(3, 'd) Desempeño y eficacia del sistema de gestión'),
+            Nodo::de('cifras', [], [
+                $this->cifra((string) (int) ($nc['abiertas'] ?? 0), 'de '.(int) ($nc['total'] ?? 0), 'No conformidades abiertas'),
+                $this->cifra((string) (int) ($nc['sinVerificar'] ?? 0), null, 'Sin verificar la eficacia'),
+                $this->cifra((string) (int) ($ind['fueraDeObjetivo'] ?? 0), 'de '.(int) ($ind['activos'] ?? 0), 'Indicadores fuera de objetivo'),
+                $this->cifra((string) (int) ($ind['periodoSinMedir'] ?? 0), null, 'Con el periodo sin medir'),
+                $this->cifra((string) (int) ($aud['total'] ?? 0), null, 'Auditorías en el periodo'),
+                $this->cifra((string) (int) ($obj['vivos'] ?? 0), 'de '.(int) ($obj['total'] ?? 0), 'Objetivos en curso'),
+            ]),
+        ];
+
+        $auditorias = is_array($aud['detalle'] ?? null) ? $aud['detalle'] : [];
+
+        if ($auditorias === []) {
+            $nodos[] = Nodo::parrafo('No se celebró ninguna auditoría dentro del periodo revisado.', 'suave');
+        } else {
+            $filas = [Nodo::fila([
+                Nodo::cabeceraCelda('Cód.', '1.0in', 'col'),
+                Nodo::cabeceraCelda('Tipo', '1.6in', 'col'),
+                Nodo::cabeceraCelda('Fecha', '1.0in', 'col'),
+                Nodo::cabeceraCelda('Estado', '1.2in', 'col'),
+                Nodo::cabeceraCelda('Hallazgos', '1.0in', 'col'),
+            ])];
+
+            foreach ($auditorias as $auditoria) {
+                if (! is_array($auditoria)) {
+                    continue;
+                }
+
+                $filas[] = Nodo::fila([
+                    Nodo::celdaTexto($this->cadena($auditoria, 'codigo') ?? '—', 'codigo'),
+                    Nodo::celdaTexto($this->cadena($auditoria, 'tipo') ?? '—'),
+                    Nodo::celdaTexto($this->cadena($auditoria, 'fecha') ?? '—'),
+                    Nodo::celda([Nodo::badge(
+                        $this->cadena($auditoria, 'tono') ?? 'no_iniciado',
+                        $this->cadena($auditoria, 'estado') ?? '—',
+                    )]),
+                    Nodo::celdaTexto((string) (int) ($auditoria['hallazgos'] ?? 0), 'cifra'),
+                ]);
+            }
+
+            $nodos[] = Nodo::de('table', [], $filas);
+        }
+
+        $objetivos = is_array($obj['detalle'] ?? null) ? $obj['detalle'] : [];
+
+        if ($objetivos === []) {
+            $nodos[] = Nodo::parrafo(
+                'No hay objetivos de seguridad registrados. La cláusula 6.2 pide establecerlos.',
+                'suave',
+            );
+
+            return $nodos;
+        }
+
+        $filas = [Nodo::fila([
+            Nodo::cabeceraCelda('Cód.', '1.0in', 'col'),
+            Nodo::cabeceraCelda('Objetivo', '3.4in', 'col'),
+            Nodo::cabeceraCelda('Estado', '1.4in', 'col'),
+            Nodo::cabeceraCelda('Evaluación', '1.2in', 'col'),
+            Nodo::cabeceraCelda('Fecha', '1.0in', 'col'),
+        ])];
+
+        foreach ($objetivos as $objetivo) {
+            if (! is_array($objetivo)) {
+                continue;
+            }
+
+            $filas[] = Nodo::fila([
+                Nodo::celdaTexto($this->cadena($objetivo, 'codigo') ?? '—', 'codigo'),
+                Nodo::celdaTexto($this->cadena($objetivo, 'titulo') ?? '—'),
+                Nodo::celda([Nodo::badge(
+                    $this->cadena($objetivo, 'tono') ?? 'no_iniciado',
+                    $this->cadena($objetivo, 'estado') ?? '—',
+                )]),
+                Nodo::celdaTexto($this->cadena($objetivo, 'avance') ?? '—'),
+                Nodo::celdaTexto($this->cadena($objetivo, 'fecha') ?? '—'),
+            ]);
+        }
+
+        $nodos[] = Nodo::de('table', [], $filas);
+
+        return $nodos;
+    }
+
+    /**
+     * f) Los resultados de la apreciación de riesgos y el estado del tratamiento.
+     *
+     * @param  array<string, mixed>  $entradas
+     * @return list<array<string, mixed>>
+     */
+    private function entradaRiesgos(array $entradas): array
+    {
+        $r = is_array($entradas['riesgos'] ?? null) ? $entradas['riesgos'] : [];
+        $total = (int) ($r['total'] ?? 0);
+
+        $nodos = [Nodo::encabezado(3, 'f) Apreciación de riesgos y estado del tratamiento')];
+
+        if ($total === 0) {
+            $nodos[] = Nodo::parrafo('No hay riesgos registrados.', 'vacio');
+
+            return $nodos;
+        }
+
+        $nodos[] = Nodo::de('cifras', [], [
+            $this->cifra((string) $total, null, 'Riesgos registrados'),
+            $this->cifra((string) (int) ($r['sobreUmbral'] ?? 0), 'de '.$total, 'Sobre el umbral de aceptación'),
+            $this->cifra((string) (int) ($r['sinValorar'] ?? 0), 'de '.$total, 'Sin valorar'),
+            $this->cifra((string) (int) ($r['sinAceptar'] ?? 0), null, 'Sobre el umbral y sin aceptar'),
+            $this->cifra((string) (int) ($r['revisionVencida'] ?? 0), null, 'Con la reevaluación vencida'),
+            $this->cifra((string) (int) ($r['residualSinRespaldo'] ?? 0), null, 'Residual sin salvaguarda'),
+        ]);
+
+        return $nodos;
+    }
+
+    /**
+     * g) Las oportunidades de mejora continua.
+     *
+     * @param  array<string, mixed>  $entradas
+     * @return list<array<string, mixed>>
+     */
+    private function entradaMejoras(array $entradas): array
+    {
+        $m = is_array($entradas['mejoras'] ?? null) ? $entradas['mejoras'] : [];
+        $detalle = is_array($m['detalle'] ?? null) ? $m['detalle'] : [];
+
+        $nodos = [Nodo::encabezado(3, 'g) Oportunidades de mejora continua')];
+
+        $nodos[] = Nodo::parrafo(sprintf(
+            '%d registradas, de las cuales %d siguen abiertas y %d todavía sin empezar.',
+            (int) ($m['total'] ?? 0),
+            (int) ($m['abiertas'] ?? 0),
+            (int) ($m['sinEmpezar'] ?? 0),
+        ), 'suave');
+
+        if ($detalle === []) {
+            return $nodos;
+        }
+
+        $filas = [Nodo::fila([
+            Nodo::cabeceraCelda('Cód.', '1.0in', 'col'),
+            Nodo::cabeceraCelda('Mejora', '3.6in', 'col'),
+            Nodo::cabeceraCelda('Estado', '1.2in', 'col'),
+            Nodo::cabeceraCelda('Origen', '1.6in', 'col'),
+            Nodo::cabeceraCelda('Responsable', '1.6in', 'col'),
+        ])];
+
+        foreach ($detalle as $mejora) {
+            if (! is_array($mejora)) {
+                continue;
+            }
+
+            $filas[] = Nodo::fila([
+                Nodo::celdaTexto($this->cadena($mejora, 'codigo') ?? '—', 'codigo'),
+                Nodo::celdaTexto($this->cadena($mejora, 'titulo') ?? '—'),
+                Nodo::celda([Nodo::badge(
+                    $this->cadena($mejora, 'tono') ?? 'no_iniciado',
+                    $this->cadena($mejora, 'estado') ?? '—',
+                )]),
+                Nodo::celdaTexto($this->cadena($mejora, 'origen') ?? '—'),
+                Nodo::celdaTexto($this->cadena($mejora, 'responsable') ?? 'Sin asignar'),
+            ]);
+        }
+
+        $nodos[] = Nodo::de('table', [], $filas);
+
+        return $nodos;
+    }
+
+    /**
+     * Las salidas de la revisión (9.3.3).
+     *
+     * **Se leen de la pivote y no de la instantánea**, a diferencia de todo lo
+     * anterior, y es deliberado: son las salidas del acta y pueden crecer después
+     * de firmarla —una decisión se ejecuta en las semanas siguientes—. Lo que se
+     * congeló es lo que la dirección **tuvo delante**, no lo que mandó hacer.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function tablaDecisiones(ContenidoDocumento $contenido): array
+    {
+        $decisiones = $contenido->extras['decisiones'] ?? [];
+
+        if (! is_array($decisiones) || $decisiones === []) {
+            return [Nodo::parrafo(
+                'La revisión no registró ninguna decisión. La cláusula 9.3.3 pide dejar constancia de las '
+                .'decisiones relacionadas con oportunidades de mejora y con cambios en el sistema de gestión.',
+                'vacio',
+            )];
+        }
+
+        return [$this->tablaDeAcciones($decisiones)];
+    }
+
+    /**
+     * La tabla de acciones, que se pinta igual en la entrada a) y en las salidas.
+     *
+     * Una sola función porque son lo mismo mirado desde dos actas distintas: las
+     * decisiones de una revisión son las acciones previas de la siguiente. Con
+     * dos copias, la de arriba y la de abajo acabarían discrepando en columnas.
+     *
+     * @param  array<int|string, mixed>  $acciones
+     * @return array<string, mixed>
+     */
+    private function tablaDeAcciones(array $acciones): array
+    {
+        $filas = [Nodo::fila([
+            Nodo::cabeceraCelda('Acción', '4.4in', 'col'),
+            Nodo::cabeceraCelda('Estado', '1.4in', 'col'),
+            Nodo::cabeceraCelda('Responsable', '1.8in', 'col'),
+            Nodo::cabeceraCelda('Plazo', '1.0in', 'col'),
+        ])];
+
+        foreach ($acciones as $accion) {
+            if (! is_array($accion)) {
+                continue;
+            }
+
+            $filas[] = Nodo::fila([
+                Nodo::celdaTexto($this->cadena($accion, 'titulo') ?? '—'),
+                Nodo::celda([Nodo::badge(
+                    $this->cadena($accion, 'tono') ?? 'no_iniciado',
+                    $this->cadena($accion, 'estado') ?? '—',
+                )]),
+                Nodo::celdaTexto($this->cadena($accion, 'responsable') ?? 'Sin asignar'),
+                Nodo::celdaTexto($this->cadena($accion, 'fecha') ?? 'Sin plazo'),
+            ]);
+        }
+
+        return Nodo::de('table', [], $filas);
     }
 
     // --- Cierre -------------------------------------------------------------

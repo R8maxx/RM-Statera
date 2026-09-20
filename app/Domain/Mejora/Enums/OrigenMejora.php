@@ -1,0 +1,86 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Domain\Mejora\Enums;
+
+/**
+ * De dónde sale una oportunidad de mejora.
+ *
+ * Cuatro, y son las cuatro puertas por las que la mejora continua entra de verdad
+ * en una organización: la auditoría que la escribe como hallazgo, la revisión por
+ * la dirección que la decide, el indicador que se queda corto y la persona a la
+ * que se le ocurre.
+ *
+ * **`Indicador` es la que justifica que este módulo llegue después del § 4.14.**
+ * Un indicador fuera de objetivo no es una no conformidad —no incumple ningún
+ * requisito— y hasta aquí no tenía dónde acabar: la cifra se quedaba roja en el
+ * cuadro de mando y nadie apuntaba qué se iba a hacer con ella.
+ *
+ * `RevisionDireccion` se declara desde hoy y **se ofrece**, a diferencia de lo que
+ * pasa en `OrigenTarea`: aquí no hay a qué apuntar —no hay clave foránea a una
+ * revisión— así que es una etiqueta honesta y no una trazabilidad fingida. Cuando
+ * llegue el § 4.15, las salidas de la revisión crearán mejoras por su camino y
+ * esta etiqueta seguirá significando lo mismo.
+ */
+enum OrigenMejora: string
+{
+    case Auditoria = 'auditoria';
+    case RevisionDireccion = 'revision_direccion';
+    case Indicador = 'indicador';
+    case Propia = 'propia';
+
+    public function etiqueta(): string
+    {
+        return match ($this) {
+            self::Auditoria => 'Hallazgo de auditoría',
+            self::RevisionDireccion => 'Revisión por la dirección',
+            self::Indicador => 'Indicador fuera de objetivo',
+            self::Propia => 'Iniciativa propia',
+        };
+    }
+
+    public function icono(): string
+    {
+        return match ($this) {
+            self::Auditoria => 'SearchCheck',
+            self::RevisionDireccion => 'Users',
+            self::Indicador => 'Equal',
+            self::Propia => 'Lightbulb',
+        };
+    }
+
+    /**
+     * **Los cuatro se ofrecen**, a diferencia de `OrigenTarea`.
+     *
+     * Allí la lista existe porque una tarea marcada «hallazgo de auditoría» sin
+     * auditoría detrás no es trazable; aquí ninguno de los cuatro promete un
+     * vínculo que no exista —el único que lo tiene es `Auditoria`, y esa sí lleva
+     * su `hallazgo_id`—. Se deja el método para que la pregunta tenga respuesta en
+     * el mismo sitio que en los otros enums de origen.
+     */
+    public function disponible(): bool
+    {
+        return true;
+    }
+
+    /** @return list<self> */
+    public static function disponibles(): array
+    {
+        return array_values(array_filter(self::cases(), static fn (self $origen): bool => $origen->disponible()));
+    }
+
+    /**
+     * El tono del reparto por origen, con el mismo vocabulario de tres que usa
+     * `OrigenTarea::tono()`: ámbar lo reactivo, azul lo planificado, gris la
+     * iniciativa propia.
+     */
+    public function tono(): string
+    {
+        return match ($this) {
+            self::Auditoria, self::Indicador => 'en_progreso',
+            self::RevisionDireccion => 'planificado',
+            self::Propia => 'no_iniciado',
+        };
+    }
+}

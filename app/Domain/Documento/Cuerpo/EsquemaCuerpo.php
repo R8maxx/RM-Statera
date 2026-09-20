@@ -132,6 +132,12 @@ final class EsquemaCuerpo
         'tabla_partes_interesadas',
         'declaracion_climatica',
         'alcance_sistemas',
+        // Las tres del acta de revisión por la dirección (§ 4.15). La del medio
+        // es la que paga el documento: las siete entradas de la 9.3.2, tal como
+        // se congelaron al firmar el acta.
+        'ficha_revision',
+        'entradas_revision',
+        'tabla_decisiones',
         'limitaciones_sistema',
         'control_versiones',
     ];
@@ -195,11 +201,28 @@ final class EsquemaCuerpo
         'nota_al_pie' => 'margin-top: 0.12in',
     ];
 
-    /** @var array<string, string> tono => clases */
+    /**
+     * Los tonos del dominio que el documento sabe pintar.
+     *
+     * **Un tono que no esté aquí sale como `neutro`**, que es un chip gris sin
+     * punto: el mismo fallo silencioso que `IconoTipo` tenía con los iconos y
+     * `tonos.ts` con los colores, y por tercera vez en el producto. Lo cierra
+     * `tests/Unit/Diseno/TonosDelDocumentoTest.php`, que compara este mapa con lo
+     * que emiten los enums del dominio y con las clases que declara
+     * `documento.css`.
+     *
+     * `en_revision` entró con el acta de la revisión por la dirección (§ 4.15):
+     * es el primer documento que imprime badges de objetivos de seguridad, y
+     * `EstadoObjetivo::Propuesto` gasta ese tono. Antes de él ningún cuerpo
+     * calculado llegaba a emitirlo, así que el hueco no se notaba.
+     *
+     * @var array<string, string> tono => clases
+     */
     public const TONOS_BADGE = [
         'implantado' => 'badge badge--implantado',
         'planificado' => 'badge badge--planificado',
         'en_progreso' => 'badge badge--en_progreso',
+        'en_revision' => 'badge badge--en_revision',
         'no_iniciado' => 'badge badge--no_iniciado',
         'no_aplica' => 'badge badge--no_aplica',
         'neutro' => 'badge badge--neutro',

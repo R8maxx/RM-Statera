@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Auditoria\Models;
 
 use App\Domain\Auditoria\Enums\TipoHallazgo;
+use App\Domain\Mejora\Models\Mejora;
 use App\Domain\NoConformidad\Models\NoConformidad;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
 use App\Domain\Traza\Concerns\RegistraTraza;
@@ -80,6 +81,21 @@ class Hallazgo extends Model
     public function noConformidad(): HasOne
     {
         return $this->hasOne(NoConformidad::class);
+    }
+
+    /**
+     * El otro tratamiento posible, desde la cláusula 10.1.
+     *
+     * `hasOne` por lo mismo que arriba: `mejoras.hallazgo_id` lleva índice único.
+     * Los dos son excluyentes por el tipo del hallazgo —una oportunidad de mejora
+     * no admite no conformidad y al revés tampoco—, así que en la práctica sólo
+     * uno de los dos puede tener fila.
+     *
+     * @return HasOne<Mejora, $this>
+     */
+    public function mejora(): HasOne
+    {
+        return $this->hasOne(Mejora::class);
     }
 
     /**

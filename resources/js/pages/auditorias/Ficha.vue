@@ -35,10 +35,15 @@ interface Hallazgo {
     tipoTono: string;
     tipoIcono: string;
     exigeNoConformidad: boolean;
+    // Desde la cláusula 10.1 hay dos registros de destino, y el tipo del
+    // hallazgo decide cuál: una oportunidad de mejora no incumple nada.
+    abreMejora: boolean;
     descripcion: string;
     medida: string | null;
     noConformidadId: number | null;
     noConformidadCodigo: string | null;
+    mejoraId: number | null;
+    mejoraCodigo: string | null;
 }
 
 interface Auditoria {
@@ -72,6 +77,7 @@ const props = defineProps<{
     transiciones: Destino[];
     puedeGestionar: boolean;
     puedeTratar: boolean;
+    puedeTratarMejoras: boolean;
 }>();
 
 /*
@@ -303,6 +309,27 @@ const sinTratar = computed(
                                         class="text-xs underline-offset-4 hover:underline"
                                     >
                                         Abrir no conformidad
+                                    </Link>
+
+                                    <!--
+                                        El otro destino, desde la cláusula 10.1: una
+                                        oportunidad de mejora no incumple nada, así que
+                                        no se trata como no conformidad. Tiene su
+                                        registro y su propio camino desde aquí.
+                                    -->
+                                    <Link
+                                        v-if="item.mejoraId"
+                                        :href="`/mejoras/${item.mejoraId}`"
+                                        class="cifra text-xs underline-offset-4 hover:underline"
+                                    >
+                                        {{ item.mejoraCodigo }}
+                                    </Link>
+                                    <Link
+                                        v-else-if="item.abreMejora && puedeTratarMejoras"
+                                        :href="`/mejoras/crear?hallazgo=${item.id}`"
+                                        class="text-xs underline-offset-4 hover:underline"
+                                    >
+                                        Abrir oportunidad de mejora
                                     </Link>
                                 </div>
                                 <Button

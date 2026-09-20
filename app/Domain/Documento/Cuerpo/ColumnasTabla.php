@@ -104,6 +104,7 @@ final class ColumnasTabla
              * son dos tablas distintas y esto sólo sabe describir una.
              */
             TipoDocumento::AnalisisContexto,
+            TipoDocumento::ActaRevision,
             TipoDocumento::Politica,
             TipoDocumento::Norma,
             TipoDocumento::Procedimiento => [],
@@ -122,6 +123,7 @@ final class ColumnasTabla
 
             // Sin tabla larga no hay recuento que etiquetar.
             TipoDocumento::AnalisisContexto,
+            TipoDocumento::ActaRevision,
             TipoDocumento::Politica,
             TipoDocumento::Norma,
             TipoDocumento::Procedimiento => '',

@@ -8,6 +8,7 @@ import ResumenInventarioPanelCard from '@/components/activo/ResumenInventarioPan
 import ResumenContextoPanel from '@/components/contexto/ResumenContextoPanel.vue';
 import ResumenMetricasPanel from '@/components/metrica/ResumenMetricasPanel.vue';
 import ResumenNoConformidadesPanel from '@/components/no-conformidad/ResumenNoConformidadesPanel.vue';
+import ResumenObjetivosPanel from '@/components/objetivo/ResumenObjetivosPanel.vue';
 import ResumenPlanPanel from '@/components/tarea/ResumenPlanPanel.vue';
 import GraficaBarras, { type Barra } from '@/components/grafica/GraficaBarras.vue';
 import {
@@ -54,6 +55,7 @@ const props = defineProps<{
     noConformidades: App.Http.Resources.Panel.ResumenNoConformidadesPanel | null;
     contexto: App.Http.Resources.Panel.ResumenContextoPanel | null;
     desempeno: App.Http.Resources.Panel.ResumenMetricasPanel | null;
+    objetivos: App.Http.Resources.Panel.ResumenObjetivosPanel | null;
 }>();
 
 const { variantesEntrada, variantesEscalonado } = useMovimientoReducido();
@@ -349,6 +351,19 @@ const metricas = computed(() => [
                 :variants="variantesEntrada"
             >
                 <ResumenMetricasPanel :resumen="desempeno" />
+            </motion.section>
+
+            <!-- ── Objetivos ──────────────────────────────────────────────── -->
+            <!--
+                Pegado al desempeño, que es su otra mitad: los indicadores dicen
+                cómo va y los objetivos dicen contra qué. Con el registro vacío no
+                se pinta, como las demás.
+            -->
+            <motion.section
+                v-if="objetivos && objetivos.total > 0"
+                :variants="variantesEntrada"
+            >
+                <ResumenObjetivosPanel :resumen="objetivos" />
             </motion.section>
 
             <!-- ── Por marco ──────────────────────────────────────────────── -->

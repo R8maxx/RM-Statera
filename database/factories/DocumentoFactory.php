@@ -97,6 +97,24 @@ class DocumentoFactory extends Factory
         ]);
     }
 
+    /**
+     * El acta de revisión por la dirección: **calculada y sin sistema**, como el
+     * análisis del contexto.
+     *
+     * Es el segundo documento de ámbito organizativo, y el que confirma que la
+     * frontera que abrió aquél no era un caso aislado: lo que la dirección revisa
+     * es el sistema de gestión entero, no un sistema concreto.
+     */
+    public function actaRevision(): self
+    {
+        return $this->deTipo(TipoDocumento::ActaRevision)->state(fn (): array => [
+            'codigo' => 'ACT-REV-01',
+            'titulo' => 'Acta de revisión por la dirección',
+            'sistema_id' => null,
+            'periodicidad_revision_meses' => 12,
+        ]);
+    }
+
     public function conPeriodicidad(?int $meses): self
     {
         return $this->state(fn (): array => ['periodicidad_revision_meses' => $meses]);

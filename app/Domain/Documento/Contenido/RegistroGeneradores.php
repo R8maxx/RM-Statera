@@ -10,9 +10,10 @@ use Illuminate\Contracts\Container\Container;
 /**
  * Qué clase pinta cada tipo de documento.
  *
- * Un `match` y no un array de configuración: así el día que se añada el plan de
- * adecuación, PHPStan señala el caso que falta en vez de dejar que reviente en
- * ejecución delante de quien pulsó «Generar».
+ * Un `match` y no un array de configuración: así cada tipo nuevo lo señala
+ * PHPStan en vez de dejar que reviente en ejecución delante de quien pulsó
+ * «Generar». Ha avisado ya con el plan de adecuación, con el análisis del
+ * contexto y con el acta de revisión.
  */
 final readonly class RegistroGeneradores
 {
@@ -25,6 +26,7 @@ final readonly class RegistroGeneradores
             TipoDocumento::DdaEns => DeclaracionAplicabilidadEns::class,
             TipoDocumento::PlanAdecuacionEns => PlanAdecuacionEns::class,
             TipoDocumento::AnalisisContexto => AnalisisDelContexto::class,
+            TipoDocumento::ActaRevision => ActaRevisionDireccion::class,
 
             /*
              * Los tres redactados comparten generador: lo que los separa es qué

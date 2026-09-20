@@ -144,6 +144,50 @@ El orden importa: el catálogo y el motor son la parte más específica del domi
     una auditoría). Queda además el calendario de obligaciones completo (§ 4.16) y
     los otros dos tercios del flujo de conformidad (§ 4.17).
 
+15. ✅ Objetivos de seguridad (cláusula 6.2). La primera de las dos entradas que
+    le faltaban a la 9.3, y la que el punto anterior dejó preparada: el «cómo se
+    evaluarán los resultados» que la 6.2 exige **es** un indicador, así que el
+    § 4.14 fue antes a propósito. Hasta aquí el producto **medía** y no había
+    dónde comprometerse a una cifra; son dos cosas distintas y la norma las pide
+    las dos.
+
+    Es además una de las cinco cláusulas que tenían requisito en el catálogo,
+    implantación esperando y **ningún sitio donde escribirse** — exactamente lo
+    que le pasaba al § 4.1 hasta que se construyó.
+
+    **A la 9.3 le falta ya una sola entrada**: las oportunidades de mejora (10.1),
+    que siguen existiendo únicamente como `TipoHallazgo::OportunidadMejora` dentro
+    de una auditoría. Ése es el punto 16.
+
+16. ✅ Oportunidades de mejora (cláusula 10.1). La segunda mitad del capítulo 10 y
+    **la última entrada que le faltaba a la 9.3**: con esto, las siete entradas
+    obligatorias de la revisión por la dirección salen todas del producto y el
+    § 4.15 deja de estar bloqueado.
+
+    Hasta aquí una oportunidad de mejora **sólo existía dentro de una auditoría**,
+    como `TipoHallazgo::OportunidadMejora`: la que se le ocurría a alguien un
+    martes, o la que salía de un indicador que no llegaba a su objetivo, no tenía
+    dónde apuntarse.
+
+    Es además el módulo que **cierra la bifurcación del capítulo 10**: la 10.2
+    trata lo que incumple y la 10.1 lo que se puede mejorar sin que nada incumpla,
+    y desde aquí un hallazgo va al registro que le toca — con las dos puertas
+    cerradas en el dominio, no sólo en el formulario.
+
+17. ✅ Revisión por la dirección (§ 4.15, cláusula 9.3). **El módulo que llevaba
+    bloqueado desde el principio**, y no por su complejidad: la 9.3 cierra la
+    lista de entradas obligatorias y dos de las siete no salían de ninguna parte.
+    Con los dos puntos anteriores dentro, las siete existen y esto las recoge.
+
+    Con él **la fase 3 —«el ciclo vivo»— llega a su pieza central**: auditar,
+    encontrar, tratar, comprobar, medir, comprometerse, mejorar y **revisarlo todo
+    desde arriba**. El quinto documento calculado, el quinto trigger de
+    inmutabilidad y el octavo verbo de supervisión.
+
+    Lo que **sigue abierto de la fase 3**: el calendario de obligaciones completo
+    (§ 4.16), del que hoy existen tres `Fuente` de las once que enumera la
+    especificación, y los otros dos tercios del flujo de conformidad (§ 4.17).
+
 ## El catálogo
 
 Vive en `catalogo/*.yaml`, versionado en el repositorio, y se carga con un comando idempotente:
@@ -1058,7 +1102,7 @@ que allí.
 `indicadores.ver` e `indicadores.gestionar`. **En este módulo no hay nada que firmar**: una medición
 es un dato que se toma, no una decisión que alguien aprueba, y quien está en el día a día es quien
 sabe de dónde sale la cifra. Por eso el técnico define indicadores y los mide. El verbo de supervisión
-de este ciclo llega con los objetivos de la 6.2, que sí se comprometen y sí se aprueban.
+de este ciclo es `objetivos.aprobar`, y llegó con la 6.2: comprometerse a una cifra sí se firma.
 
 ### Lo que este módulo declara que no hace todavía
 
@@ -1067,11 +1111,485 @@ de este ciclo llega con los objetivos de la 6.2, que sí se comprometen y sí se
   casos, así que ni el aviso diario ni la vista de mes lo recogen. Es trabajo aparte, y va declarado.
 - **No comprueba que lo que se mide cubra lo que hay que medir.** La 9.1 a) pide determinar qué
   necesita seguimiento; Statera registra lo que se declare y no dice si falta algo.
-- **No vincula indicadores con objetivos de seguridad**, porque el § 6.2 no existe todavía. Cuando
-  exista, la pivote es N:M: un indicador evalúa varios objetivos y un objetivo necesita varios.
+- ~~**No vincula indicadores con objetivos de seguridad**~~. Lo hace desde la 6.2, y la pivote es la
+  N:M que aquí se dejó anunciada: `indicador_objetivo`.
 - **Una media se registra sin numerador**, con sólo el denominador al lado. Es correcto —«3,2 sobre 48
   requisitos valorados»— y por eso el `CHECK` es asimétrico: un numerador exige denominador, pero no
   al revés.
+---
+
+## Los objetivos de seguridad
+
+Cláusula 6.2, y la primera de las dos entradas que le faltaban a la 9.3. El § 4.14 dejó el producto
+**midiendo**; esto es a lo que la organización **se compromete**. Son dos cosas distintas y la norma
+las pide las dos: un cuadro de indicadores sin objetivos contesta «¿cómo va?» y no contesta «¿va
+bien?».
+
+Vive en `app/Domain/Objetivo/`, con cuatro tablas: `objetivos_seguridad`, `indicador_objetivo`,
+`objetivo_tarea` y `objetivo_transiciones`.
+
+**Va después del § 4.14 y eso da forma a la tabla.** De las cinco cosas que la 6.2 pide de la
+planificación de un objetivo, dos ya existían en el producto y no se escriben a mano:
+
+| 6.2 | Dónde |
+|---|---|
+| Qué se hará (a) | `objetivo_tarea`, N:M — son **tareas** |
+| Qué recursos (b) | `recursos`, texto libre |
+| Quién responde (c) | `responsable_id` |
+| Para cuándo (d) | `fecha_objetivo`, **exigida al aprobar** |
+| Cómo se evalúan los resultados (e) | `indicador_objetivo`, N:M — son **indicadores** |
+
+**«Cómo se evaluarán los resultados» ES un indicador**, y por eso el § 4.14 fue antes: al revés, el
+objetivo nacería con el campo que el auditor más mira y nada detrás. La N:M estaba **anunciada por
+escrito** al cerrar el § 4.14 —«un indicador evalúa varios objetivos y un objetivo necesita varios»—
+y es real: «porcentaje de implantación del ENS» evalúa a la vez el objetivo de adecuación y el de
+madurez.
+
+**Lo que sí es columna es «qué recursos»**, y es texto libre y no una cifra: no se deduce del coste
+de sus tareas, porque hay objetivos que se cumplen con horas de gente que ya está y una cifra a cero
+se leería como «no hace falta nada» en vez de como «no cuesta dinero».
+
+### Un borrador se escribe como se pueda; un compromiso no
+
+Es la regla del módulo, y son **dos `CHECK`**: el plazo y la firma son obligatorios exactamente en
+los tres estados comprometidos —`aprobado`, `alcanzado`, `no_alcanzado`— y no en `propuesto` ni en
+`retirado`. Obligar la fecha en el formulario impediría apuntar la idea el día que se tiene, que es
+cuando la gente la apunta; no exigirla nunca dejaría pasar un compromiso sin plazo, que es una
+consigna. Por eso está en los dos sitios que corresponden: **opcional al escribir, obligatoria al
+firmar**, y la comprobación vive en `CambiarEstadoObjetivo` y no sólo en el `FormRequest`, porque la
+regla vale también para un importador.
+
+**`retirado` no exige firma a propósito**: se puede retirar un objetivo que nunca llegó a aprobarse,
+y rellenarle el firmante sería fabricar una aprobación que nadie dio. Es el mismo argumento por el
+que el `CHECK` de la firma de `documento_versiones` no alcanza a `obsoleto`.
+
+**Aprobar no reescribe quién firmó.** Reabrir un objetivo cerrado conserva el firmante y la fecha
+originales —`$objetivo->aprobado_por_id ?? $usuario?->id`—, igual que corregir una medición no mueve
+el objetivo sellado contra el que se juzgó su periodo. Lo contrario: **volver a `propuesto` suelta la
+firma entera**, porque un objetivo que vuelve al borrador ya no está aprobado y dejar puestos el
+firmante y la fecha sería enseñar una aprobación que ya no consta. No se pierde nada: el histórico la
+conserva.
+
+**`alcanzado` y `no_alcanzado` son dos estados y no un `resultado` al lado de un `cerrado`**, por lo
+mismo que `Verificada` en una no conformidad: «cuántos de los objetivos del año se alcanzaron» es
+literalmente una de las siete entradas de la 9.3, y con el resultado en otra columna esa cifra
+dependería de cruzar dos campos que pueden desincronizarse.
+
+**Tres transiciones exigen motivo escrito**, y la del medio es la que paga el módulo: retirar —«esto
+ya no lo perseguimos»—, **dar por no alcanzado** —«por qué» es lo que la revisión por la dirección va
+a preguntar del año que termina, y sin texto el acta diría «tres de cinco» sin poder explicar ni
+uno— y reabrir desde algo cerrado.
+
+### El séptimo verbo de supervisión
+
+`objetivos.aprobar`, junto a `sistemas.valorar`, `riesgos.aceptar`, `documentos.aprobar`,
+`contexto.aprobar` y `no_conformidades.verificar`. El § 4.14 se quedó a propósito con dos verbos
+—una medición es un dato que se toma, no una decisión que se firma— y **lo anunciaba por escrito**;
+éste es ese verbo. Cubre aprobar, declarar el resultado y **retirar**, porque retirar es renunciar a
+un compromiso adquirido. El técnico propone y planifica; no firma.
+
+### Lo derivado y lo declarado
+
+**El veredicto lo declara una persona; lo derivado se enseña al lado y no lo sobrescribe nunca.** Al
+cierre, quien firma decide si el objetivo se alcanzó; `Avance` dice lo que las cifras cuentan
+mientras tanto. Es el precedente exacto de `ValoracionEfectiva` y del riesgo residual, y **el
+invariante 4 no aplica**: aquél es una derivación legal con una respuesta correcta en el BOE, y la
+6.2 no publica ninguna función de indicadores a veredicto.
+
+Lo que sí hace la herramienta es **señalar la contradicción**: un objetivo dado por alcanzado con
+indicadores medidos por debajo de su objetivo se pone delante en su ficha, y el dato no se toca. Es
+el mismo papel que hacen `Riesgo::residualSinRespaldo()` y `Activo::esperaBorradoSeguro()`.
+
+**`Avance` cuenta los que llegan sobre los MEDIDOS, no sobre el total.** «Sin objetivo» y «sin medir»
+no cuentan como medidos, por el argumento de `EstadoControl::PorConfirmar`: la ausencia de dato es
+una pregunta abierta. Y los dos casos vacíos se nombran aparte porque no son lo mismo —sin ningún
+indicador vinculado, lo que falta es la 6.2 e); con indicadores y sin medición, la 9.1—.
+
+### El rojo es el plazo, y no quedarse corto
+
+**Ningún estado gasta rojo, ni siquiera `no_alcanzado`**, y es el mismo argumento que dejó sin rojo
+los cuatro veredictos del § 4.14: quedarse corto respecto a una cifra que la propia organización se
+puso es la distancia que queda, y pintarlo de alarma castiga por ponerse objetivos ambiciosos — el
+quinto principio del producto. Lo que sí va en rojo es **un objetivo aprobado cuyo plazo pasó y que
+nadie ha cerrado**: eso es la 6.2 sin terminar. Mismo reparto que en tareas y en no conformidades,
+donde el rojo es de la columna «Plazo» y nunca del estado.
+
+**`propuesto` gasta el violeta de `en_revision`, y es el tercer badge que lo hace.** Los otros dos
+son la versión de un documento esperando firma y la no conformidad tratada y pendiente de verificar,
+y los tres significan lo mismo: hecho y a la espera de que alguien con potestad lo confirme. **No
+abre un quinto sitio para el violeta**: el token ya era uno de los cuatro.
+
+### Sin doble vínculo, a diferencia de la acción correctiva
+
+`VincularActuacion` ata **un solo** extremo. En el § 4.13 hacía falta el segundo porque
+`Implantacion::sinTrabajo()` mira `implantacion_tarea` y el plan de adecuación imprimiría «sin trabajo
+planificado» sobre una medida que sí lo tiene; aquí **no hay medida detrás por construcción** —un
+objetivo de seguridad no cuelga de ningún requisito—, y atarlo a una arbitraria sería el vicio que
+`OrigenTarea::Propia` existe para evitar. Mismo reparto que `cuestion_tarea` en el § 4.1.
+
+**La consecuencia, declarada:** el coste de una actuación de objetivo **no entra en el presupuesto
+del plan de adecuación**, porque ese plan presupuesta medidas del Anexo II.
+
+**`OrigenTarea::Objetivo` es el octavo origen y el tercero que no está en § 4.7.** No se apunta a
+`brecha_implantacion`, que es el que más se le parece: una brecha es una medida exigible sin
+implantar, con su requisito detrás.
+
+### `resolveChildRouteBinding()`, por tercera vez en el producto
+
+`scopeBindings()` deduce la relación pluralizando el nombre del parámetro **en inglés** —`indicador`
+→ `indicadors`— y aquí el dominio se nombra en español. Sin escribirlo a mano,
+`/objetivos/{objetivo}/indicadores/{indicador}` responde 500 con un «Call to undefined method» que no
+menciona ni la ruta ni la relación, y de paso deja de acotar. Los precedentes son
+`Documento::resolveChildRouteBinding()` e `Indicador::resolveChildRouteBinding()`, y **lo cazó un
+test de aislamiento y no una revisión**, igual que las dos veces anteriores. `tarea` no hace falta
+declararla porque su plural inglés coincide con el español, que es justo lo que hace que este fallo
+sea difícil de ver leyendo las rutas.
+
+### El fallo que este módulo destapó en otro
+
+`CodigoNoConformidad` pasaba el desplazamiento de `substring` como binding, PDO lo mandaba **como
+texto** y PostgreSQL leía `substring(x from '10')` como la forma SQL estándar con expresión regular:
+devolvía NULL, el máximo salía nulo y **todas las no conformidades del año se proponían como `-01`**,
+chocando con el índice único a partir de la segunda. No lo cazaba nada porque el test que había sólo
+comprobaba el **primer** código del año, que sale bien incluso con el contador roto. Arreglado con
+`?::int` en los dos generadores y con un test de regresión que siembra dos códigos y pide el tercero.
+
+### Lo que este módulo declara que no hace todavía
+
+- **No entra en el calendario de obligaciones.** El objetivo vencido es el rojo del módulo y hoy sólo
+  se ve en la tabla, en el panel y en su ficha. No entra una `Fuente` nueva a propósito: un objetivo
+  tiene tareas detrás y sus plazos ya pintan chip, y una `Fuente` propia pintaría dos el mismo día
+  para un solo compromiso. Es el argumento exacto que dejó fuera la `fecha_prevista` de una no
+  conformidad y la `fecha_objetivo` del plan de adecuación.
+- **No comprueba que los objetivos cubran la política de seguridad.** La 6.2 a) pide que sean
+  coherentes con ella; Statera registra lo que se declare y no dice si falta algo.
+- **No exige que todo objetivo tenga indicador**, lo señala. Exigirlo impediría apuntar la idea el
+  día que se tiene, que es el mismo motivo por el que la fecha es opcional en el borrador.
+- **No entra en ningún documento.** El acta de la revisión por la dirección es el sitio donde estos
+  objetivos se leen, y ese documento llega con el § 4.15.
+
+---
+
+## Las oportunidades de mejora
+
+Cláusula 10.1, «mejora continua», y la segunda mitad del capítulo 10. Es la última
+entrada que le faltaba a la 9.3: con este módulo dentro, las siete entradas
+obligatorias de la revisión por la dirección salen del producto.
+
+Vive en `app/Domain/Mejora/`, con tres tablas: `mejoras`, `mejora_tarea` y
+`mejora_transiciones`.
+
+### Tabla propia, y el motivo es aritmético antes que conceptual
+
+**No es una ampliación de `no_conformidades`.** «No conformidades abiertas» es a
+la vez cifra del panel, cálculo de `CalculoIndicador` y entrada obligatoria de la
+9.3; con las mejoras dentro, una idea apuntada contaría como un incumplimiento en
+los tres sitios. Contar de más es el fallo caro y aquí se evita no dando la
+ocasión — el mismo argumento que dejó las subtareas fuera de `tareas`.
+
+Y la diferencia de fondo es la que hace la norma: **la 10.2 trata lo que incumple
+y la 10.1 lo que se puede mejorar sin que nada incumpla**. Una tiene causa raíz y
+verificación de eficacia porque algo falló; la otra no tiene nada que verificar.
+
+Por eso la tabla es **mucho más corta**: sin `correccion_inmediata`, sin
+`analisis_causa_raiz`, sin `fecha_verificacion` y sin `resultado_verificacion`.
+Copiar esas cuatro columnas «por simetría» sería pedirle a quien apunta una idea
+que declare la causa raíz de algo que no ha pasado.
+
+### La bifurcación del hallazgo, cerrada por los dos lados
+
+`TipoHallazgo::abreMejora()` y `admiteNoConformidad()` deciden a qué registro va
+cada hallazgo, y **las dos puertas están en el dominio**: `RegistrarNoConformidad`
+lanza `HallazgoNoTratable` si alguien intenta tratar una oportunidad de mejora
+como no conformidad. Está en el dominio y no sólo en el `FormRequest` porque la
+regla vale también para un importador — mismo criterio que el motivo de
+`descartada` en tareas.
+
+Y en la interfaz no se rechaza, **se redirige**: `/no-conformidades/crear?hallazgo=`
+lleva a `/mejoras/crear?hallazgo=` cuando el tipo no corresponde, y al revés.
+Dejar rellenar un formulario que el dominio va a rechazar al final es la forma más
+cara de decir que no.
+
+**Un hallazgo se trata una vez** en cada registro, y lo impone el índice único
+sobre `mejoras.hallazgo_id`. En PostgreSQL los nulos son distintos entre sí, así
+que deja pasar todas las mejoras sueltas que hagan falta — que son la mayoría: casi
+ninguna mejora sale de una auditoría.
+
+### El módulo sin rojo
+
+**Es el único registro del producto sin `alertas()`**, y es la decisión que lo
+define. Ninguna cifra de aquí va mal de verdad: una idea sin hacer no incumple
+nada —la 10.1 pide mejorar de forma continua, no tener cero ideas pendientes— y
+una mejora descartada es una decisión legítima. Pintar de rojo lo que alguien
+apuntó voluntariamente es la forma más rápida de que deje de apuntarlo, que es el
+quinto principio del producto.
+
+Ni siquiera el plazo. `Mejora::sePasoDeFecha()` se llama así y no `haVencido()` a
+propósito: nadie se comprometió a esa fecha —eso es un objetivo de la 6.2, que sí
+lleva su rojo—, y el tono de la columna **rebaja `caducada` a `no_iniciado`**. Hay
+un test que recorre el enum comprobando que ningún estado gasta rojo.
+
+Lo que sí hay es `sinEmpezar`, que es la cifra honesta del registro: un buzón de
+ideas al que nadie vuelve no es mejora continua.
+
+### Dos verbos, y ninguno de supervisión
+
+`mejoras.ver` y `mejoras.gestionar`. **Aquí no hay nada que firmar**, y es lo que
+lo separa del registro de al lado: no hay eficacia que verificar porque no había
+nada roto, y no hay compromiso que aprobar porque nadie se obligó. Cuando una
+mejora se convierte en un compromiso, lo que nace es un **objetivo de la 6.2**, que
+sí tiene su verbo. El técnico la gestiona entera, descartarla incluida.
+
+**Una sola transición exige motivo: descartar.** Implantar no lo pide —lo que se
+hizo lo cuentan sus tareas— y pedir un texto para cerrar lo que sí se hizo
+convierte en trámite el único gesto del registro que da alegrías.
+
+### Sin doble vínculo, y aquí el argumento es distinto
+
+`VincularActuacionDeMejora` ata **un solo** extremo, como en objetivos y en el
+contexto. Pero el motivo no es el mismo que allí: en un objetivo **no hay medida
+detrás por construcción**, y aquí sí puede haberla —cuando la mejora viene de un
+hallazgo con punto de checklist— y aun así no se ata.
+
+El motivo: **una oportunidad de mejora no incumple la medida**. El plan de
+adecuación lista lo que falta por implantar, y una medida que ya está implantada y
+que además se puede hacer mejor no está pendiente de nada. Atar el vínculo la
+metería en un plan que presupuesta brechas, que es la clase de cifra inflada que el
+§ 4.13 tuvo que arreglar por el otro lado.
+
+**La consecuencia, declarada:** el coste de una actuación de mejora no entra en el
+presupuesto del plan de adecuación.
+
+**`OrigenTarea::Mejora` es el noveno origen y el cuarto que no está en § 4.7.** No
+se apunta a `NoConformidad`: el reparto por origen del plan de acción existe para
+distinguir lo reactivo de lo voluntario, y colapsarlos haría que un plan lleno de
+mejoras se leyera como una organización apagando fuegos.
+
+### Lo que este módulo declara que no hace todavía
+
+- **No entra en el calendario de obligaciones**, y aquí ni siquiera se plantea: lo
+  que vence no vence, porque nadie se comprometió. Sus tareas sí tienen plazo y
+  ésas ya pintan chip.
+- **No comprueba que la mejora continua exista de verdad.** La 10.1 pide mejorar
+  de forma continua; Statera registra lo que se declare y no dice si el registro
+  lleva seis meses sin moverse.
+- **No convierte una mejora en objetivo.** Cuando una mejora se asume como
+  compromiso, el objetivo de la 6.2 se registra aparte y a mano. Automatizarlo
+  crearía objetivos sin plazo, sin recursos y sin firma, que es lo que la 6.2 no
+  admite.
+- **No entra en ningún documento.** El acta de la revisión por la dirección es
+  donde estas mejoras se leen, y llega con el § 4.15.
+
+---
+
+## La revisión por la dirección
+
+§ 4.15 y la cláusula 9.3. **Es el módulo que llevaba bloqueado desde el
+principio**, y no por su complejidad: la 9.3 cierra la lista de entradas
+obligatorias —son siete, no «las que se tengan»— y dos de ellas no salían de
+ninguna parte. El § 6.2 y el § 10.1 existen para desbloquear esto.
+
+Vive en `app/Domain/RevisionDireccion/`, con dos tablas: `revisiones_direccion` y
+`revision_tarea`.
+
+> **Ojo con el nombre, y está comprobado:** `/revisiones` ya estaba ocupada por las
+> revisiones del **inventario de activos** (`RevisionInventario`), que son el
+> «inventario mantenido» de A.5.9 y `op.exp.1`. Esta ruta es `/revision-direccion`.
+> Mismo caso que `Contexto` frente a `ContextoOrganizacion` y que `Domain\Traza`
+> frente a `Domain\Auditoria`: se anota, no se renombra lo que ya está. En la
+> paleta de comandos, **el alias «revisión» a secas no se le da a ninguno de los
+> dos**, porque sería empatar dos módulos con la palabra que más se teclea.
+
+### La instantánea es lo que da forma al módulo
+
+Las siete entradas se **congelan al aprobar** y nunca se consultan en vivo. Es el
+fallo más caro que este módulo podía tener y el repositorio ya lo ha evitado
+cuatro veces —`documento_versiones.instantanea`, `analisis_contexto`, la exigencia
+congelada al cerrar una auditoría y `mediciones.objetivo`—; aquí sería el peor de
+todos, porque el acta de marzo enseñaría las no conformidades y los riesgos de
+octubre **bajo la fecha y la firma de marzo**.
+
+De ahí la única decisión de interfaz que importa: **la ficha enseña las entradas
+en vivo mientras la revisión está abierta y congeladas cuando el acta está
+firmada**. Antes de firmar, lo que se mira es cómo está la cosa hoy —que es para
+lo que se convoca la reunión—; después, lo que se revisó aquel día.
+
+**Y no hay vigente**, a diferencia del análisis del contexto: allí el contexto es
+un estado de cosas que se sustituye, y aquí cada revisión es un **acto** con su
+fecha. La del año pasado no deja de haber ocurrido porque se celebre la de este
+año, así que no hay índice único parcial ni estado `obsoleta`.
+
+### Las siete entradas, y de dónde sale cada una
+
+| 9.3.2 | De dónde |
+|---|---|
+| a) Acciones de revisiones previas | `revision_tarea` de la revisión anterior |
+| b) Cambios en cuestiones internas y externas | § 4.1, desde el análisis **aprobado** |
+| c) Necesidades de las partes interesadas | § 4.1 |
+| d) Desempeño: NC, medición, auditorías y **objetivos** | § 4.13, § 4.14, § 4.12 y la **6.2** |
+| e) Retroalimentación de las partes interesadas | § 4.1, **con limitación declarada** |
+| f) Riesgos y estado del tratamiento | § 4.3 |
+| g) **Oportunidades de mejora** | **10.1** |
+
+**`EntradasRevision` no lee los resúmenes del panel**, y podría: `RegistroNoConformidades::paraElPanel()`
+cuenta casi lo mismo. Sería acoplar un acta que se entrega a un auditor a la forma
+que hoy tiene una tarjeta. Lo que sí comparte son los **scopes**, que es donde vive
+la regla: `NoConformidad::pendientesDeVerificar()` cuenta aquí lo mismo que en el
+panel y que en la tabla, por construcción.
+
+**Las auditorías se acotan al periodo revisado y el resto no.** Una no conformidad
+abierta lo está hoy, independientemente de cuándo se detectara, y acotarla
+escondería justo las que llevan años abiertas.
+
+**Un cero es una entrada recogida, no una entrada que falte.** Una organización
+puede celebrar su primera revisión sin auditorías, sin no conformidades y sin
+objetivos, y el acta lo dirá. Exigir que haya contenido convertiría la primera
+revisión en imposible, que es cuando más falta hace.
+
+**La entrada e) comparte apartado con la c) y el acta lo dice.** Statera registra
+**qué exige** cada parte interesada, no **qué ha dicho** últimamente: no hay
+quejas, ni encuestas, ni comunicaciones recibidas. Repartirlas en dos apartados con
+el mismo contenido daría la impresión de que las dos están cubiertas.
+
+### Dos fechas y no una periodicidad
+
+`fecha` es cuándo se celebra y `periodo_desde`/`periodo_hasta` de qué habla el
+acta. **No se deduce lo uno de lo otro**: una revisión del ejercicio 2025 se
+celebra en febrero de 2026, y es lo normal, no la excepción.
+
+Y **dos columnas en vez de una `Periodicidad`**, a diferencia de un indicador: una
+revisión por la dirección no parte el calendario en cubos iguales. La primera cubre
+desde que se implantó el SGSI y una extraordinaria puede cubrir seis semanas. Al
+convocar se **propone** el día siguiente al fin de la última aprobada, que es lo
+que impide que dos actas seguidas dejen un hueco sin revisar.
+
+### El quinto trigger de inmutabilidad
+
+Hermano de los de `documento_versiones`, `riesgo_valoraciones`, `auditorias` y
+`analisis_contexto`. **Una sola puerta: `aprobada → en_curso`**, la misma que tiene
+una auditoría, y nunca a `planificada` —decir que la reunión no se celebró es
+reescribir el pasado—.
+
+**La firma y la instantánea NO se neutralizan al reabrir**, y por eso el `CHECK` de
+la firma va en una sola dirección: la fila reabierta conserva quién la aprobó y qué
+se congeló hasta que la siguiente aprobación lo sobreescribe. Al revés habría que
+limpiarlas en la misma escritura que el trigger está vigilando, y el trigger la
+rechazaría.
+
+**Y el `CHECK` de aprobada exige dos cosas: firma e instantánea.** La segunda es la
+que lo separa del de un objetivo: un acta aprobada sin las entradas congeladas es
+un acta que no puede demostrar de qué habló.
+
+### Aprobar tiene ruta, permiso y acción propios
+
+`AprobarRevision` no pasa por `CambiarEstadoRevision`, y el `FormRequest` de la
+transición **rechaza `aprobada` explícitamente**. Aprobar no es un cambio de
+estado: es el acto que recoge las siete entradas y las sella. Con una ruta genérica,
+cualquiera podría firmar un acta sin instantánea y el `CHECK` lo rechazaría con un
+error que no menciona la palabra «entradas».
+
+**Las entradas se recogen ANTES de tocar la fila**, que es el error exacto que se
+cometió en `CerrarAuditoria`: congelar después de marcar el estado hace que el
+trigger bloquee el propio congelado con un mensaje que habla de otra cosa.
+
+**`revision_direccion.aprobar` es el octavo verbo de supervisión**, y el más
+literal de todos: la cláusula se llama «revisión por la **dirección**». Preparar la
+reunión, recoger las entradas y redactar las conclusiones es trabajo de quien lleva
+el SGSI; firmar que la dirección lo ha revisado, no.
+
+**Sin tabla de transiciones**, a diferencia de tareas, no conformidades, objetivos
+y mejoras. No es un descuido: lo que el auditor pregunta de una revisión no es desde
+cuándo está en curso, es **qué se revisó y qué se decidió**, y eso lo contesta la
+instantánea con su firma. Un histórico aquí guardaría el ir y venir de una reunión
+que se aplaza, que no es una pregunta que nadie haga.
+
+### Las salidas son tareas, y se leen en los dos sentidos
+
+La 9.3.3 pide registrar las decisiones, y una decisión que no acaba en algo que
+alguien hace para una fecha es un acta que no sirve. `revision_tarea` es N:M como
+sus hermanas y **se lee hacia delante y hacia atrás**: de ésta son sus decisiones y,
+desde la siguiente revisión, son «el estado de las acciones de revisiones previas».
+Eso es lo que hace que la serie de actas signifique algo.
+
+**Se pueden registrar decisiones sobre un acta ya firmada**, y conviene decirlo
+porque es justo donde uno espera un error: escribir en la pivote no pasa por el
+trigger —que blinda el acta, no lo que cuelga de ella— y es lo correcto, porque una
+decisión se ejecuta en las semanas siguientes. Mismo caso que la acción correctiva
+de una auditoría cerrada, y hay test.
+
+**`OrigenTarea::RevisionDireccion` pasa a ofrecerse, y no hizo falta migración**:
+el valor estaba en el `CHECK` desde la primera, porque el enum se declaró entero y
+lo que faltaba era su módulo. Es la diferencia con `objetivo` y `mejora`.
+
+**`RevisionDireccion::anterior()` busca por fecha de celebración y no por
+`created_at`**: una revisión del ejercicio pasado puede registrarse después que la
+de este año —pasa al meter el histórico— y ordenar por cuándo se tecleó daría
+«acciones previas» de una reunión que todavía no había ocurrido. Hay test, y otro
+que fija que la anterior nunca es la de otra organización.
+
+### El acta: el quinto documento calculado
+
+`TipoDocumento::ActaRevision`, de **ámbito organizativo** —lo que la dirección
+revisa es el SGSI entero— y por tanto `exigeSistema()` a `false`. **`documentos_sistema_check`
+no se tocó**, y eso es la noticia: la migración del § 4.1 lo rehízo por tercera vez
+para cambiar su motor a `exigeSistema()` precisamente para que un tipo nuevo de
+ámbito organizativo no obligara a rehacerlo otra vez. Aquella decisión se paga aquí.
+
+`ActaRevisionDireccion` implementa `GeneradorDocumento` **directamente**, como
+`AnalisisDelContexto` y `DocumentoRedactado`. Los apartados del cuerpo van **en el
+orden en que la norma enumera las entradas**, de la a) a la g): un auditor las
+recorre con el acta delante, y reordenarlas le obliga a buscar cada una.
+
+**Las decisiones son la excepción y se leen en vivo**, a diferencia de las
+entradas: son las salidas y pueden crecer después de firmar. Lo que se congeló es
+lo que la dirección **tuvo delante**, no lo que mandó hacer.
+
+### El tercer fallo silencioso de la familia, cerrado
+
+El acta es el primer documento que imprime badges de objetivos de seguridad, y
+`EstadoObjetivo::Propuesto` gasta el tono `en_revision` — que **no estaba en
+`EsquemaCuerpo::TONOS_BADGE` ni en `documento.css`**. `RenderizadorCuerpo` cae a
+`neutro` cuando no reconoce el tono, así que el badge salía **gris y sin punto en el
+PDF que se le entrega al auditor**, sin que nada avisara. Es el mismo fallo que
+`IconoTipo` tenía con los iconos y `tonos.ts` con los colores, por tercera vez.
+
+Tres cosas para cerrarlo, y las tres hacen falta:
+
+1. **`.badge--en_revision` en `documento.css`**, con los hex de DESIGN.md §3
+   (`#7B45C4` sobre `#F7F2FF`) y no estimados.
+2. **`Nodo::badge()` lanza `LogicException`** con un tono que no esté en el mapa.
+   Es seguro porque ahí **sólo llega código**: los tonos los escriben los
+   materializadores desde enums, nunca un cuerpo editado —ése pasa por
+   `SanearCuerpo`, que anula el tono desconocido, y ahí el `?? neutro` del
+   renderizador es lo correcto—. Mismo razonamiento que los dos `match` sobre
+   cadenas de `MaterializarCuerpo`.
+3. **`TonosDelDocumentoTest`**, que compara el mapa con las clases del CSS en las
+   dos direcciones. **No recorre los enums del dominio a propósito**: el
+   vocabulario tiene familias que el papel no imprime nunca —los nueve `--tipo-*`,
+   los cuatro `--dafo-*`, las prioridades y los ordinales— y exigirle que las
+   conozca sería pedirle que supiera pintar badges que ningún generador le pasa. Lo
+   que se fija es la puerta, no el inventario.
+
+### Lo que este módulo declara que no hace todavía
+
+Las cuatro van impresas en el acta, no sólo aquí:
+
+- **La retroalimentación de las partes interesadas (9.3.2 e) se aporta fuera.**
+  Statera registra qué exige cada parte, no qué ha dicho.
+- **Los asistentes son texto libre**, y no se comprueba que quien figura tenga
+  potestad para revisar el sistema de gestión ni que la dirección estuviera
+  representada. Tampoco hay firma electrónica cualificada. `users` son cuentas de
+  Statera y a una revisión por la dirección asiste gente que no tiene cuenta —§ 4.8
+  no existe—.
+- **No se comprueba que la revisión se celebre con la periodicidad comprometida**:
+  se registran las que se convocan y no se avisa de la que falta. Ese aviso vive en
+  el § 4.16, y `Aviso\Fuente` sigue con tres casos. **No entra una `Fuente` nueva
+  aquí**: lo que vence es la revisión del acta aprobada, que `Fuente::Documento` ya
+  recoge — mismo argumento que dejó fuera al análisis del contexto.
+- **Desvincular una decisión de un acta firmada sí cambia** lo que la revisión
+  siguiente verá como «acciones previas». El acta congeló las entradas, no las
+  salidas.
+
 ---
 
 ## El plan de adecuación

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\NoConformidad;
 
+use App\Domain\Auditoria\Models\Hallazgo;
+use App\Domain\NoConformidad\Excepciones\HallazgoNoTratable;
 use App\Domain\NoConformidad\Models\NoConformidad;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -27,6 +29,12 @@ use Illuminate\Support\Facades\DB;
  *
  * Las dos en la misma transacción: un alta sin su fila de histórico sería un
  * agujero en la traza desde el primer segundo (invariante 7).
+ *
+ * **Y desde la cláusula 10.1, una puerta más:** un hallazgo de tipo «oportunidad
+ * de mejora» no se trata aquí. No incumple nada, así que abrirle una no
+ * conformidad lo contaría como incumplimiento en el panel, en el indicador del
+ * § 4.14 y en la entrada de la 9.3. La comprobación está en el dominio y no sólo
+ * en el `FormRequest` porque vale también para un importador.
  */
 final class RegistrarNoConformidad
 {
@@ -34,9 +42,13 @@ final class RegistrarNoConformidad
 
     /**
      * @param  array<string, mixed>  $atributos
+     *
+     * @throws HallazgoNoTratable
      */
     public function __invoke(array $atributos, ?User $usuario = null, ?string $nota = null): NoConformidad
     {
+        $this->comprobarHallazgo($atributos['hallazgo_id'] ?? null);
+
         return DB::transaction(function () use ($atributos, $usuario, $nota): NoConformidad {
             $noConformidad = NoConformidad::query()->create($atributos);
             $noConformidad->refresh();
@@ -45,5 +57,23 @@ final class RegistrarNoConformidad
 
             return $noConformidad;
         });
+    }
+
+    /**
+     * @throws HallazgoNoTratable
+     */
+    private function comprobarHallazgo(mixed $id): void
+    {
+        if ($id === null) {
+            return;
+        }
+
+        // Por el modelo y no por una consulta cruda: así pasa por el scope de
+        // organización, y el hallazgo de otro cliente sencillamente no existe.
+        $hallazgo = Hallazgo::query()->find($id);
+
+        if ($hallazgo instanceof Hallazgo && ! $hallazgo->tipo->admiteNoConformidad()) {
+            throw new HallazgoNoTratable($hallazgo->tipo);
+        }
     }
 }

@@ -123,6 +123,24 @@ it('abre el formulario desde un hallazgo con lo que ya se sabe puesto', function
 });
 
 /*
+ * La regresión que el test de arriba no cazaba: comprobaba el PRIMER código del
+ * año, que sale bien incluso con el contador roto. `CodigoNoConformidad` pasaba
+ * el desplazamiento de `substring` como binding, PDO lo mandaba como texto y
+ * PostgreSQL leía `substring(x from '10')` como la forma con expresión regular:
+ * devolvía NULL, el máximo salía nulo y **todas las no conformidades del año se
+ * proponían como `-01`**, chocando con el índice único a partir de la segunda.
+ */
+it('propone el código siguiente y no repite el primero del año', function (): void {
+    NoConformidad::factory()->create(['codigo' => 'NC-'.Carbon::today()->year.'-01']);
+    NoConformidad::factory()->create(['codigo' => 'NC-'.Carbon::today()->year.'-07']);
+
+    $this->actingAs($this->usuario)
+        ->get('/no-conformidades/crear')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->where('sugerencia.codigo', 'NC-'.Carbon::today()->year.'-08'));
+});
+
+/*
  * Un hallazgo se trata una vez, y lo impone un índice único. Sin esta puerta el
  * formulario se abriría y el alta reventaría con un error de clave duplicada al
  * final del trabajo.

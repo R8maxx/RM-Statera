@@ -43,9 +43,10 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * El cuarto nivel de esa jerarquía —el **registro**— no entra: un registro es la
  * salida de un procedimiento, no un documento que Statera redacte y versione.
  *
- * La lista seguirá creciendo —acta de la revisión por la dirección, informe de
- * auditoría interna, informe de estado— y por eso el `CHECK` de la tabla enumera
- * valores en vez de usar un tipo enum de PostgreSQL.
+ * La lista seguirá creciendo —informe de auditoría interna, informe de estado,
+ * Declaración de Conformidad del ENS— y por eso el `CHECK` de la tabla enumera
+ * valores en vez de usar un tipo enum de PostgreSQL. El acta de la revisión por
+ * la dirección, que llevaba en esta lista desde el principio, ya está.
  */
 #[TypeScript]
 enum TipoDocumento: string
@@ -54,6 +55,7 @@ enum TipoDocumento: string
     case DdaEns = 'dda_ens';
     case PlanAdecuacionEns = 'plan_adecuacion_ens';
     case AnalisisContexto = 'analisis_contexto';
+    case ActaRevision = 'acta_revision';
 
     case Politica = 'politica';
     case Norma = 'norma';
@@ -66,6 +68,7 @@ enum TipoDocumento: string
             self::DdaEns => 'Declaración de Aplicabilidad (ENS)',
             self::PlanAdecuacionEns => 'Plan de adecuación (ENS)',
             self::AnalisisContexto => 'Análisis del contexto de la organización',
+            self::ActaRevision => 'Acta de revisión por la dirección',
             self::Politica => 'Política',
             self::Norma => 'Norma',
             self::Procedimiento => 'Procedimiento',
@@ -80,6 +83,7 @@ enum TipoDocumento: string
             self::DdaEns => 'DdA',
             self::PlanAdecuacionEns => 'Plan ENS',
             self::AnalisisContexto => 'Contexto',
+            self::ActaRevision => 'Acta',
             self::Politica => 'Política',
             self::Norma => 'Norma',
             self::Procedimiento => 'Procedimiento',
@@ -101,7 +105,8 @@ enum TipoDocumento: string
     public function esRedactado(): bool
     {
         return match ($this) {
-            self::SoaIso, self::DdaEns, self::PlanAdecuacionEns, self::AnalisisContexto => false,
+            self::SoaIso, self::DdaEns, self::PlanAdecuacionEns,
+            self::AnalisisContexto, self::ActaRevision => false,
             self::Politica, self::Norma, self::Procedimiento => true,
         };
     }
@@ -123,7 +128,8 @@ enum TipoDocumento: string
     {
         return match ($this) {
             self::SoaIso, self::DdaEns, self::PlanAdecuacionEns => true,
-            self::AnalisisContexto, self::Politica, self::Norma, self::Procedimiento => false,
+            self::AnalisisContexto, self::ActaRevision,
+            self::Politica, self::Norma, self::Procedimiento => false,
         };
     }
 
@@ -142,7 +148,7 @@ enum TipoDocumento: string
     {
         return match ($this) {
             self::SoaIso, self::DdaEns => 'Limitaciones de esta declaración',
-            self::PlanAdecuacionEns, self::AnalisisContexto,
+            self::PlanAdecuacionEns, self::AnalisisContexto, self::ActaRevision,
             self::Politica, self::Norma, self::Procedimiento => 'Limitaciones de este documento',
         };
     }
@@ -162,13 +168,20 @@ enum TipoDocumento: string
      * cuelga de ningún sistema, así que no hay marco con el que contrastarlo; y
      * aunque las cláusulas 4.1 y 4.2 sean de ISO, el contexto de la organización es
      * el mismo para todos los marcos que se le apliquen.
+     *
+     * **Y nulo en el acta de revisión por el segundo de esos dos motivos**, que
+     * aquí pesa más: la 9.3 es de ISO, pero lo que la dirección revisa es el SGSI
+     * entero —sus riesgos, sus auditorías, sus objetivos— y ésos cubren todos los
+     * marcos que la organización tenga. Un acta por marco sería pedirle a la
+     * dirección que revisara la misma organización dos veces.
      */
     public function marcoEsperado(): ?string
     {
         return match ($this) {
             self::SoaIso => 'ISO27001-2022',
             self::DdaEns, self::PlanAdecuacionEns => 'ENS-RD311-2022',
-            self::AnalisisContexto, self::Politica, self::Norma, self::Procedimiento => null,
+            self::AnalisisContexto, self::ActaRevision,
+            self::Politica, self::Norma, self::Procedimiento => null,
         };
     }
 

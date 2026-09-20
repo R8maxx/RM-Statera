@@ -23,8 +23,11 @@ use Illuminate\Support\Facades\DB;
  * **El origen se pone, no se pregunta.** Es lo mismo que hace
  * `/tareas/crear?implantacion={id}`: preguntarlo invita a cambiarlo, y una acción
  * correctiva marcada «iniciativa propia» pierde justo lo que la hacía trazable.
- * Y es además el único camino que produce tareas con `OrigenTarea::NoConformidad`,
- * porque ese origen no se ofrece en el formulario general de tareas.
+ * Y es el camino **normal**, aunque no el único: `OrigenTarea::NoConformidad` sí
+ * está en `disponibles()` —esa lista decide qué orígenes tienen módulo detrás, y
+ * éste lo tiene desde el § 4.13—, así que el formulario general lo ofrece. Lo que
+ * este camino garantiza es que la acción que nace aquí llega ya con sus dos
+ * vínculos puestos.
  *
  * Todo en una transacción: una tarea creada y sin vincular sería trabajo
  * correctivo suelto que no cierra ninguna no conformidad y que nadie relacionaría

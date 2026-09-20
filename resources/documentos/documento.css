@@ -46,6 +46,8 @@
     --estado-planificado-suave: #DFF1FF;
     --estado-en-progreso: #BB7400;
     --estado-en-progreso-suave: #FFF0D4;
+    --estado-en-revision: #7B45C4;
+    --estado-en-revision-suave: #F7F2FF;
     --estado-no-iniciado: #80878F;
     --estado-no-iniciado-suave: #ECEFF2;
     --estado-no-aplica: #7F7F86;
@@ -328,6 +330,7 @@ tr.grupo th {
 .badge--implantado { background: var(--estado-implantado-suave); color: var(--estado-implantado); }
 .badge--planificado { background: var(--estado-planificado-suave); color: var(--estado-planificado); }
 .badge--en_progreso { background: var(--estado-en-progreso-suave); color: var(--estado-en-progreso); }
+.badge--en_revision { background: var(--estado-en-revision-suave); color: var(--estado-en-revision); }
 .badge--no_iniciado { background: var(--estado-no-iniciado-suave); color: var(--estado-no-iniciado); }
 .badge--no_aplica { background: var(--estado-no-aplica-suave); color: var(--estado-no-aplica); }
 

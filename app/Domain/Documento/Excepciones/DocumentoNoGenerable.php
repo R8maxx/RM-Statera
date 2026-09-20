@@ -29,4 +29,16 @@ final class DocumentoNoGenerable extends RuntimeException
             .'lo que se imprime es lo que quedó congelado al firmarlo.'
         );
     }
+
+    /**
+     * El mismo caso en la revisión por la dirección: sin acta firmada no hay
+     * documento que entregar.
+     */
+    public static function sinRevisionAprobada(): self
+    {
+        return new self(
+            'No hay ninguna revisión por la dirección con el acta aprobada. Apruébala antes de generar el '
+            .'documento: lo que se imprime son las siete entradas tal como quedaron congeladas al firmarla.'
+        );
+    }
 }

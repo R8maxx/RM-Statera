@@ -11,6 +11,7 @@ use App\Domain\Implantacion\Enums\EstadoImplantacion;
 use App\Domain\Implantacion\ResumenCumplimiento;
 use App\Domain\Metrica\RegistroIndicadores;
 use App\Domain\NoConformidad\RegistroNoConformidades;
+use App\Domain\Objetivo\RegistroObjetivos;
 use App\Domain\Sistema\Models\Sistema;
 use App\Domain\Tarea\ResumenPlanDeAccion;
 use App\Http\Resources\Panel\ResumenEvidencias;
@@ -37,6 +38,7 @@ class PanelController extends Controller
         RegistroNoConformidades $noConformidades,
         RegistroContexto $contexto,
         RegistroIndicadores $indicadores,
+        RegistroObjetivos $objetivos,
     ): Response {
         $sistemas = Sistema::query()
             ->with('marco')
@@ -130,6 +132,21 @@ class PanelController extends Controller
             'desempeno' => $this->puedeVerIndicadores()
                 ? $indicadores->paraElPanel()
                 : null,
+            /*
+             * Y los objetivos (cláusula 6.2), pegados al desempeño porque son las
+             * dos mitades de la misma pregunta: los indicadores dicen cómo va y
+             * los objetivos dicen contra qué. Separarlos en el panel obligaría a
+             * mirar en dos sitios para contestar «¿vamos bien?».
+             *
+             * **`sinIndicador` es la cifra que está aquí por la norma y no por la
+             * pantalla**, como `sinVerificar` en las no conformidades: la 6.2
+             * exige que el objetivo sea medible, y uno sin ninguna cifra detrás
+             * lo cumple de palabra. Misma guarda de permiso que los tres
+             * anteriores.
+             */
+            'objetivos' => $this->puedeVerObjetivos()
+                ? $objetivos->paraElPanel()
+                : null,
         ]);
     }
 
@@ -146,5 +163,10 @@ class PanelController extends Controller
     private function puedeVerIndicadores(): bool
     {
         return request()->user()?->can(Permiso::IndicadoresVer->value) ?? false;
+    }
+
+    private function puedeVerObjetivos(): bool
+    {
+        return request()->user()?->can(Permiso::ObjetivosVer->value) ?? false;
     }
 }

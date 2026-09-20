@@ -79,8 +79,10 @@ class AuditoriaController extends Controller
             'cerradaPor',
             'hallazgos.punto.implantacion.requisito',
             // Para saber cuáles siguen sin tratamiento, que es la costura entre
-            // las dos mitades del módulo.
+            // las dos mitades del módulo. Desde la cláusula 10.1 son **dos**
+            // registros de destino y el tipo del hallazgo decide cuál.
             'hallazgos.noConformidad',
+            'hallazgos.mejora',
         ]);
 
         $avance = $auditoria->avance();
@@ -125,6 +127,14 @@ class AuditoriaController extends Controller
              * peor que uno que no se ofrece.
              */
             'puedeTratar' => request()->user()?->can(Permiso::NoConformidadesGestionar->value) ?? false,
+            /*
+             * Los dos destinos llevan permiso distinto porque son dos registros
+             * distintos: quien puede tratar una no conformidad no tiene por qué
+             * poder apuntar mejoras. Es la misma regla que la tarjeta de no
+             * conformidades del panel — conectar dos módulos no abre una puerta
+             * lateral al otro sin que nadie la decida.
+             */
+            'puedeTratarMejoras' => request()->user()?->can(Permiso::MejorasGestionar->value) ?? false,
         ]);
     }
 
@@ -382,6 +392,9 @@ class AuditoriaController extends Controller
             'tipoTono' => $hallazgo->tipo->tono(),
             'tipoIcono' => $hallazgo->tipo->icono(),
             'exigeNoConformidad' => $hallazgo->tipo->exigeNoConformidad(),
+            // Desde la cláusula 10.1 hay dos registros de destino, y el tipo del
+            // hallazgo decide cuál: una oportunidad de mejora no incumple nada.
+            'abreMejora' => $hallazgo->tipo->abreMejora(),
             'descripcion' => $hallazgo->descripcion,
             'medida' => $hallazgo->punto?->implantacion?->requisito?->codigo,
             /*
@@ -391,6 +404,8 @@ class AuditoriaController extends Controller
              */
             'noConformidadId' => $hallazgo->noConformidad?->id,
             'noConformidadCodigo' => $hallazgo->noConformidad?->codigo,
+            'mejoraId' => $hallazgo->mejora?->id,
+            'mejoraCodigo' => $hallazgo->mejora?->codigo,
         ];
     }
 

@@ -53,11 +53,18 @@ use App\Domain\Implantacion\CambiarEstado;
 use App\Domain\Implantacion\Enums\EstadoImplantacion;
 use App\Domain\Implantacion\GeneradorImplantaciones;
 use App\Domain\Implantacion\Models\Implantacion;
+use App\Domain\Mejora\AbrirActuacionDeMejora;
+use App\Domain\Mejora\CambiarEstadoMejora;
+use App\Domain\Mejora\Enums\EstadoMejora;
+use App\Domain\Mejora\Enums\OrigenMejora;
+use App\Domain\Mejora\Models\Mejora;
+use App\Domain\Mejora\RegistrarMejora;
 use App\Domain\Metrica\Enums\CalculoIndicador;
 use App\Domain\Metrica\Enums\OrigenMedicion;
 use App\Domain\Metrica\Enums\Periodicidad;
 use App\Domain\Metrica\Enums\SentidoIndicador;
 use App\Domain\Metrica\Enums\UnidadIndicador;
+use App\Domain\Metrica\Models\Indicador;
 use App\Domain\Metrica\RegistrarIndicador;
 use App\Domain\Metrica\RegistrarMedicion;
 use App\Domain\NoConformidad\AbrirAccionCorrectiva;
@@ -66,8 +73,20 @@ use App\Domain\NoConformidad\Enums\EstadoNoConformidad;
 use App\Domain\NoConformidad\Enums\OrigenNoConformidad;
 use App\Domain\NoConformidad\Models\NoConformidad;
 use App\Domain\NoConformidad\RegistrarNoConformidad;
+use App\Domain\Objetivo\AbrirActuacion;
+use App\Domain\Objetivo\CambiarEstadoObjetivo;
+use App\Domain\Objetivo\Enums\EstadoObjetivo;
+use App\Domain\Objetivo\Models\Objetivo;
+use App\Domain\Objetivo\RegistrarObjetivo;
+use App\Domain\Objetivo\VincularIndicador;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Organizacion\Models\Organizacion;
+use App\Domain\RevisionDireccion\AbrirDecision;
+use App\Domain\RevisionDireccion\AprobarRevision;
+use App\Domain\RevisionDireccion\CambiarEstadoRevision;
+use App\Domain\RevisionDireccion\Enums\EstadoRevision;
+use App\Domain\RevisionDireccion\Models\RevisionDireccion;
+use App\Domain\RevisionDireccion\RegistrarRevision;
 use App\Domain\Riesgo\AceptarRiesgo;
 use App\Domain\Riesgo\CrearRiesgo;
 use App\Domain\Riesgo\Enums\DecisionRiesgo;
@@ -188,6 +207,9 @@ class DesarrolloSeeder extends Seeder
         $this->analisisDeRiesgosDeEjemplo($sistema);
         $this->auditoriasDeEjemplo($sistema);
         $this->noConformidadesDeEjemplo($sistema);
+        // Detrás de las no conformidades porque comparte auditoría con ellas: la
+        // oportunidad de mejora cuelga del hallazgo de la auditoría en curso.
+        $this->mejorasDeEjemplo();
         // Después de riesgos y de implantaciones: el contexto se vincula a los
         // dos, y sembrarlo antes dejaría el DAFO suelto, que es justo lo que este
         // módulo existe para evitar.
@@ -195,6 +217,13 @@ class DesarrolloSeeder extends Seeder
         // El último: mide sobre todo lo anterior, así que sembrarlo antes daría
         // series de ceros que no enseñan nada.
         $this->indicadoresDeEjemplo($sistema);
+        // Detrás de los indicadores, que es su criterio de evaluación: sembrarlo
+        // antes dejaría los cuatro objetivos sin nada con que juzgarlos, que es
+        // justamente el hueco que el módulo existe para cerrar.
+        $this->objetivosDeEjemplo();
+        // El último de todos: recoge las siete entradas de la 9.3.2, así que
+        // sembrarlo antes daría un acta con seis ceros y una fecha.
+        $this->revisionDireccionDeEjemplo();
         $this->documentoDeEjemplo($sistema);
     }
 
@@ -303,6 +332,208 @@ class DesarrolloSeeder extends Seeder
         ]);
 
         $this->command->info('Indicadores: 4 declarados, 1 con serie de 4 trimestres, 1 sin medir y 1 con el periodo vencido.');
+    }
+
+    /**
+     * Dos revisiones por la dirección: la del año pasado, firmada, y la de este
+     * año, en curso.
+     *
+     * **Las dos hacen falta para que se vea el módulo entero**, igual que con el
+     * contexto. Con sólo la firmada, la ficha enseña un acta congelada y nada
+     * más; con la de este año encima se ve lo único que de verdad distingue a
+     * este módulo: que las entradas se miran **en vivo** mientras se prepara la
+     * reunión y **congeladas** en cuanto se firma el acta.
+     *
+     * Y la del año pasado deja decisiones colgando, que es lo que hace que la de
+     * este año tenga una entrada a) que enseñar: sin ella, «el estado de las
+     * acciones de revisiones previas» saldría vacío y esa costura —la que hace
+     * que la serie de actas signifique algo— no se vería.
+     *
+     * Datos sintéticos, como todo lo demás.
+     */
+    private function revisionDireccionDeEjemplo(): void
+    {
+        if (RevisionDireccion::query()->count() > 0) {
+            return;
+        }
+
+        $registrar = app(RegistrarRevision::class);
+        $empezar = app(CambiarEstadoRevision::class);
+        $aprobar = app(AprobarRevision::class);
+        $decidir = app(AbrirDecision::class);
+
+        $responsable = User::query()->where('email', 'responsable@statera.test')->first();
+        $tecnica = User::query()->where('email', 'tecnico@statera.test')->first();
+
+        if (! $responsable instanceof User) {
+            return;
+        }
+
+        $anio = Carbon::today()->year;
+
+        // --- La del año pasado, recorrida entera ---------------------------
+        $anterior = $registrar([
+            'codigo' => sprintf('RD-%d-01', $anio - 1),
+            'fecha' => Carbon::today()->subMonths(11),
+            'periodo_desde' => Carbon::today()->subMonths(23),
+            'periodo_hasta' => Carbon::today()->subMonths(12),
+            'asistentes' => 'Dirección general, responsable de seguridad y jefatura de sistemas.',
+            'conclusiones' => 'El sistema de gestión está implantado y opera. Se acuerda reforzar la '
+                .'formación y cerrar la adecuación al ENS antes del cierre del ejercicio.',
+        ]);
+
+        $empezar($anterior, EstadoRevision::EnCurso);
+
+        $decidir($anterior, [
+            'titulo' => 'Contratar la formación anual en seguridad',
+            'descripcion' => 'Acordado en la revisión por la dirección.',
+            'prioridad' => PrioridadTarea::Alta->value,
+            'responsable_id' => $responsable->id,
+            'fecha_limite' => Carbon::today()->subMonths(4),
+        ], $responsable);
+
+        $decidir($anterior, [
+            'titulo' => 'Revisar el presupuesto de seguridad para el ejercicio siguiente',
+            'prioridad' => PrioridadTarea::Media->value,
+            'responsable_id' => $responsable->id,
+            'fecha_limite' => Carbon::today()->subMonths(6),
+        ], $responsable);
+
+        $aprobar($anterior->refresh(), $responsable);
+
+        // --- La de este año, en curso: las entradas se ven en vivo ---------
+        $enCurso = $registrar([
+            'codigo' => sprintf('RD-%d-01', $anio),
+            'fecha' => Carbon::today(),
+            'periodo_desde' => Carbon::today()->subMonths(11),
+            'periodo_hasta' => Carbon::today(),
+            'asistentes' => 'Dirección general y responsable de seguridad.',
+        ]);
+
+        $empezar($enCurso, EstadoRevision::EnCurso);
+
+        $decidir($enCurso, [
+            'titulo' => 'Aprobar el plan de adecuación revisado',
+            'prioridad' => PrioridadTarea::Alta->value,
+            'responsable_id' => $tecnica?->id,
+            'fecha_limite' => Carbon::today()->addMonths(2),
+        ], $responsable);
+
+        $this->command->info(sprintf(
+            'Revisiones por la dirección: %s aprobada con 2 decisiones y %s en curso.',
+            $anterior->codigo,
+            $enCurso->codigo,
+        ));
+    }
+
+    /**
+     * Los objetivos de seguridad: cuatro, y cada uno enseña una cosa distinta.
+     *
+     * Mismo criterio que los cuatro riesgos y los cuatro indicadores: un seeder
+     * que siembra cuatro filas iguales no enseña el módulo, enseña la tabla.
+     * Aquí hay **uno aprobado y en marcha**, con su indicador y su actuación, que
+     * es el caso completo; **uno vencido**, que es el único rojo del módulo y la
+     * 6.2 sin terminar; **uno propuesto y sin indicador**, que es la 6.2 e) sin
+     * hacer y lo primero que un auditor pregunta; y **uno no alcanzado con su
+     * motivo escrito**, que es literalmente lo que la revisión por la dirección
+     * va a leer del año que termina.
+     *
+     * Todos pasan por `RegistrarObjetivo` y `CambiarEstadoObjetivo`, no por la
+     * factory: es el mismo camino que usa la interfaz, así que la firma, la fecha
+     * de cierre y el histórico quedan como quedarían de verdad. Sembrar filas a
+     * pelo daría objetivos aprobados sin transición de aprobación, que es justo
+     * lo que el auditor mira.
+     *
+     * Datos sintéticos, como todo lo demás.
+     */
+    private function objetivosDeEjemplo(): void
+    {
+        $registrar = app(RegistrarObjetivo::class);
+        $cambiar = app(CambiarEstadoObjetivo::class);
+        $vincular = app(VincularIndicador::class);
+
+        $responsable = User::query()->where('email', 'responsable@statera.test')->first();
+        $tecnica = User::query()->where('email', 'tecnico@statera.test')->first();
+
+        $anio = Carbon::today()->year;
+
+        /** @var ?Indicador $cobertura */
+        $cobertura = Indicador::query()->where('codigo', 'IND-01')->first();
+        /** @var ?Indicador $tareasVencidas */
+        $tareasVencidas = Indicador::query()->where('codigo', 'IND-04')->first();
+
+        // --- El caso completo: aprobado, con indicador y con actuación -------
+        $adecuacion = $registrar([
+            'codigo' => sprintf('OBJ-%d-01', $anio),
+            'titulo' => 'Llegar al 80 % de las medidas del Anexo II implantadas',
+            'descripcion' => 'El objetivo de adecuación del año, sobre lo que el ENS le exige al sistema en categoría básica.',
+            'recursos' => 'Media jornada semanal del equipo de sistemas y el presupuesto de la herramienta de inventario.',
+            'responsable_id' => $responsable?->id,
+            'fecha_objetivo' => Carbon::today()->addMonths(4),
+        ], $responsable);
+
+        if ($cobertura instanceof Indicador) {
+            $vincular->vincular($adecuacion, $cobertura, $responsable);
+        }
+
+        $cambiar($adecuacion, EstadoObjetivo::Aprobado, $responsable, 'Aprobado en el comité de seguridad.');
+
+        app(AbrirActuacion::class)($adecuacion, [
+            'titulo' => 'Cerrar las medidas de op.exp pendientes',
+            'descripcion' => 'Las de explotación son las que más pesan en el porcentaje.',
+            'prioridad' => PrioridadTarea::Alta->value,
+            'responsable_id' => $tecnica?->id,
+            'fecha_limite' => Carbon::today()->addMonths(2),
+            'coste_estimado' => 3500,
+        ], $responsable);
+
+        // --- El rojo: aprobado, con el plazo pasado y sin cerrar ------------
+        $incidentes = $registrar([
+            'codigo' => sprintf('OBJ-%d-02', $anio),
+            'titulo' => 'Bajar a cero las tareas del plan fuera de plazo',
+            'descripcion' => 'Trabajo comprometido que no se hizo a tiempo: es lo que el auditor usa para medir si el plan es real.',
+            'recursos' => 'Sin coste: es cuestión de revisar el plan cada semana.',
+            'responsable_id' => $tecnica?->id,
+            'fecha_objetivo' => Carbon::today()->subDays(20),
+        ], $responsable);
+
+        if ($tareasVencidas instanceof Indicador) {
+            $vincular->vincular($incidentes, $tareasVencidas, $responsable);
+        }
+
+        $cambiar($incidentes, EstadoObjetivo::Aprobado, $responsable, 'Aprobado en el comité de seguridad.');
+
+        // --- La 6.2 e) sin hacer: propuesto y sin ningún indicador ----------
+        $registrar([
+            'codigo' => sprintf('OBJ-%d-03', $anio),
+            'titulo' => 'Reducir el tiempo de aplicación de parches críticos',
+            'descripcion' => 'Propuesto y todavía sin cifra con la que juzgarlo: la 6.2 exige que el objetivo sea medible.',
+            'responsable_id' => $tecnica?->id,
+        ], $responsable);
+
+        // --- El que no se alcanzó, con su motivo escrito --------------------
+        $formacion = $registrar([
+            'codigo' => sprintf('OBJ-%d-04', $anio),
+            'titulo' => 'Formar en seguridad al 95 % de la plantilla',
+            'descripcion' => 'Lo exigen mp.per.4 del ENS y la cláusula 7.2 de ISO.',
+            'recursos' => 'Contrato de formación anual.',
+            'responsable_id' => $responsable?->id,
+            'fecha_objetivo' => Carbon::today()->subMonths(2),
+        ], $responsable);
+
+        $cambiar($formacion, EstadoObjetivo::Aprobado, $responsable, 'Aprobado en el comité de seguridad.');
+        $cambiar(
+            $formacion,
+            EstadoObjetivo::NoAlcanzado,
+            $responsable,
+            'Se quedó en el 71 %: la formación se contrató en noviembre y no dio tiempo a dos turnos. '
+            .'Se replantea con el contrato firmado en enero.',
+        );
+
+        $this->command->info(sprintf(
+            'Objetivos de seguridad: %d declarados, 1 fuera de plazo, 1 sin indicador y 1 no alcanzado con su motivo.',
+            Objetivo::query()->count(),
+        ));
     }
 
     /**
@@ -609,11 +840,129 @@ class DesarrolloSeeder extends Seeder
             $revisar->marcar($punto, ResultadoPunto::Conforme);
         }
 
+        /*
+         * Y una oportunidad de mejora, que desde la cláusula 10.1 tiene registro
+         * propio. Es el caso que enseña la bifurcación: este hallazgo **no** se
+         * trata como no conformidad porque no incumple nada, y el formulario de
+         * no conformidades redirige al de mejoras si alguien lo intenta.
+         */
+        $registrar->registrar(
+            $enCurso,
+            TipoHallazgo::OportunidadMejora,
+            'El inventario de software de los puestos se mantiene a mano; se podría extraer del gestor de parches.',
+            $enCurso->puntos()->firstOrFail(),
+        );
+
         $this->command->info(sprintf(
             'Auditorías: %s cerrada con %d hallazgos y %s en curso.',
             $cerrada->codigo,
             $cerrada->hallazgos()->count(),
             $enCurso->codigo,
+        ));
+    }
+
+    /**
+     * Cuatro oportunidades de mejora, y cada una enseña una cosa distinta.
+     *
+     * Mismo criterio que los cuatro riesgos, los cuatro indicadores y los cuatro
+     * objetivos. Aquí hay **una de un hallazgo de auditoría**, que es la que
+     * enseña la bifurcación del capítulo 10 —ese hallazgo no se trata como no
+     * conformidad porque no incumple nada—; **una en curso con su actuación**, que
+     * es el caso completo; **una descartada con su motivo**, que es el estado más
+     * usado de este registro y el que explica por qué el motivo es obligatorio; y
+     * **una sin empezar y pasada de fecha**, que es la cifra honesta de un buzón
+     * de ideas al que nadie vuelve — y que se señala en gris, no en rojo.
+     *
+     * Todas pasan por `RegistrarMejora` y `CambiarEstadoMejora`, que es el mismo
+     * camino que usa la interfaz: sembrar filas a pelo daría mejoras cerradas sin
+     * transición, que es justo lo que el auditor mira.
+     *
+     * Datos sintéticos, como todo lo demás.
+     */
+    private function mejorasDeEjemplo(): void
+    {
+        if (Mejora::query()->count() > 0) {
+            return;
+        }
+
+        $registrar = app(RegistrarMejora::class);
+        $cambiar = app(CambiarEstadoMejora::class);
+
+        $responsable = User::query()->where('email', 'responsable@statera.test')->first();
+        $tecnica = User::query()->where('email', 'tecnico@statera.test')->first();
+
+        $anio = Carbon::today()->year;
+
+        // --- La del hallazgo, que enseña la bifurcación del capítulo 10 ------
+        $hallazgo = Hallazgo::query()
+            ->where('tipo', TipoHallazgo::OportunidadMejora->value)
+            ->whereDoesntHave('mejora')
+            ->orderBy('id')
+            ->first();
+
+        if ($hallazgo instanceof Hallazgo) {
+            $registrar([
+                'codigo' => sprintf('OM-%d-01', $anio),
+                'origen' => OrigenMejora::Auditoria->value,
+                'hallazgo_id' => $hallazgo->id,
+                'titulo' => 'Extraer el inventario de software del gestor de parches',
+                'descripcion' => 'Hoy se mantiene a mano y se desactualiza entre revisiones.',
+                'beneficio_esperado' => 'El inventario deja de depender de que alguien se acuerde, y op.exp.1 pasa a tener prueba automática.',
+                'responsable_id' => $tecnica?->id,
+                'fecha_deteccion' => Carbon::today()->subDays(10),
+            ], $responsable);
+        }
+
+        // --- El caso completo: en curso y con su actuación -------------------
+        $enCurso = $registrar([
+            'codigo' => sprintf('OM-%d-02', $anio),
+            'origen' => OrigenMejora::Indicador->value,
+            'titulo' => 'Avisar de las evidencias que caducan con treinta días de antelación',
+            'descripcion' => 'El indicador de evidencias caducadas se queda corto todos los trimestres porque se renuevan tarde.',
+            'beneficio_esperado' => 'Menos pruebas caducadas sin que nadie tenga que revisarlas a mano.',
+            'responsable_id' => $tecnica?->id,
+            'fecha_deteccion' => Carbon::today()->subDays(30),
+            'fecha_prevista' => Carbon::today()->addMonths(2),
+        ], $responsable);
+
+        $cambiar($enCurso, EstadoMejora::EnCurso, $responsable);
+
+        app(AbrirActuacionDeMejora::class)($enCurso, [
+            'titulo' => 'Añadir el aviso de caducidad al resumen diario',
+            'prioridad' => PrioridadTarea::Media->value,
+            'responsable_id' => $tecnica?->id,
+            'fecha_limite' => Carbon::today()->addMonth(),
+            'coste_estimado' => 0,
+        ], $responsable);
+
+        // --- La descartada, con su motivo escrito ---------------------------
+        $descartada = $registrar([
+            'codigo' => sprintf('OM-%d-03', $anio),
+            'origen' => OrigenMejora::Propia->value,
+            'titulo' => 'Certificar el sistema en ISO 27017',
+            'descripcion' => 'Se planteó al revisar los servicios en la nube.',
+            'fecha_deteccion' => Carbon::today()->subMonths(2),
+        ], $responsable);
+
+        $cambiar(
+            $descartada,
+            EstadoMejora::Descartada,
+            $responsable,
+            'Fuera del alcance de este año: primero hay que cerrar la adecuación al ENS. Se revisa en la próxima revisión por la dirección.',
+        );
+
+        // --- La que nadie ha empezado y se pasó de fecha --------------------
+        $registrar([
+            'codigo' => sprintf('OM-%d-04', $anio),
+            'origen' => OrigenMejora::RevisionDireccion->value,
+            'titulo' => 'Unificar las dos plantillas de acta que conviven',
+            'fecha_deteccion' => Carbon::today()->subMonths(4),
+            'fecha_prevista' => Carbon::today()->subDays(20),
+        ], $responsable);
+
+        $this->command->info(sprintf(
+            'Oportunidades de mejora: %d registradas, 1 de un hallazgo, 1 descartada con motivo y 1 sin empezar.',
+            Mejora::query()->count(),
         ));
     }
 
@@ -1033,6 +1382,32 @@ class DesarrolloSeeder extends Seeder
             'Análisis del contexto %s listo para generar (php artisan documentos:generar %s --html).',
             $contexto->codigo,
             $contexto->codigo,
+        ));
+
+        /*
+         * Y el acta de la revisión por la dirección, el **quinto** calculado y el
+         * segundo sin sistema. Imprime siempre la última revisión aprobada, así
+         * que con el seeder recién pasado sale la del año anterior — que es la
+         * que tiene decisiones y entradas de verdad.
+         *
+         * Periodicidad anual, como el contexto: lo que vence no es la revisión
+         * sino la revisión de su acta, y eso lo recoge `Fuente::Documento` sin
+         * que haga falta una cuarta fuente.
+         */
+        $acta = Documento::query()->firstOrCreate(
+            ['codigo' => 'ACT-REV-01'],
+            [
+                'sistema_id' => null,
+                'titulo' => 'Acta de revisión por la dirección',
+                'tipo' => TipoDocumento::ActaRevision->value,
+                'periodicidad_revision_meses' => 12,
+            ],
+        );
+
+        $this->command->info(sprintf(
+            'Acta de revisión %s lista para generar (php artisan documentos:generar %s --html).',
+            $acta->codigo,
+            $acta->codigo,
         ));
     }
 
