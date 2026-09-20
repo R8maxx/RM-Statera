@@ -33,6 +33,8 @@ Romper cualquiera de estos obliga a rehacer el modelo más adelante. No son pref
 7. **Los estados llevan histórico.** El auditor no pregunta "¿está implantado?", pregunta "¿desde cuándo?". Toda transición se registra con fecha y autor, en su tabla.
 8. **La herramienta entra en el alcance del propio SGSI.** Contiene el inventario, las vulnerabilidades y las evidencias. 2FA, cifrado en reposo, backups verificados y traza inmutable no son aplazables.
 
+   > **Del invariante 8, las vulnerabilidades todavía no están.** No hay registro: `riesgos.vulnerabilidad` es una columna de texto libre del escenario MAGERIT —la condición que hace creíble la amenaza—, que no es lo mismo que un hallazgo técnico con severidad, activo afectado y plazo de remediación (A.8.8 de ISO, `op.exp.4` del ENS). El invariante se queda como está porque es el objetivo declarado, y esta nota existe para que la frase no se lea como una afirmación de estado. Se construye con el módulo de vulnerabilidades; hasta entonces, queda dicho.
+
 Y dos reglas operativas que se derivan de lo anterior:
 
 - **Prohibido `withoutGlobalScopes()`** fuera de comandos de mantenimiento explícitos. Hay tres capas de aislamiento (`organizacion_id`, global scope de Eloquent, Row Level Security en PostgreSQL) y quitar la del medio filtra datos de un cliente a otro. La única puerta que atraviesa las tres es `ContextoOrganizacion::comoMantenimiento()`, y hoy la usa un solo sitio: el recuento de implantaciones afectadas del importador del catálogo, que por definición cruza organizaciones.

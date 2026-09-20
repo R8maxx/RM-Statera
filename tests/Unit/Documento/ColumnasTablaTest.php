@@ -30,12 +30,24 @@ function anchoUtilDeLaHoja(): float
 }
 
 /**
- * Los tipos que llevan tabla larga, que son los que se calculan.
+ * Los tipos que llevan tabla larga.
  *
- * Un documento redactado —política, norma, procedimiento— no tiene ninguna: su
- * contenido lo escribe la organización y no sale de una consulta. Aquí no vale
- * recorrer `TipoDocumento::cases()`, porque «esta tabla aprovecha la hoja» no es
- * una afirmación falsa sobre una política, es una afirmación sin sujeto.
+ * Aquí no vale recorrer `TipoDocumento::cases()`, porque «esta tabla aprovecha
+ * la hoja» no es una afirmación falsa sobre una política: es una afirmación sin
+ * sujeto.
+ *
+ * **Y tampoco vale `! esRedactado()`, que es lo que decía antes.** Esa condición
+ * funcionaba porque «calculado» y «tiene tabla de requisitos» eran lo mismo **por
+ * accidente**, y el § 4.1 rompió la equivalencia: el análisis del contexto se
+ * calcula y sus dos tablas son de cuestiones y de partes interesadas, no de filas
+ * del catálogo, así que `ColumnasTabla::para()` le devuelve lista vacía a
+ * propósito. El test pedía entonces que cero ocupara el noventa por ciento de la
+ * hoja. Es el mismo accidente que ya había obligado a reescribir
+ * `documentos_sistema_check` cuando llegó el plan de adecuación.
+ *
+ * Se pregunta por **lo que el tipo declara** y no por lo que es: así un tipo
+ * nuevo con tabla entra solo, y uno sin tabla se queda fuera sin que nadie toque
+ * este fichero.
  *
  * @return list<TipoDocumento>
  */
@@ -43,7 +55,7 @@ function tiposConTablaLarga(): array
 {
     return array_values(array_filter(
         TipoDocumento::cases(),
-        static fn (TipoDocumento $tipo): bool => ! $tipo->esRedactado(),
+        static fn (TipoDocumento $tipo): bool => ColumnasTabla::para($tipo) !== [],
     ));
 }
 

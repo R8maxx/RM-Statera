@@ -44,7 +44,7 @@ Cuatro cosas que una hoja de cálculo no hace, y que un gestor de cumplimiento g
 - **La DdA de ISO y la del ENS son dos consultas sobre la misma tabla**, no dos documentos mantenidos a mano. Y la SoA imprime «exigido por el ENS (op.acc.2)» como justificación de inclusión: un requisito legal es una justificación legítima para ISO, y de paso es el argumento del producto impreso dentro del entregable.
 - **La aplicabilidad se deriva, no se selecciona.** Se valoran las cinco dimensiones, el motor calcula la categoría y de ahí sale el conjunto exigible. Nadie marca controles a mano.
 - **El impacto de un riesgo sale de la valoración efectiva del activo**, que sube por el grafo de dependencias: una base de datos valorada «bajo» que sostiene un servicio esencial se puntúa contra «alto». Ese es justo el activo que una hoja de cálculo deja desprotegido.
-- **La herramienta entra en el alcance de su propio SGSI.** Contiene el inventario, las vulnerabilidades y las evidencias, así que 2FA, cifrado en reposo, copias verificadas y traza inmutable no son aplazables. Es una restricción de producto, no una preferencia técnica.
+- **La herramienta entra en el alcance de su propio SGSI.** Contiene el inventario, las vulnerabilidades y las evidencias, así que 2FA, cifrado en reposo, copias verificadas y traza inmutable no son aplazables. Es una restricción de producto, no una preferencia técnica. *(Las **vulnerabilidades** todavía no: no hay registro, y `riesgos.vulnerabilidad` es la narrativa MAGERIT de un escenario, no un hallazgo técnico con severidad y plazo. Está anotado en el invariante 8 de `CLAUDE.md` y llega con su módulo.)*
 
 ## Operating Context
 
@@ -66,7 +66,27 @@ Cuatro cosas que una hoja de cálculo no hace, y que un gestor de cumplimiento g
 
 **Pendiente de los 19 módulos:** personas (4.8), proveedores (4.9), incidentes (4.10), continuidad (4.11), revisión por la dirección (4.15), el calendario de obligaciones completo (4.16), dos tercios del flujo de conformidad (4.17) e informes y exportación (4.18).
 
-**Y tres huecos que no son un módulo de la lista**, anotados porque son los que bloquean al 4.15: los **objetivos de seguridad** (cláusula 6.2), las **oportunidades de mejora** (10.1, que hoy sólo existen dentro de una auditoría) y la **comunicación** (7.4). Los tres tienen requisito en el catálogo y su implantación esperando, y ninguno tiene dónde escribirse — que es exactamente lo que le pasaba al 4.1 hasta que se construyó.
+**Huecos conocidos que no son un módulo de la lista.** Se anotan aquí porque la lista de diecinueve no los recoge y descubrirlos cuesta una tarde; los tres primeros son los que bloquean al 4.15.
+
+*Cláusulas con requisito en el catálogo, con su implantación esperando, y sin ningún sitio donde escribirse* — que es exactamente lo que le pasaba al 4.1 hasta que se construyó:
+
+| Cláusula | Qué falta |
+|---|---|
+| **6.2 Objetivos de seguridad** | Objetivos medibles con su plan: qué, quién, con qué recursos, para cuándo y cómo se evalúan. El 4.14 mide; comprometerse a una cifra es otra cosa |
+| **10.1 Mejora continua** | La oportunidad de mejora sólo existe como `TipoHallazgo::OportunidadMejora` **dentro** de una auditoría; fuera de una no hay dónde apuntarla |
+| **7.4 Comunicación** | Qué se comunica, cuándo, a quién y quién lo hace. El «a quién» ya está en `partes_interesadas` |
+| **6.3 Planificación de cambios** | Está en el catálogo como requisito `6.3` y citada en la especificación; sin módulo |
+| **5.3 Roles y autoridades** | Los roles ENS y la incompatibilidad que la especificación pide **impedir**. Los PDFs ya lo declaran como limitación |
+
+*Cosas medio construidas, que es peor que ausentes porque parecen hechas:*
+
+- **Perfiles de cumplimiento CCN-STIC 890.** `perfiles_cumplimiento`, `perfil_requisitos`, `sistemas.perfil_id`, `OrigenExigencia::Perfil` y el paso 4 de `MotorCategorizacion` están escritos y probados. **Cero datos en los YAML, cero clave en el importador, cero interfaz.** El perfil de requisitos esenciales es justo el que usaría un cliente pequeño de categoría básica.
+- **Informe INES.** `implantaciones.nivel_madurez` guarda la escala L0–L5 porque la especificación dice «usada en el informe INES», el 4.16 lo lista como obligación anual, y el informe no existe. Mismo patrón que `tareas.coste_estimado` antes del plan de adecuación.
+- **Atributos de la ISO 27002.** Los 93 controles los traen en el YAML y el 4.4 pide filtrar y agrupar por ellos; `ImplantacionRecurso` no declara ese filtro.
+- **`personas` no es `users`.** La especificación define `personas` con puesto, alta, baja y roles ENS; hoy sólo hay cuentas de Statera, y `User` ni siquiera lleva el scope de organización. La limitación del acuse de lectura ya lo dice por escrito en el PDF.
+- **Guías CCN-STIC por medida y catálogo CPSTIC**, que la especificación pide enlazar desde cada medida: no cargados.
+
+**Qué muerde hoy y qué no**, que es lo que ordena los módulos pendientes: en categoría básica **ya son exigibles** `op.exp.7` (gestión de incidentes, 4.10) y `mp.per.2/3/4` (deberes, concienciación y formación, 4.8), y no tienen dónde registrarse. En cambio `op.ext.*` (proveedores, 4.9) y `op.cont.*` (continuidad, 4.11) están en `no_aplica` en básica y sólo aparecen al subir a media o al valorar disponibilidad. Un sistema básico echa de menos antes personas e incidentes que proveedores y continuidad.
 
 **Fuera de alcance, y sigue estándolo:** facturación y suscripciones, registro self-service, panel de superadministración, white-labeling, integraciones con SIEM o escáneres, aplicación móvil. NIS2 no se carga todavía, pero el modelo de marcos tiene que admitirla sin cambios estructurales.
 
