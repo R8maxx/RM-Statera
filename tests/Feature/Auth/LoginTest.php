@@ -54,7 +54,7 @@ it('el panel comparte el usuario y su organización', function (): void {
     $this->actingAs($usuario)
         ->get('/panel')
         ->assertInertia(fn (AssertableInertia $pagina) => $pagina
-            ->component('Panel')
+            ->component('panel/Cumplimiento')
             ->where('auth.usuario.email', $usuario->email)
             ->where('auth.usuario.dosFactores', false)
             ->where('organizacion.nombre', $organizacion->nombre)

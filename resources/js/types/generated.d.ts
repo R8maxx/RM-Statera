@@ -414,6 +414,13 @@ readonly categoria: string | null,
 readonly aplicables: number,
 readonly implantadas: number,
 };
+export type VistaPanel = {
+readonly clave: string,
+readonly etiqueta: string,
+readonly href: string,
+readonly pregunta: string,
+readonly alertas: number,
+};
 }
 namespace Valoracion {
 export type CambioExigencia = {

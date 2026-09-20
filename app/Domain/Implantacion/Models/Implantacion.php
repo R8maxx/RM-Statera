@@ -192,6 +192,27 @@ class Implantacion extends Model
     }
 
     /**
+     * Implantadas y exigibles que no tienen ni una prueba detrás.
+     *
+     * **La condición vivía escrita en `ResumenCumplimiento` y en ningún otro
+     * sitio**, así que la cifra del panel no se podía pulsar: «4 implantados
+     * sin prueba», y ahora búscalos. Era el último callejón sin salida del
+     * panel. Con el scope, el resumen y el filtro de `/implantaciones` nombran
+     * lo mismo y no pueden discrepar.
+     *
+     * Es el hallazgo más barato de encontrar: un control declarado implantado y
+     * sin nada que lo demuestre es lo primero que un auditor pide.
+     *
+     * @param  Builder<$this>  $query
+     */
+    public function scopeSinEvidencia(Builder $query): void
+    {
+        $query->where('implantaciones.aplica', true)
+            ->where('implantaciones.estado', EstadoImplantacion::Implantado->value)
+            ->whereDoesntHave('evidencias');
+    }
+
+    /**
      * Lo que se le exige al sistema y todavía no está implantado.
      *
      * Es **la** consulta del plan de adecuación, y a la vez la cifra

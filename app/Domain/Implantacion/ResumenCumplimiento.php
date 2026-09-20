@@ -184,10 +184,9 @@ final class ResumenCumplimiento
      */
     public function implantadasSinEvidencia(): int
     {
-        return Implantacion::query()
-            ->where('aplica', true)
-            ->where('estado', EstadoImplantacion::Implantado->value)
-            ->whereDoesntHave('evidencias')
-            ->count();
+        // Por el scope y no con la condición escrita otra vez: es el mismo que
+        // invoca el filtro de `/implantaciones`, y eso es lo que garantiza que
+        // pulsar la cifra enseñe exactamente esa cifra.
+        return Implantacion::query()->sinEvidencia()->count();
     }
 }

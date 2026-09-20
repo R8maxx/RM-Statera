@@ -289,7 +289,7 @@ Por orden, según dónde duele un fallo silencioso:
 
 ### Los tests que no hay que acordarse de ampliar
 
-Cinco tests **descubren** en vez de enumerar, así que cubren solos lo que traiga el módulo siguiente.
+Seis tests **descubren** en vez de enumerar, así que cubren solos lo que traiga el módulo siguiente.
 Nacieron de fallos que ya habían mordido o estaban a punto:
 
 | Test | Qué convierte en rojo |
@@ -299,6 +299,7 @@ Nacieron de fallos que ya habían mordido o estaban a punto:
 | `Autorizacion/RolesTest` | Que al rol `Auditor` le falte un permiso `.ver`, o que le sobre uno de escritura. `Rol::permisos()` es lista literal para `Tecnico` y `Auditor`, y olvidarla no rompía nada. |
 | `Diseno/TonosTest` | Un tono que el servidor emite y que no está en `lib/tonos.ts`. **`tono()` acaba en `?? neutro`: el badge sale gris y no falla nadie** — el mismo fallo que `IconoTipo` tenía y que `IconosTest` ya cubría. |
 | `Metricas/CalculosTest` | Un caso de `CalculoIndicador` cuya rama revienta, o que devuelve una cifra que la tabla rechaza —numerador sin denominador, denominador a cero—. Recorre `cases()` y **sella cada uno de verdad**, así que lo que prueba no es que el `match` tenga la rama: es que el `CHECK` de PostgreSQL la acepta. Sin él, ese rechazo aparecería meses después dentro del comando de las 07:30 y sin nadie mirando. |
+| `Panel/AlertasTest` | Un registro con `alertas()` que no esté en `AlertasDelPanel::FUENTES`. Recorre `app/Domain/` en vez de enumerar módulos, porque olvidar uno **no rompe nada**: su pestaña del panel deja de marcarse, que es el fallo que el punto existe para cerrar. Y si su `glob` deja de encontrar nada se pone rojo, que es la lección de `FactoriesSinOrganizacionTest`. |
 
 Los dos de diseño y el de roles se apoyan en `enumsDelDominioCon()` (en `tests/Pest.php`), que recorre
 `app/Domain/<Contexto>/Enums/` **y el propio contexto**, porque algunos enums están sueltos —`Aviso\Fuente`
@@ -2006,6 +2007,98 @@ las del § 4.8: la de los roles ENS de la DdA y la del acuse de lectura.
 
 ---
 
+## El panel: tres vistas
+
+El panel creció por acumulación —un módulo, una tarjeta— hasta trece secciones
+apiladas, y el problema no era la longitud: **mezclaba tres preguntas**. Cómo va
+el cumplimiento, qué está pasando y de qué organización hablamos estaban en la
+misma columna, y había que recorrerla entera para contestar cualquiera de las
+tres.
+
+| Vista | Qué contesta | Qué lleva |
+|---|---|---|
+| `/panel` | ¿Cómo vamos con lo exigible? | anillo, reparto por estado, pruebas, por marco, sistemas |
+| `/panel/ciclo` | ¿Qué está pasando y mejoramos? | plan, no conformidades, incidentes, desempeño, objetivos |
+| `/panel/organizacion` | ¿De qué estamos hablando? | contexto, personas, inventario |
+
+**Son rutas y no estado de cliente**, que es la decisión ya tomada para las tres
+pantallas del plan de acción: «un conmutador que recuerda la última vista hace
+que el enlace que alguien pega en un correo abra otra pantalla». `ConmutadorPanel`
+está calcado de `ConmutadorVista`.
+
+**Y no entran en `lib/navegacion.ts`**, igual que `/tareas/tablero` y
+`/tareas/calendario`: aquel fichero es el mapa de **módulos**, y añadir ahí tres
+entradas pondría tres «Panel» en el sidebar. El sidebar lleva a `/panel`, que es
+la vista por defecto, y `esSeccionActiva` ya marca las tres porque cuelgan de
+ella.
+
+**Cada vista consulta sólo lo suyo.** Antes cada carga calculaba trece resúmenes
+aunque nadie mirara doce.
+
+**Las tres tienen estado vacío.** Una pestaña en blanco no se lee como «no hay
+nada», se lee como rota — y con los cinco registros del ciclo a cero, que es el
+estado de quien acaba de empezar, esa vista no diría literalmente nada. En
+primer arranque el conmutador tampoco se pinta: ahí la pantalla no resume,
+orienta.
+
+### El punto de la pestaña, que es lo que sujeta el reparto
+
+Partir el panel tiene **un solo riesgo**, y es el que hay que sujetar: una
+pestaña puede esconder un incumplimiento detrás de un clic que nadie da.
+`AlertasDelPanel` cruza los once registros, cuenta **lo rojo que no está a
+cero**, y cada pestaña sale con su recuento en `VistaPanel::$alertas`.
+
+**Se filtra por tono y no por una lista de claves.** `alertas()` de cada registro
+devuelve también cosas que piden atención sin estar incumplidas —`bloqueadas` en
+tareas, `con_no_conformidades` en auditorías— y contarlas aquí pondría punto en
+las tres pestañas siempre. El rojo del producto es `caducada`, tiene dueños
+contados y cada módulo declara el suyo: **un módulo nuevo entra declarando su
+alerta con ese tono, y esa es toda la conexión que hace falta.**
+
+**No se manda la lista de alertas al cliente, sólo el recuento.** Lo que el
+conmutador necesita es saber si las hay; el detalle vive dentro, en la tarjeta
+del módulo que lo produce, con su enlace a la lista exacta.
+
+> **Lo que se probó y se quitó.** El primer intento sacaba además **todos** los
+> rojos a una tira fija encima de las pestañas. Con el registro de ejemplo salían
+> **doce tarjetas rojas** —el seeder planta un caso de cada—, que es exactamente
+> la fila de cifras que hay que leerse entera y que el panel ya tenía. El punto
+> dice lo mismo en un píxel, y el rojo se queda donde puede explicarse: al lado
+> de su cifra y de su enlace.
+
+**Cada fuente va con su permiso**, como ya iba cada tarjeta por separado:
+conectar dos módulos abre una puerta lateral al registro del otro si nadie lo
+decide. Que hoy los tres roles del § 4.19 tengan todos los `.ver` no la hace
+innecesaria: la hace **no ejercida**.
+
+### La lista de fuentes es literal, y hay test que la descubre
+
+`AlertasDelPanel::FUENTES` es una lista escrita a mano, como `Rol::permisos()`, y
+con el mismo riesgo: olvidar un módulo nuevo **no rompe nada** — su pestaña deja
+de marcarse, que es el fallo silencioso que el punto existe para cerrar.
+
+Por eso `AlertasTest` no enumera módulos: **recorre `app/Domain/` buscando
+registros con `alertas()`** y exige que estén declarados, en las dos direcciones.
+Es el sexto de la familia que descubre en vez de enumerar. Y su `glob` lleva la
+lección de `FactoriesSinOrganizacionTest`: si deja de encontrar nada, el test se
+pone rojo en vez de pasar dando por cubierto lo que no cubre.
+
+### Los dos callejones sin salida que quedaban
+
+**Ninguna cifra de la tarjeta de pruebas llevaba a su lista.** «3 caducadas», y
+ahora búscalas — filtrando a mano por un rango de fechas. Era justo lo que
+`Indicador` existe para evitar, y en el módulo que sostiene el rojo más antiguo
+del producto. Ahora `EvidenciaRecurso` declara `caducadas` y `por_caducar` por
+scope, y las cuatro cifras de la tarjeta enlazan.
+
+**Y la cuarta no tenía scope siquiera.** «Implantados sin prueba» vivía escrito
+en `ResumenCumplimiento` y en ningún otro sitio, así que no había filtro que
+pudiera reproducirla. Ahora es `Implantacion::sinEvidencia()`, lo invocan el
+resumen y el filtro de `/implantaciones`, y por construcción no pueden
+discrepar.
+
+---
+
 ## El plan de adecuación
 
 El tercer documento **calculado**, y el que cierra la fase 2. Hace la pregunta contraria a una
@@ -2312,7 +2405,7 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
 
 - **Las gráficas se pintan a mano, y en el PDF las pintará el servidor.** El stack no decía nada de gráficas, ni a favor ni en contra, así que queda escrito aquí. Dos renderizadores por un motivo concreto: en un documento que va a PDF/A-3b y aspira a PDF/UA no debería ejecutarse JavaScript, porque un canvas entra como mapa de bits y se lleva por delante el texto seleccionable. En pantalla, SVG y CSS sobre los tokens de `app.css` (`AnilloProgreso`, `BarraSegmentada`, `components/grafica/`); en el documento, SVG generado en PHP cuando llegue el módulo de documentos. **Chart.js se descartó** por lo anterior y porque obliga a escribir los colores en JavaScript en vez de leerlos de los tokens. Una librería —`d3-scale` y `d3-shape`, que son funciones puras sin DOM— entra el día que haya una serie histórica **con eje de tiempo irregular**: escalas y ticks legibles es lo único que no compensa escribir a mano. **Con el § 4.14 dentro ya hay serie histórica y la librería sigue fuera**, y el matiz es el que importa: el eje de un indicador son cubos etiquetados y equiespaciados que impone `Periodicidad` —«T1 2026», «T2 2026»—, así que los ticks vienen escritos de casa y no hay escala que elegir. Lo pinta `grafica/GraficaSerie.vue` a mano.
 
-- **El resumen del inventario está repartido a propósito entre el panel y la tabla.** Los repartos —por tipo, por ciclo de vida, cobertura de cifrado y copia— viven en `/panel`, que es donde se pregunta cómo va la cosa; en `/activos` sólo queda lo que pide acción hoy. Antes eran nueve recuentos del mismo tamaño encima de la tabla, varios a cero, mezclando tres cosas distintas: incumplimiento real, dato que falta y perfil. Había que leerse los nueve para saber si algo iba mal. **Un indicador a cero ya no ocupa una tarjeta**: si no hay nada abierto se pinta una línea diciéndolo, que es un estado vacío de verdad y no una fila de ceros. Y toda cifra va con su denominador — «2 sin cifrar» sobre 4 es una urgencia y sobre 307 es un martes.
+- **El resumen del inventario está repartido a propósito entre el panel y la tabla.** Los repartos —por tipo, por ciclo de vida, cobertura de cifrado y copia— viven en el panel, que es donde se pregunta cómo va la cosa —desde el rediseño, en `/panel/organizacion`—; en `/activos` sólo queda lo que pide acción hoy. Antes eran nueve recuentos del mismo tamaño encima de la tabla, varios a cero, mezclando tres cosas distintas: incumplimiento real, dato que falta y perfil. Había que leerse los nueve para saber si algo iba mal. **Un indicador a cero ya no ocupa una tarjeta**: si no hay nada abierto se pinta una línea diciéndolo, que es un estado vacío de verdad y no una fila de ceros. Y toda cifra va con su denominador — «2 sin cifrar» sobre 4 es una urgencia y sobre 307 es un martes.
 
 - **`ResumenInventario::controlesResueltos()` cuenta `no_aplica` como resuelto.** Un router no cifra en reposo porque no almacena nada; contarlo como pendiente pondría un techo que la organización no puede alcanzar por mucho que trabaje, y un indicador que nunca llega al cien por cien se deja de mirar a las dos semanas.
 

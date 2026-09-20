@@ -52,7 +52,7 @@ Cuatro cosas que una hoja de cálculo no hace, y que un gestor de cumplimiento g
 
 **Superficies construidas**, todas tras el login:
 
-`/panel` · `/contexto` (+ análisis, cuestiones) · `/partes-interesadas` · `/sistemas` (+ valoración) · `/implantaciones` · `/activos` (+ etiquetas QR) · `/evidencias` · `/tareas` (+ tablero, calendario) · `/riesgos` (+ metodología) · `/auditorias` (+ checklist) · `/no-conformidades` · `/mejoras` · `/indicadores` · `/objetivos` · `/revision-direccion` · `/personas` (+ nombramientos, checklists) · `/formacion` (+ convocatoria) · `/incidentes` · `/documentos` (+ plantillas, cuerpo editable, versiones) · `/revisiones` · `/perfil` (+ segundo factor)
+`/panel` (+ el ciclo, la organización) · `/contexto` (+ análisis, cuestiones) · `/partes-interesadas` · `/sistemas` (+ valoración) · `/implantaciones` · `/activos` (+ etiquetas QR) · `/evidencias` · `/tareas` (+ tablero, calendario) · `/riesgos` (+ metodología) · `/auditorias` (+ checklist) · `/no-conformidades` · `/mejoras` · `/indicadores` · `/objetivos` · `/revision-direccion` · `/personas` (+ nombramientos, checklists) · `/formacion` (+ convocatoria) · `/incidentes` · `/documentos` (+ plantillas, cuerpo editable, versiones) · `/revisiones` · `/perfil` (+ segundo factor)
 
 **Entregables que salen de la herramienta:** la SoA de ISO, la DdA del ENS, el plan de adecuación, el análisis del contexto y el acta de la revisión por la dirección, en PDF/A-3b con su huella, almacenados y no regenerados; más una copia de trabajo en `.docx` construida desde la instantánea de la versión, nunca desde una consulta nueva. A ellos se suman los tres redactados —política, norma y procedimiento—.
 

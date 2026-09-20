@@ -87,7 +87,7 @@ it('reparte por estado en el orden que fija el dominio y sin lo que no aplica', 
     $this->actingAs($escenario['usuario'])
         ->get('/panel')
         ->assertInertia(fn (AssertableInertia $pagina) => $pagina
-            ->component('Panel')
+            ->component('panel/Cumplimiento')
             ->has('porEstado', 4)
             // El orden separa el verde del ámbar: pegados no se distinguen con
             // protanopia. Es una decisión medida, no el orden del enum.
@@ -159,7 +159,7 @@ it('lleva el plan de acción, con lo abierto sobre el total', function (): void 
     Tarea::factory()->vencida()->create();
 
     $this->actingAs($usuario)
-        ->get('/panel')
+        ->get('/panel/ciclo')
         ->assertInertia(fn (AssertableInertia $pagina) => $pagina
             ->where('plan.total', 4)
             ->where('plan.abiertas', 3)
@@ -185,7 +185,7 @@ it('reparte el plan por origen, sobre lo abierto y sin los orígenes vacíos', f
     Tarea::factory()->enEstado(EstadoTarea::Hecha)->create(['origen' => OrigenTarea::Riesgo->value]);
 
     $this->actingAs($usuario)
-        ->get('/panel')
+        ->get('/panel/ciclo')
         ->assertInertia(fn (AssertableInertia $pagina) => $pagina
             ->has('plan.porOrigen', 2)
             // En el orden del enum, que va de lo más reactivo a lo más propio.
@@ -211,7 +211,7 @@ it('lleva las no conformidades, con lo abierto y lo que falta por verificar', fu
     NoConformidad::factory()->enEstado(EstadoNoConformidad::Verificada)->create();
 
     $this->actingAs($usuario)
-        ->get('/panel')
+        ->get('/panel/ciclo')
         ->assertInertia(fn (AssertableInertia $pagina) => $pagina
             ->where('noConformidades.total', 4)
             ->where('noConformidades.abiertas', 2)
@@ -246,7 +246,7 @@ it('no manda las no conformidades a quien no puede verlas', function (): void {
         ->revokePermissionTo(Permiso::NoConformidadesVer->value);
 
     $this->actingAs($usuario->fresh())
-        ->get('/panel')
+        ->get('/panel/ciclo')
         ->assertInertia(fn (AssertableInertia $pagina) => $pagina->where('noConformidades', null));
 });
 
@@ -269,7 +269,7 @@ it('lleva el contexto, con su reparto del DAFO y lo que falta por atar', functio
     CuestionContexto::factory()->deTipo(TipoCuestion::Fortaleza)->create();
 
     $this->actingAs($usuario)
-        ->get('/panel')
+        ->get('/panel/organizacion')
         ->assertInertia(fn (AssertableInertia $pagina) => $pagina
             ->where('contexto.cuestiones', 3)
             // Las dos amenazas, que son las adversas sin riesgo vinculado.
@@ -295,7 +295,7 @@ it('no manda el contexto a quien no puede verlo', function (): void {
         ->revokePermissionTo(Permiso::ContextoVer->value);
 
     $this->actingAs($usuario->fresh())
-        ->get('/panel')
+        ->get('/panel/organizacion')
         ->assertInertia(fn (AssertableInertia $pagina) => $pagina->where('contexto', null));
 });
 
@@ -318,7 +318,7 @@ it('cuenta los indicadores con su denominador y reparte por veredicto', function
     Indicador::factory()->retirado()->create(['codigo' => 'IND-03']);
 
     $this->actingAs($usuario)
-        ->get('/panel')
+        ->get('/panel/ciclo')
         ->assertInertia(fn (AssertableInertia $pagina) => $pagina
             // Los retirados cuentan en el total y no en el seguimiento: su serie
             // se conserva, y es la que explica por qué se dejó de medir.
@@ -341,7 +341,7 @@ it('señala el periodo que cerró sin medir', function (): void {
     Indicador::factory()->conPeriodicidad(Periodicidad::Trimestral)->create(['codigo' => 'IND-01']);
 
     $this->actingAs($usuario)
-        ->get('/panel')
+        ->get('/panel/ciclo')
         ->assertInertia(fn (AssertableInertia $pagina) => $pagina
             ->where('desempeno.periodoSinMedir', 1)
             ->where('desempeno.nuncaMedidos', 1));
@@ -361,6 +361,6 @@ it('no manda el desempeño a quien no puede verlo', function (): void {
         ->revokePermissionTo(Permiso::IndicadoresVer->value);
 
     $this->actingAs($usuario->fresh())
-        ->get('/panel')
+        ->get('/panel/ciclo')
         ->assertInertia(fn (AssertableInertia $pagina) => $pagina->where('desempeno', null));
 });

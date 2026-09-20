@@ -109,6 +109,15 @@ final class EvidenciaRecurso extends Recurso
                 ->all())->enColumna('responsable'),
             Filtro::rangoFechas('fecha_obtencion', 'Obtenida'),
             Filtro::rangoFechas('fecha_caducidad', 'Caduca')->enColumna('vigencia'),
+            /*
+             * Por scope, con la clave del indicador que cuenta lo mismo: es lo
+             * que garantiza que pulsar la cifra del panel enseñe exactamente esa
+             * cifra. Hasta que el panel tuvo tira de alertas, «caducadas» era la
+             * única cifra roja del producto que no llevaba a su lista.
+             */
+            Filtro::porScope('caducadas', 'Caducadas', 'caducadas')->enColumna('vigencia'),
+            Filtro::porScope('por_caducar', 'Por caducar', 'porCaducar')->enColumna('vigencia'),
+
             Filtro::multiSelect('periodicidad_renovacion', 'Renovación', array_map(
                 static fn (PeriodicidadRenovacion $periodicidad): Opcion => new Opcion(
                     $periodicidad->value,

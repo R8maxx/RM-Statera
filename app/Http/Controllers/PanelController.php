@@ -13,44 +13,220 @@ use App\Domain\Incidente\RegistroIncidentes;
 use App\Domain\Metrica\RegistroIndicadores;
 use App\Domain\NoConformidad\RegistroNoConformidades;
 use App\Domain\Objetivo\RegistroObjetivos;
+use App\Domain\Panel\AlertasDelPanel;
 use App\Domain\Persona\RegistroPersonas;
 use App\Domain\Sistema\Models\Sistema;
 use App\Domain\Tarea\ResumenPlanDeAccion;
 use App\Http\Resources\Panel\ResumenEvidencias;
 use App\Http\Resources\Panel\ResumenPanel;
 use App\Http\Resources\Panel\SistemaResumido;
+use App\Http\Resources\Panel\VistaPanel;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * El estado del cumplimiento de un vistazo.
+ * El estado del cumplimiento de un vistazo. Tres vistas y una tira.
  *
- * Todas las consultas pasan por el scope de organización, así que lo que se
- * cuenta aquí es siempre lo de la organización activa. Las cifras las calcula
- * `ResumenCumplimiento`, en el dominio: son las mismas preguntas que contestará
- * el informe de estado, y no pueden vivir en un controlador.
+ * **El panel tenía trece tarjetas apiladas y mezclaba tres preguntas.** Cada
+ * módulo nuevo añadía la suya al final, y la pantalla no distinguía entre cómo
+ * va el cumplimiento, qué está pasando y de qué organización hablamos. Ahora
+ * **se reparte por la pregunta que contesta**, no por módulo.
+ *
+ * **Las vistas son rutas y no estado de cliente**, que es la decisión ya tomada
+ * para las tres pantallas del plan de acción: así se enlazan, se comparten y el
+ * sidebar lleva siempre al mismo sitio.
+ *
+ * **Y cada vista consulta sólo lo suyo.** Antes cada carga del panel calculaba
+ * trece resúmenes aunque nadie mirara doce; ahora el reparto es el que decide
+ * qué se cuenta.
+ *
+ * ### El punto de la pestaña
+ *
+ * Repartir el panel tiene un riesgo y es el único que hay que sujetar: una
+ * pestaña puede esconder un incumplimiento detrás de un clic que nadie da. Por
+ * eso `AlertasDelPanel` cruza los once registros, cuenta **lo rojo que no está
+ * a cero** y cada pestaña sale con su recuento — `VistaPanel::$alertas`. No se
+ * mandan las alertas en sí: lo que necesita el conmutador es saber si las hay,
+ * y el detalle está dentro, en la tarjeta del módulo que lo produce.
+ *
+ * Todas las consultas pasan por el scope de organización. Las cifras las calcula
+ * el dominio: son las mismas preguntas que contestará el informe de estado, y no
+ * pueden vivir en un controlador.
  */
 class PanelController extends Controller
 {
-    public function __invoke(
-        ResumenCumplimiento $resumen,
-        ResumenInventario $inventario,
+    /**
+     * «¿Cómo vamos con lo exigible?» — la vista por defecto.
+     *
+     * Abre con el anillo porque es la única cifra que contesta la pregunta de la
+     * pantalla en un solo número, y detrás va lo que la sostiene: el reparto por
+     * estado, las pruebas que lo demuestran, el avance por marco y los sistemas
+     * en los que se mide.
+     */
+    public function cumplimiento(ResumenCumplimiento $resumen, AlertasDelPanel $alertas): Response
+    {
+        $sistemas = $this->sistemas();
+        $madurez = $resumen->madurez();
+        $pruebas = $resumen->evidencias();
+
+        return Inertia::render('panel/Cumplimiento', [
+            ...$this->comunes($alertas),
+            'sistemas' => $sistemas,
+            'resumen' => new ResumenPanel(
+                sistemas: $sistemas->count(),
+                aplicables: (int) $sistemas->sum(fn (SistemaResumido $sistema): int => $sistema->aplicables),
+                implantadas: (int) $sistemas->sum(fn (SistemaResumido $sistema): int => $sistema->implantadas),
+                pendientes: $resumen->pendientes(),
+                madurezMedia: $madurez['media'],
+                madurezEvaluadas: $madurez['evaluadas'],
+            ),
+            'evidencias' => new ResumenEvidencias(
+                total: $pruebas['total'],
+                caducadas: $pruebas['caducadas'],
+                porCaducar: $pruebas['porCaducar'],
+                implantadasSinEvidencia: $resumen->implantadasSinEvidencia(),
+            ),
+            'porEstado' => $resumen->porEstado(),
+            'porMarco' => $resumen->porMarco(),
+        ]);
+    }
+
+    /**
+     * «¿Qué está pasando y estamos mejorando?»
+     *
+     * Las cinco piezas del ciclo vivo, en el orden en que se recorren: lo que hay
+     * abierto, lo que se rompió, lo que pasó, lo que se mide y a qué nos
+     * comprometimos.
+     */
+    public function ciclo(
         ResumenPlanDeAccion $plan,
         RegistroNoConformidades $noConformidades,
-        RegistroContexto $contexto,
+        RegistroIncidentes $incidentes,
         RegistroIndicadores $indicadores,
         RegistroObjetivos $objetivos,
-        RegistroPersonas $personas,
-        RegistroIncidentes $incidentes,
+        AlertasDelPanel $alertas,
     ): Response {
-        $sistemas = Sistema::query()
+        return Inertia::render('panel/Ciclo', [
+            ...$this->comunes($alertas),
+            'plan' => $plan->paraElPanel(),
+            /*
+             * Nulo cuando quien mira no tiene el permiso. Lo decide el servidor:
+             * conectar dos módulos abre una puerta lateral al registro del otro
+             * si el frontend es quien elige qué esconder.
+             */
+            'noConformidades' => $this->puede(Permiso::NoConformidadesVer)
+                ? $noConformidades->paraElPanel()
+                : null,
+            'incidentes' => $this->puede(Permiso::IncidentesVer)
+                ? $incidentes->paraElPanel()
+                : null,
+            'desempeno' => $this->puede(Permiso::IndicadoresVer)
+                ? $indicadores->paraElPanel()
+                : null,
+            'objetivos' => $this->puede(Permiso::ObjetivosVer)
+                ? $objetivos->paraElPanel()
+                : null,
+        ]);
+    }
+
+    /**
+     * «¿De qué estamos hablando?»
+     *
+     * El entorno y lo que hay dentro del alcance: el contexto que lo enmarca, la
+     * gente que lo sostiene y el inventario sobre el que se aplica todo lo
+     * demás. Es lo que menos cambia de un día para otro, y por eso es la vista
+     * que menos se abre.
+     */
+    public function organizacion(
+        RegistroContexto $contexto,
+        RegistroPersonas $personas,
+        ResumenInventario $inventario,
+        AlertasDelPanel $alertas,
+    ): Response {
+        return Inertia::render('panel/Organizacion', [
+            ...$this->comunes($alertas),
+            'contexto' => $this->puede(Permiso::ContextoVer)
+                ? $contexto->paraElPanel()
+                : null,
+            'personas' => $this->puede(Permiso::PersonasVer)
+                ? $personas->paraElPanel()
+                : null,
+            'inventario' => $inventario->paraElPanel(),
+        ]);
+    }
+
+    /**
+     * Lo que va en las tres: el conmutador, con el punto de cada pestaña.
+     *
+     * **No viaja con `Inertia::once()`.** El recuento es justo lo que puede
+     * cambiar entre dos visitas; cachearlo en el cliente dejaría a alguien
+     * mirando el estado de hace media hora, que es lo contrario de para lo que
+     * está el punto.
+     *
+     * @return array<string, mixed>
+     */
+    private function comunes(AlertasDelPanel $alertas): array
+    {
+        $usuario = request()->user();
+        $porBase = $alertas->porBase($usuario);
+
+        /** Qué rutas de módulo cuelgan de cada vista, para el punto de su pestaña. */
+        $reparto = [
+            'cumplimiento' => ['/evidencias', '/implantaciones', '/documentos', '/sistemas'],
+            'ciclo' => ['/tareas', '/no-conformidades', '/incidentes', '/indicadores', '/objetivos', '/auditorias'],
+            'organizacion' => ['/contexto', '/personas', '/activos', '/riesgos'],
+        ];
+
+        $cuenta = static fn (string $clave): int => array_sum(array_map(
+            static fn (string $base): int => $porBase[$base] ?? 0,
+            $reparto[$clave],
+        ));
+
+        return [
+            'vistas' => [
+                new VistaPanel(
+                    clave: 'cumplimiento',
+                    etiqueta: 'Cumplimiento',
+                    href: '/panel',
+                    pregunta: '¿Cómo vamos con lo exigible?',
+                    alertas: $cuenta('cumplimiento'),
+                ),
+                new VistaPanel(
+                    clave: 'ciclo',
+                    etiqueta: 'El ciclo',
+                    href: '/panel/ciclo',
+                    pregunta: '¿Qué está pasando y estamos mejorando?',
+                    alertas: $cuenta('ciclo'),
+                ),
+                new VistaPanel(
+                    clave: 'organizacion',
+                    etiqueta: 'La organización',
+                    href: '/panel/organizacion',
+                    pregunta: '¿De qué estamos hablando?',
+                    alertas: $cuenta('organizacion'),
+                ),
+            ],
+        ];
+    }
+
+    /**
+     * Los sistemas con su avance, contados sobre lo exigible.
+     *
+     * @return Collection<int, SistemaResumido>
+     */
+    private function sistemas(): Collection
+    {
+        return Sistema::query()
             ->with('marco')
             ->withCount([
                 'implantaciones as aplicables' => fn (Builder $query) => $query->where('aplica', true),
-                // Sólo cuentan las implantadas que además son exigibles: sin el
-                // `aplica`, una medida excluida y luego implantada inflaba el
-                // numerador por encima del denominador.
+                /*
+                 * Sólo cuentan las implantadas que además son exigibles: sin el
+                 * `aplica`, una medida excluida y luego implantada inflaba el
+                 * numerador por encima del denominador.
+                 */
                 'implantaciones as implantadas' => fn (Builder $query) => $query
                     ->where('aplica', true)
                     ->where('estado', EstadoImplantacion::Implantado->value),
@@ -69,150 +245,10 @@ class PanelController extends Controller
                 implantadas: (int) $sistema->getAttribute('implantadas'),
             ))
             ->values();
-
-        $madurez = $resumen->madurez();
-        $evidencias = $resumen->evidencias();
-
-        return Inertia::render('Panel', [
-            'sistemas' => $sistemas,
-            'resumen' => new ResumenPanel(
-                sistemas: $sistemas->count(),
-                aplicables: (int) $sistemas->sum(fn (SistemaResumido $sistema): int => $sistema->aplicables),
-                implantadas: (int) $sistemas->sum(fn (SistemaResumido $sistema): int => $sistema->implantadas),
-                pendientes: $resumen->pendientes(),
-                madurezMedia: $madurez['media'],
-                madurezEvaluadas: $madurez['evaluadas'],
-            ),
-            'evidencias' => new ResumenEvidencias(
-                total: $evidencias['total'],
-                caducadas: $evidencias['caducadas'],
-                porCaducar: $evidencias['porCaducar'],
-                implantadasSinEvidencia: $resumen->implantadasSinEvidencia(),
-            ),
-            'porEstado' => $resumen->porEstado(),
-            'porMarco' => $resumen->porMarco(),
-            // El inventario contesta aquí las preguntas de reparto —qué hay y de
-            // qué tipo— y deja en `/activos` sólo lo que pide acción hoy. Un
-            // panel es para saber cómo va la cosa; una tabla, para trabajar.
-            'inventario' => $inventario->paraElPanel(),
-            // El plan de acción contesta la otra mitad de «cómo va la cosa»: el
-            // cumplimiento dice qué falta y esto dice quién lo está haciendo.
-            'plan' => $plan->paraElPanel(),
-            /*
-             * Y esto contesta la tercera: qué ha fallado y si se arregló. § 4.14
-             * pide «no conformidades abiertas» entre los indicadores del cuadro
-             * de mando.
-             *
-             * **No se manda si quien mira no tiene `no_conformidades.ver`.**
-             * Conectar dos módulos abre una puerta lateral al registro del otro
-             * sin que nadie la decida; es la misma regla que ya se escribió para
-             * el bloque de riesgos de la ficha de un activo. El frontend decide
-             * qué pinta y nunca qué autoriza.
-             */
-            'noConformidades' => $this->puedeVerNoConformidades()
-                ? $noConformidades->paraElPanel()
-                : null,
-            /*
-             * Y esto es la pregunta de antes de todas: de qué entorno estamos
-             * hablando. Va la última en el panel porque se consulta menos que las
-             * otras cuatro —el contexto se revisa una vez al año y el cumplimiento
-             * todas las semanas—, y va con la misma guarda de permiso que las no
-             * conformidades y por el mismo motivo.
-             */
-            'contexto' => $this->puedeVerContexto()
-                ? $contexto->paraElPanel()
-                : null,
-            /*
-             * El desempeño (§ 4.14, cláusula 9.1). Va detrás del contexto porque
-             * es lo último que existe y lo que menos se consulta a diario: un
-             * indicador trimestral cambia cuatro veces al año.
-             *
-             * Misma guarda de permiso que los dos anteriores. Hoy los tres roles
-             * del § 4.19 tienen `indicadores.ver`, así que no la ejerce nadie; el
-             * test la comprueba quitándole el permiso **al rol** y no al usuario,
-             * porque `revokePermissionTo` sobre la persona no quita lo que hereda
-             * y el test pasaría por el motivo equivocado.
-             */
-            'desempeno' => $this->puedeVerIndicadores()
-                ? $indicadores->paraElPanel()
-                : null,
-            /*
-             * Y los objetivos (cláusula 6.2), pegados al desempeño porque son las
-             * dos mitades de la misma pregunta: los indicadores dicen cómo va y
-             * los objetivos dicen contra qué. Separarlos en el panel obligaría a
-             * mirar en dos sitios para contestar «¿vamos bien?».
-             *
-             * **`sinIndicador` es la cifra que está aquí por la norma y no por la
-             * pantalla**, como `sinVerificar` en las no conformidades: la 6.2
-             * exige que el objetivo sea medible, y uno sin ninguna cifra detrás
-             * lo cumple de palabra. Misma guarda de permiso que los tres
-             * anteriores.
-             */
-            'objetivos' => $this->puedeVerObjetivos()
-                ? $objetivos->paraElPanel()
-                : null,
-            /*
-             * Las personas (§ 4.8). Van las últimas porque son la parte del SGSI
-             * que menos cambia de un día para otro —una plantilla se mueve por
-             * altas y bajas, no por trabajo diario—, y porque lo que se consulta
-             * a diario de aquí es una sola cifra: si hay alguien que se fue con
-             * la checklist de salida a medias.
-             *
-             * **`rolesDesignados` sobre `rolesExigibles` es la cifra que está
-             * aquí por la norma y no por la pantalla**, como `sinVerificar` y
-             * `sinIndicador`: es la cláusula 5.3, y hasta este módulo era una
-             * limitación impresa en el PDF de la DdA.
-             *
-             * Misma guarda de permiso que las cuatro anteriores.
-             */
-            'personas' => $this->puedeVerPersonas()
-                ? $personas->paraElPanel()
-                : null,
-            /*
-             * Y los incidentes (§ 4.10). Van junto a las personas porque son las
-             * dos medidas de categoría básica que hasta este tramo no tenían
-             * dónde registrarse, y porque las dos se leen igual: de un vistazo,
-             * buscando si hay algo en rojo.
-             *
-             * **`fueraDePlazoAepd` es la cifra que está aquí por la ley y no por
-             * la pantalla** —las 72 h del artículo 33.1 del RGPD—, como
-             * `sinVerificar`, `sinIndicador` y `rolesDesignados`.
-             *
-             * Misma guarda de permiso que las cinco anteriores.
-             */
-            'incidentes' => $this->puedeVerIncidentes()
-                ? $incidentes->paraElPanel()
-                : null,
-        ]);
     }
 
-    private function puedeVerNoConformidades(): bool
+    private function puede(Permiso $permiso): bool
     {
-        return request()->user()?->can(Permiso::NoConformidadesVer->value) ?? false;
-    }
-
-    private function puedeVerContexto(): bool
-    {
-        return request()->user()?->can(Permiso::ContextoVer->value) ?? false;
-    }
-
-    private function puedeVerIndicadores(): bool
-    {
-        return request()->user()?->can(Permiso::IndicadoresVer->value) ?? false;
-    }
-
-    private function puedeVerObjetivos(): bool
-    {
-        return request()->user()?->can(Permiso::ObjetivosVer->value) ?? false;
-    }
-
-    private function puedeVerPersonas(): bool
-    {
-        return request()->user()?->can(Permiso::PersonasVer->value) ?? false;
-    }
-
-    private function puedeVerIncidentes(): bool
-    {
-        return request()->user()?->can(Permiso::IncidentesVer->value) ?? false;
+        return request()->user()?->can($permiso->value) ?? false;
     }
 }

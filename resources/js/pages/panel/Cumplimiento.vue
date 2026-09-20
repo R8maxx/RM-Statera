@@ -4,14 +4,7 @@ import Cifra from '@/components/Cifra.vue';
 import BarraSegmentada, { type Segmento } from '@/components/BarraSegmentada.vue';
 import EstadoVacio from '@/components/EstadoVacio.vue';
 import PrimerosPasos from '@/components/PrimerosPasos.vue';
-import ResumenInventarioPanelCard from '@/components/activo/ResumenInventarioPanel.vue';
-import ResumenContextoPanel from '@/components/contexto/ResumenContextoPanel.vue';
-import ResumenMetricasPanel from '@/components/metrica/ResumenMetricasPanel.vue';
-import ResumenNoConformidadesPanel from '@/components/no-conformidad/ResumenNoConformidadesPanel.vue';
-import ResumenObjetivosPanel from '@/components/objetivo/ResumenObjetivosPanel.vue';
-import ResumenIncidentesPanel from '@/components/incidente/ResumenIncidentesPanel.vue';
-import ResumenPersonasPanel from '@/components/persona/ResumenPersonasPanel.vue';
-import ResumenPlanPanel from '@/components/tarea/ResumenPlanPanel.vue';
+import ConmutadorPanel from '@/components/panel/ConmutadorPanel.vue';
 import GraficaBarras, { type Barra } from '@/components/grafica/GraficaBarras.vue';
 import {
     Card,
@@ -35,31 +28,32 @@ type ResumenPanel = App.Http.Resources.Panel.ResumenPanel;
 type SegmentoEstado = App.Http.Resources.Panel.SegmentoEstado;
 type SistemaResumido = App.Http.Resources.Panel.SistemaResumido;
 
-/*
- * Los tipos se generan desde PHP (`composer types`). Antes esta página
- * declaraba a mano su propia versión de la fila de sistema, y una columna que
- * cambiara de nombre en el controlador no rompía nada aquí hasta que alguien
- * abría el panel.
+/**
+ * «¿Cómo vamos con lo exigible?» — la vista por defecto del panel.
+ *
+ * Es la primera de tres. El panel tenía trece tarjetas apiladas y mezclaba tres
+ * preguntas: cómo va el cumplimiento, qué está pasando y de qué organización
+ * estamos hablando. Ahora cada una tiene su vista.
+ *
+ * **Cada vista se queda con su propio rojo**, y el conmutador pone un punto en
+ * la pestaña que lo tenga: sin ese punto, repartir el panel escondería un
+ * incumplimiento detrás de un clic que nadie da.
+ *
+ * Los tres anclajes del recorrido guiado se quedan aquí, que es donde estaban:
+ * el anillo, las pruebas y los sistemas. El recorrido se ofrece desde `/panel`,
+ * que sigue siendo la única pantalla por la que se pasa sí o sí.
+ *
+ * Los tipos se generan desde PHP (`composer types`). Antes esta página declaraba
+ * a mano su propia versión de la fila de sistema, y una columna que cambiara de
+ * nombre en el controlador no rompía nada aquí hasta que alguien abría el panel.
  */
 const props = defineProps<{
+    vistas: App.Http.Resources.Panel.VistaPanel[];
     sistemas: SistemaResumido[];
     resumen: ResumenPanel;
     evidencias: ResumenEvidencias;
     porEstado: SegmentoEstado[];
     porMarco: AvanceMarco[];
-    inventario: App.Http.Resources.Panel.ResumenInventarioPanel;
-    plan: App.Http.Resources.Panel.ResumenPlanPanel;
-    /*
-     * Nulo cuando quien mira no tiene `no_conformidades.ver`. Lo decide el
-     * servidor: conectar dos módulos abre una puerta lateral al registro del otro
-     * si el frontend es quien elige qué esconder.
-     */
-    noConformidades: App.Http.Resources.Panel.ResumenNoConformidadesPanel | null;
-    contexto: App.Http.Resources.Panel.ResumenContextoPanel | null;
-    desempeno: App.Http.Resources.Panel.ResumenMetricasPanel | null;
-    objetivos: App.Http.Resources.Panel.ResumenObjetivosPanel | null;
-    personas: App.Http.Resources.Panel.ResumenPersonasPanel | null;
-    incidentes: App.Http.Resources.Panel.ResumenIncidentesPanel | null;
 }>();
 
 const { variantesEntrada, variantesEscalonado } = useMovimientoReducido();
@@ -127,15 +121,31 @@ const madurez = computed(() => {
  * evidencia caducada deja sin prueba al requisito que sostenía, y un requisito
  * implantado sin ninguna prueba es un hallazgo esperando a que alguien
  * pregunte. Pintar de rojo un cero sería alarmar sin motivo.
+ *
+ * **Y ahora las tres que se pueden accionar llevan a su lista.** Eran el último
+ * callejón sin salida del panel: «3 caducadas», y ahora búscalas. `enlace`
+ * apunta al mismo scope con el que se cuenta la cifra, así que la lista enseña
+ * exactamente lo que dice el número.
  */
 const pruebas = computed(() => [
-    { etiqueta: 'Evidencias registradas', valor: props.evidencias.total, alerta: false },
-    { etiqueta: 'Caducadas', valor: props.evidencias.caducadas, alerta: props.evidencias.caducadas > 0 },
-    { etiqueta: 'Caducan en 30 días', valor: props.evidencias.porCaducar, alerta: false },
+    { etiqueta: 'Evidencias registradas', valor: props.evidencias.total, alerta: false, enlace: '/evidencias' },
+    {
+        etiqueta: 'Caducadas',
+        valor: props.evidencias.caducadas,
+        alerta: props.evidencias.caducadas > 0,
+        enlace: '/evidencias?filter[caducadas]=1',
+    },
+    {
+        etiqueta: 'Caducan en 30 días',
+        valor: props.evidencias.porCaducar,
+        alerta: false,
+        enlace: '/evidencias?filter[por_caducar]=1',
+    },
     {
         etiqueta: 'Implantados sin prueba',
         valor: props.evidencias.implantadasSinEvidencia,
         alerta: props.evidencias.implantadasSinEvidencia > 0,
+        enlace: '/implantaciones?filter[sin_evidencia]=1',
     },
 ]);
 
@@ -174,7 +184,22 @@ const metricas = computed(() => [
 
 <template>
     <AppLayout titulo="Panel">
-        <motion.div :variants="escalonado" initial="oculto" animate="visible" class="space-y-6">
+        <!--
+            **En primer arranque no se pinta**, y es el mismo argumento que ya
+            estaba escrito dos líneas más abajo: mientras no haya nada exigible
+            la pantalla no resume, orienta. Dos pestañas que llevan a vistas
+            vacías compiten con lo único que hay que hacer, que es dar de alta
+            el primer sistema.
+        -->
+        <ConmutadorPanel v-if="!primerArranque" :vistas="vistas" />
+
+        <motion.div
+            :variants="escalonado"
+            initial="oculto"
+            animate="visible"
+            class="space-y-6"
+            :class="primerArranque ? '' : 'mt-6'"
+        >
             <!--
                 Mientras no haya nada exigible, la cabecera no resume: orienta.
                 Un anillo al 0 % sobre un denominador de cero no es un dato
@@ -292,7 +317,11 @@ const metricas = computed(() => [
                                 :key="prueba.etiqueta"
                                 :class="indice > 0 && 'sm:pl-4'"
                             >
-                                <dt class="text-xs text-muted-foreground">{{ prueba.etiqueta }}</dt>
+                                <dt class="text-xs text-muted-foreground">
+                                    <Link :href="prueba.enlace" class="underline-offset-4 hover:underline">
+                                        {{ prueba.etiqueta }}
+                                    </Link>
+                                </dt>
                                 <dd
                                     class="cifra mt-0.5 text-2xl font-semibold tracking-tight"
                                     :class="prueba.alerta && 'text-destructive'"
@@ -303,91 +332,6 @@ const metricas = computed(() => [
                         </dl>
                     </CardContent>
                 </Card>
-            </motion.section>
-
-            <!-- ── Plan de acción ─────────────────────────────────────────── -->
-            <!--
-                Va antes que el reparto por marco y que el inventario: el
-                cumplimiento dice qué falta y esto dice quién lo está haciendo,
-                que es la pregunta que se hace justo después.
-            -->
-            <motion.section v-if="plan.total > 0" :variants="variantesEntrada">
-                <ResumenPlanPanel :plan="plan" />
-            </motion.section>
-
-            <!-- ── No conformidades ───────────────────────────────────────── -->
-            <!--
-                Detrás del plan de acción y por lo mismo que aquél va detrás del
-                cumplimiento: éste dice qué se está haciendo y esto dice qué se
-                rompió por el camino. Con el registro vacío no se pinta: una
-                tarjeta de ceros enseña a no mirar la tarjeta, y aquí el vacío es
-                además el estado normal de quien todavía no ha auditado.
-            -->
-            <motion.section
-                v-if="noConformidades && noConformidades.total > 0"
-                :variants="variantesEntrada"
-            >
-                <ResumenNoConformidadesPanel :resumen="noConformidades" />
-            </motion.section>
-
-            <!-- ── Contexto de la organización ────────────────────────────── -->
-            <!--
-                La última de las cinco, y no por ser menos importante: el contexto
-                se revisa una vez al año y el cumplimiento todas las semanas, así
-                que arriba va lo que se mira a diario. Con el registro vacío no se
-                pinta, como las demás.
-            -->
-            <motion.section
-                v-if="contexto && contexto.cuestiones > 0"
-                :variants="variantesEntrada"
-            >
-                <ResumenContextoPanel :resumen="contexto" />
-            </motion.section>
-
-            <!-- ── Desempeño ──────────────────────────────────────────────── -->
-            <!--
-                La sexta, y la última que llegó. Un indicador trimestral cambia
-                cuatro veces al año, así que arriba sigue yendo lo que se mira a
-                diario. Con el cuadro vacío no se pinta, como las demás.
-            -->
-            <motion.section
-                v-if="desempeno && desempeno.total > 0"
-                :variants="variantesEntrada"
-            >
-                <ResumenMetricasPanel :resumen="desempeno" />
-            </motion.section>
-
-            <!-- ── Objetivos ──────────────────────────────────────────────── -->
-            <!--
-                Pegado al desempeño, que es su otra mitad: los indicadores dicen
-                cómo va y los objetivos dicen contra qué. Con el registro vacío no
-                se pinta, como las demás.
-            -->
-            <motion.section
-                v-if="objetivos && objetivos.total > 0"
-                :variants="variantesEntrada"
-            >
-                <ResumenObjetivosPanel :resumen="objetivos" />
-            </motion.section>
-
-            <!-- ── Personas ───────────────────────────────────────────────── -->
-            <!--
-                Las últimas: una plantilla se mueve por altas y bajas, no por
-                trabajo diario, y lo que se consulta de aquí a diario es una sola
-                cifra. Con el registro vacío no se pinta, como las demás.
-            -->
-            <motion.section v-if="personas && personas.total > 0" :variants="variantesEntrada">
-                <ResumenPersonasPanel :resumen="personas" />
-            </motion.section>
-
-            <!-- ── Incidentes ─────────────────────────────────────────────── -->
-            <!--
-                Junto a personas: son las dos medidas de categoría básica que
-                hasta este tramo no tenían dónde registrarse. Con el registro
-                vacío no se pinta, como las demás.
-            -->
-            <motion.section v-if="incidentes && incidentes.total > 0" :variants="variantesEntrada">
-                <ResumenIncidentesPanel :resumen="incidentes" />
             </motion.section>
 
             <!-- ── Por marco ──────────────────────────────────────────────── -->
@@ -404,11 +348,6 @@ const metricas = computed(() => [
                         <GraficaBarras :barras="barrasPorMarco" />
                     </CardContent>
                 </Card>
-            </motion.section>
-
-            <!-- ── Inventario ─────────────────────────────────────────────── -->
-            <motion.section v-if="inventario.vigentes > 0" :variants="variantesEntrada">
-                <ResumenInventarioPanelCard :inventario="inventario" />
             </motion.section>
 
             <!-- ── Sistemas ───────────────────────────────────────────────── -->

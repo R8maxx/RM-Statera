@@ -53,7 +53,22 @@ use Illuminate\Support\Facades\Route;
 Route::redirect('/', '/panel');
 
 Route::middleware('auth')->group(function (): void {
-    Route::get('/panel', PanelController::class)->middleware('can:panel.ver')->name('panel');
+    /*
+     * El panel, en tres vistas y una tira.
+     *
+     * **Son rutas y no estado de cliente**, que es la decisión ya tomada para
+     * las tres pantallas del plan de acción: un conmutador que recuerda la
+     * última vista hace que el enlace que alguien pega en un correo abra otra
+     * pantalla. `/panel` es la de cumplimiento y es la que lleva el sidebar.
+     *
+     * Lo que va mal sube a una tira que se pinta en las tres, así que ninguna
+     * pestaña esconde un rojo.
+     */
+    Route::middleware('can:panel.ver')->group(function (): void {
+        Route::get('/panel', [PanelController::class, 'cumplimiento'])->name('panel');
+        Route::get('/panel/ciclo', [PanelController::class, 'ciclo'])->name('panel.ciclo');
+        Route::get('/panel/organizacion', [PanelController::class, 'organizacion'])->name('panel.organizacion');
+    });
 
     // La cuenta propia no lleva permiso: cualquiera gestiona la suya. Y no lleva
     // `ExigirDosFactores` porque es justamente la salida de ese callejón.
