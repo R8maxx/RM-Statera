@@ -106,8 +106,13 @@ El orden importa: el catálogo y el motor son la parte más específica del domi
    documento, firma de la dirección, obsolescencia de la versión anterior,
    periodicidad de revisión con su aviso, y la segunda familia de documentos —los
    **redactados**: política, norma y procedimiento—.
-10. ✅ Plan de adecuación del ENS (§ 4.18), el tercer documento calculado. Con él
-    la **fase 2** —«el papel formal»— queda completa: riesgos con metodología,
+10. ✅ Plan de adecuación del ENS, el tercer documento calculado. **No es el
+    § 4.18**, que es «Informes y exportación» y sigue pendiente: el plan no es un
+    módulo numerado de los diecinueve —aparece dentro de la lista de exportables
+    del 4.18 y en la fase 2—, y llamarlo así hacía creer que ese módulo estaba
+    hecho.
+
+    Con él la **fase 2** —«el papel formal»— queda completa: riesgos con metodología,
     documentos con flujo de aprobación, y SoA, DdA y plan de adecuación.
 11. ✅ Auditorías (§ 4.12), que abre la **fase 3** —«el ciclo vivo»—: los tres
     tipos, checklist generada desde el catálogo, hallazgos, y el cierre que
