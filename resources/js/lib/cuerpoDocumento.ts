@@ -133,6 +133,7 @@ export const TONOS_BADGE: Record<string, string> = {
     implantado: 'badge badge--implantado',
     planificado: 'badge badge--planificado',
     en_progreso: 'badge badge--en_progreso',
+    en_revision: 'badge badge--en_revision',
     no_iniciado: 'badge badge--no_iniciado',
     no_aplica: 'badge badge--no_aplica',
     neutro: 'badge badge--neutro',
