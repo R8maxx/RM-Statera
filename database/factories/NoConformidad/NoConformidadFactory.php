@@ -36,6 +36,7 @@ class NoConformidadFactory extends Factory
             'codigo' => sprintf('NC-%d-%02d', Carbon::today()->year, fake()->unique()->numberBetween(1, 9999)),
             'origen' => OrigenNoConformidad::Propia->value,
             'hallazgo_id' => null,
+            'incidente_id' => null,
             'descripcion' => fake()->sentence(),
             'correccion_inmediata' => null,
             'analisis_causa_raiz' => null,
@@ -56,6 +57,19 @@ class NoConformidadFactory extends Factory
         return $this->state(fn (): array => [
             'origen' => OrigenNoConformidad::Auditoria->value,
             'hallazgo_id' => $hallazgoId,
+            // Un `CHECK` impide que vengan de un hallazgo y de un incidente a la
+            // vez, así que el estado limpia el otro extremo.
+            'incidente_id' => null,
+        ]);
+    }
+
+    /** De un incidente (§ 4.10), espejo exacto del anterior. */
+    public function deIncidente(int $incidenteId): self
+    {
+        return $this->state(fn (): array => [
+            'origen' => OrigenNoConformidad::Incidente->value,
+            'incidente_id' => $incidenteId,
+            'hallazgo_id' => null,
         ]);
     }
 

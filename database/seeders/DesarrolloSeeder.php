@@ -53,6 +53,12 @@ use App\Domain\Implantacion\CambiarEstado;
 use App\Domain\Implantacion\Enums\EstadoImplantacion;
 use App\Domain\Implantacion\GeneradorImplantaciones;
 use App\Domain\Implantacion\Models\Implantacion;
+use App\Domain\Incidente\CambiarEstadoIncidente;
+use App\Domain\Incidente\Enums\ClasificacionIncidente;
+use App\Domain\Incidente\Enums\EstadoIncidente;
+use App\Domain\Incidente\Enums\PeligrosidadIncidente;
+use App\Domain\Incidente\Models\Incidente;
+use App\Domain\Incidente\RegistrarIncidente;
 use App\Domain\Mejora\AbrirActuacionDeMejora;
 use App\Domain\Mejora\CambiarEstadoMejora;
 use App\Domain\Mejora\Enums\EstadoMejora;
@@ -81,6 +87,16 @@ use App\Domain\Objetivo\RegistrarObjetivo;
 use App\Domain\Objetivo\VincularIndicador;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Organizacion\Models\Organizacion;
+use App\Domain\Persona\DesignarRol;
+use App\Domain\Persona\Enums\RolEns;
+use App\Domain\Persona\Enums\TipoAccionFormativa;
+use App\Domain\Persona\Enums\TipoPasoPersona;
+use App\Domain\Persona\GuardarPasos;
+use App\Domain\Persona\Models\AccionFormativa;
+use App\Domain\Persona\Models\AcuerdoConfidencialidad;
+use App\Domain\Persona\Models\DesignacionRol;
+use App\Domain\Persona\Models\Persona;
+use App\Domain\Persona\RegistrarAsistencia;
 use App\Domain\RevisionDireccion\AbrirDecision;
 use App\Domain\RevisionDireccion\AprobarRevision;
 use App\Domain\RevisionDireccion\CambiarEstadoRevision;
@@ -214,6 +230,13 @@ class DesarrolloSeeder extends Seeder
         // dos, y sembrarlo antes dejaría el DAFO suelto, que es justo lo que este
         // módulo existe para evitar.
         $this->contextoDeEjemplo($organizacion);
+        // **Antes que los indicadores**, y no es una preferencia de orden: desde
+        // el § 4.8 el IND-03 es calculado y cuenta sobre `personas`. Sembrado
+        // después, la primera medición del personal formado sería un cero.
+        $this->personasDeEjemplo($sistema);
+        // Detrás de las personas y de los activos, que es de donde saca el
+        // responsable y lo afectado.
+        $this->incidentesDeEjemplo($sistema);
         // El último: mide sobre todo lo anterior, así que sembrarlo antes daría
         // series de ceros que no enseñan nada.
         $this->indicadoresDeEjemplo($sistema);
@@ -245,6 +268,259 @@ class DesarrolloSeeder extends Seeder
      *
      * Datos sintéticos, como todo lo demás.
      */
+    /**
+     * La plantilla, los nombramientos del 5.3 y la formación. § 4.8.
+     *
+     * Cada persona enseña una cosa distinta, que es el criterio del resto del
+     * seeder:
+     *
+     * - Una **con cuenta** y designada responsable de seguridad: el puente entre
+     *   `personas` y `users`, y el nombramiento que el auditor pide.
+     * - Una **sin cuenta**, que es el caso mayoritario, formada y con acuerdo.
+     * - Una **sin formación ni acuerdo**, que es lo que pide acción hoy.
+     * - Una **dada de baja con la checklist de salida a medias**, que es el único
+     *   rojo del módulo y el hermano del equipo retirado sin constancia de
+     *   borrado.
+     *
+     * **El caso incompatible se deja preparado y no se comete**: la responsable
+     * de seguridad no se designa además responsable del sistema, porque
+     * `DesignarRol` lo rechazaría y el seeder moriría. Está ahí para probarlo a
+     * mano desde la interfaz, que es donde el mensaje tiene que leerse bien.
+     */
+    private function personasDeEjemplo(Sistema $sistema): void
+    {
+        if (Persona::query()->exists()) {
+            return;
+        }
+
+        $responsable = User::query()->where('email', 'responsable@statera.test')->first();
+        $tecnica = User::query()->where('email', 'tecnico@statera.test')->first();
+        $designar = app(DesignarRol::class);
+
+        $ana = Persona::query()->create([
+            'codigo' => 'PER-001',
+            'nombre' => 'Ana Ruiz',
+            'puesto' => 'Responsable de seguridad de la información',
+            'email' => 'responsable@statera.test',
+            'user_id' => $responsable?->id,
+            'fecha_alta' => Carbon::today()->subYears(4),
+        ]);
+
+        $bruno = Persona::query()->create([
+            'codigo' => 'PER-002',
+            'nombre' => 'Bruno Sáez',
+            'puesto' => 'Administrador de sistemas',
+            'email' => 'tecnico@statera.test',
+            'user_id' => $tecnica?->id,
+            'fecha_alta' => Carbon::today()->subYears(2),
+        ]);
+
+        // Sin cuenta: la mayoría de una plantilla no entra nunca en Statera.
+        $carla = Persona::query()->create([
+            'codigo' => 'PER-003',
+            'nombre' => 'Carla Ibáñez',
+            'puesto' => 'Atención al cliente',
+            'fecha_alta' => Carbon::today()->subMonths(14),
+        ]);
+
+        // La que pide acción: ni formación ni acuerdo.
+        $diego = Persona::query()->create([
+            'codigo' => 'PER-004',
+            'nombre' => 'Diego Ferrer',
+            'puesto' => 'Comercial',
+            'fecha_alta' => Carbon::today()->subMonths(3),
+        ]);
+
+        // El rojo: se fue y la checklist de salida está a medias.
+        $elena = Persona::query()->create([
+            'codigo' => 'PER-005',
+            'nombre' => 'Elena Prat',
+            'puesto' => 'Desarrolladora',
+            'fecha_alta' => Carbon::today()->subYears(3),
+            'fecha_baja' => Carbon::today()->subMonth(),
+        ]);
+
+        // --- Los nombramientos del 5.3 --------------------------------------
+
+        $designar($ana, $sistema, RolEns::ResponsableSeguridad, Carbon::today()->subYears(2), $responsable, 'Acta del comité de seguridad.');
+        $designar($bruno, $sistema, RolEns::ResponsableSistema, Carbon::today()->subYears(2), $responsable);
+        $designar($ana, $sistema, RolEns::ResponsableInformacion, Carbon::today()->subYear(), $responsable);
+
+        // --- La formación: mp.per.3 y mp.per.4 -------------------------------
+
+        $concienciacion = AccionFormativa::query()->create([
+            'codigo' => sprintf('FOR-%d-01', Carbon::today()->year),
+            'titulo' => 'Concienciación anual en seguridad de la información',
+            'tipo' => TipoAccionFormativa::Concienciacion->value,
+            'fecha' => Carbon::today()->subMonths(2),
+            'duracion_horas' => 1.5,
+            'contenido' => 'Correo fraudulento, contraseñas, puesto despejado y a quién avisar ante un incidente.',
+        ]);
+
+        // Diego se queda fuera a propósito: es el «sin formación reciente» que
+        // el panel y la tabla tienen que saber enseñar.
+        app(RegistrarAsistencia::class)($concienciacion, [
+            $ana->id => true,
+            $bruno->id => true,
+            $carla->id => true,
+            // Convocado y no fue, que es un hecho distinto de no haber sido
+            // convocado — y el que un auditor pregunta.
+            $diego->id => false,
+        ]);
+
+        $formacion = AccionFormativa::query()->create([
+            'codigo' => sprintf('FOR-%d-02', Carbon::today()->year),
+            'titulo' => 'Gestión de registros de actividad y detección de intrusión',
+            'tipo' => TipoAccionFormativa::Formacion->value,
+            'fecha' => Carbon::today()->subMonths(5),
+            'duracion_horas' => 8,
+            'contenido' => 'op.exp.8 y op.mon.1: qué se registra, dónde se guarda y cómo se revisa.',
+        ]);
+
+        app(RegistrarAsistencia::class)($formacion, [$bruno->id => true]);
+
+        // --- Los deberes por escrito: mp.per.2 -------------------------------
+
+        foreach ([$ana, $bruno, $carla, $elena] as $persona) {
+            AcuerdoConfidencialidad::query()->create([
+                'organizacion_id' => $persona->organizacion_id,
+                'persona_id' => $persona->id,
+                'fecha_firma' => $persona->fecha_alta,
+                'nota' => 'Firmado en el alta, con el contrato.',
+            ]);
+        }
+
+        // --- Las dos checklists ----------------------------------------------
+
+        $guardar = app(GuardarPasos::class);
+
+        $guardar($diego, TipoPasoPersona::Alta, [
+            ['titulo' => 'Firmar el acuerdo de confidencialidad', 'hecho' => false],
+            ['titulo' => 'Entregar el equipo y registrarlo en el inventario', 'hecho' => true],
+            ['titulo' => 'Alta de cuentas y segundo factor', 'hecho' => true],
+            ['titulo' => 'Convocar a la sesión de concienciación', 'hecho' => false],
+        ]);
+
+        // El rojo del módulo: se fue y quedan pasos sin marcar.
+        $guardar($elena, TipoPasoPersona::Baja, [
+            ['titulo' => 'Recuperar el portátil y el token', 'hecho' => true],
+            ['titulo' => 'Revocar los accesos a los sistemas', 'hecho' => false],
+            ['titulo' => 'Recordar por escrito que el deber de confidencialidad sigue vigente', 'hecho' => false],
+        ]);
+
+        $this->command->info(sprintf(
+            'Personas: %d, con %d nombramientos vigentes.',
+            Persona::query()->count(),
+            DesignacionRol::query()->vigentes()->count(),
+        ));
+    }
+
+    /**
+     * Tres incidentes, y cada uno enseña una cosa distinta. § 4.10.
+     *
+     * - Uno **cerrado con su lección aprendida**, que es el ciclo completo de
+     *   `op.exp.7` y lo único que el auditor busca de verdad.
+     * - Uno **abierto y notificable a la AEPD dentro de plazo**: trabajo urgente
+     *   con el reloj corriendo, que **no** va en rojo.
+     * - Uno **fuera de plazo con la AEPD**, que es el único rojo del módulo y lo
+     *   que hay que ver el primer día — igual que el residual sin respaldo en
+     *   riesgos y la salida sin cerrar en personas.
+     *
+     * El tercero abre además una no conformidad, que es el caso que conecta los
+     * dos módulos; el primero deja una oportunidad de mejora, que es el otro
+     * camino y el que más se usa.
+     */
+    private function incidentesDeEjemplo(Sistema $sistema): void
+    {
+        if (Incidente::query()->exists()) {
+            return;
+        }
+
+        $responsable = User::query()->where('email', 'responsable@statera.test')->first();
+        $tecnica = User::query()->where('email', 'tecnico@statera.test')->first();
+
+        $registrar = app(RegistrarIncidente::class);
+        $cambiar = app(CambiarEstadoIncidente::class);
+        $anio = Carbon::today()->year;
+
+        // --- El ciclo completo, con su lección --------------------------------
+
+        $cerrado = $registrar([
+            'codigo' => sprintf('INC-%d-01', $anio),
+            'titulo' => 'Correo fraudulento suplantando a la dirección',
+            'descripcion' => 'Se recibieron doce correos pidiendo una transferencia urgente desde un dominio parecido al corporativo. Nadie respondió y se reportaron al buzón de seguridad.',
+            'sistema_id' => $sistema->id,
+            'clasificacion' => ClasificacionIncidente::Fraude->value,
+            'peligrosidad' => PeligrosidadIncidente::Media->value,
+            'fecha_deteccion' => Carbon::now()->subDays(40),
+            'fecha_inicio' => Carbon::now()->subDays(40)->subHours(3),
+            'afecta_autenticidad' => true,
+            'impacto' => 'Ningún pago llegó a cursarse. Doce personas recibieron el correo.',
+            'acciones_contencion' => 'Bloqueo del dominio remitente y aviso a toda la plantilla.',
+            'responsable_id' => $tecnica?->id,
+        ], $responsable);
+
+        $cambiar($cerrado, EstadoIncidente::EnTratamiento, $tecnica);
+        $cambiar($cerrado, EstadoIncidente::Resuelto, $tecnica);
+
+        $cerrado->update([
+            'leccion_aprendida' => 'El filtro no marcaba los dominios parecidos al propio. Se añadió la regla y se incluyó el caso en la sesión de concienciación.',
+        ]);
+
+        $cambiar($cerrado->refresh(), EstadoIncidente::Cerrado, $responsable);
+
+        // --- El reloj corriendo, y todavía en plazo ---------------------------
+
+        $enPlazo = $registrar([
+            'codigo' => sprintf('INC-%d-02', $anio),
+            'titulo' => 'Envío de un listado con datos personales a un destinatario equivocado',
+            'descripcion' => 'Un listado con nombre y correo de cuarenta personas se envió por error a una dirección externa.',
+            'sistema_id' => $sistema->id,
+            'clasificacion' => ClasificacionIncidente::CompromisoInformacion->value,
+            'peligrosidad' => PeligrosidadIncidente::Alta->value,
+            'fecha_deteccion' => Carbon::now()->subHours(6),
+            'afecta_confidencialidad' => true,
+            'impacto' => 'Cuarenta personas afectadas, sin categorías especiales de datos.',
+            'acciones_contencion' => 'Se solicitó por escrito la destrucción del correo al destinatario.',
+            'responsable_id' => $responsable?->id,
+            // Datos personales de por medio: el reloj de las 72 h está en marcha.
+            'notificable_aepd' => true,
+            'notificable_ccn_cert' => true,
+        ], $responsable);
+
+        $cambiar($enPlazo, EstadoIncidente::EnTratamiento, $responsable);
+
+        // --- El rojo: el plazo de la AEPD vencido sin notificar ---------------
+
+        $vencido = $registrar([
+            'codigo' => sprintf('INC-%d-03', $anio),
+            'titulo' => 'Acceso no autorizado a una cuenta de correo corporativa',
+            'descripcion' => 'Se detectaron accesos desde una dirección IP no habitual a la cuenta de una persona de la plantilla, con reenvío automático configurado a un buzón externo.',
+            'sistema_id' => $sistema->id,
+            'clasificacion' => ClasificacionIncidente::Intrusion->value,
+            'peligrosidad' => PeligrosidadIncidente::MuyAlta->value,
+            'fecha_deteccion' => Carbon::now()->subDays(5),
+            'fecha_inicio' => Carbon::now()->subDays(9),
+            'afecta_confidencialidad' => true,
+            'afecta_autenticidad' => true,
+            'afecta_trazabilidad' => true,
+            'impacto' => 'Correo de una persona con acceso a datos de clientes, durante cuatro días.',
+            'acciones_contencion' => 'Se revocó la sesión, se cambió la contraseña y se retiró la regla de reenvío.',
+            'responsable_id' => $responsable?->id,
+            'notificable_aepd' => true,
+            'notificable_ccn_cert' => true,
+        ], $responsable);
+
+        $cambiar($vencido, EstadoIncidente::EnTratamiento, $responsable);
+
+        $this->command->info(sprintf(
+            'Incidentes: %d registrados, %d abiertos y %d fuera de plazo con la AEPD.',
+            Incidente::query()->count(),
+            Incidente::query()->abiertos()->count(),
+            Incidente::query()->fueraDePlazoAepd()->count(),
+        ));
+    }
+
     private function indicadoresDeEjemplo(Sistema $sistema): void
     {
         $registrar = app(RegistrarIndicador::class);
@@ -293,23 +569,45 @@ class DesarrolloSeeder extends Seeder
         $medir->calculada($evidencias, $inicio, $fin);
 
         /*
-         * --- El manual y nunca medido -------------------------------------
+         * --- El que pasó de manual a calculado ----------------------------
          *
-         * Enseña lo que la 9.1 pide y esta base de datos no sabe contestar: sin
-         * el módulo de personas (§ 4.8) no hay de dónde sacar el porcentaje de
-         * personal formado, y el indicador manual es lo que impide que eso se
-         * quede sin declarar.
+         * Existía como **manual** para enseñar lo que la 9.1 pide y esta base de
+         * datos no sabía contestar, y su comentario decía literalmente «sin el
+         * módulo de personas (§ 4.8)». Con el § 4.8 dentro eso es falso, así que
+         * pasa a calculado: el porcentaje sale de las asistencias de los últimos
+         * doce meses sobre la plantilla activa.
          */
         $registrar([
             'codigo' => 'IND-03',
             'nombre' => 'Personal con formación en seguridad al día',
-            'descripcion' => 'Lo exige mp.per.4 del ENS y la cláusula 7.2 de ISO. La cifra no sale de Statera.',
-            'origen' => OrigenMedicion::Manual->value,
-            'formula_o_fuente' => 'Recuento sobre la lista de asistencia firmada de la formación anual, dividido por la plantilla a 31 de diciembre.',
+            'descripcion' => 'Lo exige mp.per.4 del ENS y la cláusula 7.2 de ISO. Activas con al menos una asistencia en los últimos doce meses.',
+            'origen' => OrigenMedicion::Calculado->value,
+            'calculo' => CalculoIndicador::PersonalFormado->value,
             'unidad' => UnidadIndicador::Porcentaje->value,
             'sentido' => SentidoIndicador::MayorMejor->value,
             'periodicidad' => Periodicidad::Anual->value,
             'objetivo' => 95,
+        ]);
+
+        /*
+         * --- El manual y nunca medido -------------------------------------
+         *
+         * El hueco que deja el anterior, y es honesto: la satisfacción de las
+         * partes interesadas es **la entrada 9.3.2 e)** que el acta de la
+         * revisión por la dirección declara que se aporta fuera de Statera. Un
+         * módulo de métricas que sólo admitiera lo que ya sabe contar dejaría
+         * fuera justo lo que cuesta medir.
+         */
+        $registrar([
+            'codigo' => 'IND-05',
+            'nombre' => 'Satisfacción de las partes interesadas',
+            'descripcion' => 'La retroalimentación que pide la 9.3.2 e). Statera registra qué exige cada parte, no qué ha dicho: la cifra no sale de aquí.',
+            'origen' => OrigenMedicion::Manual->value,
+            'formula_o_fuente' => 'Encuesta anual a clientes y a la dirección: respuestas satisfactorias sobre respuestas recibidas.',
+            'unidad' => UnidadIndicador::Porcentaje->value,
+            'sentido' => SentidoIndicador::MayorMejor->value,
+            'periodicidad' => Periodicidad::Anual->value,
+            'objetivo' => 80,
         ]);
 
         /*
@@ -331,7 +629,7 @@ class DesarrolloSeeder extends Seeder
             'objetivo' => 2,
         ]);
 
-        $this->command->info('Indicadores: 4 declarados, 1 con serie de 4 trimestres, 1 sin medir y 1 con el periodo vencido.');
+        $this->command->info('Indicadores: 5 declarados, 1 con serie de 4 trimestres, 1 manual sin medir y 1 con el periodo vencido.');
     }
 
     /**

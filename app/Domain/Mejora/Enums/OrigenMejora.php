@@ -7,10 +7,17 @@ namespace App\Domain\Mejora\Enums;
 /**
  * De dónde sale una oportunidad de mejora.
  *
- * Cuatro, y son las cuatro puertas por las que la mejora continua entra de verdad
+ * Cinco, y son las cinco puertas por las que la mejora continua entra de verdad
  * en una organización: la auditoría que la escribe como hallazgo, la revisión por
- * la dirección que la decide, el indicador que se queda corto y la persona a la
- * que se le ocurre.
+ * la dirección que la decide, el indicador que se queda corto, **el incidente del
+ * que se aprende algo** y la persona a la que se le ocurre.
+ *
+ * **`Incidente` llega con el § 4.10 y su migración del `CHECK`.** La lección
+ * aprendida de un incidente es la fuente clásica de una mejora —y de las que más
+ * se usan—: un correo fraudulento que alguien detectó y reportó bien no incumple
+ * nada, así que no abre no conformidad, y aun así deja una idea para la próxima
+ * vez. Sin este caso acabaría como `Propia`, que es el «elegir el que menos mal
+ * suena» que deja el campo sin significar nada.
  *
  * **`Indicador` es la que justifica que este módulo llegue después del § 4.14.**
  * Un indicador fuera de objetivo no es una no conformidad —no incumple ningún
@@ -28,6 +35,7 @@ enum OrigenMejora: string
     case Auditoria = 'auditoria';
     case RevisionDireccion = 'revision_direccion';
     case Indicador = 'indicador';
+    case Incidente = 'incidente';
     case Propia = 'propia';
 
     public function etiqueta(): string
@@ -36,6 +44,7 @@ enum OrigenMejora: string
             self::Auditoria => 'Hallazgo de auditoría',
             self::RevisionDireccion => 'Revisión por la dirección',
             self::Indicador => 'Indicador fuera de objetivo',
+            self::Incidente => 'Lección aprendida de un incidente',
             self::Propia => 'Iniciativa propia',
         };
     }
@@ -46,12 +55,13 @@ enum OrigenMejora: string
             self::Auditoria => 'SearchCheck',
             self::RevisionDireccion => 'Users',
             self::Indicador => 'Equal',
+            self::Incidente => 'CloudLightning',
             self::Propia => 'Lightbulb',
         };
     }
 
     /**
-     * **Los cuatro se ofrecen**, a diferencia de `OrigenTarea`.
+     * **Los cinco se ofrecen**, a diferencia de `OrigenTarea`.
      *
      * Allí la lista existe porque una tarea marcada «hallazgo de auditoría» sin
      * auditoría detrás no es trazable; aquí ninguno de los cuatro promete un
@@ -78,7 +88,7 @@ enum OrigenMejora: string
     public function tono(): string
     {
         return match ($this) {
-            self::Auditoria, self::Indicador => 'en_progreso',
+            self::Auditoria, self::Indicador, self::Incidente => 'en_progreso',
             self::RevisionDireccion => 'planificado',
             self::Propia => 'no_iniciado',
         };

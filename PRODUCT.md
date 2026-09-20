@@ -52,7 +52,7 @@ Cuatro cosas que una hoja de cálculo no hace, y que un gestor de cumplimiento g
 
 **Superficies construidas**, todas tras el login:
 
-`/panel` · `/contexto` (+ análisis, cuestiones) · `/partes-interesadas` · `/sistemas` (+ valoración) · `/implantaciones` · `/activos` (+ etiquetas QR) · `/evidencias` · `/tareas` (+ tablero, calendario) · `/riesgos` (+ metodología) · `/auditorias` (+ checklist) · `/no-conformidades` · `/mejoras` · `/indicadores` · `/objetivos` · `/revision-direccion` · `/documentos` (+ plantillas, cuerpo editable, versiones) · `/revisiones` · `/perfil` (+ segundo factor)
+`/panel` · `/contexto` (+ análisis, cuestiones) · `/partes-interesadas` · `/sistemas` (+ valoración) · `/implantaciones` · `/activos` (+ etiquetas QR) · `/evidencias` · `/tareas` (+ tablero, calendario) · `/riesgos` (+ metodología) · `/auditorias` (+ checklist) · `/no-conformidades` · `/mejoras` · `/indicadores` · `/objetivos` · `/revision-direccion` · `/personas` (+ nombramientos, checklists) · `/formacion` (+ convocatoria) · `/incidentes` · `/documentos` (+ plantillas, cuerpo editable, versiones) · `/revisiones` · `/perfil` (+ segundo factor)
 
 **Entregables que salen de la herramienta:** la SoA de ISO, la DdA del ENS, el plan de adecuación, el análisis del contexto y el acta de la revisión por la dirección, en PDF/A-3b con su huella, almacenados y no regenerados; más una copia de trabajo en `.docx` construida desde la instantánea de la versión, nunca desde una consulta nueva. A ellos se suman los tres redactados —política, norma y procedimiento—.
 
@@ -62,9 +62,9 @@ Cuatro cosas que una hoja de cálculo no hace, y que un gestor de cumplimiento g
 
 ## Capabilities and Constraints
 
-**Construido** (§ de la especificación): catálogo normativo importable y versionado, motor de categorización ENS, implantaciones con transiciones y recálculo, capa de recursos genérica, contexto de la organización con DAFO y partes interesadas (4.1), inventario de activos con grafo de dependencias (4.2), análisis de riesgos con MAGERIT (4.3), documentos con Gotenberg, flujo de aprobación y narrativa editable (4.5), evidencias (4.6), plan de acción con tablero y calendario (4.7, 4.16 parcial), auditorías con checklist y hallazgos (4.12), no conformidades con verificación de eficacia (4.13), indicadores y mediciones con serie histórica (4.14) objetivos de seguridad con firma de dirección (cláusula 6.2), oportunidades de mejora (cláusula 10.1) y revisión por la dirección con acta congelada (4.15).
+**Construido** (§ de la especificación): catálogo normativo importable y versionado, motor de categorización ENS, implantaciones con transiciones y recálculo, capa de recursos genérica, contexto de la organización con DAFO y partes interesadas (4.1), inventario de activos con grafo de dependencias (4.2), análisis de riesgos con MAGERIT (4.3), documentos con Gotenberg, flujo de aprobación y narrativa editable (4.5), evidencias (4.6), plan de acción con tablero y calendario (4.7, 4.16 parcial), auditorías con checklist y hallazgos (4.12), no conformidades con verificación de eficacia (4.13), indicadores y mediciones con serie histórica (4.14) objetivos de seguridad con firma de dirección (cláusula 6.2), oportunidades de mejora (cláusula 10.1), revisión por la dirección con acta congelada (4.15), personas con roles ENS, formación y acuerdos de confidencialidad (4.8, cláusula 5.3) e incidentes con el reloj de notificación y la lección aprendida (4.10).
 
-**Pendiente de los 19 módulos:** personas (4.8), proveedores (4.9), incidentes (4.10), continuidad (4.11), el calendario de obligaciones completo (4.16), dos tercios del flujo de conformidad (4.17) e informes y exportación (4.18).
+**Pendiente de los 19 módulos:** proveedores (4.9), continuidad (4.11), el calendario de obligaciones completo (4.16), dos tercios del flujo de conformidad (4.17) e informes y exportación (4.18).
 
 **Huecos conocidos que no son un módulo de la lista.** Se anotan aquí porque la lista de diecinueve no los recoge y descubrirlos cuesta una tarde.
 
@@ -76,17 +76,18 @@ Cuatro cosas que una hoja de cálculo no hace, y que un gestor de cumplimiento g
 | ~~**10.1 Mejora continua**~~ | **Construido.** Registro propio, con su bifurcación cerrada por el dominio: un hallazgo va a no conformidad o a mejora según su tipo, y nunca a las dos. Con él, **las siete entradas de la 9.3 salen ya del producto** |
 | **7.4 Comunicación** | Qué se comunica, cuándo, a quién y quién lo hace. El «a quién» ya está en `partes_interesadas` |
 | **6.3 Planificación de cambios** | Está en el catálogo como requisito `6.3` y citada en la especificación; sin módulo |
-| **5.3 Roles y autoridades** | Los roles ENS y la incompatibilidad que la especificación pide **impedir**. Los PDFs ya lo declaran como limitación |
+| ~~**5.3 Roles y autoridades**~~ | **Construido** con el 4.8. Los cinco roles ENS se designan por sistema y con vigencia, y `DesignarRol` **impide** —no avisa— que el responsable de seguridad y el del sistema recaigan en la misma persona. La limitación del PDF se reescribió: ahora declara lo que sigue sin hacerse, que es comprobar la firma del nombramiento y la competencia de `mp.per.1` |
 
 *Cosas medio construidas, que es peor que ausentes porque parecen hechas:*
 
 - **Perfiles de cumplimiento CCN-STIC 890.** `perfiles_cumplimiento`, `perfil_requisitos`, `sistemas.perfil_id`, `OrigenExigencia::Perfil` y el paso 4 de `MotorCategorizacion` están escritos y probados. **Cero datos en los YAML, cero clave en el importador, cero interfaz.** El perfil de requisitos esenciales es justo el que usaría un cliente pequeño de categoría básica.
 - **Informe INES.** `implantaciones.nivel_madurez` guarda la escala L0–L5 porque la especificación dice «usada en el informe INES», el 4.16 lo lista como obligación anual, y el informe no existe. Mismo patrón que `tareas.coste_estimado` antes del plan de adecuación.
 - **Atributos de la ISO 27002.** Los 93 controles los traen en el YAML y el 4.4 pide filtrar y agrupar por ellos; `ImplantacionRecurso` no declara ese filtro.
-- **`personas` no es `users`.** La especificación define `personas` con puesto, alta, baja y roles ENS; hoy sólo hay cuentas de Statera, y `User` ni siquiera lleva el scope de organización. La limitación del acuse de lectura ya lo dice por escrito en el PDF.
+- **`User` sigue sin scope de organización**, y el registro de personas (4.8) **no lo arregla ni pretende hacerlo**: `personas` es la plantilla y `users` son las cuentas, con `personas.user_id` de puente. Toda consulta de usuarios se acota a mano, y eso no lo caza ningún test de aislamiento porque el modelo no está protegido en ninguna capa. El acuse de lectura sigue registrando cuentas —quien no la tiene no puede acusar recibo—, y el PDF lo dice por escrito.
+- **Taxonomía CCN-STIC 817.** Las clases de nivel superior y los cinco niveles de peligrosidad están como enums y se usan desde el 4.10, **sin contrastar celda a celda contra la guía** —el trabajo que sí se hizo con el Anexo II contra el BOE— y sin sus subtipos. Se usan como clasificación de trabajo y no deciden nada: ni la peligrosidad, ni si hay que notificar.
 - **Guías CCN-STIC por medida y catálogo CPSTIC**, que la especificación pide enlazar desde cada medida: no cargados.
 
-**Qué muerde hoy y qué no**, que es lo que ordena los módulos pendientes: en categoría básica **ya son exigibles** `op.exp.7` (gestión de incidentes, 4.10) y `mp.per.2/3/4` (deberes, concienciación y formación, 4.8), y no tienen dónde registrarse. En cambio `op.ext.*` (proveedores, 4.9) y `op.cont.*` (continuidad, 4.11) están en `no_aplica` en básica y sólo aparecen al subir a media o al valorar disponibilidad. Un sistema básico echa de menos antes personas e incidentes que proveedores y continuidad.
+**Qué muerde hoy y qué no**, que es lo que ordenó los módulos de este tramo: en categoría básica son exigibles `op.exp.7` (gestión de incidentes, 4.10) y `mp.per.2/3/4` (deberes, concienciación y formación, 4.8), y **los dos tienen ya dónde registrarse**. En cambio `op.ext.*` (proveedores, 4.9) y `op.cont.*` (continuidad, 4.11) están en `no_aplica` en básica y sólo aparecen al subir a media o al valorar disponibilidad: por eso van después, y no porque cuesten menos.
 
 **Fuera de alcance, y sigue estándolo:** facturación y suscripciones, registro self-service, panel de superadministración, white-labeling, integraciones con SIEM o escáneres, aplicación móvil. NIS2 no se carga todavía, pero el modelo de marcos tiene que admitirla sin cambios estructurales.
 

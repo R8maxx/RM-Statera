@@ -155,6 +155,20 @@ enum Rol: string
                  * quien lleva el SGSI; que la dirección haya revisado el sistema
                  * lo declara la dirección, y la cláusula se llama justamente así.
                  */
+                /*
+                 * Lleva el registro de personas entero —altas, formación,
+                 * acuerdos y checklists— y **no designa roles ENS**: un
+                 * nombramiento lo firma la organización. Décima vez que aparece
+                 * esta misma línea.
+                 */
+                Permiso::PersonasVer,
+                Permiso::PersonasGestionar,
+                /*
+                 * Y el registro de incidentes entero, notificación incluida.
+                 * Aquí no hay nada que firmar: un plazo legal no se delibera.
+                 */
+                Permiso::IncidentesVer,
+                Permiso::IncidentesGestionar,
                 Permiso::RevisionDireccionVer,
                 Permiso::RevisionDireccionGestionar,
                 Permiso::DocumentosVer,
@@ -182,6 +196,8 @@ enum Rol: string
                 Permiso::MejorasVer,
                 Permiso::IndicadoresVer,
                 Permiso::ObjetivosVer,
+                Permiso::PersonasVer,
+                Permiso::IncidentesVer,
                 Permiso::RevisionDireccionVer,
                 Permiso::DocumentosVer,
             ],

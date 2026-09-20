@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Auditoria\Models\Hallazgo;
 use App\Domain\Autorizacion\Enums\Permiso;
+use App\Domain\Incidente\Models\Incidente;
 use App\Domain\Mejora\AbrirActuacionDeMejora;
 use App\Domain\Mejora\CambiarEstadoMejora;
 use App\Domain\Mejora\CodigoMejora;
@@ -71,6 +72,7 @@ class MejoraController extends Controller
     public function create(Request $request, CodigoMejora $codigos): Response|RedirectResponse
     {
         $hallazgo = $this->hallazgoDe($request);
+        $incidente = $this->incidenteDe($request);
 
         // Un hallazgo se trata una vez y el índice único lo impone: es más barato
         // llevar a la que ya existe que dejar rellenar el formulario entero.
@@ -93,11 +95,30 @@ class MejoraController extends Controller
             'hallazgo' => $hallazgo === null ? null : $this->serializarHallazgo($hallazgo),
             'sugerencia' => [
                 'codigo' => $codigos->siguiente($hallazgo?->auditoria->fecha),
-                'origen' => $hallazgo === null
-                    ? OrigenMejora::Propia->value
-                    : OrigenMejora::Auditoria->value,
-                'titulo' => $hallazgo?->descripcion,
-                'fecha_deteccion' => ($hallazgo?->auditoria->fecha ?? now())->toDateString(),
+                /*
+                 * **Desde un incidente sólo se pone el origen, sin clave
+                 * foránea**, a diferencia de lo que pasa con un hallazgo. Es el
+                 * mismo reparto que `OrigenMejora::RevisionDireccion`: la mejora
+                 * que sale de una lección aprendida no «trata» el incidente
+                 * —ése ya está cerrado—, así que atarla sería fingir una
+                 * trazabilidad que no hay. Lo que sí se hereda es el título, para
+                 * que nadie reescriba el mismo hecho dos veces.
+                 */
+                'origen' => match (true) {
+                    $hallazgo !== null => OrigenMejora::Auditoria->value,
+                    $incidente !== null => OrigenMejora::Incidente->value,
+                    default => OrigenMejora::Propia->value,
+                },
+                'titulo' => match (true) {
+                    $hallazgo !== null => $hallazgo->descripcion,
+                    $incidente !== null => "Lección aprendida de {$incidente->codigo}: {$incidente->titulo}",
+                    default => null,
+                },
+                'fecha_deteccion' => match (true) {
+                    $hallazgo !== null => $hallazgo->auditoria->fecha->toDateString(),
+                    $incidente !== null => $incidente->fecha_deteccion->toDateString(),
+                    default => now()->toDateString(),
+                },
             ],
             ...$this->opciones(),
         ]);
@@ -301,6 +322,20 @@ class MejoraController extends Controller
         }
 
         return Hallazgo::query()->with(['auditoria', 'mejora'])->findOrFail($id);
+    }
+
+    /**
+     * El incidente del que se abre, si se abre de uno.
+     *
+     * Sólo para heredar el origen y el título: `mejoras` **no tiene
+     * `incidente_id`**, y es deliberado —ver la nota del `sugerencia`—. Se
+     * resuelve por el modelo igual, para que el de otro cliente responda 404.
+     */
+    private function incidenteDe(Request $request): ?Incidente
+    {
+        $id = $request->integer('incidente');
+
+        return $id === 0 ? null : Incidente::query()->findOrFail($id);
     }
 
     /**

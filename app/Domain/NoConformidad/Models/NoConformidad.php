@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\NoConformidad\Models;
 
 use App\Domain\Auditoria\Models\Hallazgo;
+use App\Domain\Incidente\Models\Incidente;
 use App\Domain\NoConformidad\Enums\EstadoNoConformidad;
 use App\Domain\NoConformidad\Enums\OrigenNoConformidad;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
@@ -65,6 +66,7 @@ class NoConformidad extends Model
         'codigo',
         'origen',
         'hallazgo_id',
+        'incidente_id',
         'descripcion',
         'correccion_inmediata',
         'analisis_causa_raiz',
@@ -82,6 +84,19 @@ class NoConformidad extends Model
     public function hallazgo(): BelongsTo
     {
         return $this->belongsTo(Hallazgo::class);
+    }
+
+    /**
+     * El incidente del que salió, si salió de uno.
+     *
+     * Espejo exacto de `hallazgo()`: único, `nullOnDelete`, y con un `CHECK` que
+     * impide que vengan de un hallazgo y de un incidente a la vez.
+     *
+     * @return BelongsTo<Incidente, $this>
+     */
+    public function incidente(): BelongsTo
+    {
+        return $this->belongsTo(Incidente::class);
     }
 
     /** @return BelongsTo<User, $this> */

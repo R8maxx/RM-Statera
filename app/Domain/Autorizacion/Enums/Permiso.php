@@ -155,6 +155,37 @@ enum Permiso: string
      * las entradas y redactar las conclusiones es trabajo de quien lleva el SGSI;
      * firmar que la dirección lo ha revisado, no.
      */
+    /*
+     * Las personas de la organización (§ 4.8) y **el noveno verbo de
+     * supervisión**: `personas.designar`. Dar de alta a alguien, apuntar su
+     * formación y marcar su checklist es trabajo del día a día; **designar al
+     * responsable de seguridad de un sistema es un nombramiento**, la
+     * organización lo firma y el auditor pide el papel. Y es el verbo que cierra
+     * la cláusula 5.3, que pide además **impedir** que seguridad y sistema
+     * recaigan en la misma persona.
+     *
+     * OJO: estos roles ENS no son los de `Rol`, que deciden quién toca qué dentro
+     * de Statera. El aviso estaba escrito en la cabecera de este enum desde antes
+     * de que el módulo existiera.
+     */
+    case PersonasVer = 'personas.ver';
+    case PersonasGestionar = 'personas.gestionar';
+    case PersonasDesignar = 'personas.designar';
+
+    /**
+     * Los incidentes: § 4.10 y `op.exp.7`.
+     *
+     * **Dos verbos y ninguno de supervisión**, y conviene decir por qué, porque
+     * el módulo se parece a las no conformidades y aquél sí tiene el suyo:
+     * notificar a un supervisor no es una decisión que se delibere —es una
+     * obligación con reloj, 72 h en el caso de la AEPD— y ponerle un permiso
+     * aparte metería un paso entre el reloj y la notificación. Lo que sí exige
+     * firma de dirección es la no conformidad que salga del incidente, y ésa ya
+     * tiene la suya.
+     */
+    case IncidentesVer = 'incidentes.ver';
+    case IncidentesGestionar = 'incidentes.gestionar';
+
     case RevisionDireccionVer = 'revision_direccion.ver';
     case RevisionDireccionGestionar = 'revision_direccion.gestionar';
     case RevisionDireccionAprobar = 'revision_direccion.aprobar';
@@ -198,6 +229,11 @@ enum Permiso: string
             self::ObjetivosVer => 'Ver los objetivos de seguridad y su avance',
             self::ObjetivosGestionar => 'Proponer objetivos, planificarlos y vincular indicadores y actuaciones',
             self::ObjetivosAprobar => 'Aprobar objetivos y declarar si se alcanzaron',
+            self::PersonasVer => 'Ver el registro de personas, su formación y sus roles ENS',
+            self::PersonasGestionar => 'Dar de alta personas, registrar formación, acuerdos y checklists',
+            self::PersonasDesignar => 'Designar y revocar los roles ENS de un sistema',
+            self::IncidentesVer => 'Ver el registro de incidentes',
+            self::IncidentesGestionar => 'Registrar incidentes, tratarlos y anotar su notificación',
             self::RevisionDireccionVer => 'Ver las revisiones por la dirección y sus actas',
             self::RevisionDireccionGestionar => 'Convocar revisiones, recoger las entradas y registrar las decisiones',
             self::RevisionDireccionAprobar => 'Aprobar el acta de una revisión por la dirección',

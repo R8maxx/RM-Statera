@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Auditoria\Models\Hallazgo;
 use App\Domain\Autorizacion\Enums\Permiso;
+use App\Domain\Incidente\Models\Incidente;
 use App\Domain\NoConformidad\AbrirAccionCorrectiva;
 use App\Domain\NoConformidad\CambiarEstadoNoConformidad;
 use App\Domain\NoConformidad\CodigoNoConformidad;
@@ -64,6 +65,18 @@ class NoConformidadController extends Controller
     public function create(Request $request, CodigoNoConformidad $codigos): Response|RedirectResponse
     {
         $hallazgo = $this->hallazgoDe($request);
+        $incidente = $this->incidenteDe($request);
+
+        /*
+         * Y desde el § 4.10, la tercera puerta: un incidente se trata una vez, y
+         * lo impone el índice único sobre `incidente_id` — espejo exacto del de
+         * `hallazgo_id`.
+         */
+        if ($incidente?->noConformidad !== null) {
+            Inertia::flash('aviso', 'Ese incidente ya tiene su no conformidad.');
+
+            return to_route('no-conformidades.show', $incidente->noConformidad);
+        }
 
         /*
          * Un hallazgo se trata una vez, y el índice único de la tabla lo impone.
@@ -91,13 +104,24 @@ class NoConformidadController extends Controller
         return Inertia::render('no-conformidades/Formulario', [
             'noConformidad' => null,
             'hallazgo' => $hallazgo === null ? null : $this->serializarHallazgo($hallazgo),
+            'incidente' => $incidente === null ? null : $this->serializarIncidente($incidente),
             'sugerencia' => [
                 'codigo' => $codigos->siguiente($hallazgo?->auditoria->fecha),
-                'origen' => $hallazgo === null
-                    ? OrigenNoConformidad::Propia->value
-                    : OrigenNoConformidad::Auditoria->value,
-                'descripcion' => $hallazgo?->descripcion,
-                'fecha_deteccion' => ($hallazgo?->auditoria->fecha ?? now())->toDateString(),
+                'origen' => match (true) {
+                    $hallazgo !== null => OrigenNoConformidad::Auditoria->value,
+                    $incidente !== null => OrigenNoConformidad::Incidente->value,
+                    default => OrigenNoConformidad::Propia->value,
+                },
+                'descripcion' => match (true) {
+                    $hallazgo !== null => $hallazgo->descripcion,
+                    $incidente !== null => $incidente->descripcion,
+                    default => null,
+                },
+                'fecha_deteccion' => match (true) {
+                    $hallazgo !== null => $hallazgo->auditoria->fecha->toDateString(),
+                    $incidente !== null => $incidente->fecha_deteccion->toDateString(),
+                    default => now()->toDateString(),
+                },
             ],
             ...$this->opciones(),
         ]);
@@ -114,6 +138,11 @@ class NoConformidadController extends Controller
          */
         if (($datos['hallazgo_id'] ?? null) !== null) {
             $datos['hallazgo_id'] = Hallazgo::query()->findOrFail($datos['hallazgo_id'])->id;
+        }
+
+        // Y el incidente igual, por el mismo motivo.
+        if (($datos['incidente_id'] ?? null) !== null) {
+            $datos['incidente_id'] = Incidente::query()->findOrFail($datos['incidente_id'])->id;
         }
 
         $noConformidad = $registrar($datos, $request->user());
@@ -375,6 +404,40 @@ class NoConformidadController extends Controller
             'resultado_verificacion' => $noConformidad->resultado_verificacion,
             'plazoEtiqueta' => $plazo->etiqueta,
             'plazoTono' => $plazo->tono,
+        ];
+    }
+
+    /**
+     * El incidente del que se abre, si se abre de uno.
+     *
+     * Por el modelo, para que pase por el scope de organización: el de otro
+     * cliente no existe, y la respuesta es 404 y nunca 403.
+     */
+    private function incidenteDe(Request $request): ?Incidente
+    {
+        $id = $request->integer('incidente');
+
+        if ($id === 0) {
+            return null;
+        }
+
+        return Incidente::query()->with('noConformidad')->findOrFail($id);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function serializarIncidente(Incidente $incidente): array
+    {
+        return [
+            'id' => $incidente->id,
+            'codigo' => $incidente->codigo,
+            'titulo' => $incidente->titulo,
+            'estado' => $incidente->estado->etiqueta(),
+            'tono' => $incidente->estado->tono(),
+            'icono' => $incidente->estado->icono(),
+            'peligrosidad' => $incidente->peligrosidad->etiqueta(),
+            'fecha' => $incidente->fecha_deteccion->format('d/m/Y'),
         ];
     }
 

@@ -9,9 +9,11 @@ use App\Domain\Autorizacion\Enums\Permiso;
 use App\Domain\Contexto\RegistroContexto;
 use App\Domain\Implantacion\Enums\EstadoImplantacion;
 use App\Domain\Implantacion\ResumenCumplimiento;
+use App\Domain\Incidente\RegistroIncidentes;
 use App\Domain\Metrica\RegistroIndicadores;
 use App\Domain\NoConformidad\RegistroNoConformidades;
 use App\Domain\Objetivo\RegistroObjetivos;
+use App\Domain\Persona\RegistroPersonas;
 use App\Domain\Sistema\Models\Sistema;
 use App\Domain\Tarea\ResumenPlanDeAccion;
 use App\Http\Resources\Panel\ResumenEvidencias;
@@ -39,6 +41,8 @@ class PanelController extends Controller
         RegistroContexto $contexto,
         RegistroIndicadores $indicadores,
         RegistroObjetivos $objetivos,
+        RegistroPersonas $personas,
+        RegistroIncidentes $incidentes,
     ): Response {
         $sistemas = Sistema::query()
             ->with('marco')
@@ -147,6 +151,38 @@ class PanelController extends Controller
             'objetivos' => $this->puedeVerObjetivos()
                 ? $objetivos->paraElPanel()
                 : null,
+            /*
+             * Las personas (§ 4.8). Van las últimas porque son la parte del SGSI
+             * que menos cambia de un día para otro —una plantilla se mueve por
+             * altas y bajas, no por trabajo diario—, y porque lo que se consulta
+             * a diario de aquí es una sola cifra: si hay alguien que se fue con
+             * la checklist de salida a medias.
+             *
+             * **`rolesDesignados` sobre `rolesExigibles` es la cifra que está
+             * aquí por la norma y no por la pantalla**, como `sinVerificar` y
+             * `sinIndicador`: es la cláusula 5.3, y hasta este módulo era una
+             * limitación impresa en el PDF de la DdA.
+             *
+             * Misma guarda de permiso que las cuatro anteriores.
+             */
+            'personas' => $this->puedeVerPersonas()
+                ? $personas->paraElPanel()
+                : null,
+            /*
+             * Y los incidentes (§ 4.10). Van junto a las personas porque son las
+             * dos medidas de categoría básica que hasta este tramo no tenían
+             * dónde registrarse, y porque las dos se leen igual: de un vistazo,
+             * buscando si hay algo en rojo.
+             *
+             * **`fueraDePlazoAepd` es la cifra que está aquí por la ley y no por
+             * la pantalla** —las 72 h del artículo 33.1 del RGPD—, como
+             * `sinVerificar`, `sinIndicador` y `rolesDesignados`.
+             *
+             * Misma guarda de permiso que las cinco anteriores.
+             */
+            'incidentes' => $this->puedeVerIncidentes()
+                ? $incidentes->paraElPanel()
+                : null,
         ]);
     }
 
@@ -168,5 +204,15 @@ class PanelController extends Controller
     private function puedeVerObjetivos(): bool
     {
         return request()->user()?->can(Permiso::ObjetivosVer->value) ?? false;
+    }
+
+    private function puedeVerPersonas(): bool
+    {
+        return request()->user()?->can(Permiso::PersonasVer->value) ?? false;
+    }
+
+    private function puedeVerIncidentes(): bool
+    {
+        return request()->user()?->can(Permiso::IncidentesVer->value) ?? false;
     }
 }

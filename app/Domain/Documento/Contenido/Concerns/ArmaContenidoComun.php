@@ -142,10 +142,18 @@ trait ArmaContenidoComun
         ];
 
         if ($version->documento->exigeAcuse()) {
+            /*
+             * Reescrita con el § 4.8 dentro. Decía «mientras el módulo de
+             * personas no exista», y eso pasó a ser falso en el PDF entregado.
+             * No se borra: se precisa cuál es la limitación **de verdad**, que
+             * no es que falte el registro de plantilla —ya está— sino que quien
+             * no tiene cuenta de Statera no tiene forma de acusar recibo.
+             */
             $limitaciones[] = 'El acuse de lectura registra a los **usuarios de Statera** que han '
-                .'declarado haber leído esta versión. Mientras el módulo de personas no exista, esa '
-                .'lista no equivale al personal de la organización, así que **la cobertura del acuse '
-                .'no acredita por sí sola el cumplimiento de la cláusula 7.3**.';
+                .'declarado haber leído esta versión. La organización mantiene además su registro '
+                .'de personas, con el que esta cobertura puede contrastarse; pero **quien no tiene '
+                .'cuenta en la herramienta no puede acusar recibo aquí**, así que la cobertura del '
+                .'acuse **no acredita por sí sola el cumplimiento de la cláusula 7.3**.';
         }
 
         /*

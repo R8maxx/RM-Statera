@@ -159,13 +159,36 @@ it('conserva palabra por palabra los párrafos que estaban clavados en la planti
         ->toContain('una media sobre cuatro medidas de setenta y tres no dice lo mismo');
 });
 
-it('declara que faltan los riesgos y los roles ENS, en vez de dejarlos en blanco', function (): void {
+it('declara que falta el documento de riesgos, en vez de dejarlo en blanco', function (): void {
     $limitaciones = implode(' ', ($this->declaracion)(uniformeArray('bajo'))->limitaciones);
 
     expect($limitaciones)
         ->toContain('op.pl.1')
-        ->toContain('roles ENS')
-        ->toContain('pendientes de designación');
+        ->toContain('roles ENS');
+});
+
+/*
+ * **La quinta reescritura de una limitación de este documento**, y la misma
+ * regla que las cuatro anteriores: con el § 4.8 dentro, decir que los roles ENS
+ * están «pendientes de designación en la herramienta» pasó a ser falso en el PDF
+ * que se le entrega al auditor.
+ *
+ * Y como en la de auditorías, se comprueban las dos mitades: que la frase vieja
+ * no vuelve **y** que la nueva sigue declarando lo que de verdad falta. Mirando
+ * sólo la primera, este test daría por bueno borrar la limitación entera.
+ */
+it('ya no dice que los roles ENS estén pendientes de designación, y declara lo que sí falta', function (): void {
+    $limitaciones = implode(' ', ($this->declaracion)(uniformeArray('bajo'))->limitaciones);
+
+    expect($limitaciones)
+        ->not->toContain('pendientes de designación')
+        ->not->toContain('módulo de personas, § 4.8')
+        // Lo que la herramienta sí hace ya.
+        ->toContain('se designan en la herramienta')
+        // Y lo que sigue sin hacer: la firma del nombramiento y la competencia
+        // que pide mp.per.1.
+        ->toContain('esté firmado')
+        ->toContain('mp.per.1');
 });
 
 /*

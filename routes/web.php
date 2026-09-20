@@ -9,7 +9,9 @@ use App\Http\Controllers\CuestionContextoController;
 use App\Http\Controllers\DocumentoController;
 use App\Http\Controllers\DocumentoCuerpoController;
 use App\Http\Controllers\EvidenciaController;
+use App\Http\Controllers\FormacionController;
 use App\Http\Controllers\ImplantacionController;
+use App\Http\Controllers\IncidenteController;
 use App\Http\Controllers\IndicadorController;
 use App\Http\Controllers\MejoraController;
 use App\Http\Controllers\MetodologiaRiesgoController;
@@ -18,6 +20,7 @@ use App\Http\Controllers\ObjetivoController;
 use App\Http\Controllers\PanelController;
 use App\Http\Controllers\ParteInteresadaController;
 use App\Http\Controllers\PerfilController;
+use App\Http\Controllers\PersonaController;
 use App\Http\Controllers\PlantillaDocumentoController;
 use App\Http\Controllers\RevisionDireccionController;
 use App\Http\Controllers\RevisionInventarioController;
@@ -945,6 +948,169 @@ Route::middleware('auth')->group(function (): void {
                 ->name('objetivos.actuaciones.abrir');
             Route::delete('/objetivos/{objetivo}/actuaciones/{tarea}', [ObjetivoController::class, 'desvincularActuacion'])
                 ->name('objetivos.actuaciones.desvincular');
+        });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Incidentes (§ 4.10, op.exp.7)
+    |--------------------------------------------------------------------------
+    |
+    | **Dos permisos y ninguno de supervisión**, y conviene decir por qué porque
+    | el módulo se parece al de no conformidades, que sí tiene el suyo: notificar
+    | a un supervisor no es una decisión que se delibere, es una obligación con
+    | reloj, y un permiso aparte metería un paso entre el reloj y la
+    | notificación. Lo que sí exige firma es la no conformidad que salga del
+    | incidente.
+    |
+    | **Las notificaciones van por su propia ruta**, con su fecha: es el dato que
+    | el auditor contrasta contra el justificante, y mezclado con los veinte
+    | campos del formulario se rellenaría de pasada.
+    |
+    */
+
+    Route::middleware('can:incidentes.ver')->group(function (): void {
+        Route::get('/incidentes', [IncidenteController::class, 'index'])
+            ->name('incidentes.index');
+
+        // Antes que `{incidente}`, para que `crear` no se lea como un id.
+        Route::get('/incidentes/crear', [IncidenteController::class, 'create'])
+            ->middleware(['can:incidentes.gestionar', ExigirDosFactores::class])
+            ->name('incidentes.create');
+
+        Route::get('/incidentes/{incidente}', [IncidenteController::class, 'show'])
+            ->name('incidentes.show');
+    });
+
+    Route::middleware(['can:incidentes.gestionar', ExigirDosFactores::class])
+        ->scopeBindings()
+        ->group(function (): void {
+            Route::post('/incidentes', [IncidenteController::class, 'store'])
+                ->name('incidentes.store');
+            Route::get('/incidentes/{incidente}/editar', [IncidenteController::class, 'edit'])
+                ->name('incidentes.edit');
+            Route::put('/incidentes/{incidente}', [IncidenteController::class, 'update'])
+                ->name('incidentes.update');
+            Route::delete('/incidentes/{incidente}', [IncidenteController::class, 'destroy'])
+                ->name('incidentes.destroy');
+
+            Route::post('/incidentes/{incidente}/estado', [IncidenteController::class, 'transicion'])
+                ->name('incidentes.transicion');
+
+            /*
+             * La lección aprendida, con ruta propia: se escribe mientras se
+             * resuelve el incidente y no el día del alta. Es el paso que
+             * `op.exp.7` pide y el que todo el mundo se salta.
+             */
+            Route::put('/incidentes/{incidente}/leccion', [IncidenteController::class, 'guardarLeccion'])
+                ->name('incidentes.leccion');
+
+            Route::post('/incidentes/{incidente}/notificaciones', [IncidenteController::class, 'notificar'])
+                ->name('incidentes.notificar');
+        });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Personas y formación (§ 4.8, cláusula 5.3 y mp.per.*)
+    |--------------------------------------------------------------------------
+    |
+    | **Tres permisos, y el tercero es de supervisión.** Dar de alta a alguien,
+    | apuntar su formación y marcar su checklist es trabajo del técnico; designar
+    | al responsable de seguridad de un sistema es un nombramiento que la
+    | organización firma y que el auditor pide por escrito. De ahí
+    | `personas.designar`, junto a `sistemas.valorar`, `riesgos.aceptar` y
+    | `objetivos.aprobar`.
+    |
+    | **Y la formación va en su propio bloque de rutas con el permiso de
+    | gestionar**, porque registrar una sesión y marcar quién asistió no es
+    | designar a nadie.
+    |
+    | `scopeBindings()` en lo que cuelga de `{persona}`: el acuerdo de otra
+    | persona no se borra desde ésta y el nombramiento de otra no se revoca.
+    |
+    */
+
+    Route::middleware('can:personas.ver')->group(function (): void {
+        Route::get('/personas', [PersonaController::class, 'index'])
+            ->name('personas.index');
+
+        // Antes que `{persona}`, para que `crear` no se lea como un id.
+        Route::get('/personas/crear', [PersonaController::class, 'create'])
+            ->middleware(['can:personas.gestionar', ExigirDosFactores::class])
+            ->name('personas.create');
+
+        Route::get('/personas/{persona}', [PersonaController::class, 'show'])
+            ->name('personas.show');
+
+        Route::get('/formacion', [FormacionController::class, 'index'])
+            ->name('formacion.index');
+
+        Route::get('/formacion/crear', [FormacionController::class, 'create'])
+            ->middleware(['can:personas.gestionar', ExigirDosFactores::class])
+            ->name('formacion.create');
+
+        Route::get('/formacion/{accion}', [FormacionController::class, 'show'])
+            ->name('formacion.show');
+    });
+
+    Route::middleware(['can:personas.gestionar', ExigirDosFactores::class])
+        ->scopeBindings()
+        ->group(function (): void {
+            Route::post('/personas', [PersonaController::class, 'store'])
+                ->name('personas.store');
+            Route::get('/personas/{persona}/editar', [PersonaController::class, 'edit'])
+                ->name('personas.edit');
+            Route::put('/personas/{persona}', [PersonaController::class, 'update'])
+                ->name('personas.update');
+            Route::delete('/personas/{persona}', [PersonaController::class, 'destroy'])
+                ->name('personas.destroy');
+
+            // Los deberes por escrito: mp.per.2.
+            Route::post('/personas/{persona}/acuerdos', [PersonaController::class, 'guardarAcuerdo'])
+                ->name('personas.acuerdos.guardar');
+            Route::delete('/personas/{persona}/acuerdos/{acuerdo}', [PersonaController::class, 'borrarAcuerdo'])
+                ->name('personas.acuerdos.borrar');
+
+            // Las dos checklists, cada una guardada entera. El tipo va en el
+            // cuerpo y no en la URL: es un campo de la lista, no un recurso.
+            Route::put('/personas/{persona}/pasos', [PersonaController::class, 'guardarPasos'])
+                ->name('personas.pasos');
+
+            Route::post('/formacion', [FormacionController::class, 'store'])
+                ->name('formacion.store');
+            Route::get('/formacion/{accion}/editar', [FormacionController::class, 'edit'])
+                ->name('formacion.edit');
+            Route::put('/formacion/{accion}', [FormacionController::class, 'update'])
+                ->name('formacion.update');
+            Route::delete('/formacion/{accion}', [FormacionController::class, 'destroy'])
+                ->name('formacion.destroy');
+
+            // La convocatoria entera, en una sola escritura: marcar veinte
+            // asistencias es un gesto, no veinte peticiones.
+            Route::put('/formacion/{accion}/asistencia', [FormacionController::class, 'registrarAsistencia'])
+                ->name('formacion.asistencia');
+        });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Nombramientos ENS (cláusula 5.3)
+    |--------------------------------------------------------------------------
+    |
+    | Bloque aparte porque el permiso es otro. La incompatibilidad entre el
+    | responsable de seguridad y el del sistema la impide `DesignarRol`, no una
+    | regla de validación: es una condición entre filas y un `CHECK` sólo ve una.
+    |
+    */
+
+    Route::middleware(['can:personas.designar', ExigirDosFactores::class])
+        ->scopeBindings()
+        ->group(function (): void {
+            Route::post('/personas/{persona}/designaciones', [PersonaController::class, 'designar'])
+                ->name('personas.designaciones.designar');
+
+            // Revocar le pone fecha de fin y no borra la fila: la pregunta del
+            // auditor es «¿desde cuándo?» y también «¿hasta cuándo?».
+            Route::delete('/personas/{persona}/designaciones/{designacion}', [PersonaController::class, 'revocar'])
+                ->name('personas.designaciones.revocar');
         });
 
     /*

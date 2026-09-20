@@ -16,7 +16,13 @@ withDefaults(
     defineProps<{
         nombre: string;
         etiqueta: string;
-        tipo?: 'text' | 'email' | 'password' | 'tel' | 'url' | 'number' | 'date';
+        /**
+         * `datetime-local` entra con los incidentes (§ 4.10): ahí la hora
+         * importa —las 72 h del artículo 33.1 del RGPD se cuentan desde la
+         * detección—, y una fecha a secas dejaría el reloj con un margen de un
+         * día. En el resto del producto se sigue usando `date`.
+         */
+        tipo?: 'text' | 'email' | 'password' | 'tel' | 'url' | 'number' | 'date' | 'datetime-local';
         error?: string | string[] | null;
         ayuda?: string;
         requerido?: boolean;

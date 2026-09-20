@@ -78,10 +78,28 @@ final class DeclaracionAplicabilidadEns extends DocumentoCalculado
                 .'genera, en documento aparte: **no figura aquí por diseño**, porque una Declaración '
                 .'de Aplicabilidad declara la situación y no el calendario de las medidas que faltan.',
 
+                /*
+                 * **Quinta reescritura de una limitación de este documento.**
+                 * Decía que los roles ENS estaban «pendientes de designación en
+                 * la herramienta (módulo de personas, § 4.8)», y con el § 4.8
+                 * dentro eso pasó a ser **falso en el PDF que se le entrega al
+                 * auditor** — que es peor que una limitación ausente, y es el
+                 * mismo tratamiento que ya se les dio a las dos de riesgos, a la
+                 * del flujo de aprobación, a la del plan y a la de auditorías.
+                 *
+                 * Lo que queda dicho es lo que de verdad sigue sin hacerse, y
+                 * `ContenidoDdaTest` clava que la frase vieja no vuelve **y** que
+                 * la nueva sigue declarando lo que falta.
+                 */
                 'Los **roles ENS** —responsable de la información, del servicio, de seguridad, del '
-                .'sistema y administrador de la seguridad del sistema— están **pendientes de '
-                .'designación en la herramienta** (módulo de personas, § 4.8). Su ausencia aquí no '
-                .'significa que no estén designados en la organización.',
+                .'sistema y administrador de la seguridad del sistema— **se designan en la '
+                .'herramienta**, por sistema y con vigencia, y sus nombramientos **no figuran aquí '
+                .'por diseño**: una Declaración de Aplicabilidad declara la situación de cada '
+                .'medida, no quién responde de ella. Lo que la herramienta **no** hace es comprobar '
+                .'que el nombramiento esté firmado por quien tiene potestad para hacerlo, ni que la '
+                .'persona designada reúna la competencia que `mp.per.1` exige. Impide, eso sí, que '
+                .'el responsable de seguridad y el responsable del sistema recaigan en la misma '
+                .'persona dentro del mismo sistema.',
 
                 /*
                  * Cuarta reescritura de una limitación de este documento, y por

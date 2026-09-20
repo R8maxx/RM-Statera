@@ -162,12 +162,23 @@ it('si el hallazgo ya tiene tratamiento, lleva al que existe en vez de abrir otr
         ->assertRedirect("/no-conformidades/{$nc->id}");
 });
 
-it('un origen cuyo módulo no existe se rechaza con un mensaje que lo dice', function (): void {
+/*
+ * **Reescrito con el § 4.10 dentro, no borrado.** Este test comprobaba que
+ * `incidente` se rechazaba «porque su módulo no está implantado», y con el
+ * módulo dentro esa aserción probaba lo contrario de lo que pasa. Lo que se fija
+ * ahora es que los cuatro orígenes se aceptan — que es el hecho nuevo—, y que la
+ * guarda del `FormRequest` sigue en pie para el día que entre un quinto sin
+ * módulo detrás.
+ */
+it('acepta los cuatro orígenes, incidente incluido', function (): void {
+    expect(OrigenNoConformidad::disponibles())->toHaveCount(count(OrigenNoConformidad::cases()));
+
     $this->actingAs($this->usuario)
         ->post('/no-conformidades', ($this->datos)(['origen' => OrigenNoConformidad::Incidente->value]))
-        ->assertSessionHasErrors('origen');
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
 
-    expect(NoConformidad::query()->count())->toBe(0);
+    expect(NoConformidad::query()->sole()->origen)->toBe(OrigenNoConformidad::Incidente);
 });
 
 it('un hallazgo con un origen que no es auditoría se rechaza antes de llegar al CHECK', function (): void {

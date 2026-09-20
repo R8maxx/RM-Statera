@@ -3,9 +3,11 @@ import {
     ClipboardCheckIcon,
     ClipboardListIcon,
     ClipboardXIcon,
+    CloudLightningIcon,
     CompassIcon,
     FileTextIcon,
     GaugeIcon,
+    GraduationCapIcon,
     LayoutDashboardIcon,
     LayoutTemplateIcon,
     LightbulbIcon,
@@ -122,6 +124,23 @@ export const navegacion: GrupoNavegacion[] = [
                 alias: ['10.1', 'oportunidades de mejora', 'ideas', 'propuestas', 'mejora continua'],
             },
             {
+                titulo: 'Incidentes',
+                href: '/incidentes',
+                icono: CloudLightningIcon,
+                /*
+                 * `op.exp.7` es lo que se teclea sabiendo de qué va; «brecha»,
+                 * «AEPD» y «CCN-CERT» son lo que se busca con el reloj corriendo.
+                 * Va detrás de No conformidades y Mejoras porque un incidente
+                 * acaba en una de las dos, o en ninguna.
+                 *
+                 * **Sin el alias «personal»**, que es de Personas, ni
+                 * «incidencia» a secas para ningún otro módulo: empatar dos
+                 * módulos en la paleta es el error que ya se evitó con
+                 * «revisión».
+                 */
+                alias: ['op.exp.7', 'brecha', 'aepd', 'ccn-cert', 'ransomware', 'phishing', '72 horas'],
+            },
+            {
                 titulo: 'Indicadores',
                 href: '/indicadores',
                 icono: GaugeIcon,
@@ -220,12 +239,38 @@ export const navegacion: GrupoNavegacion[] = [
     },
     {
         /*
-         * Grupo nuevo, con una sola entrada de momento. Se irá llenando con
-         * personas (§ 4.8) y proveedores (§ 4.9), que son de la organización y
-         * no del cumplimiento ni del alcance.
+         * El grupo nació con una sola entrada esperando a personas (§ 4.8), que
+         * ya está, y a proveedores (§ 4.9), que sigue sin estar. Son de la
+         * organización y no del cumplimiento ni del alcance.
          */
         titulo: 'Organización',
         entradas: [
+            {
+                titulo: 'Personas',
+                href: '/personas',
+                icono: UsersIcon,
+                /*
+                 * `5.3` y `mp.per` son lo que se teclea sabiendo de qué va;
+                 * «plantilla», «roles» y «nombramientos» son lo que se busca sin
+                 * acordarse de la cláusula.
+                 *
+                 * **Sin el alias «usuarios»**, a propósito: las cuentas de
+                 * Statera son otra cosa y viven en el perfil. Empatar los dos en
+                 * la paleta es el error que ya se evitó con «revisión».
+                 */
+                alias: ['plantilla', 'empleados', 'roles ens', 'nombramientos', 'confidencialidad', '5.3', 'mp.per'],
+            },
+            {
+                titulo: 'Formación',
+                href: '/formacion',
+                icono: GraduationCapIcon,
+                /*
+                 * Entrada propia y no un bloque de Personas: lo que se registra
+                 * es una sesión con veinte convocados, y marcar veinte
+                 * asistencias exige su pantalla.
+                 */
+                alias: ['concienciación', 'asistencia', 'curso', 'mp.per.3', 'mp.per.4'],
+            },
             {
                 titulo: 'Plantillas de documento',
                 href: '/plantillas-documento',

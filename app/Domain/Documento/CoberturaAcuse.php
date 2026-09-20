@@ -18,10 +18,15 @@ use App\Models\User;
  *
  * **Los destinatarios son todos los usuarios de la organización**, y eso es una
  * simplificación declarada, no un descuido: quien tiene que conocer la política
- * son las **personas** de la organización, y el módulo de personas (§ 4.8) no
- * existe todavía. Cuando llegue, esto pasa a leer de ahí sin que el acuse en sí
- * cambie. Hasta entonces el documento lo dice por escrito en sus limitaciones,
- * que es la diferencia entre una limitación declarada y una inventada.
+ * son las **personas** de la organización, y el registro de plantilla (§ 4.8) ya
+ * existe. **No se lee de ahí, y es deliberado**: acusar recibo es un acto que
+ * alguien ejecuta, y quien no tiene cuenta en Statera no puede ejecutarlo. Leer
+ * la plantilla convertiría a media organización en «pendiente de leer» para
+ * siempre, sin ninguna puerta por la que dejar de estarlo — que es la clase de
+ * cifra inalcanzable que este producto evita en todas partes.
+ *
+ * La limitación impresa dice exactamente eso desde el § 4.8, y antes decía que
+ * el módulo no existía. Se reescribió, no se borró.
  *
  * **`User` no lleva el scope de organización** —no usa `PerteneceAOrganizacion`,
  * porque la autenticación tiene que poder encontrar a alguien antes de saber de

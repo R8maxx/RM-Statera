@@ -18,7 +18,7 @@ export type TipoHallazgo = 'nc_mayor' | 'nc_menor' | 'observacion' | 'oportunida
 }
 namespace Autorizacion {
 namespace Enums {
-export type Permiso = 'panel.ver' | 'contexto.ver' | 'contexto.gestionar' | 'contexto.aprobar' | 'sistemas.ver' | 'sistemas.gestionar' | 'sistemas.valorar' | 'implantaciones.ver' | 'implantaciones.gestionar' | 'evidencias.ver' | 'evidencias.gestionar' | 'activos.ver' | 'activos.gestionar' | 'riesgos.ver' | 'riesgos.gestionar' | 'riesgos.aceptar' | 'tareas.ver' | 'tareas.gestionar' | 'auditorias.ver' | 'auditorias.gestionar' | 'no_conformidades.ver' | 'no_conformidades.gestionar' | 'no_conformidades.verificar' | 'mejoras.ver' | 'mejoras.gestionar' | 'indicadores.ver' | 'indicadores.gestionar' | 'objetivos.ver' | 'objetivos.gestionar' | 'objetivos.aprobar' | 'revision_direccion.ver' | 'revision_direccion.gestionar' | 'revision_direccion.aprobar' | 'documentos.ver' | 'documentos.generar' | 'documentos.aprobar' | 'documentos.redactar' | 'documentos.plantillas';
+export type Permiso = 'panel.ver' | 'contexto.ver' | 'contexto.gestionar' | 'contexto.aprobar' | 'sistemas.ver' | 'sistemas.gestionar' | 'sistemas.valorar' | 'implantaciones.ver' | 'implantaciones.gestionar' | 'evidencias.ver' | 'evidencias.gestionar' | 'activos.ver' | 'activos.gestionar' | 'riesgos.ver' | 'riesgos.gestionar' | 'riesgos.aceptar' | 'tareas.ver' | 'tareas.gestionar' | 'auditorias.ver' | 'auditorias.gestionar' | 'no_conformidades.ver' | 'no_conformidades.gestionar' | 'no_conformidades.verificar' | 'mejoras.ver' | 'mejoras.gestionar' | 'indicadores.ver' | 'indicadores.gestionar' | 'objetivos.ver' | 'objetivos.gestionar' | 'objetivos.aprobar' | 'personas.ver' | 'personas.gestionar' | 'personas.designar' | 'incidentes.ver' | 'incidentes.gestionar' | 'revision_direccion.ver' | 'revision_direccion.gestionar' | 'revision_direccion.aprobar' | 'documentos.ver' | 'documentos.generar' | 'documentos.aprobar' | 'documentos.redactar' | 'documentos.plantillas';
 export type Rol = 'responsable_seguridad' | 'tecnico' | 'auditor';
 }
 }
@@ -87,15 +87,22 @@ export type EstadoImplantacion = 'no_iniciado' | 'planificado' | 'en_progreso' |
 export type NivelMadurez = 'l0' | 'l1' | 'l2' | 'l3' | 'l4' | 'l5';
 }
 }
+namespace Incidente {
+namespace Enums {
+export type ClasificacionIncidente = 'contenido_abusivo' | 'contenido_danino' | 'obtencion_informacion' | 'intento_intrusion' | 'intrusion' | 'disponibilidad' | 'compromiso_informacion' | 'fraude' | 'vulnerable' | 'otros';
+export type EstadoIncidente = 'abierto' | 'en_tratamiento' | 'resuelto' | 'cerrado';
+export type PeligrosidadIncidente = 'baja' | 'media' | 'alta' | 'muy_alta' | 'critica';
+}
+}
 namespace Mejora {
 namespace Enums {
 export type EstadoMejora = 'propuesta' | 'en_curso' | 'implantada' | 'descartada';
-export type OrigenMejora = 'auditoria' | 'revision_direccion' | 'indicador' | 'propia';
+export type OrigenMejora = 'auditoria' | 'revision_direccion' | 'indicador' | 'incidente' | 'propia';
 }
 }
 namespace Metrica {
 namespace Enums {
-export type CalculoIndicador = 'cumplimiento_implantado' | 'implantaciones_pendientes' | 'implantadas_sin_evidencia' | 'madurez_media' | 'evidencias_caducadas' | 'tareas_vencidas' | 'tareas_sin_responsable' | 'no_conformidades_abiertas' | 'no_conformidades_sin_verificar' | 'riesgos_sobre_umbral' | 'activos_sin_cifrar' | 'activos_sin_revisar';
+export type CalculoIndicador = 'cumplimiento_implantado' | 'implantaciones_pendientes' | 'implantadas_sin_evidencia' | 'madurez_media' | 'evidencias_caducadas' | 'tareas_vencidas' | 'tareas_sin_responsable' | 'no_conformidades_abiertas' | 'no_conformidades_sin_verificar' | 'riesgos_sobre_umbral' | 'activos_sin_cifrar' | 'activos_sin_revisar' | 'personal_formado';
 export type CumplimientoIndicador = 'en_objetivo' | 'fuera_de_objetivo' | 'sin_objetivo' | 'sin_medir';
 export type OrigenMedicion = 'calculado' | 'manual';
 export type Periodicidad = 'mensual' | 'trimestral' | 'semestral' | 'anual';
@@ -112,6 +119,13 @@ export type OrigenNoConformidad = 'auditoria' | 'incidente' | 'revision_direccio
 namespace Objetivo {
 namespace Enums {
 export type EstadoObjetivo = 'propuesto' | 'aprobado' | 'alcanzado' | 'no_alcanzado' | 'retirado';
+}
+}
+namespace Persona {
+namespace Enums {
+export type RolEns = 'responsable_informacion' | 'responsable_servicio' | 'responsable_seguridad' | 'responsable_sistema' | 'administrador_seguridad';
+export type TipoAccionFormativa = 'formacion' | 'concienciacion';
+export type TipoPasoPersona = 'alta' | 'baja';
 }
 }
 namespace RevisionDireccion {
@@ -319,6 +333,14 @@ readonly caducadas: number,
 readonly porCaducar: number,
 readonly implantadasSinEvidencia: number,
 };
+export type ResumenIncidentesPanel = {
+readonly total: number,
+readonly abiertos: number,
+readonly fueraDePlazoAepd: number,
+readonly enPlazoAepd: number,
+readonly sinLeccion: number,
+readonly porEstado: App.Http.Resources.Panel.Reparto[],
+};
 export type ResumenInventarioPanel = {
 readonly vigentes: number,
 readonly resueltos: number,
@@ -359,6 +381,15 @@ readonly implantadas: number,
 readonly pendientes: number,
 readonly madurezMedia: number | null,
 readonly madurezEvaluadas: number,
+};
+export type ResumenPersonasPanel = {
+readonly total: number,
+readonly activas: number,
+readonly sinFormacion: number,
+readonly sinAcuerdo: number,
+readonly bajaSinCerrar: number,
+readonly rolesDesignados: number,
+readonly rolesExigibles: number,
 };
 export type ResumenPlanPanel = {
 readonly total: number,

@@ -9,6 +9,8 @@ import ResumenContextoPanel from '@/components/contexto/ResumenContextoPanel.vue
 import ResumenMetricasPanel from '@/components/metrica/ResumenMetricasPanel.vue';
 import ResumenNoConformidadesPanel from '@/components/no-conformidad/ResumenNoConformidadesPanel.vue';
 import ResumenObjetivosPanel from '@/components/objetivo/ResumenObjetivosPanel.vue';
+import ResumenIncidentesPanel from '@/components/incidente/ResumenIncidentesPanel.vue';
+import ResumenPersonasPanel from '@/components/persona/ResumenPersonasPanel.vue';
 import ResumenPlanPanel from '@/components/tarea/ResumenPlanPanel.vue';
 import GraficaBarras, { type Barra } from '@/components/grafica/GraficaBarras.vue';
 import {
@@ -56,6 +58,8 @@ const props = defineProps<{
     contexto: App.Http.Resources.Panel.ResumenContextoPanel | null;
     desempeno: App.Http.Resources.Panel.ResumenMetricasPanel | null;
     objetivos: App.Http.Resources.Panel.ResumenObjetivosPanel | null;
+    personas: App.Http.Resources.Panel.ResumenPersonasPanel | null;
+    incidentes: App.Http.Resources.Panel.ResumenIncidentesPanel | null;
 }>();
 
 const { variantesEntrada, variantesEscalonado } = useMovimientoReducido();
@@ -364,6 +368,26 @@ const metricas = computed(() => [
                 :variants="variantesEntrada"
             >
                 <ResumenObjetivosPanel :resumen="objetivos" />
+            </motion.section>
+
+            <!-- ── Personas ───────────────────────────────────────────────── -->
+            <!--
+                Las últimas: una plantilla se mueve por altas y bajas, no por
+                trabajo diario, y lo que se consulta de aquí a diario es una sola
+                cifra. Con el registro vacío no se pinta, como las demás.
+            -->
+            <motion.section v-if="personas && personas.total > 0" :variants="variantesEntrada">
+                <ResumenPersonasPanel :resumen="personas" />
+            </motion.section>
+
+            <!-- ── Incidentes ─────────────────────────────────────────────── -->
+            <!--
+                Junto a personas: son las dos medidas de categoría básica que
+                hasta este tramo no tenían dónde registrarse. Con el registro
+                vacío no se pinta, como las demás.
+            -->
+            <motion.section v-if="incidentes && incidentes.total > 0" :variants="variantesEntrada">
+                <ResumenIncidentesPanel :resumen="incidentes" />
             </motion.section>
 
             <!-- ── Por marco ──────────────────────────────────────────────── -->

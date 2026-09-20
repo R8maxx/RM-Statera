@@ -53,6 +53,7 @@ class GuardarNoConformidadRequest extends FormRequest
              * auditoría salió, que es justo lo que el registro tiene que fijar.
              */
             'hallazgo_id' => ['nullable', 'integer', 'exists:hallazgos,id'],
+            'incidente_id' => ['nullable', 'integer', 'exists:incidentes,id'],
 
             'descripcion' => ['required', 'string', 'max:5000'],
             'correccion_inmediata' => ['nullable', 'string', 'max:5000'],
@@ -84,8 +85,9 @@ class GuardarNoConformidadRequest extends FormRequest
                 }
 
                 // Los orígenes cuyo módulo no existe se declaran y no se
-                // ofrecen: una no conformidad marcada «de un incidente» sin
-                // incidente detrás no es trazable, es una etiqueta.
+                // ofrecen. **Desde el § 4.10 no queda ninguno fuera**, así que
+                // esta guarda no la ejerce nadie hoy; se queda porque el día que
+                // entre un origen nuevo sin módulo detrás es lo que lo sujeta.
                 if (! $origen->disponible()) {
                     $validator->errors()->add('origen', sprintf(
                         'El origen «%s» todavía no se puede usar: su módulo no está implantado.',
@@ -97,6 +99,22 @@ class GuardarNoConformidadRequest extends FormRequest
 
                 if ($this->input('hallazgo_id') !== null && $origen !== OrigenNoConformidad::Auditoria) {
                     $validator->errors()->add('origen', 'Una no conformidad que viene de un hallazgo es de origen auditoría.');
+                }
+
+                if ($this->input('incidente_id') !== null && $origen !== OrigenNoConformidad::Incidente) {
+                    $validator->errors()->add('origen', 'Una no conformidad que viene de un incidente es de origen incidente.');
+                }
+
+                /*
+                 * Y las dos a la vez, no. Lo impide además
+                 * `no_conformidades_una_procedencia_check`; esto existe para que
+                 * el mensaje sea legible y no el nombre de una restricción.
+                 */
+                if ($this->input('hallazgo_id') !== null && $this->input('incidente_id') !== null) {
+                    $validator->errors()->add(
+                        'incidente_id',
+                        'Una no conformidad sale de un hallazgo o de un incidente, no de los dos: elige de cuál.',
+                    );
                 }
 
                 /*
@@ -127,6 +145,7 @@ class GuardarNoConformidadRequest extends FormRequest
     {
         return [
             'hallazgo_id' => 'hallazgo',
+            'incidente_id' => 'incidente',
             'responsable_id' => 'responsable',
             'analisis_causa_raiz' => 'análisis de causa raíz',
             'correccion_inmediata' => 'corrección inmediata',

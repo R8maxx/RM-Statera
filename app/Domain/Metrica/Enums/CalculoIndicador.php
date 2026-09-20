@@ -11,6 +11,7 @@ use App\Domain\Implantacion\Models\Implantacion;
 use App\Domain\Implantacion\ResumenCumplimiento;
 use App\Domain\Metrica\Medida;
 use App\Domain\NoConformidad\Models\NoConformidad;
+use App\Domain\Persona\Models\Persona;
 use App\Domain\Riesgo\Models\Riesgo;
 use App\Domain\Tarea\Models\Tarea;
 use Illuminate\Database\Eloquent\Builder;
@@ -58,6 +59,14 @@ enum CalculoIndicador: string
     case ActivosSinCifrar = 'activos_sin_cifrar';
     case ActivosSinRevisar = 'activos_sin_revisar';
 
+    /*
+     * El que llegó con el § 4.8, y el que convierte en calculado lo que era el
+     * ejemplo de indicador **manual** del producto: «el porcentaje de personal
+     * formado no sale de esta base de datos mientras el § 4.8 no exista». Ya
+     * existe.
+     */
+    case PersonalFormado = 'personal_formado';
+
     public function etiqueta(): string
     {
         return match ($this) {
@@ -73,6 +82,7 @@ enum CalculoIndicador: string
             self::RiesgosSobreUmbral => 'Riesgos por encima del umbral',
             self::ActivosSinCifrar => 'Activos sin cifrado en reposo',
             self::ActivosSinRevisar => 'Activos sin revisar en 12 meses',
+            self::PersonalFormado => 'Personal con formación al día',
         };
     }
 
@@ -98,6 +108,7 @@ enum CalculoIndicador: string
             self::RiesgosSobreUmbral => 'Riesgos cuya valoración vigente está en o por encima del umbral de aceptación de la metodología, sobre el total de riesgos.',
             self::ActivosSinCifrar => 'Activos vigentes que declaran no cifrar en reposo, sobre el total de activos vigentes. Los «por confirmar» no cuentan.',
             self::ActivosSinRevisar => 'Activos vigentes sin revisión registrada en los últimos doce meses, sobre el total de activos vigentes.',
+            self::PersonalFormado => 'Personas en plantilla con al menos una asistencia registrada a una acción formativa o de concienciación en los últimos doce meses, sobre el total en plantilla. Quien se fue no cuenta: pedirle formación pondría un techo inalcanzable.',
         };
     }
 
@@ -123,7 +134,7 @@ enum CalculoIndicador: string
     public function unidad(): UnidadIndicador
     {
         return match ($this) {
-            self::CumplimientoImplantado => UnidadIndicador::Porcentaje,
+            self::CumplimientoImplantado, self::PersonalFormado => UnidadIndicador::Porcentaje,
             // Una media L0–L5 no es un porcentaje ni un recuento: se escribe con
             // un decimal, que es lo que `Dias` ya hace.
             self::MadurezMedia => UnidadIndicador::Dias,
@@ -134,7 +145,7 @@ enum CalculoIndicador: string
     public function sentido(): SentidoIndicador
     {
         return match ($this) {
-            self::CumplimientoImplantado, self::MadurezMedia => SentidoIndicador::MayorMejor,
+            self::CumplimientoImplantado, self::MadurezMedia, self::PersonalFormado => SentidoIndicador::MayorMejor,
             default => SentidoIndicador::MenorMejor,
         };
     }
@@ -217,7 +228,32 @@ enum CalculoIndicador: string
                 Activo::query()->vigentes()->sinRevisar()->count(),
                 Activo::query()->vigentes()->count(),
             ),
+
+            /*
+             * **Por resta y no por una segunda consulta con la condición
+             * contraria**, que sería la misma regla escrita dos veces:
+             * `sinFormacionReciente()` es exactamente «activa y sin asistencia en
+             * doce meses», así que las formadas son las activas menos ésas. Es el
+             * mismo argumento por el que el plan de adecuación saca las
+             * implantadas restando en vez de consultarlas aparte.
+             */
+            self::PersonalFormado => $this->personalFormado(),
         };
+    }
+
+    /**
+     * El porcentaje de personal con la formación al día.
+     *
+     * Con la plantilla vacía, `Medida::fraccion()` devuelve valor cero **y suelta
+     * el numerador y el denominador**, que es lo que el `CHECK` de `mediciones`
+     * admite: una organización que todavía no ha dado de alta a nadie no está al
+     * 0 % de formación, está sin plantilla registrada.
+     */
+    private function personalFormado(): Medida
+    {
+        $activas = Persona::query()->activas()->count();
+
+        return Medida::fraccion($activas - Persona::query()->sinFormacionReciente()->count(), $activas);
     }
 
     /**

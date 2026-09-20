@@ -94,8 +94,9 @@ enum OrigenTarea: string
     public function disponible(): bool
     {
         return match ($this) {
-            self::BrechaImplantacion, self::Contexto, self::Mejora, self::NoConformidad,
-            self::Objetivo, self::Propia, self::RevisionDireccion, self::Riesgo => true,
+            self::BrechaImplantacion, self::Contexto, self::Incidente, self::Mejora,
+            self::NoConformidad, self::Objetivo, self::Propia, self::RevisionDireccion,
+            self::Riesgo => true,
             /*
              * `Hallazgo` sigue sin ofrecerse, y desde el § 4.13 **por otro
              * motivo**: no es que falte su módulo —llegó con el § 4.12—, es que
@@ -110,9 +111,14 @@ enum OrigenTarea: string
              * lo que faltaba era su módulo. Es la diferencia con `objetivo` y
              * `mejora`, que sí eran valores nuevos y sí la necesitaron.
              *
-             * `Incidente` sigue esperando al § 4.10.
+             * **`Incidente` se ofrece desde el § 4.10**, y tampoco hizo falta
+             * migración, por lo mismo: el valor estaba en el `CHECK` desde la
+             * primera. Y a diferencia de `Hallazgo`, aquí no hay eslabón por
+             * medio: contener un incidente produce trabajo directo —«revisar las
+             * reglas del filtro de correo»— que no espera a ninguna no
+             * conformidad, porque puede que no llegue a haberla.
              */
-            self::Hallazgo, self::Incidente => false,
+            self::Hallazgo => false,
         };
     }
 
