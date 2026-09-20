@@ -210,7 +210,7 @@ it('manda el resumen de incidentes al panel', function (): void {
     Incidente::factory()->fueraDePlazoAepd()->create();
 
     $this->actingAs($this->usuario)
-        ->get('/panel')
+        ->get('/panel/ciclo')
         ->assertInertia(fn (AssertableInertia $pagina) => $pagina
             ->where('incidentes.total', 1)
             ->where('incidentes.fueraDePlazoAepd', 1)
@@ -228,6 +228,6 @@ it('no manda el resumen a quien no puede ver los incidentes', function (): void 
     $this->usuario->roles->first()?->revokePermissionTo('incidentes.ver');
 
     $this->actingAs($this->usuario->fresh())
-        ->get('/panel')
+        ->get('/panel/ciclo')
         ->assertInertia(fn (AssertableInertia $pagina) => $pagina->where('incidentes', null)->etc());
 });

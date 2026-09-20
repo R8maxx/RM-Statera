@@ -143,7 +143,7 @@ it('manda el resumen de personas al panel', function (): void {
     app(DesignarRol::class)($persona, $sistema, RolEns::ResponsableSeguridad);
 
     $this->actingAs($this->usuario)
-        ->get('/panel')
+        ->get('/panel/organizacion')
         ->assertInertia(fn (AssertableInertia $pagina) => $pagina
             ->where('personas.total', 1)
             ->where('personas.activas', 1)
@@ -166,7 +166,7 @@ it('no manda el resumen a quien no puede ver el registro', function (): void {
     $this->usuario->roles->first()?->revokePermissionTo('personas.ver');
 
     $this->actingAs($this->usuario->fresh())
-        ->get('/panel')
+        ->get('/panel/organizacion')
         ->assertInertia(fn (AssertableInertia $pagina) => $pagina->where('personas', null)->etc());
 });
 
