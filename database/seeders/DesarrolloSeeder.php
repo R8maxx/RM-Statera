@@ -87,6 +87,7 @@ use App\Domain\Objetivo\RegistrarObjetivo;
 use App\Domain\Objetivo\VincularIndicador;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Organizacion\Models\Organizacion;
+use App\Domain\Persona\AsignarPuesto;
 use App\Domain\Persona\DesignarRol;
 use App\Domain\Persona\Enums\RolEns;
 use App\Domain\Persona\Enums\TipoAccionFormativa;
@@ -94,8 +95,10 @@ use App\Domain\Persona\Enums\TipoPasoPersona;
 use App\Domain\Persona\GuardarPasos;
 use App\Domain\Persona\Models\AccionFormativa;
 use App\Domain\Persona\Models\AcuerdoConfidencialidad;
+use App\Domain\Persona\Models\AsignacionPuesto;
 use App\Domain\Persona\Models\DesignacionRol;
 use App\Domain\Persona\Models\Persona;
+use App\Domain\Persona\Models\Puesto;
 use App\Domain\Persona\RegistrarAsistencia;
 use App\Domain\RevisionDireccion\AbrirDecision;
 use App\Domain\RevisionDireccion\AprobarRevision;
@@ -299,8 +302,11 @@ class DesarrolloSeeder extends Seeder
 
         $ana = Persona::query()->create([
             'codigo' => 'PER-001',
-            'nombre' => 'Ana Ruiz',
-            'puesto' => 'Responsable de seguridad de la información',
+            'nombre_pila' => 'Ana',
+            'apellido1' => 'Ruiz',
+            'apellido2' => 'Beltrán',
+            'nif' => '00000001A',
+            'telefono' => '+34 600 000 001',
             'email' => 'responsable@statera.test',
             'user_id' => $responsable?->id,
             'fecha_alta' => Carbon::today()->subYears(4),
@@ -308,8 +314,12 @@ class DesarrolloSeeder extends Seeder
 
         $bruno = Persona::query()->create([
             'codigo' => 'PER-002',
-            'nombre' => 'Bruno Sáez',
-            'puesto' => 'Administrador de sistemas',
+            'nombre_pila' => 'Bruno',
+            'apellido1' => 'Sáez',
+            'apellido2' => 'Molina',
+            'nif' => '00000002B',
+            'telefono' => '+34 600 000 002',
+            'telefono_fijo' => '+34 960 000 002',
             'email' => 'tecnico@statera.test',
             'user_id' => $tecnica?->id,
             'fecha_alta' => Carbon::today()->subYears(2),
@@ -318,26 +328,90 @@ class DesarrolloSeeder extends Seeder
         // Sin cuenta: la mayoría de una plantilla no entra nunca en Statera.
         $carla = Persona::query()->create([
             'codigo' => 'PER-003',
-            'nombre' => 'Carla Ibáñez',
-            'puesto' => 'Atención al cliente',
+            'nombre_pila' => 'Carla',
+            'apellido1' => 'Ibáñez',
+            'nif' => '00000003C',
             'fecha_alta' => Carbon::today()->subMonths(14),
         ]);
 
         // La que pide acción: ni formación ni acuerdo.
         $diego = Persona::query()->create([
             'codigo' => 'PER-004',
-            'nombre' => 'Diego Ferrer',
-            'puesto' => 'Comercial',
+            'nombre_pila' => 'Diego',
+            'apellido1' => 'Ferrer',
+            'apellido2' => 'Lago',
             'fecha_alta' => Carbon::today()->subMonths(3),
         ]);
 
         // El rojo: se fue y la checklist de salida está a medias.
         $elena = Persona::query()->create([
             'codigo' => 'PER-005',
-            'nombre' => 'Elena Prat',
-            'puesto' => 'Desarrolladora',
+            'nombre_pila' => 'Elena',
+            'apellido1' => 'Prat',
+            'nif' => '00000005E',
             'fecha_alta' => Carbon::today()->subYears(3),
             'fecha_baja' => Carbon::today()->subMonth(),
+        ]);
+
+        // --- Los puestos y quién los ocupa -----------------------------------
+        //
+        // El organigrama de ejemplo tiene DOS niveles y no uno: con todo colgando
+        // de la raíz, la pantalla no enseña lo único que hace falta ver, que es
+        // el sangrado. Dirección arriba, y de ella las cuatro áreas.
+
+        $direccion = Puesto::query()->create([
+            'codigo' => 'PUE-001',
+            'titulo' => 'Dirección',
+            'mision' => 'Fijar los objetivos de la organización y responder de ellos.',
+            'competencias' => 'Responsabilidad ejecutiva sobre la organización.',
+        ]);
+
+        $puestos = [];
+
+        foreach ([
+            'PUE-002' => 'Responsable de seguridad de la información',
+            'PUE-003' => 'Administrador de sistemas',
+            'PUE-004' => 'Atención al cliente',
+            'PUE-005' => 'Comercial',
+            'PUE-006' => 'Desarrolladora',
+        ] as $codigo => $titulo) {
+            $puestos[$titulo] = Puesto::query()->create([
+                'codigo' => $codigo,
+                'titulo' => $titulo,
+                'reporta_a_id' => $direccion->id,
+            ]);
+        }
+
+        // Uno se queda SIN caracterizar a propósito: es la cifra que la tabla
+        // enseña y el filtro que hay que poder pulsar.
+        $puestos['Responsable de seguridad de la información']->update([
+            'mision' => 'Determinar qué protección necesita la información y verificar que se aplica.',
+            'funciones' => "Mantener el SGSI.\nProponer las medidas y comprobar su eficacia.",
+            'competencias' => 'Formación en seguridad de la información y tres años de experiencia.',
+        ]);
+
+        $asignar = app(AsignarPuesto::class);
+
+        $asignar($ana, $puestos['Responsable de seguridad de la información'], Carbon::today()->subYears(4));
+        $asignar($bruno, $puestos['Administrador de sistemas'], Carbon::today()->subYears(2));
+        $asignar($carla, $puestos['Atención al cliente'], Carbon::today()->subMonths(14));
+        $asignar($diego, $puestos['Comercial'], Carbon::today()->subMonths(3));
+
+        /*
+         * Elena se fue, así que su asignación está CERRADA y no borrada: es lo
+         * que hace que la ficha del puesto pueda decir quién lo ocupó.
+         *
+         * Se escribe directa y **no por `AsignarPuesto`**, que la rechazaría por
+         * estar de baja — y hace bien: asignar un puesto NUEVO a quien ya no
+         * está es el error que esa guarda existe para impedir. Lo que se siembra
+         * aquí no es una asignación nueva, es el hecho de que ocupó ese puesto
+         * mientras estuvo.
+         */
+        AsignacionPuesto::query()->create([
+            'persona_id' => $elena->id,
+            'puesto_id' => $puestos['Desarrolladora']->id,
+            'desde' => Carbon::today()->subYears(3),
+            'hasta' => Carbon::today()->subMonth(),
         ]);
 
         // --- Los nombramientos del 5.3 --------------------------------------

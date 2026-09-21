@@ -160,7 +160,6 @@ function confirmarDescarte(): void {
 
         <BarraFiltros
             v-if="filtros.length > 0"
-            class="mb-4"
             :busqueda="busqueda"
             :sueltos="sueltos"
             :todos="filtros"

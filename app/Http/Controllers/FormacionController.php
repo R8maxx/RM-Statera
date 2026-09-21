@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Domain\Adjunto\BorrarAdjunto;
+use App\Domain\Adjunto\Models\Adjunto;
+use App\Domain\Adjunto\SubirAdjunto;
 use App\Domain\Autorizacion\Enums\Permiso;
 use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Persona\CodigoAccionFormativa;
@@ -12,8 +15,10 @@ use App\Domain\Persona\Models\AccionFormativa;
 use App\Domain\Persona\Models\Persona;
 use App\Domain\Persona\RegistrarAsistencia;
 use App\Domain\Persona\RegistroFormacion;
+use App\Http\Controllers\Concerns\GestionaAdjuntos;
 use App\Http\Requests\GuardarAccionFormativaRequest;
 use App\Http\Requests\RegistrarAsistenciaRequest;
+use App\Http\Requests\SubirAdjuntoRequest;
 use App\Http\Resources\AccionFormativaRecurso;
 use App\Http\Resources\Concerns\RespondeConRecurso;
 use Illuminate\Http\RedirectResponse;
@@ -35,6 +40,7 @@ use Inertia\Response;
  */
 class FormacionController extends Controller
 {
+    use GestionaAdjuntos;
     use RespondeConRecurso;
 
     public function index(Request $request, AccionFormativaRecurso $recurso, RegistroFormacion $registro): Response
@@ -86,7 +92,7 @@ class FormacionController extends Controller
      */
     public function show(AccionFormativa $accion): Response
     {
-        $accion->load(['asistencias.persona', 'evidencia']);
+        $accion->load(['asistencias.persona', 'evidencia', 'adjuntos.subidoPor']);
 
         $convocadas = $accion->asistencias->keyBy('persona_id');
 
@@ -105,12 +111,13 @@ class FormacionController extends Controller
 
         return Inertia::render('formacion/Ficha', [
             'accion' => $this->serializar($accion),
+            'adjuntos' => $this->serializarAdjuntos($accion, request(), "/formacion/{$accion->id}/adjuntos"),
             'personas' => $personas
                 ->map(static fn (Persona $persona): array => [
                     'id' => $persona->id,
                     'codigo' => $persona->codigo,
                     'nombre' => $persona->nombre,
-                    'puesto' => $persona->puesto,
+                    'puesto' => $persona->puestoVigente()?->titulo,
                     'activa' => $persona->estaActiva(),
                     'convocada' => $convocadas->has($persona->id),
                     'asistio' => (bool) $convocadas->get($persona->id)?->asistio,
@@ -124,6 +131,7 @@ class FormacionController extends Controller
     {
         return Inertia::render('formacion/Formulario', [
             'accion' => $this->serializar($accion),
+            'adjuntos' => $this->serializarAdjuntos($accion, request(), "/formacion/{$accion->id}/adjuntos"),
             'sugerencia' => null,
             ...$this->opciones(),
         ]);
@@ -164,6 +172,21 @@ class FormacionController extends Controller
         Inertia::flash('exito', 'Asistencia registrada.');
 
         return back();
+    }
+
+    public function subirAdjunto(SubirAdjuntoRequest $request, AccionFormativa $accion, SubirAdjunto $subir): RedirectResponse
+    {
+        return $this->subirAdjuntoDe($request, $accion, $subir, 'formacion.show');
+    }
+
+    public function descargarAdjunto(AccionFormativa $accion, Adjunto $adjunto): RedirectResponse
+    {
+        return $this->descargarAdjuntoDe($adjunto);
+    }
+
+    public function borrarAdjunto(AccionFormativa $accion, Adjunto $adjunto, BorrarAdjunto $borrar): RedirectResponse
+    {
+        return $this->borrarAdjuntoDe($adjunto, $borrar, 'formacion.show', $accion);
     }
 
     /**

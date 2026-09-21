@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Domain\Adjunto\BorrarAdjunto;
+use App\Domain\Adjunto\Models\Adjunto;
+use App\Domain\Adjunto\SubirAdjunto;
 use App\Domain\Autorizacion\Enums\Permiso;
 use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Organizacion\ContextoOrganizacion;
+use App\Domain\Persona\AsignarPuesto;
 use App\Domain\Persona\CodigoPersona;
 use App\Domain\Persona\DesignarRol;
 use App\Domain\Persona\Enums\RolEns;
@@ -16,15 +20,20 @@ use App\Domain\Persona\Excepciones\PersonaNoDesignable;
 use App\Domain\Persona\Excepciones\RolYaDesignado;
 use App\Domain\Persona\GuardarPasos;
 use App\Domain\Persona\Models\AcuerdoConfidencialidad;
+use App\Domain\Persona\Models\AsignacionPuesto;
 use App\Domain\Persona\Models\DesignacionRol;
 use App\Domain\Persona\Models\PasoPersona;
 use App\Domain\Persona\Models\Persona;
+use App\Domain\Persona\Models\Puesto;
 use App\Domain\Persona\RegistroPersonas;
 use App\Domain\Sistema\Models\Sistema;
+use App\Http\Controllers\Concerns\GestionaAdjuntos;
+use App\Http\Requests\AsignarPuestoRequest;
 use App\Http\Requests\DesignarRolRequest;
 use App\Http\Requests\GuardarAcuerdoRequest;
 use App\Http\Requests\GuardarPasosRequest;
 use App\Http\Requests\GuardarPersonaRequest;
+use App\Http\Requests\SubirAdjuntoRequest;
 use App\Http\Resources\Concerns\RespondeConRecurso;
 use App\Http\Resources\PersonaRecurso;
 use App\Models\User;
@@ -48,6 +57,7 @@ use Inertia\Response;
  */
 class PersonaController extends Controller
 {
+    use GestionaAdjuntos;
     use RespondeConRecurso;
 
     public function index(Request $request, PersonaRecurso $recurso, RegistroPersonas $registro): Response
@@ -75,6 +85,8 @@ class PersonaController extends Controller
 
     public function store(GuardarPersonaRequest $request): RedirectResponse
     {
+        // `nombre` llega relleno porque `Persona` relee la fila al crearse: es
+        // columna generada y el `INSERT` no la devuelve. Ver el modelo.
         $persona = Persona::query()->create($request->validated());
 
         Inertia::flash('exito', "{$persona->nombre} está en el registro de personas.");
@@ -90,6 +102,9 @@ class PersonaController extends Controller
             'designaciones.designadaPor',
             'acuerdos.evidencia',
             'pasos',
+            'asignaciones.puesto',
+            'asignaciones.asignadaPor',
+            'adjuntos.subidoPor',
         ]);
 
         $formacion = $persona->asistencias()
@@ -132,6 +147,35 @@ class PersonaController extends Controller
                     'asistio' => $asistencia->asistio,
                 ])
                 ->all(),
+            /*
+             * El histórico de puestos. Va con la ficha y no por `Inertia::optional`
+             * porque son pocas filas y es de lo primero que se mira.
+             */
+            'asignaciones' => $persona->asignaciones
+                ->sortByDesc('desde')
+                ->map(static fn (AsignacionPuesto $asignacion): array => [
+                    'id' => $asignacion->id,
+                    'puesto_id' => $asignacion->puesto_id,
+                    'puesto' => $asignacion->puesto?->titulo,
+                    'codigo' => $asignacion->puesto?->codigo,
+                    'desde' => $asignacion->desde->format('d/m/Y'),
+                    'hasta' => $asignacion->hasta?->format('d/m/Y'),
+                    'vigente' => $asignacion->estaVigente(),
+                    'asignadaPor' => $asignacion->asignadaPor?->name,
+                    'nota' => $asignacion->nota,
+                ])
+                ->values()
+                ->all(),
+            'puestos' => Puesto::query()
+                ->orderBy('titulo')
+                ->get()
+                ->map(static fn (Puesto $puesto): array => [
+                    'valor' => (string) $puesto->id,
+                    'etiqueta' => $puesto->titulo,
+                ])
+                ->values()
+                ->all(),
+            'adjuntos' => $this->serializarAdjuntos($persona, request(), "/personas/{$persona->id}/adjuntos"),
             'acuerdos' => $persona->acuerdos
                 ->map(static fn (AcuerdoConfidencialidad $acuerdo): array => [
                     'id' => $acuerdo->id,
@@ -246,6 +290,65 @@ class PersonaController extends Controller
 
     // --- Los deberes por escrito: mp.per.2 -----------------------------------
 
+    /**
+     * Asigna un puesto a la persona, cerrando el que tuviera.
+     *
+     * Quién ocupa qué se gestiona **desde la ficha de la persona** y no desde la
+     * del puesto, que es donde se mira: la pregunta es «¿qué hace esta persona?»
+     * mucho más a menudo que «¿quién ocupa este puesto?». La ficha del puesto lo
+     * enseña, pero no lo edita.
+     */
+    public function asignarPuesto(AsignarPuestoRequest $request, Persona $persona, AsignarPuesto $asignar): RedirectResponse
+    {
+        $puesto = Puesto::query()->findOrFail($request->integer('puesto_id'));
+
+        try {
+            $asignar(
+                $persona,
+                $puesto,
+                $request->date('desde'),
+                $request->user(),
+                $request->string('nota')->value() ?: null,
+            );
+        } catch (PersonaNoDesignable $error) {
+            return back()->withErrors(['puesto_id' => $error->getMessage()]);
+        }
+
+        Inertia::flash('exito', "{$persona->nombre} ocupa «{$puesto->titulo}».");
+
+        return to_route('personas.show', $persona);
+    }
+
+    /**
+     * Cierra la asignación vigente sin poner otra.
+     *
+     * **No la borra**: la pregunta del auditor es «¿desde cuándo?», y también
+     * «¿hasta cuándo?». Es el mismo criterio que revocar un nombramiento.
+     */
+    public function cerrarPuesto(Persona $persona, AsignacionPuesto $asignacion, AsignarPuesto $asignar): RedirectResponse
+    {
+        $asignar->cerrar($asignacion);
+
+        Inertia::flash('exito', 'Asignación cerrada.');
+
+        return to_route('personas.show', $persona);
+    }
+
+    public function subirAdjunto(SubirAdjuntoRequest $request, Persona $persona, SubirAdjunto $subir): RedirectResponse
+    {
+        return $this->subirAdjuntoDe($request, $persona, $subir, 'personas.show');
+    }
+
+    public function descargarAdjunto(Persona $persona, Adjunto $adjunto): RedirectResponse
+    {
+        return $this->descargarAdjuntoDe($adjunto);
+    }
+
+    public function borrarAdjunto(Persona $persona, Adjunto $adjunto, BorrarAdjunto $borrar): RedirectResponse
+    {
+        return $this->borrarAdjuntoDe($adjunto, $borrar, 'personas.show', $persona);
+    }
+
     public function guardarAcuerdo(GuardarAcuerdoRequest $request, Persona $persona): RedirectResponse
     {
         $persona->acuerdos()->create([
@@ -293,7 +396,17 @@ class PersonaController extends Controller
             'id' => $persona->id,
             'codigo' => $persona->codigo,
             'nombre' => $persona->nombre,
-            'puesto' => $persona->puesto,
+            'nombre_pila' => $persona->nombre_pila,
+            'apellido1' => $persona->apellido1,
+            'apellido2' => $persona->apellido2,
+            'nif' => $persona->nif,
+            'telefono' => $persona->telefono,
+            'telefono_fijo' => $persona->telefono_fijo,
+            'direccion' => $persona->direccion,
+            'fecha_nacimiento' => $persona->fecha_nacimiento?->toDateString(),
+            // Ya no es una columna: es la asignación vigente.
+            'puesto' => $persona->puestoVigente()?->titulo,
+            'puesto_id' => $persona->puestoVigente()?->id,
             'email' => $persona->email,
             'user_id' => $persona->user_id,
             'usuario' => $persona->usuario?->name,

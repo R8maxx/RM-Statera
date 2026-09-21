@@ -76,6 +76,7 @@ Por defecto un asistente genera aquí código obsoleto. Estos tres puntos son lo
 | Estilos / componentes | Tailwind CSS 4 + shadcn-vue (sobre Reka UI) |
 | Tablas | TanStack Table 9.2.4, versión exacta |
 | Arrastrar y soltar | `@atlaskit/pragmatic-drag-and-drop` 3.1.0, versión exacta. Sólo el tablero, y siempre con el menú detrás |
+| Organigrama | `d3-hierarchy` 3.1.2 (disposición) + `@vue-flow/core` 1.48.2 (lienzo), versión exacta. Sólo el organigrama, y siempre con la lista detrás |
 | PDF | Gotenberg 8.9.1 en contenedor |
 | Colas | Redis + Horizon (`documentos`, `importadores`, `notificaciones`, `default`) |
 | Evidencias | S3 con versionado y Object Lock; disco `evidencias` |
@@ -224,6 +225,22 @@ El orden importa: el catálogo y el motor son la parte más específica del domi
     inventarle un número sería una opinión de la herramienta disfrazada de plazo
     legal — lo mismo que el producto se niega a hacer con el riesgo residual.
 
+20. ✅ Puestos, datos de la persona y adjuntos. **No es un módulo de los
+    diecinueve**: es lo que al § 4.8 le faltaba para poder usarse. Quién es cada
+    persona —hasta aquí `nombre` y `email` y poco más—, qué puesto ocupa —hasta
+    aquí una **cadena de texto libre**, así que «Analista» y «analista» eran dos
+    puestos para cualquier recuento— y dónde se guarda el título de un curso
+    —hasta aquí en ningún sitio: sólo se podía **señalar una evidencia que ya
+    existiera**—.
+
+    Con él, `mp.per.1` —la caracterización del puesto de trabajo— pasa a tener
+    dónde escribirse, que es una de las dos cosas que el § 4.8 declaraba que no
+    hacía. La otra —comprobar que la plantilla esté completa— sigue sin hacerse.
+
+    De paso, el **ritmo vertical de la página** deja de ponerlo cada componente
+    por su cuenta y pasa al contenedor: una tarjeta intercalada entre dos bloques
+    salía pegada a lo de abajo, y se veía en `/personas`.
+
 ## El catálogo
 
 Vive en `catalogo/*.yaml`, versionado en el repositorio, y se carga con un comando idempotente:
@@ -261,7 +278,7 @@ Lo demás va dentro. Con `app` basta para todo lo de PHP; `vite` es el de Node:
 ```sh
 docker compose exec app php artisan migrate
 docker compose exec app php artisan catalogo:importar       # ISO, ENS, mapeos y las amenazas de MAGERIT
-docker compose exec app php artisan db:seed                 # organización, usuarios, sistema, inventario, tareas, riesgos y personas (sintéticos)
+docker compose exec app php artisan db:seed                 # organización, usuarios, sistema, inventario, tareas, riesgos, personas y puestos (sintéticos)
 docker compose exec app php artisan avisos:enviar --dry-run # lo que saldría por correo, sin enviarlo
 docker compose exec app php artisan indicadores:medir --dry-run # la cifra que se sellaría, sin escribirla
 docker compose exec app composer test                       # Pest sobre PostgreSQL
@@ -274,7 +291,8 @@ docker compose logs -f app queue vite
 ```
 
 Cinco servicios propios: `nginx` (el 8000), `app` (php-fpm), `queue` (Horizon),
-`vite` (el 5173) y `minio-init`, que crea los buckets y se apaga. Detrás siguen
+`vite` (el 5173) y `minio-init`, que crea los **tres** buckets —evidencias,
+documentos y adjuntos— y se apaga. Detrás siguen
 `postgres`, `redis`, `gotenberg` y `minio`.
 
 ## Prioridad de cobertura de tests
@@ -1817,11 +1835,259 @@ escritura muere con un «null value in column». No lanza: escribe mal.
   designaciones ni revoca su cuenta. La checklist de salida es lo que lo recuerda,
   y el rojo del módulo es no haberla cerrado.
 - **No comprueba que la plantilla esté completa**, ni que todo puesto tenga
-  caracterización.
+  caracterización. Desde los puestos, la caracterización al menos **tiene dónde
+  escribirse** y se puede contar quién no la tiene; comprobarla sigue sin
+  hacerse.
 - **No entra en el calendario de obligaciones**, y aquí sí hará falta: la
   formación que toca este año **no la cubre ni `Fuente::Documento` ni las tareas**,
   a diferencia de objetivos, mejoras y revisión por la dirección. Es la primera
   `Fuente` que el § 4.16 va a necesitar de verdad.
+
+---
+
+## Los puestos y los datos de la persona
+
+Lo que el § 4.8 dejó fuera y una organización real necesita para usarlo: quién es
+cada persona, qué puesto ocupa y cómo se ordena la plantilla.
+
+### El nombre completo lo calcula PostgreSQL
+
+`personas` gana `nif`, `nombre_pila`, `apellido1`, `apellido2`, `telefono`,
+`telefono_fijo`, `direccion` y `fecha_nacimiento`. Y **`nombre` no desaparece ni
+cambia de significado**: sigue siendo el nombre completo que se muestra, se
+ordena y se busca —lo leen dieciséis sitios, y en `PersonaRecurso` es columna
+ordenable, campo de búsqueda y `ordenPorDefecto()`—, pero pasa a **derivarse** de
+las partes con una **columna generada `STORED`**.
+
+Tiene que ser columna de SQL y no accesor de PHP porque se ordena y se busca con
+índice; y no puede escribirse al lado de sus partes porque sería el mismo dato en
+dos sitios que pueden discrepar, que es lo que el repositorio ya evita con
+`activa`, con `vigente` y con el ámbito de una cuestión del DAFO.
+
+Tres cosas que costaron:
+
+1. **`concat_ws` NO sirve**: PostgreSQL rechaza la columna con «generation
+   expression is not immutable» —acepta `VARIADIC "any"` y su salida depende de
+   la función de salida de cada tipo—. La expresión va con `coalesce` + `||` +
+   `regexp_replace`, y el `regexp_replace` **no es adorno**: sin él, un apellido
+   vacío deja el hueco doble —«Ana  Prat»— que era justo lo que `concat_ws`
+   evitaba saltándose los nulos.
+2. **No hay `ALTER COLUMN … SET GENERATED` para una expresión.** Lo que existe
+   desde PG 17 reescribe la de una columna que **ya** es generada. De plana a
+   generada hay que renombrar y crear al lado.
+3. **Tras el `INSERT`, Eloquent sólo recupera el `id`**, así que una persona
+   recién creada llegaba **sin `nombre`** y `DesignarRol` moría con un `TypeError`
+   que no menciona la columna. `Persona` relee la fila en `created`, y va en el
+   modelo y no en cada llamador porque vale igual para el seeder, una factory y un
+   importador.
+
+**Sin migración de datos, y es deliberado.** El `RENAME` deja el nombre completo
+de siempre en `nombre_pila`, los apellidos nacen nulos y la generada reproduce el
+mismo texto byte a byte. Partir «María del Carmen de la Fuente Gómez» es una
+heurística que se equivoca, y equivocarse aquí cambia el nombre impreso en un
+nombramiento firmado.
+
+**Protección de datos, que aquí se implementa y no se comenta.** NIF, fecha de
+nacimiento, teléfonos y domicilio son datos personales en una herramienta que
+está en el alcance de su propio SGSI. Ninguno entra en la búsqueda libre ni en el
+CSV; sólo el NIF llega a la tabla, **oculto por defecto**. Es único por
+organización —índice parcial, los nulos no chocan— y se normaliza a mayúsculas y
+sin separadores, o «12345678z» y «12345678-Z» serían dos documentos distintos.
+**No se valida la letra**: un NIE y un pasaporte no la tienen, y rechazarlos sería
+impedir dar de alta a alguien que trabaja aquí. Y `RegistraTraza` guardará sus
+valores anteriores en `eventos_auditoria`: es correcto para la trazabilidad e
+implica que el log pasa a contener datos personales, y eso hay que saberlo antes.
+
+### La jerarquía vive en el puesto, no en la persona
+
+`puestos` —con `reporta_a_id`— y `asignaciones_puesto` entre medias. El
+organigrama de personas sale de cruzarlo con quién ocupa cada puesto, así que es
+**un solo árbol con dos lecturas** y no dos que puedan discrepar; y que alguien
+entre o se vaya **no lo mueve**, que es lo que envejece a un organigrama de
+personas en dos semanas.
+
+La asignación **lleva vigencia y no se borra**, patrón literal de
+`designaciones_rol`: «¿desde cuándo ocupa ese puesto?» es la pregunta del auditor
+(invariante 7). Índice único parcial sobre `persona_id` y **no** sobre
+`puesto_id` — varias personas ocupan «Técnico de sistemas» a la vez. Cambiar de
+puesto **cierra el anterior el día antes**, en la misma transacción: dos
+asignaciones que se solapan un día harían que «qué puesto ocupaba el 3 de marzo»
+tuviera dos respuestas.
+
+**El ciclo no cabe en un `CHECK`**: es una condición entre filas, y contra un
+grafo con un bucle la CTE del organigrama no devuelve un resultado raro, **no
+termina**. El `CHECK` tapa el bucle de un salto; el resto lo rechaza
+`AsignarSuperior`, precedente exacto de `RegistrarDependencia`, y está en el
+dominio porque vale igual para un importador. La CTE arrastra además la ruta en un
+`ARRAY` como red de seguridad.
+
+**La CTE necesita `::text` en las dos ramas.** La base devuelve `varchar(255)` y
+la recursiva una concatenación sin límite, y PostgreSQL exige que los tipos casen:
+«recursive query column N has type character varying(255) in non-recursive term».
+Lo cazó un test, no una lectura.
+
+**La migración de datos es la que podía perder información en silencio.** Sin
+petición no hay contexto, RLS deniega por defecto y un `INSERT … SELECT` escribe
+**cero filas sin error** — y el `DROP COLUMN personas.puesto` de la línea
+siguiente sí funciona. Va por `ContextoOrganizacion::comoMantenimiento()`, tercera
+aparición en el repositorio, y **comprueba el recuento** antes de dejar que la
+transacción se cierre. Los códigos salen de
+`row_number() OVER (PARTITION BY organizacion_id ORDER BY titulo)`, así que el
+único por organización se cumple por construcción y dos organizaciones con el
+mismo texto acaban en dos filas distintas.
+
+**Y la asignación se cierra el día de la baja para quien ya no está.** La columna
+de texto no distinguía las dos cosas —guardaba el último puesto de todo el mundo,
+estuviera o no—, pero una asignación vigente sobre alguien que se fue es falsa:
+lo pinta ocupando su puesto en el organigrama y deja el puesto fuera de
+«vacantes», que es justo lo que hay que ver para cubrirlo. **Se vio en el
+diagrama**, no en un test.
+
+Dos cosas más del `down()`, las dos aprendidas rompiéndolo: **vacía las filas que
+el `up()` insertó** —si no, un `rollback` seguido de un `migrate` choca con el
+índice único—, y **restaura desde la asignación más reciente y no desde la
+vigente**, porque la columna original guardaba el último puesto hubiera o no baja
+y restaurar sólo las vigentes se llevaba por delante el puesto de quien ya no
+está.
+
+**El organigrama son tres rutas hermanas**, no un conmutador de cliente: la
+decisión ya tomada para `/tareas`, porque el enlace que alguien pega en un correo
+tiene que abrir la vista que estaba mirando.
+
+| Ruta | Qué enseña |
+|---|---|
+| `/puestos/organigrama` | Lista sangrada. **La vista por defecto** |
+| `/puestos/organigrama/grafo` | Diagrama de cajas, sólo los puestos |
+| `/puestos/organigrama/grafo-personas` | El mismo diagrama con los ocupantes dentro |
+
+**La lista sigue siendo la de por defecto aunque haya diagrama**, y no por
+antigüedad: es la única de las tres que se recorre entera con el teclado y que
+cabe en 375 px sin arrastrar. Un lienzo de nodos no hace ninguna de las dos
+cosas, así que es la alternativa y no el sustituto — DESIGN.md § 11. Las dos
+vistas de diagrama lo dicen debajo y enlazan a la lista.
+
+**El scroll vive en la caja y no en la página**, que es lo que permite tener un
+diagrama sin romper la regla de no desplazar la página en horizontal: en móvil se
+navega arrastrando dentro del lienzo, y el minimapa se oculta por debajo de `sm`
+porque a esa anchura estorba más que orienta.
+
+**El mismo payload para las tres vistas**, ocupantes incluidos: son cinco campos
+por nodo, y ahorrarlos en la que no los pinta obligaría a tres consultas y a que
+el conmutador cambiara de datos además de de forma. Quien decide qué se enseña es
+el componente.
+
+Tres cosas del diagrama que no se ven leyéndolo:
+
+1. **La raíz sintética.** `d3-hierarchy` sólo sabe colocar un árbol, y una
+   organización puede tener varias raíces —las tiene mientras el organigrama se
+   monta—. Se cuelgan todas de una falsa, se coloca el conjunto y la falsa se
+   descarta. De paso recoge los puestos cuyo superior ya no existe, que es lo que
+   deja un borrado: verlos arriba es lo que permite arreglarlos.
+2. **El tamaño de la caja vive en `lib/organigrama.ts` y no en el componente**,
+   porque **la disposición depende de él**: d3 separa los hermanos por el ancho
+   que se le diga, y un componente que pintara cajas más anchas que las
+   declaradas las solaparía.
+3. **El encuadre se pide en `onNodesInitialized` y no con `fit-view-on-init`.**
+   Aquél corre antes de que el lienzo tenga su tamaño definitivo, y en una ventana
+   estrecha deja el árbol medio fuera. Se vio a 500 px.
+
+**Nada se arrastra ni se conecta en el lienzo.** La jerarquía se cambia en la
+ficha del puesto, que es donde `AsignarSuperior` comprueba los ciclos; dejar mover
+nodos aquí prometería que el organigrama se edita arrastrando.
+
+> **El fallo de animación que costó un rato, y que vale para toda la aplicación.**
+> `motion.main` del layout anima con **etiquetas de variante** —«oculto»/«visible»—
+> y esas etiquetas **se heredan hasta los hijos**. Un `motion.li` que declare
+> `initial`/`animate` como **objetos** entra en conflicto con la etiqueta heredada
+> y se queda congelado en su estado inicial: las filas salen en el DOM con
+> `opacity: 0` y la pantalla parece tener un solo elemento. El patrón que funciona
+> es el de `TiraIndicadores`: el escalonado lo declara el padre con `:variants` y
+> los hijos sólo **nombran** su variante.
+>
+> **`components/activo/GrafoDependencias.vue` tiene ese fallo y sigue teniéndolo**:
+> el bloque «Depende de» de la ficha de un activo se pinta con sus filas
+> invisibles. Se intentó arreglar con el mismo patrón y no bastó, así que queda
+> **anotado y sin tocar** en vez de medio arreglado.
+
+**Sin verbo de permiso nuevo**: se reutilizan `personas.ver` y
+`personas.gestionar`. Es el mismo módulo, y un `puestos.*` habría que acordarse de
+añadirlo a mano en las listas literales de `Rol::permisos()` para `Tecnico` y
+`Auditor`, que es la trampa que `RolesTest` existe para cazar.
+
+Con `puestos.competencias` relleno, **`mp.per.1` pasa a tener dónde escribirse** y
+el indicador «puestos sin caracterizar» se puede calcular. **Sigue sin hacerse**:
+comprobar que la plantilla esté completa, que el organigrama lo esté, y que quien
+ocupa un puesto reúna la competencia que ese puesto pide.
+
+---
+
+## Los adjuntos
+
+La documentación que cuelga de un registro. Hasta aquí lo único posible era
+**referenciar una evidencia ya existente** —`acciones_formativas.evidencia_id`,
+`acuerdos_confidencialidad.evidencia_id`—, y esas dos claves **se quedan**.
+
+**Un adjunto no es una evidencia, y la frontera es el propósito.** Una evidencia
+prueba un requisito y por eso lleva caducidad, periodicidad y responsable; un
+adjunto documenta un registro —el título de un curso, el contrato firmado, la hoja
+de firmas escaneada— y no tiene nada de eso. Obligar a rellenar cuatro campos de
+caducidad para subir un PDF es cómo se consigue que no se suba, y el diálogo lo
+dice por escrito para que nadie ponga aquí lo que va allí.
+
+**Pivotes explícitas y no una relación polimórfica.** En todo el repositorio no
+hay un solo `morphTo` y esto no lo estrena: el dialecto es la pivote con nombre
+—`implantacion_tarea`, `evidencia_implantacion`— y a cambio se conservan **claves
+foráneas reales**, que un morph no puede tener. El tercer anfitrión entra con una
+pivote y sin tocar `adjuntos`. Y es **N:M de verdad**: el certificado de un curso
+documenta a la vez a quien lo hizo y a la sesión donde se impartió, y registrarlo
+dos veces sería subir el mismo fichero dos veces.
+
+**Disco propio, y de ahí sale la diferencia que define el módulo: borrar un
+adjunto borra también el objeto del almacén.** El bucket de evidencias lleva
+Object Lock en modo compliance —por eso `EvidenciaController::destroy()` deja el
+fichero a propósito—, y con eso un DNI subido por error **no se podría borrar
+nunca**. Con datos personales dentro eso es un problema y no una garantía: quien
+ejerce su derecho de supresión no acepta «la fila ya no está».
+
+Lo copiado de `RegistrarEvidencia`, porque allí ya costó: la huella se calcula del
+fichero **recibido y antes de subirlo** —se mide lo que llegó, no lo que quedó en
+el bucket—, el nombre en el almacén es un ULID bajo el prefijo de la organización,
+y la descarga es un **redirect a URL firmada de cinco minutos**, nunca un enlace
+al bucket.
+
+**Sin verbo de permiso nuevo**: un adjunto no es un módulo, es una capacidad que
+se le añade a un registro, así que las rutas cuelgan del anfitrión y heredan el
+suyo — la descarga con `.ver` y la subida con `.gestionar`. `ConAdjuntos` +
+`TieneAdjuntos` son el contrato; la interfaz existe porque **sin morph no hay un
+tipo común**, y `adjuntosCargados()` porque la magia de Eloquent que resuelve una
+relación en propiedad no cruza una interfaz.
+
+**Sin lista de `mimes`**, igual que una evidencia: lo que hay que adjuntar no lo
+decide esta herramienta, y una lista blanca corta acaba en gente renombrando
+extensiones. El bucket es privado y la descarga va con
+`Content-Disposition: attachment`, así que nada se sirve en línea.
+
+Dos cosas que se probaron y se quitaron:
+
+- **El `CHECK (tamano > 0)`.** Un fichero vacío es un error de quien lo sube, no
+  una incoherencia de los datos, y con la restricción puesta lo que ve esa persona
+  es un 500 hablando de una restricción de PostgreSQL.
+- **Un composable que desplazara hasta el bloque** al llegar desde el menú «…» con
+  `#adjuntos`. El `preserveScroll` del `DataTable` —que está ahí para que las demás
+  acciones de fila no salten al principio— gana a cualquier `scrollIntoView` al
+  montar. **El ancla marca y no desplaza**, y queda dicho: un composable que no
+  hace lo que promete es peor que no tenerlo.
+
+### Lo que este módulo declara que no hace todavía
+
+- **No versiona un adjunto**: se sube otro y se borra el anterior.
+- **No busca dentro del fichero** ni extrae texto.
+- **No comprueba que lo subido corresponda** al registro donde se cuelga: que el
+  título adjuntado a una formación sea de esa formación no lo mira nadie.
+- **No hay pantalla propia de adjuntos** ni recuento en el panel: se ven desde la
+  ficha de su anfitrión y no hay «todos los documentos de la organización».
+- **Un adjunto sin anfitrión no existe por construcción** —se crea vinculado—,
+  pero **desvincular no está expuesto**: lo que la interfaz ofrece es borrar.
 
 ---
 
@@ -2424,6 +2690,32 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
 - **El formulario de acceso se ancla arriba, no se centra en vertical.** Con centrado, aparecer el aviso de credenciales incorrectas empuja todos los campos hacia abajo y hay que volver a buscar el cursor. El panel de marca de la derecha es de color sólido en los dos temas a propósito: es una superficie de marca, como lo sería una fotografía, no una sección que se haya quedado sin invertir.
 
 - **En el acceso, logotipo, título, campos, ayuda y pie forman una sola pila y comparten borde izquierdo.** El logotipo estaba pegado al borde del navegador y el formulario centrado en una columna de casi mil píxeles: sin ningún eje en común se leían como dos cosas sueltas flotando en el mismo hueco. Por eso el `<footer>` repite el `mx-auto w-full max-w-[26rem]` de la pila en vez de centrarse en la columna. Y por eso **el símbolo no se repite**: el panel llevaba un `Logotipo` de 36 px justo encima de la balanza que gira, la misma figura dos veces en la misma superficie. El respaldo «un producto de RM Technology» vive en la columna del formulario, que es la única que se ve por debajo de `lg`.
+
+- **`d3-hierarchy` y `@vue-flow/core` entran por el organigrama, y sólo por él.**
+  La puerta que este documento tenía abierta a d3 era para escalas de tiempo, así
+  que ésta es otra: lo que se compra es **la disposición de un árbol**, el
+  tidy-tree de Reingold–Tilford, que es el otro caso de «no compensa escribirlo a
+  mano» — hacerlo son unas ciento cincuenta líneas y ramas que se solapan en
+  cuanto el árbol se ensancha. `d3-hierarchy` sigue cumpliendo el criterio de
+  siempre: **función pura, sin DOM**.
+
+  Vue Flow es la excepción de verdad, y va con su motivo: aporta el lienzo con su
+  pan y su zoom, que es lo que hace usable un diagrama que no cabe en la pantalla,
+  y **no calcula la disposición** — por eso `d3-hierarchy` hace falta igual y no
+  es uno u otro. Lo que **no** aporta es el aspecto: los nodos son componentes
+  nuestros con los tokens de `app.css`, así que la regla que descartó Chart.js
+  —«obliga a escribir los colores en JavaScript en vez de leerlos de los tokens»—
+  se sigue cumpliendo. El tema propio de la librería se reescribe contra los
+  tokens en `Grafo.vue`.
+
+  Las tres van a **versión exacta**, como TanStack Table y pragmatic-drag-and-drop:
+  que una librería de interacción cambie de comportamiento bajo los pies no lo
+  caza ningún test. Y pesan **72 kB gzip en su propio chunk**, que sólo carga esa
+  pantalla: el bundle principal no se mueve. Mismo criterio que `@number-flow/vue`
+  y que el editor de TipTap.
+
+  **Dónde NO entran**: las gráficas del panel y de los documentos siguen a mano,
+  por lo que dice el punto siguiente.
 
 - **Las gráficas se pintan a mano, y en el PDF las pintará el servidor.** El stack no decía nada de gráficas, ni a favor ni en contra, así que queda escrito aquí. Dos renderizadores por un motivo concreto: en un documento que va a PDF/A-3b y aspira a PDF/UA no debería ejecutarse JavaScript, porque un canvas entra como mapa de bits y se lleva por delante el texto seleccionable. En pantalla, SVG y CSS sobre los tokens de `app.css` (`AnilloProgreso`, `BarraSegmentada`, `components/grafica/`); en el documento, SVG generado en PHP cuando llegue el módulo de documentos. **Chart.js se descartó** por lo anterior y porque obliga a escribir los colores en JavaScript en vez de leerlos de los tokens. Una librería —`d3-scale` y `d3-shape`, que son funciones puras sin DOM— entra el día que haya una serie histórica **con eje de tiempo irregular**: escalas y ticks legibles es lo único que no compensa escribir a mano. **Con el § 4.14 dentro ya hay serie histórica y la librería sigue fuera**, y el matiz es el que importa: el eje de un indicador son cubos etiquetados y equiespaciados que impone `Periodicidad` —«T1 2026», «T2 2026»—, así que los ticks vienen escritos de casa y no hay escala que elegir. Lo pinta `grafica/GraficaSerie.vue` a mano.
 

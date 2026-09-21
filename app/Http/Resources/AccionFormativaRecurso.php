@@ -137,6 +137,23 @@ final class AccionFormativaRecurso extends Recurso
     {
         return [
             Accion::ver('/formacion/{id}'),
+
+            /*
+             * El botón está en la fila y la gestión en la ficha. Va con
+             * `personas.ver` porque lleva a mirar: quien no pueda gestionar verá
+             * la lista y no el botón de subir.
+             *
+             * **El ancla marca el bloque y no desplaza**, y queda dicho porque
+             * es lo que uno espera de un `#`: `DataTable` ejecuta las acciones
+             * con `router.visit(url, { preserveScroll: true })` —que está ahí
+             * para que las demás acciones no salten al principio de la tabla— y
+             * eso gana a cualquier `scrollIntoView` que se intente al montar. Se
+             * probó y se quitó: un composable que no desplaza es peor que no
+             * tenerlo. El bloque está en la ficha y se ve.
+             */
+            (new Accion('documentos', 'Documentos', '/formacion/{id}#adjuntos'))
+                ->icono('Paperclip')
+                ->permiso(Permiso::PersonasVer->value),
             Accion::eliminar(
                 '/formacion/{id}',
                 '¿Eliminar la sesión? Se pierde el registro de quién asistió, que es la prueba de mp.per.3 y mp.per.4.',

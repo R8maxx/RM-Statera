@@ -22,6 +22,7 @@ use App\Http\Controllers\ParteInteresadaController;
 use App\Http\Controllers\PerfilController;
 use App\Http\Controllers\PersonaController;
 use App\Http\Controllers\PlantillaDocumentoController;
+use App\Http\Controllers\PuestoController;
 use App\Http\Controllers\RevisionDireccionController;
 use App\Http\Controllers\RevisionInventarioController;
 use App\Http\Controllers\RiesgoController;
@@ -1065,6 +1066,58 @@ Route::middleware('auth')->group(function (): void {
 
         Route::get('/formacion/{accion}', [FormacionController::class, 'show'])
             ->name('formacion.show');
+
+        Route::get('/puestos', [PuestoController::class, 'index'])
+            ->name('puestos.index');
+
+        /*
+         * Las dos antes que `{puesto}`, para que no se lean como un id. El
+         * organigrama es RUTA y no conmutador de cliente, como `/tareas/tablero`
+         * y `/activos/etiquetas`: el estado es la URL, porque un conmutador que
+         * recuerda la última vista hace que el enlace que alguien pega en un
+         * correo abra otra pantalla.
+         */
+        Route::get('/puestos/organigrama', [PuestoController::class, 'organigrama'])
+            ->name('puestos.organigrama');
+
+        /*
+         * Las dos vistas de diagrama, hermanas de la lista. Tres rutas y no un
+         * conmutador de cliente, por lo mismo que `/tareas`: el estado es la
+         * URL, así que el enlace que alguien pega en un correo abre la vista que
+         * estaba mirando.
+         *
+         * La lista sigue siendo la de `/puestos/organigrama` a propósito: es la
+         * única de las tres que se recorre con el teclado y que cabe en 375 px
+         * sin arrastrar.
+         */
+        Route::get('/puestos/organigrama/grafo', [PuestoController::class, 'grafo'])
+            ->name('puestos.organigrama.grafo');
+
+        Route::get('/puestos/organigrama/grafo-personas', [PuestoController::class, 'grafoConPersonas'])
+            ->name('puestos.organigrama.personas');
+
+        Route::get('/puestos/crear', [PuestoController::class, 'create'])
+            ->middleware(['can:personas.gestionar', ExigirDosFactores::class])
+            ->name('puestos.create');
+
+        Route::get('/puestos/{puesto}', [PuestoController::class, 'show'])
+            ->name('puestos.show');
+
+        /*
+         * Descargar un adjunto es LECTURA, así que va con `personas.ver` y no
+         * con `gestionar`. Es un redirect a una URL firmada de cinco minutos,
+         * como la de una evidencia: el bucket es privado y nunca se enlaza.
+         *
+         * `scopeBindings()` para que el adjunto de otra persona no se descargue
+         * desde ésta: la pivote es la frontera.
+         */
+        Route::get('/personas/{persona}/adjuntos/{adjunto}/descargar', [PersonaController::class, 'descargarAdjunto'])
+            ->scopeBindings()
+            ->name('personas.adjuntos.descargar');
+
+        Route::get('/formacion/{accion}/adjuntos/{adjunto}/descargar', [FormacionController::class, 'descargarAdjunto'])
+            ->scopeBindings()
+            ->name('formacion.adjuntos.descargar');
     });
 
     Route::middleware(['can:personas.gestionar', ExigirDosFactores::class])
@@ -1103,6 +1156,41 @@ Route::middleware('auth')->group(function (): void {
             // asistencias es un gesto, no veinte peticiones.
             Route::put('/formacion/{accion}/asistencia', [FormacionController::class, 'registrarAsistencia'])
                 ->name('formacion.asistencia');
+
+            // Los puestos van con el permiso de personas y sin verbo propio: es
+            // el mismo módulo, y un `puestos.*` nuevo habría que acordarse de
+            // añadirlo a mano en las listas literales de `Rol::permisos()`.
+            Route::post('/puestos', [PuestoController::class, 'store'])
+                ->name('puestos.store');
+            Route::get('/puestos/{puesto}/editar', [PuestoController::class, 'edit'])
+                ->name('puestos.edit');
+            Route::put('/puestos/{puesto}', [PuestoController::class, 'update'])
+                ->name('puestos.update');
+            Route::delete('/puestos/{puesto}', [PuestoController::class, 'destroy'])
+                ->name('puestos.destroy');
+
+            // Quién ocupa qué puesto, con vigencia: se asigna y se cierra desde
+            // la ficha de la persona, que es donde se mira.
+            Route::post('/personas/{persona}/puesto', [PersonaController::class, 'asignarPuesto'])
+                ->name('personas.puesto.asignar');
+            Route::delete('/personas/{persona}/asignaciones/{asignacion}', [PersonaController::class, 'cerrarPuesto'])
+                ->name('personas.puesto.cerrar');
+
+            /*
+             * Los documentos de una persona y de una sesión. Sin verbo de
+             * permiso propio: un adjunto no es un módulo, es una capacidad que
+             * se le añade a un registro, así que hereda el permiso de su
+             * anfitrión.
+             */
+            Route::post('/personas/{persona}/adjuntos', [PersonaController::class, 'subirAdjunto'])
+                ->name('personas.adjuntos.subir');
+            Route::delete('/personas/{persona}/adjuntos/{adjunto}', [PersonaController::class, 'borrarAdjunto'])
+                ->name('personas.adjuntos.borrar');
+
+            Route::post('/formacion/{accion}/adjuntos', [FormacionController::class, 'subirAdjunto'])
+                ->name('formacion.adjuntos.subir');
+            Route::delete('/formacion/{accion}/adjuntos/{adjunto}', [FormacionController::class, 'borrarAdjunto'])
+                ->name('formacion.adjuntos.borrar');
         });
 
     /*

@@ -4,18 +4,22 @@ declare(strict_types=1);
 
 namespace App\Domain\Persona\Models;
 
+use App\Domain\Adjunto\Concerns\ConAdjuntos;
+use App\Domain\Adjunto\Concerns\TieneAdjuntos;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
 use App\Domain\Persona\Enums\TipoPasoPersona;
 use App\Domain\Traza\Concerns\RegistraTraza;
 use App\Models\User;
 use Database\Factories\Persona\PersonaFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use LogicException;
 
 /**
  * Una persona de la organización: § 4.8, cláusula 5.3 y `mp.per.*`.
@@ -32,21 +36,29 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $organizacion_id
  * @property string $codigo
- * @property string $nombre
- * @property ?string $puesto
+ * @property string $nombre_pila
+ * @property ?string $apellido1
+ * @property ?string $apellido2
+ * @property-read string $nombre el completo, que calcula PostgreSQL
+ * @property ?string $nif
+ * @property ?string $telefono
+ * @property ?string $telefono_fijo
+ * @property ?string $direccion
+ * @property ?Carbon $fecha_nacimiento
  * @property ?string $email
  * @property ?int $user_id
  * @property Carbon $fecha_alta
  * @property ?Carbon $fecha_baja
  * @property ?string $notas
  */
-class Persona extends Model
+class Persona extends Model implements ConAdjuntos
 {
     /** @use HasFactory<PersonaFactory> */
     use HasFactory;
 
     use PerteneceAOrganizacion;
     use RegistraTraza;
+    use TieneAdjuntos;
 
     /**
      * Cuántos meses vale una formación antes de considerarse caducada.
@@ -60,17 +72,86 @@ class Persona extends Model
      */
     public const MESES_DE_VIGENCIA_FORMATIVA = 12;
 
+    /**
+     * `nombre` NO está, y no es un olvido: la calcula PostgreSQL.
+     *
+     * Ver el accesor de abajo y la migración `ampliar_datos_de_la_persona`.
+     */
     protected $fillable = [
         'organizacion_id',
         'codigo',
-        'nombre',
-        'puesto',
+        'nombre_pila',
+        'apellido1',
+        'apellido2',
+        'nif',
+        'telefono',
+        'telefono_fijo',
+        'direccion',
+        'fecha_nacimiento',
         'email',
         'user_id',
         'fecha_alta',
         'fecha_baja',
         'notas',
     ];
+
+    /**
+     * Tras insertar hay que releer la fila, porque `nombre` la calcula la base.
+     *
+     * El `INSERT` de Eloquent sólo recupera el `id`, así que una persona recién
+     * creada llega **sin `nombre`** y lo primero que lo lea recibe `null`: un
+     * `TypeError` en la excepción de `DesignarRol`, un mensaje que empieza por un
+     * espacio en el controlador, o un `sprintf` con un hueco. Y ninguno de los
+     * tres menciona la palabra «generada».
+     *
+     * Va aquí y no en cada llamador por lo mismo que la regla de una transición
+     * vive en la acción de dominio y no en el `FormRequest`: vale igual para el
+     * controlador, para el seeder, para una factory y para un importador. Es el
+     * mismo problema que resuelven a mano `CrearTarea`, `RegistrarAuditoria` y
+     * `GenerarDocumento::encolar()` con sus valores por defecto de la base; la
+     * diferencia es que aquí la columna **nunca** se puede escribir desde PHP, así
+     * que no hay forma de adelantarla.
+     *
+     * La alternativa era recomponer el nombre en PHP, y sería la misma regla
+     * escrita dos veces — justo lo que la columna generada existe para evitar.
+     */
+    protected static function booted(): void
+    {
+        static::created(static function (self $persona): void {
+            $persona->refresh();
+        });
+    }
+
+    /**
+     * El nombre completo lo calcula la base y aquí sólo se lee.
+     *
+     * Es **columna generada `STORED`** y no un accesor de PHP, porque
+     * `PersonaRecurso` la ordena, la busca y la usa de `ordenPorDefecto()`: eso
+     * exige una columna de SQL de verdad. Y no se escribe al lado de sus partes
+     * porque sería el mismo dato en dos sitios que pueden discrepar.
+     *
+     * El `set` que lanza no es paranoia. Sacarla de `$fillable` tapa la
+     * asignación masiva, pero `$persona->nombre = 'x'` seguiría llegando a la
+     * base, y allí PostgreSQL contesta «cannot insert a non-DEFAULT value into
+     * column "nombre"» — un error que no menciona ni el modelo ni la línea que
+     * lo escribió.
+     *
+     * @return Attribute<string, never>
+     */
+    protected function nombre(): Attribute
+    {
+        return Attribute::make(
+            set: fn (): never => throw new LogicException(
+                'personas.nombre la calcula la base desde nombre_pila, apellido1 y apellido2: escribe esas tres.',
+            ),
+        );
+    }
+
+    /** Los títulos, contratos y demás papeles de esta persona. */
+    public function tablaDeAdjuntos(): string
+    {
+        return 'persona_adjunto';
+    }
 
     /** @return BelongsTo<User, $this> */
     public function usuario(): BelongsTo
@@ -104,6 +185,36 @@ class Persona extends Model
     public function asistencias(): HasMany
     {
         return $this->hasMany(Asistencia::class);
+    }
+
+    /**
+     * Las asignaciones de puesto, vigentes y cerradas.
+     *
+     * **Sin joins ni orden**, como `Auditoria::puntos()` y `Puesto::asignaciones()`:
+     * el *route model binding* acotado resuelve el hijo con un `where` sin
+     * cualificar, y con otra tabla unida muere con «column reference "id" is
+     * ambiguous», un error que no menciona ni la ruta ni la relación.
+     *
+     * @return HasMany<AsignacionPuesto, $this>
+     */
+    public function asignaciones(): HasMany
+    {
+        return $this->hasMany(AsignacionPuesto::class);
+    }
+
+    /**
+     * El puesto que ocupa hoy, si ocupa alguno.
+     *
+     * **Se deriva de la asignación vigente y no se guarda en `personas`**, que es
+     * lo mismo que `activa` con `fecha_baja` y `vigente` con el estado del
+     * análisis del contexto: con una columna al lado, cambiar de puesto sería
+     * escribir en dos sitios y acordarse de los dos.
+     */
+    public function puestoVigente(): ?Puesto
+    {
+        return $this->asignaciones
+            ->first(static fn (AsignacionPuesto $asignacion): bool => $asignacion->estaVigente())
+            ?->puesto;
     }
 
     /** @return HasMany<AcuerdoConfidencialidad, $this> */
@@ -257,6 +368,12 @@ class Persona extends Model
             return $this->designaciones()->where($campo ?? 'designaciones_rol.id', $value)->first();
         }
 
+        // `asignacion` → `asignacions` en inglés, que no es la tabla. Quinta vez
+        // en el producto que este plural hay que escribirlo a mano.
+        if ($childType === 'asignacion') {
+            return $this->asignaciones()->where($campo ?? 'asignaciones_puesto.id', $value)->first();
+        }
+
         return parent::resolveChildRouteBinding($childType, $value, $campo);
     }
 
@@ -266,6 +383,7 @@ class Persona extends Model
         return [
             'fecha_alta' => 'date',
             'fecha_baja' => 'date',
+            'fecha_nacimiento' => 'date',
         ];
     }
 

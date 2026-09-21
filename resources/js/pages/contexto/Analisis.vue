@@ -52,7 +52,7 @@ defineProps<{
             </template>
         </CabeceraPagina>
 
-        <p v-if="hayBorrador" class="mb-4 text-sm text-muted-foreground">
+        <p v-if="hayBorrador" class="text-sm text-muted-foreground">
             Hay una revisión abierta sin firmar. Lo que se escriba en el DAFO y en las partes
             interesadas se anota en ella hasta que alguien la apruebe.
         </p>

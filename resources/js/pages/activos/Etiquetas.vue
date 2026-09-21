@@ -48,7 +48,7 @@ function imprimir(): void {
                 </template>
             </CabeceraPagina>
 
-            <p v-if="descartados > 0" class="mb-6 text-sm text-muted-foreground">
+            <p v-if="descartados > 0" class="text-sm text-muted-foreground">
                 Se han dejado fuera <span class="cifra">{{ descartados }}</span>
                 {{ descartados === 1 ? 'activo' : 'activos' }} por no ser físicos o estar ya de baja.
             </p>

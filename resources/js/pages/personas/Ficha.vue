@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Aviso from '@/components/Aviso.vue';
+import BloqueAdjuntos, { type Adjunto as Documento } from '@/components/adjunto/BloqueAdjuntos.vue';
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
@@ -23,6 +24,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { conOpcionVacia, SIN_VALOR } from '@/lib/formularios';
 import { Link, router, useForm } from '@inertiajs/vue3';
 import {
+    BriefcaseIcon,
     ChevronRightIcon,
     FileSignatureIcon,
     GraduationCapIcon,
@@ -40,10 +42,30 @@ interface OpcionRol extends Opcion {
     incompatibles: string[];
 }
 
+interface Asignacion {
+    id: number;
+    puesto_id: number;
+    puesto: string | null;
+    codigo: string | null;
+    desde: string;
+    hasta: string | null;
+    vigente: boolean;
+    asignadaPor: string | null;
+    nota: string | null;
+}
+
 interface Persona {
     id: number;
     codigo: string;
     nombre: string;
+    nombre_pila: string;
+    apellido1: string | null;
+    apellido2: string | null;
+    nif: string | null;
+    telefono: string | null;
+    telefono_fijo: string | null;
+    direccion: string | null;
+    fecha_nacimiento: string | null;
     puesto: string | null;
     email: string | null;
     usuario: string | null;
@@ -120,6 +142,9 @@ const props = defineProps<{
     designaciones: Designacion[];
     formacion: Formacion[];
     acuerdos: Acuerdo[];
+    adjuntos: Documento[];
+    asignaciones: Asignacion[];
+    puestos: Opcion[];
     pasos: Checklist[];
     maximoPasos: number;
     puedeGestionar: boolean;
@@ -188,8 +213,53 @@ const revocadasALaVista = ref(false);
 const { asentada: revocadasAsentadas, alTerminarTransicion: alTerminarRevocadas } =
     useDesplegable(revocadasALaVista);
 
+/*
+ * La tarjeta de identificación sólo se pinta si hay algo que enseñar. Una
+ * tarjeta con cinco rótulos y ningún valor ocupa sitio para decir lo mismo que
+ * su ausencia, que es el criterio del resto del producto con los estados vacíos.
+ */
+const hayDatosDeContacto = computed(
+    () =>
+        props.persona.nif !== null ||
+        props.persona.fecha_nacimiento !== null ||
+        props.persona.telefono !== null ||
+        props.persona.telefono_fijo !== null ||
+        props.persona.direccion !== null,
+);
+
 const vigentes = computed(() => props.designaciones.filter((item) => item.vigente));
 const historicas = computed(() => props.designaciones.filter((item) => !item.vigente));
+
+/* --- El puesto que ocupa --- */
+
+const asignacionVigente = computed(() => props.asignaciones.find((una) => una.vigente) ?? null);
+const asignacionesPasadas = computed(() => props.asignaciones.filter((una) => !una.vigente));
+
+const asignandoPuesto = ref(false);
+
+const puestoForm = useForm({ puesto_id: '', desde: '', nota: '' });
+
+function abrirPuesto(): void {
+    puestoForm.reset();
+    puestoForm.clearErrors();
+    puestoForm.desde = new Date().toISOString().slice(0, 10);
+    asignandoPuesto.value = true;
+}
+
+function asignarPuesto(): void {
+    puestoForm.post(`/personas/${props.persona.id}/puesto`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            asignandoPuesto.value = false;
+            puestoForm.reset();
+        },
+    });
+}
+
+/** Cierra el puesto sin poner otro: **no borra la fila**, le pone fecha de fin. */
+function cerrarPuesto(id: number): void {
+    router.delete(`/personas/${props.persona.id}/asignaciones/${id}`, { preserveScroll: true });
+}
 
 /* --- El acuerdo de confidencialidad: mp.per.2 --- */
 
@@ -327,6 +397,80 @@ function guardarLista(tipo: string, pasos: Paso[]): void {
 
         <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
             <div class="space-y-6">
+                <!--
+                    El puesto va ANTES que los nombramientos, y no es un capricho
+                    de orden: el puesto es lo que esta persona hace todos los
+                    días, y un nombramiento ENS es un cargo que se le suma. Al
+                    revés, la primera tarjeta estaría vacía para casi toda la
+                    plantilla.
+                -->
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Puesto</CardTitle>
+                        <CardDescription>
+                            El puesto de trabajo, no el rol ENS. Las asignaciones llevan vigencia y
+                            no se borran: la pregunta del auditor es desde cuándo, y también hasta
+                            cuándo.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent class="space-y-4">
+                        <EstadoVacio
+                            v-if="asignacionVigente === null"
+                            :icono="BriefcaseIcon"
+                            titulo="Sin puesto asignado"
+                            descripcion="Asignarle uno es lo que la coloca en el organigrama."
+                        />
+
+                        <div v-else class="flex flex-wrap items-center gap-2 text-sm">
+                            <Link
+                                :href="`/puestos/${asignacionVigente.puesto_id}`"
+                                class="font-medium underline-offset-4 hover:underline"
+                            >
+                                <span class="cifra text-muted-foreground">{{ asignacionVigente.codigo }}</span>
+                                {{ asignacionVigente.puesto }}
+                            </Link>
+                            <span class="text-muted-foreground">desde el {{ asignacionVigente.desde }}</span>
+                            <span v-if="asignacionVigente.nota" class="text-muted-foreground">
+                                · {{ asignacionVigente.nota }}
+                            </span>
+                            <Button
+                                v-if="puedeGestionar"
+                                variant="ghost"
+                                size="sm"
+                                @click="cerrarPuesto(asignacionVigente.id)"
+                            >
+                                Dejar el puesto
+                            </Button>
+                        </div>
+
+                        <div v-if="asignacionesPasadas.length > 0" class="space-y-1">
+                            <h3 class="text-sm text-muted-foreground">Antes ocupó</h3>
+                            <ul class="divide-y divide-border">
+                                <li
+                                    v-for="pasada in asignacionesPasadas"
+                                    :key="pasada.id"
+                                    class="flex flex-wrap items-center gap-2 py-2 text-sm text-muted-foreground"
+                                >
+                                    <Link
+                                        :href="`/puestos/${pasada.puesto_id}`"
+                                        class="underline-offset-4 hover:underline"
+                                    >{{ pasada.puesto }}</Link>
+                                    <span>del {{ pasada.desde }} al {{ pasada.hasta }}</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <Button
+                            v-if="puedeGestionar && persona.activa"
+                            variant="outline"
+                            size="sm"
+                            @click="abrirPuesto"
+                        >
+                            {{ asignacionVigente === null ? 'Asignar un puesto' : 'Cambiar de puesto' }}
+                        </Button>
+                    </CardContent>
+                </Card>
+
                 <!-- Cláusula 5.3 -->
                 <Card>
                     <CardHeader>
@@ -620,6 +764,64 @@ function guardarLista(tipo: string, pasos: Paso[]): void {
                     </CardContent>
                 </Card>
 
+                <!--
+                    Los datos personales van en la columna lateral y no en la
+                    cabecera: identifican y localizan a quien figura en un
+                    nombramiento, pero no son lo que se viene a mirar a esta
+                    ficha. Si no hay ninguno, la tarjeta no se pinta — un bloque
+                    con cinco guiones no dice nada que su ausencia no diga.
+                -->
+                <Card v-if="hayDatosDeContacto">
+                    <CardHeader>
+                        <CardTitle>Identificación y contacto</CardTitle>
+                    </CardHeader>
+                    <CardContent class="text-sm">
+                        <dl class="grid gap-2">
+                            <div v-if="persona.nif" class="grid gap-1">
+                                <dt class="text-muted-foreground">NIF o documento</dt>
+                                <dd class="cifra font-medium">{{ persona.nif }}</dd>
+                            </div>
+                            <div v-if="persona.fecha_nacimiento" class="grid gap-1">
+                                <dt class="text-muted-foreground">Fecha de nacimiento</dt>
+                                <dd class="font-medium">{{ persona.fecha_nacimiento }}</dd>
+                            </div>
+                            <div v-if="persona.telefono" class="grid gap-1">
+                                <dt class="text-muted-foreground">Teléfono</dt>
+                                <dd class="font-medium">{{ persona.telefono }}</dd>
+                            </div>
+                            <div v-if="persona.telefono_fijo" class="grid gap-1">
+                                <dt class="text-muted-foreground">Teléfono fijo</dt>
+                                <dd class="font-medium">{{ persona.telefono_fijo }}</dd>
+                            </div>
+                            <div v-if="persona.direccion" class="grid gap-1">
+                                <dt class="text-muted-foreground">Dirección</dt>
+                                <dd class="font-medium whitespace-pre-line">{{ persona.direccion }}</dd>
+                            </div>
+                        </dl>
+                    </CardContent>
+                </Card>
+
+                <!--
+                    Los documentos de la persona: el título de un curso, el
+                    contrato firmado, el DNI escaneado. NO son evidencias —una
+                    evidencia prueba un requisito y lleva caducidad y
+                    responsable—, y el diálogo lo dice para que nadie suba aquí
+                    lo que va allí.
+                -->
+                <Card id="adjuntos">
+                    <CardHeader>
+                        <CardTitle>Documentos</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <BloqueAdjuntos
+                            :adjuntos="adjuntos"
+                            :base="`/personas/${persona.id}/adjuntos`"
+                            :puede-gestionar="puedeGestionar"
+                            vacio="Aquí van sus papeles: el título de un curso, el contrato firmado, lo que haya que conservar de esta persona."
+                        />
+                    </CardContent>
+                </Card>
+
                 <Card>
                     <CardHeader>
                         <CardTitle>Cuenta de Statera</CardTitle>
@@ -706,6 +908,57 @@ function guardarLista(tipo: string, pasos: Paso[]): void {
         </Dialog>
 
         <!-- Registrar acuerdo -->
+        <!--
+            Cambiar de puesto CIERRA el anterior, no lo sustituye: eso lo hace
+            `AsignarPuesto` en una transacción, porque entre las dos escrituras
+            la persona estaría sin puesto.
+        -->
+        <Dialog v-model:open="asignandoPuesto">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Asignar un puesto</DialogTitle>
+                    <DialogDescription>
+                        Si ya ocupaba otro, se cierra el día antes de empezar éste: dos
+                        asignaciones que se solapan harían que «qué puesto tenía el 3 de marzo»
+                        tuviera dos respuestas.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div class="space-y-4">
+                    <CampoSelect
+                        nombre="puesto_id"
+                        etiqueta="Puesto"
+                        :opciones="puestos"
+                        v-model="puestoForm.puesto_id"
+                        :error="puestoForm.errors.puesto_id"
+                        requerido
+                    />
+
+                    <CampoTexto
+                        nombre="desde"
+                        etiqueta="Desde"
+                        tipo="date"
+                        v-model="puestoForm.desde"
+                        :error="puestoForm.errors.desde"
+                        ayuda="Puede ser pasada: al meter el histórico, lo normal es registrar algo que empezó hace años."
+                    />
+
+                    <CampoTextarea
+                        nombre="nota"
+                        etiqueta="Nota"
+                        :filas="2"
+                        v-model="puestoForm.nota"
+                        :error="puestoForm.errors.nota"
+                    />
+                </div>
+
+                <DialogFooter>
+                    <Button variant="outline" @click="asignandoPuesto = false">Cancelar</Button>
+                    <Button :disabled="puestoForm.processing" @click="asignarPuesto">Asignar</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
         <Dialog v-model:open="firmando">
             <DialogContent>
                 <DialogHeader>

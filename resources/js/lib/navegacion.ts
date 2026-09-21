@@ -13,6 +13,7 @@ import {
     LayoutTemplateIcon,
     LightbulbIcon,
     ListTodoIcon,
+    NetworkIcon,
     PaperclipIcon,
     SearchCheckIcon,
     ServerIcon,
@@ -266,6 +267,23 @@ export const navegacion: GrupoNavegacion[] = [
                  * la paleta es el error que ya se evitó con «revisión».
                  */
                 alias: ['plantilla', 'empleados', 'roles ens', 'nombramientos', 'confidencialidad', '5.3', 'mp.per'],
+            },
+            {
+                titulo: 'Puestos',
+                href: '/puestos',
+                icono: NetworkIcon,
+                /*
+                 * Entrada propia y no un bloque de Personas, por lo mismo que
+                 * Formación: el catálogo de puestos y el organigrama son dos
+                 * pantallas con su tabla y su árbol, no una lista dentro de una
+                 * ficha.
+                 *
+                 * **Sin el alias «roles»**, que es de Personas: los cinco roles
+                 * del Anexo II se designan por sistema y no son puestos de
+                 * trabajo. Empatar los dos en la paleta es el error que ya se
+                 * evitó con «revisión».
+                 */
+                alias: ['organigrama', 'cargo', 'jerarquía', 'ficha de puesto', 'caracterización', 'mp.per.1'],
             },
             {
                 titulo: 'Formación',

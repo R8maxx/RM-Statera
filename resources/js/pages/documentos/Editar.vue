@@ -232,7 +232,7 @@ const etiquetaPdf = computed(() => {
             </template>
         </CabeceraPagina>
 
-        <p v-if="editadoEn" class="mb-4 text-sm text-muted-foreground">
+        <p v-if="editadoEn" class="text-sm text-muted-foreground">
             Este documento ya se ha editado a mano, y lo dice en su portada y en sus limitaciones.
         </p>
 

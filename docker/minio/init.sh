@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-# Crea los dos buckets que la aplicación espera. Antes era un paso manual en la
+# Crea los tres buckets que la aplicación espera. Antes era un paso manual en la
 # consola de MinIO, y olvidarlo se manifestaba mucho después: la subida de una
 # evidencia fallando con un error de S3 que no dice «el bucket no existe».
 #
@@ -15,7 +15,7 @@ until mc alias set statera "http://minio:9000" "${MINIO_ROOT_USER}" "${MINIO_ROO
     sleep 1
 done
 
-for bucket in "${AWS_BUCKET}" "${AWS_BUCKET_DOCUMENTOS}"; do
+for bucket in "${AWS_BUCKET}" "${AWS_BUCKET_DOCUMENTOS}" "${AWS_BUCKET_ADJUNTOS}"; do
     mc mb --ignore-existing "statera/${bucket}"
     mc version enable "statera/${bucket}"
     echo "[statera] bucket ${bucket} listo"

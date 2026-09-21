@@ -71,6 +71,18 @@ final class PersonaRecurso extends Recurso
                 (select count(*) from pasos_persona pp
                     where pp.persona_id = personas.id and pp.tipo = 'baja' and pp.hecho_en is null) as baja_pendiente
             SQL)
+            /*
+             * El puesto ya no es una columna de `personas`: es la asignación
+             * vigente. Por subconsulta y no por join, como las cuatro de arriba —
+             * con el join, una persona con tres asignaciones históricas saldría
+             * tres veces y la paginación contaría mal.
+             */
+            ->selectRaw(<<<'SQL'
+                (select pu.titulo from asignaciones_puesto ap
+                    join puestos pu on pu.id = ap.puesto_id
+                    where ap.persona_id = personas.id and ap.hasta is null
+                    limit 1) as puesto
+            SQL)
             ->with('usuario');
     }
 
@@ -82,6 +94,13 @@ final class PersonaRecurso extends Recurso
 
             Columna::texto('nombre', 'Nombre')->ordenable(),
 
+            /*
+             * Ordenable sobre el alias de la subconsulta —PostgreSQL resuelve el
+             * `ORDER BY` contra la columna de salida—, pero **no buscable**: un
+             * alias del `SELECT` no es visible en el `WHERE`, y meterlo en la
+             * búsqueda daría «column "puesto" does not exist». Para buscar por
+             * puesto está `/puestos`.
+             */
             Columna::texto('puesto', 'Puesto')->ordenable(),
 
             Columna::badge('estado', 'Estado')
@@ -145,6 +164,18 @@ final class PersonaRecurso extends Recurso
                 ->ayuda('La cuenta de Statera de esta persona, si tiene. La mayoría no tiene.')
                 ->formato(fn (Persona $fila): ?string => $fila->usuario?->email),
 
+            /*
+             * **Oculta por defecto, y a propósito.** Es un dato personal en una
+             * herramienta que está en el alcance de su propio SGSI: quien lo
+             * necesita lo enseña, y no se pinta en una tabla que alguien puede
+             * tener abierta en una pantalla compartida. Por lo mismo no entra en
+             * la búsqueda libre — ahí está el resto de la ficha.
+             */
+            Columna::texto('nif', 'NIF')
+                ->oculta()
+                ->ancho('9rem')
+                ->ayuda('Documento de identidad. Dato personal: va oculto salvo que se pida.'),
+
             Columna::fecha('fecha_alta', 'Alta')->ordenable()->oculta(),
             Columna::fecha('fecha_baja', 'Baja')->ordenable()->oculta(),
         ];
@@ -157,9 +188,8 @@ final class PersonaRecurso extends Recurso
             Filtro::busqueda('q', 'Buscar', [
                 'codigo' => 'codigo',
                 'nombre' => 'nombre',
-                'puesto' => 'puesto',
                 'email' => 'nombre',
-            ])->placeholder('Buscar por código, nombre, puesto o correo…'),
+            ])->placeholder('Buscar por código, nombre o correo…'),
 
             /*
              * Por scope, no con la condición escrita otra vez aquí: son los mismos
@@ -179,6 +209,23 @@ final class PersonaRecurso extends Recurso
     {
         return [
             Accion::ver('/personas/{id}'),
+
+            /*
+             * El botón está en la fila y la gestión en la ficha. Va con
+             * `personas.ver` porque lleva a mirar: quien no pueda gestionar verá
+             * la lista y no el botón de subir.
+             *
+             * **El ancla marca el bloque y no desplaza**, y queda dicho porque
+             * es lo que uno espera de un `#`: `DataTable` ejecuta las acciones
+             * con `router.visit(url, { preserveScroll: true })` —que está ahí
+             * para que las demás acciones no salten al principio de la tabla— y
+             * eso gana a cualquier `scrollIntoView` que se intente al montar. Se
+             * probó y se quitó: un composable que no desplaza es peor que no
+             * tenerlo. El bloque está en la ficha y se ve.
+             */
+            (new Accion('documentos', 'Documentos', '/personas/{id}#adjuntos'))
+                ->icono('Paperclip')
+                ->permiso(Permiso::PersonasVer->value),
             Accion::eliminar(
                 '/personas/{id}',
                 '¿Eliminar a esta persona? Se pierde su formación, sus acuerdos y el histórico de sus '

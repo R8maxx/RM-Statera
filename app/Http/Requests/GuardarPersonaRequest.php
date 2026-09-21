@@ -39,7 +39,35 @@ class GuardarPersonaRequest extends FormRequest
                     ->ignore($id),
             ],
 
-            'nombre' => ['required', 'string', 'max:255'],
+            /*
+             * `nombre` NO se valida aquí, y tampoco se manda: lo calcula
+             * PostgreSQL desde estas tres. Si volviera a aparecer en esta lista,
+             * `Persona::create($request->validated())` lo **descartaría en
+             * silencio** —no está en `$fillable`— y el formulario parecería
+             * funcionar mientras el dato se pierde.
+             */
+            'nombre_pila' => ['required', 'string', 'max:255'],
+            'apellido1' => ['nullable', 'string', 'max:255'],
+            'apellido2' => ['nullable', 'string', 'max:255'],
+
+            /*
+             * Sin validar la letra ni el formato: un NIE, un pasaporte y un
+             * documento extranjero no la tienen, y rechazarlos sería impedir dar
+             * de alta a alguien que trabaja aquí. Lo único que se impone es que no
+             * haya dos iguales en la misma organización.
+             */
+            'nif' => [
+                'nullable', 'string', 'max:32',
+                Rule::unique('personas', 'nif')
+                    ->where('organizacion_id', app(ContextoOrganizacion::class)->idObligatorio())
+                    ->ignore($id),
+            ],
+
+            'telefono' => ['nullable', 'string', 'max:32'],
+            'telefono_fijo' => ['nullable', 'string', 'max:32'],
+            'direccion' => ['nullable', 'string', 'max:500'],
+            'fecha_nacimiento' => ['nullable', 'date', 'before:today'],
+
             'puesto' => ['nullable', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255'],
 
@@ -58,6 +86,23 @@ class GuardarPersonaRequest extends FormRequest
     }
 
     /**
+     * El NIF se normaliza antes de validarlo.
+     *
+     * Sin esto, «12345678z», «12345678Z» y «  12345678-Z » son tres documentos
+     * distintos para el índice único, y la unicidad que promete el campo no
+     * existe. Se toca la grafía y no el contenido: ni se valida la letra ni se
+     * rechaza lo que no parezca español.
+     */
+    protected function prepareForValidation(): void
+    {
+        $nif = $this->input('nif');
+
+        if (is_string($nif)) {
+            $this->merge(['nif' => mb_strtoupper(preg_replace('/[\s-]+/u', '', $nif) ?? $nif)]);
+        }
+    }
+
+    /**
      * @return array<string, string>
      */
     public function messages(): array
@@ -65,6 +110,8 @@ class GuardarPersonaRequest extends FormRequest
         return [
             'fecha_baja.after_or_equal' => 'Nadie se va antes de entrar: revisa las dos fechas.',
             'user_id.unique' => 'Esa cuenta ya está vinculada a otra persona.',
+            'nif.unique' => 'Ya hay otra persona con ese documento en la organización.',
+            'fecha_nacimiento.before' => 'La fecha de nacimiento tiene que ser anterior a hoy.',
         ];
     }
 
@@ -77,6 +124,12 @@ class GuardarPersonaRequest extends FormRequest
             'user_id' => 'cuenta de Statera',
             'fecha_alta' => 'fecha de alta',
             'fecha_baja' => 'fecha de baja',
+            'nombre_pila' => 'nombre',
+            'apellido1' => 'primer apellido',
+            'apellido2' => 'segundo apellido',
+            'nif' => 'NIF o documento',
+            'telefono_fijo' => 'teléfono fijo',
+            'fecha_nacimiento' => 'fecha de nacimiento',
         ];
     }
 }

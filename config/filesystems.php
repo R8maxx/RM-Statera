@@ -101,6 +101,35 @@ return [
             'report' => false,
         ],
 
+        /*
+         * Los adjuntos: la documentación que cuelga de una persona o de una
+         * sesión de formación. Bucket propio y NO el de evidencias, y el motivo
+         * es concreto: en producción aquél lleva Object Lock en modo compliance,
+         * así que un DNI escaneado subido por error no se podría borrar nunca —
+         * y eso, con datos personales dentro, es un problema y no una garantía.
+         *
+         * Aquí borrar SÍ borra el objeto, que es lo que un adjunto necesita y
+         * una evidencia no debe permitir.
+         */
+        'adjuntos' => [
+            'driver' => 's3',
+            'key' => env('AWS_ACCESS_KEY_ID'),
+            'secret' => env('AWS_SECRET_ACCESS_KEY'),
+            'region' => env('AWS_DEFAULT_REGION'),
+            'bucket' => env('AWS_BUCKET_ADJUNTOS', 'statera-adjuntos'),
+            'url' => env('AWS_URL'),
+            'endpoint' => env('AWS_ENDPOINT'),
+            // Por dónde conecta el servidor y con qué host se firma la URL que
+            // abre el navegador no son la misma pregunta. Lo desarrolla
+            // `AlmacenServiceProvider`; si está vacío o coincide con `endpoint`,
+            // no se monta nada.
+            'endpoint_publico' => env('AWS_ENDPOINT_PUBLICO'),
+            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'visibility' => 'private',
+            'throw' => true,
+            'report' => false,
+        ],
+
         'evidencias' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

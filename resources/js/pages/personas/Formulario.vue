@@ -16,6 +16,14 @@ interface Persona {
     id: number;
     codigo: string;
     nombre: string;
+    nombre_pila: string;
+    apellido1: string | null;
+    apellido2: string | null;
+    nif: string | null;
+    telefono: string | null;
+    telefono_fijo: string | null;
+    direccion: string | null;
+    fecha_nacimiento: string | null;
     puesto: string | null;
     email: string | null;
     user_id: number | null;
@@ -60,12 +68,32 @@ const valor = computed(() => ({
                     ayuda="Único dentro de la organización. Se propone el siguiente, pero si ya hay número de empleado, es el que vale."
                 />
 
+                <!--
+                    Tres campos y no uno. El nombre completo que se muestra, se
+                    ordena y se busca lo calcula PostgreSQL desde estos tres, así
+                    que aquí no hay ningún campo «nombre completo» que rellenar: no
+                    existe como dato que se escriba.
+                -->
                 <CampoTexto
-                    nombre="nombre"
+                    nombre="nombre_pila"
                     etiqueta="Nombre"
-                    :valor-inicial="persona?.nombre ?? undefined"
-                    :error="errors.nombre"
+                    :valor-inicial="persona?.nombre_pila ?? undefined"
+                    :error="errors.nombre_pila"
                     requerido
+                />
+
+                <CampoTexto
+                    nombre="apellido1"
+                    etiqueta="Primer apellido"
+                    :valor-inicial="persona?.apellido1 ?? undefined"
+                    :error="errors.apellido1"
+                />
+
+                <CampoTexto
+                    nombre="apellido2"
+                    etiqueta="Segundo apellido"
+                    :valor-inicial="persona?.apellido2 ?? undefined"
+                    :error="errors.apellido2"
                 />
 
                 <CampoTexto
@@ -91,6 +119,52 @@ const valor = computed(() => ({
                     :valor-inicial="persona?.user_id ? String(persona.user_id) : undefined"
                     :error="errors.user_id"
                     ayuda="El puente entre la plantilla y la herramienta, y puede estar vacío: la mayoría de la gente no entra nunca en Statera. Una cuenta pertenece como mucho a una persona."
+                />
+            </SeccionFormulario>
+
+            <SeccionFormulario
+                titulo="Identificación y contacto"
+                ayuda="Datos personales. Se guardan para poder identificar y localizar a quien figura en un nombramiento o en una hoja de firmas, y no salen ni en la búsqueda de la tabla ni en la exportación."
+            >
+                <CampoTexto
+                    nombre="nif"
+                    etiqueta="NIF o documento"
+                    :valor-inicial="persona?.nif ?? undefined"
+                    :error="errors.nif"
+                    ayuda="NIF, NIE o pasaporte. No se comprueba la letra —un documento extranjero no la tiene—, sólo que no haya dos iguales en la organización."
+                />
+
+                <CampoTexto
+                    nombre="fecha_nacimiento"
+                    etiqueta="Fecha de nacimiento"
+                    tipo="date"
+                    :valor-inicial="persona?.fecha_nacimiento ?? undefined"
+                    :error="errors.fecha_nacimiento"
+                />
+
+                <CampoTexto
+                    nombre="telefono"
+                    etiqueta="Teléfono"
+                    tipo="tel"
+                    :valor-inicial="persona?.telefono ?? undefined"
+                    :error="errors.telefono"
+                />
+
+                <CampoTexto
+                    nombre="telefono_fijo"
+                    etiqueta="Teléfono fijo"
+                    tipo="tel"
+                    :valor-inicial="persona?.telefono_fijo ?? undefined"
+                    :error="errors.telefono_fijo"
+                    ayuda="El fijo o el corporativo, si lo hay."
+                />
+
+                <CampoTextarea
+                    nombre="direccion"
+                    etiqueta="Dirección"
+                    :filas="2"
+                    :valor-inicial="persona?.direccion ?? undefined"
+                    :error="errors.direccion"
                 />
             </SeccionFormulario>
 

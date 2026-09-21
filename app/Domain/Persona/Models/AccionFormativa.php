@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Persona\Models;
 
+use App\Domain\Adjunto\Concerns\ConAdjuntos;
+use App\Domain\Adjunto\Concerns\TieneAdjuntos;
 use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
 use App\Domain\Persona\Enums\TipoAccionFormativa;
@@ -35,13 +37,14 @@ use Illuminate\Support\Carbon;
  * @property ?string $contenido
  * @property ?int $evidencia_id
  */
-class AccionFormativa extends Model
+class AccionFormativa extends Model implements ConAdjuntos
 {
     /** @use HasFactory<AccionFormativaFactory> */
     use HasFactory;
 
     use PerteneceAOrganizacion;
     use RegistraTraza;
+    use TieneAdjuntos;
 
     protected $table = 'acciones_formativas';
 
@@ -55,6 +58,12 @@ class AccionFormativa extends Model
         'contenido',
         'evidencia_id',
     ];
+
+    /** La hoja de firmas escaneada, el material, el certificado del proveedor. */
+    public function tablaDeAdjuntos(): string
+    {
+        return 'accion_formativa_adjunto';
+    }
 
     /** @return BelongsTo<Evidencia, $this> */
     public function evidencia(): BelongsTo

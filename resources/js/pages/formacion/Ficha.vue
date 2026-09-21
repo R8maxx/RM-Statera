@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Aviso from '@/components/Aviso.vue';
+import BloqueAdjuntos, { type Adjunto as Documento } from '@/components/adjunto/BloqueAdjuntos.vue';
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
 import EstadoVacio from '@/components/EstadoVacio.vue';
 import { SearchIcon, UsersIcon } from '@lucide/vue';
@@ -54,6 +55,7 @@ interface PersonaConvocada {
 const props = defineProps<{
     accion: Accion;
     personas: PersonaConvocada[];
+    adjuntos: Documento[];
     puedeGestionar: boolean;
 }>();
 
@@ -206,6 +208,25 @@ function guardar(): void {
                         Adjuntarla
                     </Link>
                 </p>
+            </CardContent>
+        </Card>
+
+        <!--
+            El material de la sesión, y NO la prueba: la hoja de firmas es una
+            evidencia porque prueba `mp.per.3`/`mp.per.4`, y esto es lo demás —el
+            temario, las diapositivas, el certificado del proveedor—.
+        -->
+        <Card id="adjuntos">
+            <CardHeader>
+                <CardTitle>Documentos</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <BloqueAdjuntos
+                    :adjuntos="adjuntos"
+                    :base="`/formacion/${accion.id}/adjuntos`"
+                    :puede-gestionar="puedeGestionar"
+                    vacio="El temario, las diapositivas o el certificado del proveedor. La hoja de firmas va arriba, como evidencia."
+                />
             </CardContent>
         </Card>
 
