@@ -57,12 +57,54 @@ const props = defineProps<{
     vinculos: Vinculo[];
     historico: Transicion[];
     transiciones: { valor: string; etiqueta: string; tono: string; icono: string }[];
-    subtareas: Paso[];
+    subtareas: Subtarea[];
     maximoSubtareas: number;
     puedeGestionar: boolean;
 }>();
 
+/**
+ * Lo que manda el servidor de tareas, que habla en femenino.
+ *
+ * La lista de comprobación es compartida y habla `hecho`; la traducción vive
+ * aquí y no en el componente, porque dos vocabularios dentro de la pieza
+ * compartida es el problema del que se venía. El día que un tercer módulo la
+ * use, se unifica la palabra del cable y esto desaparece.
+ */
+interface Subtarea {
+    id: number | null;
+    titulo: string;
+    hecha: boolean;
+    hechaEn?: string | null;
+}
+
 const { variantesEntrada } = useMovimientoReducido();
+
+const pasos = computed<Paso[]>(() =>
+    props.subtareas.map((subtarea) => ({
+        id: subtarea.id,
+        titulo: subtarea.titulo,
+        hecho: subtarea.hecha,
+        hechoEn: subtarea.hechaEn,
+    })),
+);
+
+const guardandoPasos = ref(false);
+
+function guardarSubtareas(pasos: Paso[]): void {
+    guardandoPasos.value = true;
+
+    router.put(
+        `/tareas/${props.tarea.id}/subtareas`,
+        {
+            pasos: pasos.map((paso) => ({
+                id: paso.id,
+                titulo: paso.titulo,
+                hecha: paso.hecho,
+            })),
+        },
+        { preserveScroll: true, onFinish: () => (guardandoPasos.value = false) },
+    );
+}
 
 const fecha = (valor: string | null): string => (valor ? formatoFecha.format(new Date(valor)) : '—');
 
@@ -190,10 +232,13 @@ function mover(estado: string): void {
 
                     <CardContent>
                         <ListaComprobacion
-                            :tarea-id="tarea.id"
-                            :pasos="subtareas"
+                            :pasos="pasos"
                             :maximo="maximoSubtareas"
                             :editable="puedeGestionar"
+                            :ocupado="guardandoPasos"
+                            vacio="Sin pasos. Una lista de comprobación sirve para trocear una tarea sin inflar el plan con tareas sueltas."
+                            cierre="Ciérrala desde «Estado» cuando toque."
+                            @guardar="guardarSubtareas"
                         />
                     </CardContent>
                 </Card>

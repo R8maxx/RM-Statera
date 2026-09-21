@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Domain\Autorizacion\Enums\Permiso;
+use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Persona\CodigoPersona;
 use App\Domain\Persona\DesignarRol;
@@ -68,7 +69,7 @@ class PersonaController extends Controller
                 'codigo' => $codigos->siguiente(),
                 'fecha_alta' => now()->toDateString(),
             ],
-            ...$this->opciones(),
+            ...$this->opcionesDeCuenta(),
         ]);
     }
 
@@ -139,13 +140,31 @@ class PersonaController extends Controller
                     'vigente' => $acuerdo->estaVigente(),
                     'nota' => $acuerdo->nota,
                     'evidencia_id' => $acuerdo->evidencia_id,
+                    'evidencia' => $acuerdo->evidencia?->titulo,
                 ])
                 ->values()
                 ->all(),
             'pasos' => $this->pasosPorTipo($persona),
+            'maximoPasos' => GuardarPasos::TOPE,
+            /*
+             * El documento firmado de `mp.per.2`.
+             *
+             * No viaja con la ficha: el repositorio puede tener cientos de
+             * evidencias y aquí se enseñan al abrir un diálogo. Mismo patrón
+             * que el bloque de evidencias de una implantación.
+             */
+            'evidenciasDisponibles' => Inertia::optional(fn (): array => Evidencia::query()
+                ->orderByDesc('fecha_obtencion')
+                ->limit(100)
+                ->get()
+                ->map(static fn (Evidencia $evidencia): array => [
+                    'valor' => (string) $evidencia->id,
+                    'etiqueta' => $evidencia->titulo,
+                ])
+                ->all()),
             'puedeGestionar' => $this->puede(Permiso::PersonasGestionar),
             'puedeDesignar' => $this->puede(Permiso::PersonasDesignar),
-            ...$this->opciones(),
+            ...$this->opcionesDeNombramiento(),
         ]);
     }
 
@@ -154,7 +173,7 @@ class PersonaController extends Controller
         return Inertia::render('personas/Formulario', [
             'persona' => $this->serializar($persona),
             'sugerencia' => null,
-            ...$this->opciones(),
+            ...$this->opcionesDeCuenta(),
         ]);
     }
 
@@ -316,7 +335,7 @@ class PersonaController extends Controller
                         'id' => $paso->id,
                         'titulo' => $paso->titulo,
                         'hecho' => $paso->hecho_en !== null,
-                        'hechoEn' => $paso->hecho_en?->format('d/m/Y'),
+                        'hechoEn' => $paso->hecho_en?->toIso8601String(),
                     ])
                     ->values()
                     ->all(),
@@ -326,11 +345,12 @@ class PersonaController extends Controller
     }
 
     /**
-     * Las opciones de los desplegables.
+     * Las opciones del **nombramiento**, que vive en la ficha.
      *
-     * Los usuarios van acotados a la organización a mano: `User` no lleva
-     * `PerteneceAOrganizacion`, así que aquí no hay scope global ni RLS que tapen
-     * el cruce.
+     * Estaban las tres listas juntas y viajaban a las tres pantallas: el
+     * formulario recibía roles y sistemas que no usa —los declaraba como
+     * `unknown` con un comentario— y la ficha recibía las cuentas, que tampoco.
+     * Tres consultas de más por pantalla y tres props muertas.
      *
      * **Las acciones formativas no entran aquí**: la asistencia se registra desde
      * la sesión y no desde la persona, porque marcar veinte asistencias de una
@@ -338,7 +358,7 @@ class PersonaController extends Controller
      *
      * @return array<string, mixed>
      */
-    private function opciones(): array
+    private function opcionesDeNombramiento(): array
     {
         return [
             'roles' => array_map(
@@ -367,6 +387,21 @@ class PersonaController extends Controller
                     'etiqueta' => "{$sistema->codigo} · {$sistema->nombre}",
                 ])
                 ->all(),
+        ];
+    }
+
+    /**
+     * Las cuentas de Statera a las que se puede enlazar una persona.
+     *
+     * Acotadas a la organización **a mano**: `User` no lleva
+     * `PerteneceAOrganizacion`, así que aquí no hay scope global ni RLS que
+     * tapen el cruce, y ningún test de aislamiento lo cazaría.
+     *
+     * @return array<string, mixed>
+     */
+    private function opcionesDeCuenta(): array
+    {
+        return [
             'cuentas' => User::query()
                 ->where('organizacion_id', app(ContextoOrganizacion::class)->idObligatorio())
                 ->orderBy('name')

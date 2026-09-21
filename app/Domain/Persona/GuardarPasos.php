@@ -36,7 +36,15 @@ use Illuminate\Support\Facades\DB;
  */
 final class GuardarPasos
 {
-    private const TOPE = 50;
+    /**
+     * El tope de pasos de una checklist.
+     *
+     * Público porque lo leen las otras dos capas: el `FormRequest`, que es
+     * quien lo rechaza con un mensaje legible, y la ficha, que lo enseña. Con
+     * el número escrito tres veces, el 51.º paso se perdía contra un 422 que
+     * la pantalla no pintaba en ningún sitio.
+     */
+    public const TOPE = 50;
 
     /**
      * @param  list<PasoEntrante>  $pasos

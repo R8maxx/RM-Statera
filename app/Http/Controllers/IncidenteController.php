@@ -180,7 +180,9 @@ class IncidenteController extends Controller
                     'tono' => $transicion->estado_nuevo->tono(),
                     'icono' => $transicion->estado_nuevo->icono(),
                     'usuario' => $transicion->usuario?->name,
-                    'fecha' => $transicion->created_at->format('d/m/Y H:i'),
+                    // ISO: lo formatea `formatoFechaHora` en el cliente, como
+                    // el resto. Cocinarlo aquí ataba el histórico a un formato.
+                    'fecha' => $transicion->created_at->toIso8601String(),
                     'nota' => $transicion->nota,
                 ])
                 ->values()
@@ -406,6 +408,17 @@ class IncidenteController extends Controller
                     'etiqueta' => "{$activo->codigo} · {$activo->nombre}",
                 ])
                 ->all(),
+            // Las cinco del Anexo I, con el nombre de su columna como valor:
+            // el `FormRequest` deriva los booleanos de ahí, así que el mapa no
+            // se escribe dos veces.
+            'dimensionesDisponibles' => array_map(
+                static fn (string $columna, string $etiqueta): array => [
+                    'valor' => $columna,
+                    'etiqueta' => $etiqueta,
+                ],
+                array_keys(Incidente::DIMENSIONES),
+                array_values(Incidente::DIMENSIONES),
+            ),
             'responsables' => User::query()
                 ->where('organizacion_id', app(ContextoOrganizacion::class)->idObligatorio())
                 ->orderBy('name')

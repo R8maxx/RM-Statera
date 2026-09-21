@@ -7,6 +7,7 @@ namespace App\Http\Requests;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Persona\Enums\TipoAccionFormativa;
 use App\Domain\Persona\Models\AccionFormativa;
+use App\Http\Requests\Concerns\NormalizaSeleccionVacia;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -18,6 +19,8 @@ use Illuminate\Validation\Rule;
  */
 class GuardarAccionFormativaRequest extends FormRequest
 {
+    use NormalizaSeleccionVacia;
+
     /**
      * @return array<string, mixed>
      */
@@ -52,5 +55,16 @@ class GuardarAccionFormativaRequest extends FormRequest
             'duracion_horas' => 'duración',
             'evidencia_id' => 'hoja de firmas',
         ];
+    }
+
+    /**
+     * La evidencia es opcional y su desplegable manda el centinela de
+     * «ninguno», así que hay que traducirlo antes de validar.
+     *
+     * @return list<string>
+     */
+    protected function seleccionesOpcionales(): array
+    {
+        return ['evidencia_id'];
     }
 }

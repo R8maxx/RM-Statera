@@ -108,4 +108,19 @@ class GuardarRiesgoRequest extends FormRequest
     {
         return ['propietario_id', 'amenaza_id'];
     }
+
+    /**
+     * Los activos llegan de un grupo de casillas.
+     *
+     * Aquí el centinela hacía más daño que en ningún otro sitio: `[null]` cuenta
+     * como un elemento, así que `min:1` lo daba por bueno y el mensaje escrito
+     * para este caso —«Un riesgo pesa sobre al menos un activo»— **no podía
+     * dispararse nunca**. Fallaba en `activos.0`, con el mensaje genérico.
+     *
+     * @return list<string>
+     */
+    protected function gruposDeCasillas(): array
+    {
+        return ['activos'];
+    }
 }

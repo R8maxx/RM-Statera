@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\NormalizaSeleccionVacia;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -16,6 +17,8 @@ use Illuminate\Validation\Rule;
  */
 class GuardarAcuerdoRequest extends FormRequest
 {
+    use NormalizaSeleccionVacia;
+
     /**
      * @return array<string, mixed>
      */
@@ -45,5 +48,16 @@ class GuardarAcuerdoRequest extends FormRequest
     public function attributes(): array
     {
         return ['fecha_firma' => 'fecha de firma', 'evidencia_id' => 'documento firmado'];
+    }
+
+    /**
+     * La evidencia es opcional y su desplegable manda el centinela de
+     * «ninguno», así que hay que traducirlo antes de validar.
+     *
+     * @return list<string>
+     */
+    protected function seleccionesOpcionales(): array
+    {
+        return ['evidencia_id'];
     }
 }

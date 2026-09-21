@@ -24,15 +24,33 @@ import { computed, useId } from 'vue';
  *
  * No va sobre `CampoBase` porque su forma es otra —`fieldset` y `legend`, no
  * `label` de un control—, pero comparte sus tokens y su marca de obligatorio.
+ *
+ * **`descripcion` por opción, y no un slot ni `v-html`.** Desde el § 4.10 hay
+ * casillas cuya etiqueta no se sostiene sola: marcar «AEPD» pone en marcha un
+ * plazo legal y eso hay que decirlo al lado. Un slot dejaría entrar marcado
+ * arbitrario en un formulario, que es justo lo que este producto evita; el
+ * reparto etiqueta + ayuda es el que `DESIGN.md` §9 ya prescribe para un campo.
  */
+export interface OpcionCasilla extends Opcion {
+    /** Una línea bajo la etiqueta. No es la ayuda del grupo, es la de la opción. */
+    descripcion?: string;
+}
+
 const props = defineProps<{
     nombre: string;
     etiqueta: string;
-    opciones: Opcion[];
+    opciones: OpcionCasilla[];
     error?: string | string[] | null;
     ayuda?: string;
     requerido?: boolean;
     vacio?: string;
+    /**
+     * Encierra las opciones en una caja con desplazamiento.
+     *
+     * Para las listas que no las decide el dominio sino el inventario: cinco
+     * dimensiones caben siempre, doscientos activos no.
+     */
+    desplazable?: boolean;
 }>();
 
 const modelo = defineModel<string[]>({ default: () => [] });
@@ -75,8 +93,12 @@ function alternar(valor: string, marcada: boolean): void {
             {{ vacio ?? 'No hay ninguna opción todavía.' }}
         </p>
 
-        <div v-else class="grid gap-2.5">
-            <div v-for="(opcion, indice) in opciones" :key="opcion.valor" class="flex items-center gap-2.5">
+        <div
+            v-else
+            class="grid gap-2.5"
+            :class="desplazable ? 'max-h-56 overflow-y-auto rounded-md p-3 ring-1 ring-foreground/10' : undefined"
+        >
+            <div v-for="(opcion, indice) in opciones" :key="opcion.valor" class="flex items-start gap-2.5">
                 <!--
                     `data-campo` en la primera casilla: es el contrato con el
                     resumen de errores, que necesita un elemento enfocable y no
@@ -85,10 +107,16 @@ function alternar(valor: string, marcada: boolean): void {
                 <Checkbox
                     :id="`${id}-${opcion.valor}`"
                     :data-campo="indice === 0 ? nombre : undefined"
+                    class="mt-0.5"
                     :model-value="modelo.includes(opcion.valor)"
                     @update:model-value="(marcada) => alternar(opcion.valor, marcada === true)"
                 />
-                <Label :for="`${id}-${opcion.valor}`" class="font-normal">{{ opcion.etiqueta }}</Label>
+                <div class="grid gap-0.5">
+                    <Label :for="`${id}-${opcion.valor}`" class="font-normal">{{ opcion.etiqueta }}</Label>
+                    <p v-if="opcion.descripcion" class="text-xs text-muted-foreground">
+                        {{ opcion.descripcion }}
+                    </p>
+                </div>
             </div>
         </div>
 

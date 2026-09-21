@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests;
 
 use App\Domain\Persona\Enums\TipoPasoPersona;
+use App\Domain\Persona\GuardarPasos;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -24,7 +25,7 @@ class GuardarPasosRequest extends FormRequest
     {
         return [
             'tipo' => ['required', Rule::enum(TipoPasoPersona::class)],
-            'pasos' => ['present', 'array', 'max:50'],
+            'pasos' => ['present', 'array', 'max:'.GuardarPasos::TOPE],
             'pasos.*.id' => ['nullable', 'integer'],
             'pasos.*.titulo' => ['nullable', 'string', 'max:255'],
             'pasos.*.hecho' => ['nullable', 'boolean'],
@@ -37,7 +38,10 @@ class GuardarPasosRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'pasos.max' => 'Una checklist de cincuenta pasos ya no es una checklist: eso es un procedimiento, y va en un documento.',
+            'pasos.max' => sprintf(
+                'Una checklist de %d pasos ya no es una checklist: eso es un procedimiento, y va en un documento.',
+                GuardarPasos::TOPE,
+            ),
         ];
     }
 }

@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import Aviso from '@/components/Aviso.vue';
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
-import Cifra from '@/components/Cifra.vue';
 import EstadoVacio from '@/components/EstadoVacio.vue';
+import { SearchIcon, UsersIcon } from '@lucide/vue';
+import IconoTipo from '@/components/IconoTipo.vue';
 import CeldaBadge from '@/components/tabla/celdas/CeldaBadge.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,8 +25,8 @@ interface Accion {
     fechaEtiqueta: string;
     duracion_horas: string | null;
     contenido: string | null;
-    convocadas: number;
-    asistentes: number;
+    evidencia_id: number | null;
+    evidencia: string | null;
 }
 
 interface PersonaConvocada {
@@ -113,8 +115,12 @@ const sinGuardar = computed(() => huella(lista.value) !== huella(props.personas)
 
 const guardando = ref(false);
 
+/** Ver el mismo comentario en la ficha de una persona. */
+const error = ref<string | null>(null);
+
 function guardar(): void {
     guardando.value = true;
+    error.value = null;
 
     router.put(
         `/formacion/${props.accion.id}/asistencia`,
@@ -124,7 +130,15 @@ function guardar(): void {
                 asistio: persona.asistio,
             })),
         },
-        { preserveScroll: true, onFinish: () => (guardando.value = false) },
+        {
+            preserveScroll: true,
+            onError: (errores) => {
+                error.value =
+                    Object.values(errores)[0] ??
+                    'No se ha podido guardar la asistencia. Inténtalo otra vez.';
+            },
+            onFinish: () => (guardando.value = false),
+        },
     );
 }
 </script>
@@ -162,6 +176,39 @@ function guardar(): void {
             <CardContent class="text-sm whitespace-pre-line">{{ accion.contenido }}</CardContent>
         </Card>
 
+        <!--
+            La prueba, que es la mitad de la medida: `mp.per.3` y `mp.per.4` no
+            piden que se imparta la sesión, piden poder demostrarlo. Se adjunta
+            al editar la sesión.
+        -->
+        <Card>
+            <CardHeader>
+                <CardTitle>Hoja de firmas</CardTitle>
+            </CardHeader>
+            <CardContent class="text-sm">
+                <p v-if="accion.evidencia_id" class="flex flex-wrap items-center gap-2">
+                    <IconoTipo nombre="FileCheck" />
+                    <Link
+                        :href="`/evidencias/${accion.evidencia_id}`"
+                        class="underline underline-offset-4"
+                    >
+                        {{ accion.evidencia }}
+                    </Link>
+                </p>
+                <p v-else class="text-muted-foreground">
+                    Sin evidencia adjunta. Una sesión registrada y sin prueba está declarada y no
+                    demostrada, que es lo que un auditor separa.
+                    <Link
+                        v-if="puedeGestionar"
+                        :href="`/formacion/${accion.id}/editar`"
+                        class="font-medium underline underline-offset-4"
+                    >
+                        Adjuntarla
+                    </Link>
+                </p>
+            </CardContent>
+        </Card>
+
         <Card>
             <CardHeader>
                 <CardTitle>Convocatoria y asistencia</CardTitle>
@@ -172,8 +219,15 @@ function guardar(): void {
                 </CardDescription>
             </CardHeader>
             <CardContent class="space-y-4">
+                <Aviso v-if="error" tono="error">{{ error }}</Aviso>
+
+                <!--
+                    Sin `Cifra`: el contador es para los números que resumen una
+                    pantalla, y éste cambia con cada casilla que se marca —así
+                    que se pondría a contar en cada clic—.
+                -->
                 <p class="text-sm text-muted-foreground">
-                    <Cifra class="font-semibold text-foreground" :valor="asistentes.length" />
+                    <span class="cifra font-semibold text-foreground">{{ asistentes.length }}</span>
                     de {{ convocadas.length }}
                     {{ convocadas.length === 1 ? 'convocado asistió' : 'convocados asistieron' }}.
                 </p>
@@ -202,11 +256,23 @@ function guardar(): void {
                 </div>
 
                 <EstadoVacio
-                    v-if="visibles.length === 0"
-                    titulo="Sin personas"
-                    descripcion="No hay nadie en plantilla que encaje con lo buscado."
+                    v-if="visibles.length === 0 && busqueda.trim() !== ''"
+                    :icono="SearchIcon"
+                    titulo="Nadie encaja con lo buscado"
+                    descripcion="Prueba con parte del nombre, con el código o con el puesto."
                 />
-                <ul v-else class="divide-y divide-border">
+                <EstadoVacio
+                    v-else-if="visibles.length === 0"
+                    :icono="UsersIcon"
+                    titulo="Todavía no hay plantilla que convocar"
+                    descripcion="Una sesión sin nadie apuntado no prueba que se impartiera: mp.per.3 y mp.per.4 se demuestran con la lista de asistentes."
+                    :accion="{ etiqueta: 'Dar de alta a alguien', href: '/personas/crear' }"
+                />
+                <!--
+                    La lista mengua al teclear en el buscador, así que lleva
+                    salida: `DESIGN.md` §14, «si puede menguar, lleva salida».
+                -->
+                <TransitionGroup v-else tag="ul" name="paso" class="divide-y divide-border">
                     <li
                         v-for="persona in visibles"
                         :key="persona.id"
@@ -225,19 +291,32 @@ function guardar(): void {
                                 }
                             "
                         />
-                        <Link
-                            :href="`/personas/${persona.id}`"
-                            class="min-w-40 underline underline-offset-4"
-                        >
-                            {{ persona.nombre }}
-                        </Link>
-                        <span class="text-xs text-muted-foreground">
-                            <span class="cifra">{{ persona.codigo }}</span>
-                            <template v-if="persona.puesto"> · {{ persona.puesto }}</template>
-                            <template v-if="!persona.activa"> · dada de baja</template>
-                        </span>
+                        <!--
+                            Nombre y metadatos en un solo bloque `min-w-0
+                            flex-1`: con el enlace suelto en `flex-1` el código
+                            se iba al otro extremo de la fila, y con un ancho
+                            mínimo fijo la fila desbordaba a 375 px.
+                        -->
+                        <div class="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2">
+                            <Link
+                                :href="`/personas/${persona.id}`"
+                                class="underline underline-offset-4"
+                            >
+                                {{ persona.nombre }}
+                            </Link>
+                            <span class="text-xs text-muted-foreground">
+                                <span class="cifra">{{ persona.codigo }}</span>
+                                <template v-if="persona.puesto"> · {{ persona.puesto }}</template>
+                                <template v-if="!persona.activa"> · dada de baja</template>
+                            </span>
+                        </div>
 
-                        <label class="ml-auto flex items-center gap-2">
+                        <!--
+                            `ml-auto` no: al envolver a 375 px dejaba esta
+                            casilla sola en su línea y pegada al borde derecho.
+                            Con el nombre en `flex-1` el hueco lo reparte él.
+                        -->
+                        <label class="flex shrink-0 items-center gap-2">
                             <Checkbox
                                 :model-value="persona.asistio"
                                 :disabled="!puedeGestionar || !persona.convocada"
@@ -247,7 +326,7 @@ function guardar(): void {
                             <span class="text-xs text-muted-foreground">Asistió</span>
                         </label>
                     </li>
-                </ul>
+                </TransitionGroup>
 
                 <div v-if="puedeGestionar" class="flex flex-wrap items-center gap-2">
                     <Button
@@ -255,10 +334,19 @@ function guardar(): void {
                         :disabled="guardando"
                         @click="guardar"
                     >
-                        Guardar asistencia
+                        {{ guardando ? 'Guardando…' : 'Guardar asistencia' }}
                     </Button>
-                    <span v-if="sinGuardar" class="text-xs font-medium text-estado-en-progreso">
-                        Sin guardar
+                    <!--
+                        `aria-live`: aparece y desaparece solo, así que sin esto
+                        quien usa lector de pantalla no se entera de que hay algo
+                        pendiente de mandar.
+                    -->
+                    <span
+                        role="status"
+                        aria-live="polite"
+                        class="text-xs font-medium text-estado-en-progreso"
+                    >
+                        <template v-if="sinGuardar">Sin guardar</template>
                     </span>
                 </div>
             </CardContent>

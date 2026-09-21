@@ -1,11 +1,11 @@
 <script setup lang="ts">
+import CampoCasillas from '@/components/formulario/CampoCasillas.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
 import FormularioRecurso from '@/components/formulario/FormularioRecurso.vue';
 import SeccionFormulario from '@/components/formulario/SeccionFormulario.vue';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
+import { conOpcionVacia } from '@/lib/formularios';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { computed, ref } from 'vue';
 
@@ -45,6 +45,8 @@ const props = defineProps<{
     sistemas: Opcion[];
     activosDisponibles: Opcion[];
     responsables: Opcion[];
+    /** Las cinco del Anexo I, con el nombre de su columna como valor. */
+    dimensionesDisponibles: Opcion[];
 }>();
 
 const edicion = props.incidente !== null;
@@ -67,34 +69,51 @@ const valor = computed(() => ({
 const clasificacion = ref(props.incidente?.clasificacion ?? 'otros');
 
 /*
- * Las cinco dimensiones y las dos casillas de notificación se llevan en local
- * porque una casilla sin marcar **no viaja en el formulario**: sin un campo
- * oculto con su valor, desmarcar «afecta a la confidencialidad» dejaría el valor
- * anterior puesto. El servidor lo vuelve a normalizar en `prepareForValidation`,
- * porque una petición puede no venir de esta pantalla.
+ * Los tres grupos de casillas viajan como arrays y los pinta `CampoCasillas`,
+ * que es el componente del producto: aporta el `fieldset`, la `legend`, el
+ * `aria-invalid`, el mensaje de error y el `data-campo` que el resumen de
+ * errores necesita para poder enfocar. Antes eran tres bloques a mano sin nada
+ * de eso.
+ *
+ * Los dos primeros son **columnas booleanas** en la base, no relaciones: el
+ * `FormRequest` las deriva del array, y **sólo si el array viene**, para que un
+ * importador que postee los booleanos sueltos siga funcionando.
  */
-const dimensiones = ref({
-    afecta_confidencialidad: props.incidente?.afecta_confidencialidad ?? false,
-    afecta_integridad: props.incidente?.afecta_integridad ?? false,
-    afecta_disponibilidad: props.incidente?.afecta_disponibilidad ?? false,
-    afecta_autenticidad: props.incidente?.afecta_autenticidad ?? false,
-    afecta_trazabilidad: props.incidente?.afecta_trazabilidad ?? false,
-});
+const dimensiones = ref<string[]>(
+    props.dimensionesDisponibles
+        .map((opcion) => opcion.valor)
+        .filter((clave) => props.incidente?.[clave as keyof Incidente] === true),
+);
 
-const notificable = ref({
-    notificable_aepd: props.incidente?.notificable_aepd ?? false,
-    notificable_ccn_cert: props.incidente?.notificable_ccn_cert ?? false,
-});
+const notificables = ref<string[]>(
+    (['notificable_aepd', 'notificable_ccn_cert'] as const).filter(
+        (clave) => props.incidente?.[clave] === true,
+    ),
+);
 
-const activos = ref<number[]>([...props.activosVinculados]);
+const activos = ref<string[]>(props.activosVinculados.map(String));
 
-const etiquetasDimension: Record<string, string> = {
-    afecta_confidencialidad: 'Confidencialidad',
-    afecta_integridad: 'Integridad',
-    afecta_disponibilidad: 'Disponibilidad',
-    afecta_autenticidad: 'Autenticidad',
-    afecta_trazabilidad: 'Trazabilidad',
-};
+/**
+ * Los dos supervisores, con su descripción.
+ *
+ * Van escritos aquí y no en el servidor porque son texto de interfaz —el
+ * porqué de marcar la casilla—, no vocabulario del dominio: los dos
+ * destinatarios están fijados por ley y no hay catálogo detrás.
+ */
+const supervisores = [
+    {
+        valor: 'notificable_aepd',
+        etiqueta: 'AEPD',
+        descripcion:
+            'Hubo datos personales de por medio. Marcarlo pone en marcha las 72 h del artículo 33.1 del RGPD desde la detección.',
+    },
+    {
+        valor: 'notificable_ccn_cert',
+        etiqueta: 'CCN-CERT',
+        descripcion:
+            'Procede notificarlo por el ENS. Sin cuenta atrás: el RD 311/2022 no fija horas, exige notificar «sin dilación», y Statera no se inventa un plazo legal.',
+    },
+];
 
 const opcionesClasificacion = computed(() =>
     props.clasificaciones.map((clase) => ({ valor: clase.valor, etiqueta: clase.etiqueta })),
@@ -106,9 +125,6 @@ const ayudaClasificacion = computed(
         '',
 );
 
-function alternarActivo(id: number, marcado: boolean): void {
-    activos.value = marcado ? [...activos.value, id] : activos.value.filter((otro) => otro !== id);
-}
 </script>
 
 <template>
@@ -191,42 +207,26 @@ function alternarActivo(id: number, marcado: boolean): void {
                     ayuda="La declara quien registra el incidente. Statera no la deduce de las dimensiones afectadas: la guía no publica ninguna función que lo haga, y el mismo compromiso es crítico en un sistema y bajo en otro."
                 />
 
-                <div class="space-y-2">
-                    <Label>Dimensiones afectadas</Label>
-                    <p class="text-sm text-muted-foreground">
-                        Las cinco del Anexo I. Es la primera pregunta de cualquier informe de
-                        incidente, y la que decide si hay datos personales de por medio.
-                    </p>
-                    <div class="flex flex-wrap gap-4">
-                        <label
-                            v-for="(etiqueta, clave) in etiquetasDimension"
-                            :key="clave"
-                            class="flex items-center gap-2 text-sm"
-                        >
-                            <Checkbox
-                                :model-value="dimensiones[clave as keyof typeof dimensiones]"
-                                @update:model-value="
-                                    (marcado) =>
-                                        (dimensiones[clave as keyof typeof dimensiones] =
-                                            marcado === true)
-                                "
-                            />
-                            {{ etiqueta }}
-                            <input
-                                type="hidden"
-                                :name="clave"
-                                :value="dimensiones[clave as keyof typeof dimensiones] ? 1 : 0"
-                            />
-                        </label>
-                    </div>
-                </div>
+                <CampoCasillas
+                    v-model="dimensiones"
+                    nombre="dimensiones"
+                    etiqueta="Dimensiones afectadas"
+                    :opciones="dimensionesDisponibles"
+                    :error="errors.dimensiones"
+                    ayuda="Las cinco del Anexo I. Es la primera pregunta de cualquier informe de incidente, y la que decide si hay datos personales de por medio."
+                />
             </SeccionFormulario>
 
             <SeccionFormulario titulo="Alcance y respuesta" plegable>
+                <!--
+                    Con la opción de «ninguno»: los dos son opcionales y sin
+                    ella, una vez elegido el sistema no había forma de quitarlo
+                    —Reka prohíbe el valor vacío en un `SelectItem`—.
+                -->
                 <CampoSelect
                     nombre="sistema_id"
                     etiqueta="Sistema"
-                    :opciones="sistemas"
+                    :opciones="conOpcionVacia(sistemas, 'Ninguno en concreto')"
                     :valor-inicial="incidente?.sistema_id ? String(incidente.sistema_id) : undefined"
                     :error="errors.sistema_id"
                     ayuda="Opcional: un correo fraudulento a toda la organización no es de ningún sistema."
@@ -235,45 +235,30 @@ function alternarActivo(id: number, marcado: boolean): void {
                 <CampoSelect
                     nombre="responsable_id"
                     etiqueta="Responsable"
-                    :opciones="responsables"
+                    :opciones="conOpcionVacia(responsables, 'Sin responsable')"
                     :valor-inicial="
                         incidente?.responsable_id ? String(incidente.responsable_id) : undefined
                     "
                     :error="errors.responsable_id"
                 />
 
-                <div v-if="activosDisponibles.length > 0" class="space-y-2">
-                    <Label>Activos afectados</Label>
-                    <p class="text-sm text-muted-foreground">
-                        Un cifrado por ransomware toca treinta equipos y sigue siendo un solo
-                        incidente.
-                    </p>
-                    <div class="max-h-56 space-y-1 overflow-y-auto rounded-md border border-border p-3">
-                        <label
-                            v-for="activo in activosDisponibles"
-                            :key="activo.valor"
-                            class="flex items-center gap-2 text-sm"
-                        >
-                            <Checkbox
-                                :model-value="activos.includes(Number(activo.valor))"
-                                @update:model-value="
-                                    (marcado) => alternarActivo(Number(activo.valor), marcado === true)
-                                "
-                            />
-                            {{ activo.etiqueta }}
-                        </label>
-                    </div>
-                    <input
-                        v-for="id in activos"
-                        :key="`activo-${id}`"
-                        type="hidden"
-                        name="activos[]"
-                        :value="id"
-                    />
-                    <!-- Sin esto, desmarcarlos todos no manda `activos` y el
-                         controlador entiende «no tocar» en vez de «ninguno». -->
-                    <input v-if="activos.length === 0" type="hidden" name="activos" value="" />
-                </div>
+                <!--
+                    El centinela de «ninguno» lo pone `CampoCasillas` y lo
+                    traduce `NormalizaSeleccionVacia`. A mano estaba mal: el
+                    campo oculto era escalar —`activos`, sin `[]`— y llegaba
+                    como nulo, así que desmarcarlos todos no desvinculaba nada
+                    y la edición entera fallaba en silencio.
+                -->
+                <CampoCasillas
+                    v-model="activos"
+                    nombre="activos"
+                    etiqueta="Activos afectados"
+                    :opciones="activosDisponibles"
+                    :error="errors.activos"
+                    desplazable
+                    ayuda="Un cifrado por ransomware toca treinta equipos y sigue siendo un solo incidente."
+                    vacio="Todavía no hay activos en el inventario a los que apuntar."
+                />
 
                 <CampoTextarea
                     nombre="impacto"
@@ -295,50 +280,14 @@ function alternarActivo(id: number, marcado: boolean): void {
             </SeccionFormulario>
 
             <SeccionFormulario titulo="A quién hay que notificar" plegable>
-                <p class="text-sm text-muted-foreground">
-                    Aquí se decide <strong>si</strong> hay que notificar. Anotar
-                    <strong>cuándo</strong> se notificó se hace después, desde la ficha: es el dato
-                    que se contrasta contra el justificante.
-                </p>
-
-                <label class="flex items-start gap-2 text-sm">
-                    <Checkbox
-                        :model-value="notificable.notificable_aepd"
-                        @update:model-value="
-                            (marcado) => (notificable.notificable_aepd = marcado === true)
-                        "
-                    />
-                    <span>
-                        <strong>AEPD</strong> — hubo datos personales de por medio. Marcarlo pone en
-                        marcha las 72 h del artículo 33.1 del RGPD desde la detección.
-                    </span>
-                    <input
-                        type="hidden"
-                        name="notificable_aepd"
-                        :value="notificable.notificable_aepd ? 1 : 0"
-                    />
-                </label>
-
-                <label class="flex items-start gap-2 text-sm">
-                    <Checkbox
-                        :model-value="notificable.notificable_ccn_cert"
-                        @update:model-value="
-                            (marcado) => (notificable.notificable_ccn_cert = marcado === true)
-                        "
-                    />
-                    <span>
-                        <strong>CCN-CERT</strong> — procede notificarlo por el ENS.
-                        <span class="text-muted-foreground">
-                            Sin cuenta atrás: el RD 311/2022 no fija horas, exige notificar «sin
-                            dilación», y Statera no se inventa un plazo legal.
-                        </span>
-                    </span>
-                    <input
-                        type="hidden"
-                        name="notificable_ccn_cert"
-                        :value="notificable.notificable_ccn_cert ? 1 : 0"
-                    />
-                </label>
+                <CampoCasillas
+                    v-model="notificables"
+                    nombre="notificables"
+                    etiqueta="Supervisores a los que hay que notificar"
+                    :opciones="supervisores"
+                    :error="errors.notificables"
+                    ayuda="Aquí se decide si hay que notificar. Anotar cuándo se notificó se hace después, desde la ficha: es el dato que se contrasta contra el justificante."
+                />
             </SeccionFormulario>
         </FormularioRecurso>
     </AppLayout>

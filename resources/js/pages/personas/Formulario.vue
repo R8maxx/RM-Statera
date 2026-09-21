@@ -28,10 +28,6 @@ const props = defineProps<{
     persona: Persona | null;
     sugerencia: { codigo: string; fecha_alta: string } | null;
     cuentas: Opcion[];
-    // Los desplegables de nombramiento llegan igual porque `opciones()` es una,
-    // pero aquí no se designa a nadie: eso vive en la ficha y con otro permiso.
-    roles?: unknown;
-    sistemas?: unknown;
 }>();
 
 const edicion = props.persona !== null;

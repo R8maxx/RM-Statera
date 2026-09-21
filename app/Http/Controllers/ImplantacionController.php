@@ -121,7 +121,12 @@ class ImplantacionController extends Controller
                     'id' => $transicion->id,
                     'anterior' => $transicion->estado_anterior?->etiqueta(),
                     'nuevo' => $transicion->estado_nuevo->etiqueta(),
-                    'claveNuevo' => $transicion->estado_nuevo->value,
+                    // El tono y el icono los manda el servidor, que es quien
+                    // conoce el enum; antes viajaba la clave y el cliente
+                    // deducía el tono de ella, así que el badge se quedaba con
+                    // el icono de respaldo en vez del suyo.
+                    'tono' => $transicion->estado_nuevo->tono(),
+                    'icono' => $transicion->estado_nuevo->icono(),
                     // Nulo cuando la transición la provocó el recálculo y no una
                     // persona, y la ficha lo dice en vez de dejar el hueco.
                     'usuario' => $transicion->usuario?->name,

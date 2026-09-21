@@ -8,6 +8,7 @@ import {
     FileTextIcon,
     GaugeIcon,
     GraduationCapIcon,
+    HandshakeIcon,
     LayoutDashboardIcon,
     LayoutTemplateIcon,
     LightbulbIcon,
@@ -212,9 +213,15 @@ export const navegacion: GrupoNavegacion[] = [
                 alias: ['dafo', 'swot', '4.1', 'cuestiones', 'debilidades', 'amenazas', 'fortalezas', 'oportunidades', 'cambio climático'],
             },
             {
+                // `Handshake` y no `Users`, que es el de Personas: eran los dos
+                // únicos que compartían icono de las diecinueve entradas, y
+                // además los dos hablan de gente, así que en el sidebar y en la
+                // paleta de comandos se confundían. Una parte interesada no es
+                // plantilla: es alguien con quien hay un trato —un regulador,
+                // un cliente, un proveedor—, y eso es lo que dice el apretón.
                 titulo: 'Partes interesadas',
                 href: '/partes-interesadas',
-                icono: UsersIcon,
+                icono: HandshakeIcon,
                 alias: ['4.2', 'requisitos legales', 'reguladores', 'expectativas', 'clientes', 'stakeholders'],
             },
             {

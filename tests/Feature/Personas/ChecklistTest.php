@@ -9,6 +9,7 @@ use App\Domain\Persona\Models\PasoPersona;
 use App\Domain\Persona\Models\Persona;
 use App\Domain\Persona\RegistroPersonas;
 use Illuminate\Support\Carbon;
+use Inertia\Testing\AssertableInertia;
 
 /*
 |--------------------------------------------------------------------------
@@ -114,6 +115,33 @@ it('descarta los pasos en blanco', function (): void {
     ]);
 
     expect(PasoPersona::query()->count())->toBe(1);
+});
+
+it('manda el tope de pasos a la ficha', function (): void {
+    // La vista lo enseña en el campo de añadir; sin él, el 51.º paso se
+    // rechazaba con un 422 que la pantalla no pintaba en ningún sitio.
+    $this->actingAs($this->usuario)
+        ->get("/personas/{$this->persona->id}")
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->component('personas/Ficha')
+            ->where('maximoPasos', GuardarPasos::TOPE)
+            ->etc());
+});
+
+it('rechaza una checklist por encima del tope, con su mensaje', function (): void {
+    $pasos = array_map(
+        static fn (int $i): array => ['titulo' => "Paso {$i}", 'hecho' => false],
+        range(1, GuardarPasos::TOPE + 1),
+    );
+
+    $this->actingAs($this->usuario)
+        ->put("/personas/{$this->persona->id}/pasos", [
+            'tipo' => TipoPasoPersona::Alta->value,
+            'pasos' => $pasos,
+        ])
+        ->assertSessionHasErrors('pasos');
+
+    expect(PasoPersona::query()->count())->toBe(0);
 });
 
 it('guarda la checklist por la interfaz', function (): void {

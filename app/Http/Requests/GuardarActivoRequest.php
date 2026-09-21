@@ -160,4 +160,16 @@ class GuardarActivoRequest extends FormRequest
     {
         return ['propietario_id', 'custodio_id'];
     }
+
+    /**
+     * El alcance llega de un grupo de casillas, así que puede traer el
+     * centinela de «ninguno». Sin esto, quitar el activo de todos los sistemas
+     * fallaba con un error en `sistemas.0` que la página no liga.
+     *
+     * @return list<string>
+     */
+    protected function gruposDeCasillas(): array
+    {
+        return ['sistemas'];
+    }
 }

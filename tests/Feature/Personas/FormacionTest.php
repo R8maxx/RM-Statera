@@ -2,11 +2,14 @@
 
 declare(strict_types=1);
 
+use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Metrica\Enums\CalculoIndicador;
+use App\Domain\Persona\Enums\TipoAccionFormativa;
 use App\Domain\Persona\Models\AccionFormativa;
 use App\Domain\Persona\Models\Asistencia;
 use App\Domain\Persona\Models\Persona;
 use App\Domain\Persona\RegistrarAsistencia;
+use App\Http\Requests\Concerns\SeleccionVacia;
 use Inertia\Testing\AssertableInertia;
 
 /*
@@ -156,4 +159,64 @@ it('no pide formación a quien ya no está en plantilla', function (): void {
     Persona::factory()->deBaja()->create();
 
     expect(Persona::query()->sinFormacionReciente()->count())->toBe(0);
+});
+
+/*
+|--------------------------------------------------------------------------
+| La hoja de firmas: la prueba de la medida
+|--------------------------------------------------------------------------
+|
+| `evidencia_id` existía en la tabla y en el `FormRequest` —con el nombre «hoja
+| de firmas»— y **no había forma de rellenarlo desde ninguna pantalla**, así que
+| `mp.per.3` y `mp.per.4` quedaban declaradas y sin probar.
+*/
+
+it('ofrece las evidencias del repositorio al registrar una sesión', function (): void {
+    Evidencia::factory()->create(['titulo' => 'Lista de asistentes firmada']);
+
+    $this->actingAs($this->usuario)
+        ->get('/formacion/crear')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->component('formacion/Formulario')
+            ->has('evidencias', 1)
+            ->where('evidencias.0.etiqueta', 'Lista de asistentes firmada')
+            ->etc());
+});
+
+it('adjunta la hoja de firmas a una sesión, y deja quitarla', function (): void {
+    $evidencia = Evidencia::factory()->create();
+
+    $datos = [
+        'codigo' => 'FOR-2026-09',
+        'titulo' => 'Concienciación anual',
+        'tipo' => TipoAccionFormativa::Concienciacion->value,
+        'fecha' => now()->toDateString(),
+    ];
+
+    $this->actingAs($this->usuario)
+        ->put("/formacion/{$this->accion->id}", [...$datos, 'evidencia_id' => (string) $evidencia->id])
+        ->assertSessionHasNoErrors();
+
+    expect($this->accion->fresh()?->evidencia_id)->toBe($evidencia->id);
+
+    // Y el centinela del desplegable la suelta, en vez de fallar la validación.
+    $this->actingAs($this->usuario)
+        ->put("/formacion/{$this->accion->id}", [...$datos, 'evidencia_id' => SeleccionVacia::VALOR])
+        ->assertSessionHasNoErrors();
+
+    expect($this->accion->fresh()?->evidencia_id)->toBeNull();
+});
+
+it('adjunta el documento firmado a un acuerdo de confidencialidad', function (): void {
+    $persona = Persona::factory()->create();
+    $evidencia = Evidencia::factory()->create();
+
+    $this->actingAs($this->usuario)
+        ->post("/personas/{$persona->id}/acuerdos", [
+            'fecha_firma' => now()->toDateString(),
+            'evidencia_id' => (string) $evidencia->id,
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($persona->acuerdos()->sole()->evidencia_id)->toBe($evidencia->id);
 });

@@ -8,7 +8,9 @@ export interface Transicion {
     id: number;
     anterior: string | null;
     nuevo: string;
-    claveNuevo: string;
+    /** El tono del dominio, no la clave del enum: lo manda el servidor. */
+    tono: string;
+    icono?: string | null;
     usuario: string | null;
     nota: string | null;
     fecha: string | null;
@@ -21,6 +23,17 @@ export interface Transicion {
  * eso el invariante 7 obliga a registrar cada transición con fecha y autor.
  * Aquí se lee del más reciente al más antiguo porque lo que se consulta casi
  * siempre es lo último que pasó.
+ *
+ * **Dos consumidores desde el § 4.10**: la ficha de una implantación y la de un
+ * incidente. Sigue viviendo en `components/implantacion/` porque es donde nació
+ * y la regla de la casa mueve al tercero, no al segundo; el día que llegue, esto
+ * va a `components/` a secas, al lado de `Aviso` y `EstadoVacio`, y son dos
+ * líneas de import. Lo que no puede pasar mientras tanto es que el fichero
+ * vuelva a nombrar «implantación» por dentro.
+ *
+ * **El tono llega del servidor y no se deduce de la clave del estado.** Lo pide
+ * `DESIGN.md` §9 y es lo que permite que la misma pieza sirva a dos máquinas de
+ * estados distintas sin saber nada de ninguna de las dos.
  */
 defineProps<{ transiciones: Transicion[] }>();
 
@@ -61,7 +74,12 @@ const retrasoDe = (indice: number): number => (reducido.value ? 0 : Math.min(ind
                 <span v-else class="text-sm text-muted-foreground">Se da de alta →</span>
 
                 <CeldaBadge
-                    :valor="{ valor: transicion.claveNuevo, etiqueta: transicion.nuevo, tono: transicion.claveNuevo }"
+                    :valor="{
+                        valor: transicion.nuevo,
+                        etiqueta: transicion.nuevo,
+                        tono: transicion.tono,
+                        icono: transicion.icono ?? null,
+                    }"
                 />
             </div>
 

@@ -4,6 +4,7 @@ import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
 import FormularioRecurso from '@/components/formulario/FormularioRecurso.vue';
 import SeccionFormulario from '@/components/formulario/SeccionFormulario.vue';
+import { conOpcionVacia, type Opcion } from '@/lib/formularios';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { computed } from 'vue';
 
@@ -15,12 +16,14 @@ interface Accion {
     fecha: string;
     duracion_horas: string | null;
     contenido: string | null;
+    evidencia_id: number | null;
 }
 
 const props = defineProps<{
     accion: Accion | null;
     sugerencia: { codigo: string; fecha: string } | null;
     tipos: { valor: string; etiqueta: string; medida: string }[];
+    evidencias: Opcion[];
 }>();
 
 const edicion = props.accion !== null;
@@ -101,6 +104,22 @@ const opcionesTipo = computed(() =>
                     :valor-inicial="accion?.contenido ?? undefined"
                     :error="errors.contenido"
                     ayuda="Qué se trató. Es lo que un auditor lee para decidir si la sesión cubre lo que la medida pide."
+                />
+
+                <!--
+                    La prueba de la medida. El campo existía en la base y en el
+                    `FormRequest` desde el primer día —con el nombre «hoja de
+                    firmas»— y no había forma de rellenarlo desde ninguna
+                    pantalla, así que `mp.per.3` y `mp.per.4` quedaban
+                    declaradas y sin probar.
+                -->
+                <CampoSelect
+                    nombre="evidencia_id"
+                    etiqueta="Hoja de firmas"
+                    :opciones="conOpcionVacia(evidencias, 'Sin evidencia adjunta')"
+                    :valor-inicial="accion?.evidencia_id ? String(accion.evidencia_id) : undefined"
+                    :error="errors.evidencia_id"
+                    ayuda="Una evidencia que ya esté en el repositorio: la lista de asistentes firmada, el certificado o la captura de la plataforma. La misma prueba vale para todos los marcos donde aplique."
                 />
             </SeccionFormulario>
         </FormularioRecurso>

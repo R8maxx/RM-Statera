@@ -6,6 +6,10 @@ import AvisoNotificacion, { type Notificacion } from '@/components/incidente/Avi
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
 import EstadoVacio from '@/components/EstadoVacio.vue';
+import { ServerIcon } from '@lucide/vue';
+import HistoricoTransiciones, {
+    type Transicion,
+} from '@/components/implantacion/HistoricoTransiciones.vue';
 import CeldaBadge from '@/components/tabla/celdas/CeldaBadge.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,17 +42,6 @@ interface ActivoAfectado {
     tipo: string;
     tipoTono: string;
     tipoIcono: string;
-}
-
-interface Transicion {
-    id: number;
-    anterior: string | null;
-    nuevo: string;
-    tono: string;
-    icono: string;
-    usuario: string | null;
-    fecha: string;
-    nota: string | null;
 }
 
 interface Incidente {
@@ -257,19 +250,31 @@ function anotarNotificacion(): void {
                     <CardContent class="space-y-4 text-sm">
                         <p class="whitespace-pre-line">{{ incidente.descripcion }}</p>
 
-                        <div v-if="incidente.impacto">
-                            <p class="font-medium">Impacto</p>
-                            <p class="whitespace-pre-line text-muted-foreground">
-                                {{ incidente.impacto }}
-                            </p>
-                        </div>
+                        <!--
+                            Pares dato/valor en `<dl>`, como las fichas de
+                            activo, riesgo y no conformidad. Un rótulo en
+                            negrita dentro de un `<p>` se lee igual y no es un
+                            rótulo: para un lector de pantalla no hay relación
+                            entre la etiqueta y lo que describe.
+                        -->
+                        <dl
+                            v-if="incidente.impacto || incidente.acciones_contencion"
+                            class="grid gap-3"
+                        >
+                            <div v-if="incidente.impacto">
+                                <dt class="font-medium">Impacto</dt>
+                                <dd class="whitespace-pre-line text-muted-foreground">
+                                    {{ incidente.impacto }}
+                                </dd>
+                            </div>
 
-                        <div v-if="incidente.acciones_contencion">
-                            <p class="font-medium">Acciones de contención</p>
-                            <p class="whitespace-pre-line text-muted-foreground">
-                                {{ incidente.acciones_contencion }}
-                            </p>
-                        </div>
+                            <div v-if="incidente.acciones_contencion">
+                                <dt class="font-medium">Acciones de contención</dt>
+                                <dd class="whitespace-pre-line text-muted-foreground">
+                                    {{ incidente.acciones_contencion }}
+                                </dd>
+                            </div>
+                        </dl>
                     </CardContent>
                 </Card>
 
@@ -352,32 +357,14 @@ function anotarNotificacion(): void {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <ul class="divide-y divide-border">
-                            <li
-                                v-for="paso in historial"
-                                :key="paso.id"
-                                class="flex flex-wrap items-center gap-2 py-2 text-sm"
-                            >
-                                <CeldaBadge
-                                    :valor="{
-                                        valor: paso.nuevo,
-                                        etiqueta: paso.nuevo,
-                                        tono: paso.tono,
-                                        icono: paso.icono,
-                                    }"
-                                />
-                                <span class="text-xs text-muted-foreground">
-                                    <template v-if="paso.anterior">
-                                        desde «{{ paso.anterior }}» ·
-                                    </template>
-                                    {{ paso.fecha }}
-                                    <template v-if="paso.usuario"> · {{ paso.usuario }}</template>
-                                </span>
-                                <span v-if="paso.nota" class="w-full text-muted-foreground">
-                                    {{ paso.nota }}
-                                </span>
-                            </li>
-                        </ul>
+                        <!--
+                            La misma cronología que la ficha de una implantación
+                            —línea vertical, hitos escalonados y del más
+                            reciente al más antiguo—, que es lo que la separa de
+                            una lista. Antes era un `<ul>` a mano, en orden
+                            inverso al del resto del producto.
+                        -->
+                        <HistoricoTransiciones :transiciones="historial" />
                     </CardContent>
                 </Card>
             </div>
@@ -454,8 +441,14 @@ function anotarNotificacion(): void {
                     <CardContent>
                         <EstadoVacio
                             v-if="activos.length === 0"
+                            :icono="ServerIcon"
                             titulo="Sin activos vinculados"
-                            descripcion="Se vinculan al editar el incidente."
+                            descripcion="Qué se vio afectado es la primera pregunta de un informe de incidente."
+                            :accion="
+                                puedeGestionar
+                                    ? { etiqueta: 'Vincularlos', href: `/incidentes/${incidente.id}/editar` }
+                                    : undefined
+                            "
                         />
                         <ul v-else class="divide-y divide-border">
                             <li
@@ -489,16 +482,21 @@ function anotarNotificacion(): void {
                     <CardHeader>
                         <CardTitle>Ficha</CardTitle>
                     </CardHeader>
-                    <CardContent class="space-y-1 text-sm text-muted-foreground">
-                        <p v-if="incidente.responsable">
-                            Responsable: <span class="text-foreground">{{ incidente.responsable }}</span>
-                        </p>
-                        <p v-if="incidente.sistema">
-                            Sistema: <span class="cifra text-foreground">{{ incidente.sistema }}</span>
-                        </p>
-                        <p v-if="incidente.fechaCierre">
-                            Cerrado el <span class="text-foreground">{{ incidente.fechaCierre }}</span>
-                        </p>
+                    <CardContent class="text-sm">
+                        <dl class="grid gap-2">
+                            <div v-if="incidente.responsable" class="flex flex-wrap gap-x-2">
+                                <dt class="text-muted-foreground">Responsable</dt>
+                                <dd>{{ incidente.responsable }}</dd>
+                            </div>
+                            <div v-if="incidente.sistema" class="flex flex-wrap gap-x-2">
+                                <dt class="text-muted-foreground">Sistema</dt>
+                                <dd class="cifra">{{ incidente.sistema }}</dd>
+                            </div>
+                            <div v-if="incidente.fechaCierre" class="flex flex-wrap gap-x-2">
+                                <dt class="text-muted-foreground">Cerrado el</dt>
+                                <dd>{{ incidente.fechaCierre }}</dd>
+                            </div>
+                        </dl>
                     </CardContent>
                 </Card>
             </div>

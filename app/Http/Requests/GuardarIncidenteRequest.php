@@ -8,6 +8,7 @@ use App\Domain\Incidente\Enums\ClasificacionIncidente;
 use App\Domain\Incidente\Enums\PeligrosidadIncidente;
 use App\Domain\Incidente\Models\Incidente;
 use App\Domain\Organizacion\ContextoOrganizacion;
+use App\Http\Requests\Concerns\NormalizaSeleccionVacia;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -26,6 +27,8 @@ use Illuminate\Validation\Rule;
  */
 class GuardarIncidenteRequest extends FormRequest
 {
+    use NormalizaSeleccionVacia;
+
     /**
      * @return array<string, mixed>
      */
@@ -106,22 +109,60 @@ class GuardarIncidenteRequest extends FormRequest
         ];
     }
 
+    protected function seleccionesOpcionales(): array
+    {
+        return ['sistema_id', 'responsable_id'];
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function gruposDeCasillas(): array
+    {
+        return ['activos', 'dimensiones', 'notificables'];
+    }
+
     protected function prepareForValidation(): void
     {
+        $this->normalizarCentinelas();
+
         /*
          * Una casilla sin marcar no viaja en el formulario, así que sin esto
          * desmarcarla dejaría el valor anterior puesto: el incidente seguiría
          * contando como notificable a la AEPD y el reloj seguiría corriendo en
          * rojo sin que nadie entendiera por qué.
+         *
+         * **Y se derivan de un array sólo si el array viene**, nunca a ciegas:
+         * la pantalla manda `dimensiones[]` y `notificables[]` porque así puede
+         * usar `CampoCasillas` —con su `fieldset`, su `legend` y sus errores—,
+         * pero un importador o un test que postee los booleanos sueltos tiene
+         * que seguir funcionando. Derivar siempre apagaría las cinco dimensiones
+         * en cualquier petición que no venga de este formulario.
          */
         $this->merge([
-            'afecta_confidencialidad' => $this->boolean('afecta_confidencialidad'),
-            'afecta_integridad' => $this->boolean('afecta_integridad'),
-            'afecta_disponibilidad' => $this->boolean('afecta_disponibilidad'),
-            'afecta_autenticidad' => $this->boolean('afecta_autenticidad'),
-            'afecta_trazabilidad' => $this->boolean('afecta_trazabilidad'),
-            'notificable_aepd' => $this->boolean('notificable_aepd'),
-            'notificable_ccn_cert' => $this->boolean('notificable_ccn_cert'),
+            ...$this->booleanosDe('dimensiones', array_keys(Incidente::DIMENSIONES)),
+            ...$this->booleanosDe('notificables', ['notificable_aepd', 'notificable_ccn_cert']),
         ]);
+    }
+
+    /**
+     * Los booleanos de un grupo: desde su array si vino, y si no uno a uno.
+     *
+     * @param  list<string>  $columnas
+     * @return array<string, bool>
+     */
+    private function booleanosDe(string $grupo, array $columnas): array
+    {
+        $marcadas = $this->has($grupo) ? (array) $this->input($grupo, []) : null;
+
+        $valores = [];
+
+        foreach ($columnas as $columna) {
+            $valores[$columna] = $marcadas === null
+                ? $this->boolean($columna)
+                : in_array($columna, $marcadas, true);
+        }
+
+        return $valores;
     }
 }

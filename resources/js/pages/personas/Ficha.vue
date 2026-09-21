@@ -6,10 +6,10 @@ import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
 import EstadoVacio from '@/components/EstadoVacio.vue';
 import IconoTipo from '@/components/IconoTipo.vue';
+import ListaComprobacion, { type Paso } from '@/components/tarea/ListaComprobacion.vue';
 import CeldaBadge from '@/components/tabla/celdas/CeldaBadge.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
@@ -18,11 +18,17 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
+import { useDesplegable } from '@/composables/useDesplegable';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { conOpcionVacia, SIN_VALOR } from '@/lib/formularios';
 import { Link, router, useForm } from '@inertiajs/vue3';
-import { ChevronRightIcon } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
+import {
+    ChevronRightIcon,
+    FileSignatureIcon,
+    GraduationCapIcon,
+    UserCheckIcon,
+} from '@lucide/vue';
+import { computed, ref } from 'vue';
 
 interface Opcion {
     valor: string;
@@ -85,13 +91,8 @@ interface Acuerdo {
     vigente_hasta: string | null;
     vigente: boolean;
     nota: string | null;
-}
-
-interface Paso {
-    id: number | null;
-    titulo: string;
-    hecho: boolean;
-    hechoEn: string | null;
+    evidencia_id: number | null;
+    evidencia: string | null;
 }
 
 interface Checklist {
@@ -120,11 +121,13 @@ const props = defineProps<{
     formacion: Formacion[];
     acuerdos: Acuerdo[];
     pasos: Checklist[];
+    maximoPasos: number;
     puedeGestionar: boolean;
     puedeDesignar: boolean;
     roles: OpcionRol[];
     sistemas: Opcion[];
-    cuentas: Opcion[];
+    /** Llega sólo cuando se pide, al abrir el diálogo del acuerdo. */
+    evidenciasDisponibles?: Opcion[];
 }>();
 
 /* --- Los nombramientos: cláusula 5.3 --- */
@@ -182,6 +185,9 @@ const avisoIncompatible = computed(() => {
 
 const revocadasALaVista = ref(false);
 
+const { asentada: revocadasAsentadas, alTerminarTransicion: alTerminarRevocadas } =
+    useDesplegable(revocadasALaVista);
+
 const vigentes = computed(() => props.designaciones.filter((item) => item.vigente));
 const historicas = computed(() => props.designaciones.filter((item) => !item.vigente));
 
@@ -189,13 +195,26 @@ const historicas = computed(() => props.designaciones.filter((item) => !item.vig
 
 const firmando = ref(false);
 
-const acuerdo = useForm({ fecha_firma: '', vigente_hasta: '', nota: '' });
+const acuerdo = useForm({ fecha_firma: '', vigente_hasta: '', nota: '', evidencia_id: SIN_VALOR });
+
+/** Las candidatas no viajan con la ficha: se piden al abrir. */
+const cargandoEvidencias = ref(false);
+
+const evidencias = computed<Opcion[]>(() =>
+    conOpcionVacia(props.evidenciasDisponibles ?? [], 'Sin documento adjunto'),
+);
 
 function abrirAcuerdo(): void {
     acuerdo.reset();
     acuerdo.clearErrors();
     acuerdo.fecha_firma = new Date().toISOString().slice(0, 10);
     firmando.value = true;
+
+    cargandoEvidencias.value = true;
+    router.reload({
+        only: ['evidenciasDisponibles'],
+        onFinish: () => (cargandoEvidencias.value = false),
+    });
 }
 
 function guardarAcuerdo(): void {
@@ -215,68 +234,54 @@ function borrarAcuerdo(id: number): void {
 /* --- Las dos checklists --- */
 
 /**
- * Se edita en local y se guarda la lista entera, como las subtareas de una
- * tarea: añadir, renombrar, marcar, reordenar y borrar son el mismo gesto en una
- * lista de comprobación, y el orden va implícito en la posición del array.
+ * Se autoguarda en cada gesto, como la de una tarea, y no con un botón.
+ *
+ * Tuvo botón y «Sin guardar» durante un rato, con el argumento de que marcar un
+ * paso de la baja de alguien no es un gesto suelto. No se sostiene: la raya que
+ * tacha el paso **es** el acuse —`DESIGN.md` §10— y con guardado diferido
+ * dibujaría el acuse de algo que todavía no ha salido del navegador. Y la
+ * asimetría de riesgo va al revés: un paso marcado por error se desmarca y
+ * `GuardarPasos` limpia su fecha, mientras que un paso marcado y perdido al
+ * navegar deja la salida sin cerrar **y a alguien convencido de que constaba**,
+ * que es justo el único rojo de este módulo.
+ *
+ * **El indicador de envío es por lista y no global**: son dos rutas a la misma
+ * URL con `tipo` distinto, y con un solo flag marcar en la de alta bloquearía
+ * la de baja.
  */
-const listas = ref<Record<string, Paso[]>>({});
+const guardando = ref<Record<string, boolean>>({});
 
-watch(
-    () => props.pasos,
-    (valor) => {
-        listas.value = Object.fromEntries(
-            valor.map((lista) => [lista.tipo, lista.pasos.map((paso) => ({ ...paso }))]),
-        );
-    },
-    { immediate: true, deep: true },
-);
+/**
+ * Lo que el servidor rechace, dicho aquí.
+ *
+ * El guardado de la checklist no pasa por un formulario con sus campos, así
+ * que su 422 —el del tope de pasos, por ejemplo— no tenía dónde pintarse: se
+ * pulsaba Guardar, no pasaba nada visible y el paso se perdía.
+ */
+const errorPasos = ref<string | null>(null);
 
-function anadirPaso(tipo: string): void {
-    listas.value[tipo] = [...(listas.value[tipo] ?? []), { id: null, titulo: '', hecho: false, hechoEn: null }];
-}
+function guardarLista(tipo: string, pasos: Paso[]): void {
+    guardando.value = { ...guardando.value, [tipo]: true };
+    errorPasos.value = null;
 
-function quitarPaso(tipo: string, indice: number): void {
-    listas.value[tipo] = (listas.value[tipo] ?? []).filter((_, i) => i !== indice);
-}
-
-function guardarLista(tipo: string): void {
     router.put(
         `/personas/${props.persona.id}/pasos`,
         {
             tipo,
-            pasos: (listas.value[tipo] ?? []).map((paso) => ({
-                id: paso.id,
-                titulo: paso.titulo,
-                hecho: paso.hecho,
-            })),
+            pasos: pasos.map((paso) => ({ id: paso.id, titulo: paso.titulo, hecho: paso.hecho })),
         },
-        { preserveScroll: true },
+        {
+            preserveScroll: true,
+            onError: (errores) => {
+                errorPasos.value =
+                    Object.values(errores)[0] ??
+                    'No se ha podido guardar la checklist. Revisa los pasos e inténtalo otra vez.';
+            },
+            onFinish: () => (guardando.value = { ...guardando.value, [tipo]: false }),
+        },
     );
 }
 
-function pendientesDe(tipo: string): number {
-    return (listas.value[tipo] ?? []).filter((paso) => !paso.hecho && paso.titulo.trim() !== '').length;
-}
-
-/**
- * Lo que está escrito y todavía no se ha mandado.
- *
- * La lista se edita entera y se guarda entera, así que entre el primer clic y el
- * botón hay un rato en el que lo marcado sólo vive en el navegador. Sin decirlo,
- * salir de la pantalla lo tira y nada avisa. Aquí no se autoguarda como en la
- * lista de comprobación de una tarea —marcar un paso de la baja de alguien no es
- * un gesto suelto, es una salida que se cierra de una vez—, así que al menos se
- * dice.
- */
-function huella(pasos: Paso[]): string {
-    return JSON.stringify(pasos.map((paso) => [paso.id, paso.titulo, paso.hecho]));
-}
-
-function estaSucia(tipo: string): boolean {
-    const original = props.pasos.find((lista) => lista.tipo === tipo)?.pasos ?? [];
-
-    return huella(listas.value[tipo] ?? []) !== huella(original);
-}
 </script>
 
 <template>
@@ -336,10 +341,11 @@ function estaSucia(tipo: string): boolean {
                     <CardContent class="space-y-4">
                         <EstadoVacio
                             v-if="vigentes.length === 0"
+                            :icono="UserCheckIcon"
                             titulo="Sin nombramientos vigentes"
                             descripcion="Los roles ENS se designan por sistema, porque es donde la incompatibilidad significa algo."
                         />
-                        <ul v-else class="divide-y divide-border">
+                        <TransitionGroup v-else tag="ul" name="paso" class="divide-y divide-border">
                             <li
                                 v-for="item in vigentes"
                                 :key="item.id"
@@ -353,7 +359,9 @@ function estaSucia(tipo: string): boolean {
                                         icono: item.rolIcono,
                                     }"
                                 />
-                                <span class="cifra">{{ item.sistema }}</span>
+                                <span class="cifra" :title="item.sistemaNombre ?? undefined">
+                                    {{ item.sistema }}
+                                </span>
                                 <span class="text-xs text-muted-foreground">
                                     desde el {{ item.desde }}
                                     <template v-if="item.designadaPor">
@@ -364,13 +372,23 @@ function estaSucia(tipo: string): boolean {
                                     v-if="puedeDesignar"
                                     variant="ghost"
                                     size="sm"
-                                    class="ml-auto"
                                     @click="revocar(item.id)"
                                 >
                                     Revocar
                                 </Button>
+
+                                <!--
+                                    Dónde consta el nombramiento —«acta del
+                                    comité del 3 de marzo»—. El diálogo lo pide
+                                    con esas palabras y no se pintaba en ningún
+                                    sitio, que es lo mismo que no haberlo
+                                    escrito.
+                                -->
+                                <span v-if="item.nota" class="w-full text-xs text-muted-foreground">
+                                    {{ item.nota }}
+                                </span>
                             </li>
-                        </ul>
+                        </TransitionGroup>
 
                         <Button v-if="puedeDesignar" variant="outline" @click="abrirDesignacion">
                             Designar en un rol
@@ -396,21 +414,38 @@ function estaSucia(tipo: string): boolean {
                                 />
                                 {{ historicas.length }} nombramiento{{ historicas.length === 1 ? '' : 's' }} revocado{{ historicas.length === 1 ? '' : 's' }}
                             </button>
-                            <ul
-                                v-show="revocadasALaVista"
+                            <!--
+                                `.desplegable` y no `v-show`: el chevron gira y
+                                lo mandado aparecía de golpe, que es el defecto
+                                que documenta `SeccionFormulario`. El `mt-2` va
+                                en el div de dentro y nunca en el hijo directo
+                                de la rejilla —ahí dejaría dos milímetros
+                                visibles con el bloque cerrado—, y el
+                                `data-asentado` no es opcional: sin él el
+                                `overflow: hidden` recorta el anillo de foco.
+                            -->
+                            <div
                                 id="nombramientos-revocados"
-                                class="mt-2 divide-y divide-border"
+                                class="desplegable"
+                                :data-abierto="revocadasALaVista ? '' : undefined"
+                                :data-asentado="revocadasAsentadas ? '' : undefined"
+                                :inert="!revocadasALaVista"
+                                @transitionend="alTerminarRevocadas"
                             >
-                                <li
-                                    v-for="item in historicas"
-                                    :key="item.id"
-                                    class="flex flex-wrap items-center gap-2 py-2 text-muted-foreground"
-                                >
-                                    <span>{{ item.rolEtiqueta }}</span>
-                                    <span class="cifra text-xs">{{ item.sistema }}</span>
-                                    <span class="text-xs">{{ item.desde }} – {{ item.hasta }}</span>
-                                </li>
-                            </ul>
+                                <div class="mt-2">
+                                    <ul class="divide-y divide-border">
+                                        <li
+                                            v-for="item in historicas"
+                                            :key="item.id"
+                                            class="flex flex-wrap items-center gap-2 py-2 text-muted-foreground"
+                                        >
+                                            <span>{{ item.rolEtiqueta }}</span>
+                                            <span class="cifra text-xs">{{ item.sistema }}</span>
+                                            <span class="text-xs">{{ item.desde }} – {{ item.hasta }}</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
@@ -428,8 +463,10 @@ function estaSucia(tipo: string): boolean {
                     <CardContent>
                         <EstadoVacio
                             v-if="formacion.length === 0"
+                            :icono="GraduationCapIcon"
                             titulo="Sin formación registrada"
-                            descripcion="Se convoca desde la sesión, en Formación."
+                            descripcion="La asistencia se apunta desde la sesión y no desde aquí: lo que se registra es una convocatoria con sus asistentes."
+                            :accion="{ etiqueta: 'Ir a formación', href: '/formacion' }"
                         />
                         <ul v-else class="divide-y divide-border">
                             <li
@@ -494,68 +531,22 @@ function estaSucia(tipo: string): boolean {
                         </CardDescription>
                     </CardHeader>
                     <CardContent class="space-y-3">
-                        <ul class="space-y-2">
-                            <li
-                                v-for="(paso, indice) in listas[lista.tipo] ?? []"
-                                :key="paso.id ?? `nuevo-${indice}`"
-                                class="flex items-center gap-2"
-                            >
-                                <Checkbox
-                                    :model-value="paso.hecho"
-                                    :disabled="!puedeGestionar"
-                                    :aria-label="`Marcar «${paso.titulo}» como hecho`"
-                                    @update:model-value="(valor) => (paso.hecho = valor === true)"
-                                />
-                                <Input
-                                    v-model="paso.titulo"
-                                    :disabled="!puedeGestionar"
-                                    :aria-label="`Paso ${indice + 1}`"
-                                    class="flex-1"
-                                />
-                                <span
-                                    v-if="paso.hechoEn"
-                                    class="shrink-0 text-xs text-muted-foreground"
-                                >
-                                    {{ paso.hechoEn }}
-                                </span>
-                                <Button
-                                    v-if="puedeGestionar"
-                                    variant="ghost"
-                                    size="sm"
-                                    :aria-label="`Quitar el paso ${indice + 1}`"
-                                    @click="quitarPaso(lista.tipo, indice)"
-                                >
-                                    Quitar
-                                </Button>
-                            </li>
-                        </ul>
+                        <Aviso v-if="errorPasos" tono="error">{{ errorPasos }}</Aviso>
 
-                        <p v-if="(listas[lista.tipo] ?? []).length === 0" class="text-sm text-muted-foreground">
-                            Sin pasos. Se escriben una vez y valen para quien venga detrás.
-                        </p>
-                        <p v-else class="text-xs text-muted-foreground">
-                            {{ pendientesDe(lista.tipo) }} sin marcar de
-                            {{ (listas[lista.tipo] ?? []).length }}.
-                        </p>
-
-                        <div v-if="puedeGestionar" class="flex flex-wrap items-center gap-2">
-                            <Button variant="outline" size="sm" @click="anadirPaso(lista.tipo)">
-                                Añadir paso
-                            </Button>
-                            <Button
-                                size="sm"
-                                :variant="estaSucia(lista.tipo) ? 'default' : 'outline'"
-                                @click="guardarLista(lista.tipo)"
-                            >
-                                Guardar
-                            </Button>
-                            <span
-                                v-if="estaSucia(lista.tipo)"
-                                class="text-xs font-medium text-estado-en-progreso"
-                            >
-                                Sin guardar
-                            </span>
-                        </div>
+                        <!--
+                            La misma lista de comprobación que una tarea, y con
+                            fecha: aquí «¿desde cuándo consta hecho este paso?»
+                            es una pregunta del auditor, no un detalle.
+                        -->
+                        <ListaComprobacion
+                            :pasos="lista.pasos"
+                            :maximo="maximoPasos"
+                            :editable="puedeGestionar"
+                            :ocupado="guardando[lista.tipo] === true"
+                            con-fecha
+                            vacio="Sin pasos. Se escriben una vez y valen para quien venga detrás."
+                            @guardar="(pasos) => guardarLista(lista.tipo, pasos)"
+                        />
                     </CardContent>
                 </Card>
             </div>
@@ -573,10 +564,11 @@ function estaSucia(tipo: string): boolean {
                     <CardContent class="space-y-3">
                         <EstadoVacio
                             v-if="acuerdos.length === 0"
+                            :icono="FileSignatureIcon"
                             titulo="Sin acuerdo firmado"
                             descripcion="Los deberes tienen que constar por escrito: sin papel, la medida está declarada y no probada."
                         />
-                        <ul v-else class="divide-y divide-border">
+                        <TransitionGroup v-else tag="ul" name="paso" class="divide-y divide-border">
                             <li
                                 v-for="item in acuerdos"
                                 :key="item.id"
@@ -598,13 +590,29 @@ function estaSucia(tipo: string): boolean {
                                     v-if="puedeGestionar"
                                     variant="ghost"
                                     size="sm"
-                                    class="ml-auto"
                                     @click="borrarAcuerdo(item.id)"
                                 >
                                     Borrar
                                 </Button>
+
+                                <!--
+                                    El documento y la nota se escribían y no se
+                                    pintaban en ninguna parte. Son las dos cosas
+                                    que un auditor pide al lado de una firma:
+                                    dónde consta y qué papel lo prueba.
+                                -->
+                                <Link
+                                    v-if="item.evidencia_id"
+                                    :href="`/evidencias/${item.evidencia_id}`"
+                                    class="w-full text-xs underline underline-offset-4"
+                                >
+                                    {{ item.evidencia }}
+                                </Link>
+                                <span v-if="item.nota" class="w-full text-xs text-muted-foreground">
+                                    {{ item.nota }}
+                                </span>
                             </li>
-                        </ul>
+                        </TransitionGroup>
 
                         <Button v-if="puedeGestionar" variant="outline" size="sm" @click="abrirAcuerdo">
                             Registrar acuerdo
@@ -617,9 +625,15 @@ function estaSucia(tipo: string): boolean {
                         <CardTitle>Cuenta de Statera</CardTitle>
                     </CardHeader>
                     <CardContent class="text-sm">
-                        <p v-if="persona.usuario">
-                            Vinculada a <span class="font-medium">{{ persona.usuario }}</span>.
-                        </p>
+                        <!--
+                            Par dato/valor en `<dl>`, como las fichas de activo,
+                            riesgo, indicador y objetivo. Un rótulo en negrita
+                            dentro de un `<p>` se lee igual y no es un rótulo.
+                        -->
+                        <dl v-if="persona.usuario" class="grid gap-1">
+                            <dt class="text-muted-foreground">Cuenta vinculada</dt>
+                            <dd class="font-medium">{{ persona.usuario }}</dd>
+                        </dl>
                         <p v-else class="text-muted-foreground">
                             Sin cuenta, que es lo normal: la mayoría de una plantilla no entra
                             nunca en la herramienta. Sin cuenta no se le pueden asignar tareas ni
@@ -719,6 +733,16 @@ function estaSucia(tipo: string): boolean {
                         tipo="date"
                         :error="acuerdo.errors.vigente_hasta"
                         ayuda="En blanco casi siempre: un acuerdo de confidencialidad no suele vencer."
+                    />
+
+                    <CampoSelect
+                        v-model="acuerdo.evidencia_id"
+                        nombre="evidencia_id"
+                        etiqueta="Documento firmado"
+                        :opciones="evidencias"
+                        :error="acuerdo.errors.evidencia_id"
+                        :placeholder="cargandoEvidencias ? 'Buscando evidencias…' : undefined"
+                        ayuda="Una evidencia que ya esté en el repositorio. Sin ella, la medida está declarada y no probada — que es lo que un auditor separa."
                     />
 
                     <CampoTextarea

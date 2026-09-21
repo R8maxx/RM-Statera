@@ -314,6 +314,14 @@ class ActivoController extends Controller
         $vinculos = [];
 
         foreach ($sistemas as $sistemaId) {
+            // Lo que no es un número no se castea, se ignora: `(int) null` es 0,
+            // y un `sync` con la clave 0 muere contra la foránea con un error
+            // que habla de `activo_sistema` y no de lo que llegó en la petición.
+            // La validación ya lo impide; esto es la red que hay debajo.
+            if (! is_numeric($sistemaId)) {
+                continue;
+            }
+
             $vinculos[(int) $sistemaId] = ['organizacion_id' => $activo->organizacion_id];
         }
 

@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Domain\Autorizacion\Enums\Permiso;
+use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Persona\CodigoAccionFormativa;
 use App\Domain\Persona\Enums\TipoAccionFormativa;
 use App\Domain\Persona\Models\AccionFormativa;
 use App\Domain\Persona\Models\Persona;
 use App\Domain\Persona\RegistrarAsistencia;
+use App\Domain\Persona\RegistroFormacion;
 use App\Http\Requests\GuardarAccionFormativaRequest;
 use App\Http\Requests\RegistrarAsistenciaRequest;
 use App\Http\Resources\AccionFormativaRecurso;
@@ -35,12 +37,20 @@ class FormacionController extends Controller
 {
     use RespondeConRecurso;
 
-    public function index(Request $request, AccionFormativaRecurso $recurso): Response
+    public function index(Request $request, AccionFormativaRecurso $recurso, RegistroFormacion $registro): Response
     {
         return Inertia::render('formacion/Index', [
             ...$this->tabla($recurso, $request),
-            'total' => AccionFormativa::query()->count(),
-            'sinAsistencia' => AccionFormativa::query()->sinAsistencia()->count(),
+            // Las cifras no se cuentan aquí: viven en el dominio, como las de
+            // personas e incidentes, y así la clave del indicador es la del
+            // filtro por construcción.
+            // Vacía siempre, y no por olvido: formación no gasta rojo. Lo que
+            // va mal de verdad es una **persona** sin formar, y esa cifra vive
+            // en `/personas` con su filtro; repetirla aquí sobre otro
+            // denominador daría dos números que parecen el mismo.
+            'alertas' => [],
+            'pendientes' => $registro->pendientes(),
+            'total' => $registro->total(),
         ]);
     }
 
@@ -161,8 +171,6 @@ class FormacionController extends Controller
      */
     private function serializar(AccionFormativa $accion): array
     {
-        $convocadas = $accion->relationLoaded('asistencias') ? $accion->asistencias : collect();
-
         return [
             'id' => $accion->id,
             'codigo' => $accion->codigo,
@@ -178,8 +186,6 @@ class FormacionController extends Controller
             'contenido' => $accion->contenido,
             'evidencia_id' => $accion->evidencia_id,
             'evidencia' => $accion->relationLoaded('evidencia') ? $accion->evidencia?->titulo : null,
-            'convocadas' => $convocadas->count(),
-            'asistentes' => $convocadas->where('asistio', true)->count(),
         ];
     }
 
@@ -197,6 +203,24 @@ class FormacionController extends Controller
                 ],
                 TipoAccionFormativa::cases(),
             ),
+            /*
+             * La hoja de firmas: `mp.per.3` y `mp.per.4` no piden que se
+             * imparta la sesión, piden poder demostrarlo.
+             *
+             * Se adjunta una evidencia que ya está en el repositorio y no se
+             * sube una por sesión: el invariante 6 dice que la misma prueba
+             * cuenta para todos los marcos donde aplique. Mismo patrón que el
+             * bloque de evidencias de una implantación.
+             */
+            'evidencias' => Evidencia::query()
+                ->orderByDesc('fecha_obtencion')
+                ->limit(100)
+                ->get()
+                ->map(static fn (Evidencia $evidencia): array => [
+                    'valor' => (string) $evidencia->id,
+                    'etiqueta' => $evidencia->titulo,
+                ])
+                ->all(),
         ];
     }
 }

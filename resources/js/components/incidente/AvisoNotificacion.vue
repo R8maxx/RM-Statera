@@ -59,13 +59,23 @@ const emit = defineEmits<{ anotar: [destinatario: string] }>();
 
         <p class="text-xs text-muted-foreground">{{ notificacion.fundamento }}</p>
 
+        <!--
+            **Cuando no procede notificar, el botón no se ofrece igual.**
+            `RegistrarNotificacion` marca `notificable` al anotar —y hace bien:
+            lo contrario obligaría a editar el incidente antes de poder decir la
+            verdad sobre él—, así que un botón de contorno en una tarjeta que
+            dice «Sin datos personales afectados» está invitando a crear una
+            obligación que no existía. La puerta se deja abierta, se deja de
+            empujar.
+        -->
         <Button
             v-if="puedeGestionar && !notificacion.notificado"
-            variant="outline"
+            :variant="notificacion.notificable ? 'outline' : 'link'"
             size="sm"
+            :class="notificacion.notificable ? undefined : 'h-auto px-0'"
             @click="emit('anotar', notificacion.destinatario)"
         >
-            Anotar la notificación
+            {{ notificacion.notificable ? 'Anotar la notificación' : 'Se notificó de todos modos' }}
         </Button>
     </div>
 </template>
