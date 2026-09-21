@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Aviso from '@/components/Aviso.vue';
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
@@ -20,6 +21,7 @@ import {
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Link, router, useForm } from '@inertiajs/vue3';
+import { ChevronRightIcon } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
 interface Opcion {
@@ -178,6 +180,8 @@ const avisoIncompatible = computed(() => {
         : null;
 });
 
+const revocadasALaVista = ref(false);
+
 const vigentes = computed(() => props.designaciones.filter((item) => item.vigente));
 const historicas = computed(() => props.designaciones.filter((item) => !item.vigente));
 
@@ -253,6 +257,26 @@ function guardarLista(tipo: string): void {
 function pendientesDe(tipo: string): number {
     return (listas.value[tipo] ?? []).filter((paso) => !paso.hecho && paso.titulo.trim() !== '').length;
 }
+
+/**
+ * Lo que está escrito y todavía no se ha mandado.
+ *
+ * La lista se edita entera y se guarda entera, así que entre el primer clic y el
+ * botón hay un rato en el que lo marcado sólo vive en el navegador. Sin decirlo,
+ * salir de la pantalla lo tira y nada avisa. Aquí no se autoguarda como en la
+ * lista de comprobación de una tarea —marcar un paso de la baja de alguien no es
+ * un gesto suelto, es una salida que se cierra de una vez—, así que al menos se
+ * dice.
+ */
+function huella(pasos: Paso[]): string {
+    return JSON.stringify(pasos.map((paso) => [paso.id, paso.titulo, paso.hecho]));
+}
+
+function estaSucia(tipo: string): boolean {
+    const original = props.pasos.find((lista) => lista.tipo === tipo)?.pasos ?? [];
+
+    return huella(listas.value[tipo] ?? []) !== huella(original);
+}
 </script>
 
 <template>
@@ -287,16 +311,14 @@ function pendientesDe(tipo: string): number {
             sin constancia de borrado: la herramienta no corrige el dato, lo pone
             delante.
         -->
-        <div
+        <Aviso
             v-if="persona.esperaCierreDeBaja"
-            class="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm"
+            tono="error"
+            titulo="Se fue con la checklist de salida a medias"
         >
-            <p class="font-medium">Se fue con la checklist de salida a medias.</p>
-            <p class="text-muted-foreground">
-                Quedan pasos sin marcar. Un acceso que nadie revocó es el hallazgo clásico de
-                <span class="cifra">mp.per.*</span>, y es lo que un auditor comprueba primero.
-            </p>
-        </div>
+            Quedan pasos sin marcar. Un acceso que nadie revocó es el hallazgo clásico de
+            <span class="cifra">mp.per.*</span>, y es lo que un auditor comprueba primero.
+        </Aviso>
 
         <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
             <div class="space-y-6">
@@ -354,11 +376,31 @@ function pendientesDe(tipo: string): number {
                             Designar en un rol
                         </Button>
 
-                        <details v-if="historicas.length > 0" class="text-sm">
-                            <summary class="cursor-pointer text-muted-foreground">
+                        <!--
+                            Se pliega desde el título y con el chevron delante,
+                            como una sección de formulario: era el único
+                            `<details>` del producto, con el triángulo del
+                            navegador y sin `aria-expanded`.
+                        -->
+                        <div v-if="historicas.length > 0" class="text-sm">
+                            <button
+                                type="button"
+                                class="group flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground"
+                                :aria-expanded="revocadasALaVista"
+                                aria-controls="nombramientos-revocados"
+                                @click="revocadasALaVista = !revocadasALaVista"
+                            >
+                                <ChevronRightIcon
+                                    class="size-4 shrink-0 transition-transform group-hover:text-primary"
+                                    :class="revocadasALaVista ? 'rotate-90' : undefined"
+                                />
                                 {{ historicas.length }} nombramiento{{ historicas.length === 1 ? '' : 's' }} revocado{{ historicas.length === 1 ? '' : 's' }}
-                            </summary>
-                            <ul class="mt-2 divide-y divide-border">
+                            </button>
+                            <ul
+                                v-show="revocadasALaVista"
+                                id="nombramientos-revocados"
+                                class="mt-2 divide-y divide-border"
+                            >
                                 <li
                                     v-for="item in historicas"
                                     :key="item.id"
@@ -369,7 +411,7 @@ function pendientesDe(tipo: string): number {
                                     <span class="text-xs">{{ item.desde }} – {{ item.hasta }}</span>
                                 </li>
                             </ul>
-                        </details>
+                        </div>
                     </CardContent>
                 </Card>
 
@@ -409,8 +451,24 @@ function pendientesDe(tipo: string): number {
                                 >
                                     {{ item.titulo }}
                                 </Link>
+                                <!--
+                                    Concienciar y formar son dos medidas
+                                    distintas —`mp.per.3` y `mp.per.4`—, y el
+                                    servidor ya mandaba su tono y su icono: en
+                                    texto plano se leían como una coletilla de
+                                    la fecha.
+                                -->
+                                <CeldaBadge
+                                    v-if="item.tipo"
+                                    :valor="{
+                                        valor: item.tipo,
+                                        etiqueta: item.tipo,
+                                        tono: item.tipoTono,
+                                        icono: item.tipoIcono,
+                                    }"
+                                />
                                 <span class="text-xs text-muted-foreground">
-                                    {{ item.tipo }} · {{ item.fecha }} ·
+                                    {{ item.fecha }} ·
                                     <span class="cifra">{{ item.medida }}</span>
                                 </span>
                             </li>
@@ -439,7 +497,7 @@ function pendientesDe(tipo: string): number {
                         <ul class="space-y-2">
                             <li
                                 v-for="(paso, indice) in listas[lista.tipo] ?? []"
-                                :key="indice"
+                                :key="paso.id ?? `nuevo-${indice}`"
                                 class="flex items-center gap-2"
                             >
                                 <Checkbox
@@ -480,11 +538,23 @@ function pendientesDe(tipo: string): number {
                             {{ (listas[lista.tipo] ?? []).length }}.
                         </p>
 
-                        <div v-if="puedeGestionar" class="flex gap-2">
+                        <div v-if="puedeGestionar" class="flex flex-wrap items-center gap-2">
                             <Button variant="outline" size="sm" @click="anadirPaso(lista.tipo)">
                                 Añadir paso
                             </Button>
-                            <Button size="sm" @click="guardarLista(lista.tipo)">Guardar</Button>
+                            <Button
+                                size="sm"
+                                :variant="estaSucia(lista.tipo) ? 'default' : 'outline'"
+                                @click="guardarLista(lista.tipo)"
+                            >
+                                Guardar
+                            </Button>
+                            <span
+                                v-if="estaSucia(lista.tipo)"
+                                class="text-xs font-medium text-estado-en-progreso"
+                            >
+                                Sin guardar
+                            </span>
                         </div>
                     </CardContent>
                 </Card>
@@ -591,12 +661,9 @@ function pendientesDe(tipo: string): number {
                         requerido
                     />
 
-                    <p
-                        v-if="avisoIncompatible"
-                        class="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm"
-                    >
+                    <Aviso v-if="avisoIncompatible" tono="error">
                         {{ avisoIncompatible }}
-                    </p>
+                    </Aviso>
 
                     <CampoTexto
                         v-model="designacion.desde"

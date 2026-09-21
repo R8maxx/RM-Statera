@@ -92,7 +92,30 @@ function marcarVisibles(asistio: boolean): void {
     }
 }
 
+/**
+ * Lo marcado y todavía no mandado.
+ *
+ * Toda la convocatoria se edita en local y viaja de una vez —cincuenta marcas
+ * en una petición, que es el motivo de que esto sea pantalla propia—, así que
+ * entre la primera casilla y el botón hay un rato en el que salir de aquí lo
+ * tira. Decirlo es lo mínimo.
+ */
+function huella(personas: PersonaConvocada[]): string {
+    return JSON.stringify(
+        personas
+            .filter((persona) => persona.convocada)
+            .map((persona) => [persona.id, persona.asistio])
+            .sort(),
+    );
+}
+
+const sinGuardar = computed(() => huella(lista.value) !== huella(props.personas));
+
+const guardando = ref(false);
+
 function guardar(): void {
+    guardando.value = true;
+
     router.put(
         `/formacion/${props.accion.id}/asistencia`,
         {
@@ -101,7 +124,7 @@ function guardar(): void {
                 asistio: persona.asistio,
             })),
         },
-        { preserveScroll: true },
+        { preserveScroll: true, onFinish: () => (guardando.value = false) },
     );
 }
 </script>
@@ -162,12 +185,18 @@ function guardar(): void {
                         aria-label="Buscar en la plantilla"
                         class="max-w-xs"
                     />
-                    <template v-if="puedeGestionar">
+                    <!--
+                        Con el buscador vacío, «lo visible» es la plantilla
+                        entera. El número va en el botón porque marcar a
+                        doscientas personas de un clic y darse cuenta después no
+                        tiene vuelta atrás más que no guardando.
+                    -->
+                    <template v-if="puedeGestionar && visibles.length > 0">
                         <Button variant="outline" size="sm" @click="marcarVisibles(true)">
-                            Marcar asistencia de lo visible
+                            Convocar y dar por asistidas ({{ visibles.length }})
                         </Button>
                         <Button variant="outline" size="sm" @click="marcarVisibles(false)">
-                            Convocar lo visible sin asistencia
+                            Convocar sin asistencia ({{ visibles.length }})
                         </Button>
                     </template>
                 </div>
@@ -212,6 +241,7 @@ function guardar(): void {
                             <Checkbox
                                 :model-value="persona.asistio"
                                 :disabled="!puedeGestionar || !persona.convocada"
+                                :aria-label="`${persona.nombre} asistió`"
                                 @update:model-value="(valor) => (persona.asistio = valor === true)"
                             />
                             <span class="text-xs text-muted-foreground">Asistió</span>
@@ -219,7 +249,18 @@ function guardar(): void {
                     </li>
                 </ul>
 
-                <Button v-if="puedeGestionar" @click="guardar">Guardar asistencia</Button>
+                <div v-if="puedeGestionar" class="flex flex-wrap items-center gap-2">
+                    <Button
+                        :variant="sinGuardar ? 'default' : 'outline'"
+                        :disabled="guardando"
+                        @click="guardar"
+                    >
+                        Guardar asistencia
+                    </Button>
+                    <span v-if="sinGuardar" class="text-xs font-medium text-estado-en-progreso">
+                        Sin guardar
+                    </span>
+                </div>
             </CardContent>
         </Card>
     </AppLayout>

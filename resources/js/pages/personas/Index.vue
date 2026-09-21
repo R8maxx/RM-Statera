@@ -2,9 +2,11 @@
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
 import Cifra from '@/components/Cifra.vue';
 import DataTable, { type Fila } from '@/components/tabla/DataTable.vue';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import TiraIndicadores from '@/components/TiraIndicadores.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Link } from '@inertiajs/vue3';
+import { computed } from 'vue';
 
 /**
  * El registro de personas: § 4.8, cláusula 5.3 y `mp.per.*`.
@@ -29,6 +31,19 @@ const props = defineProps<{
     cobertura: Cobertura;
     total: number;
 }>();
+
+/**
+ * Los huecos, con tope y su «y N más».
+ *
+ * Son cinco roles por sistema: con diez sistemas sin designar, la lista entera
+ * son cincuenta chips y la tabla de personas se va de la pantalla. Mismo tope
+ * que las columnas del tablero de tareas y los días del calendario.
+ */
+const TOPE_HUECOS = 8;
+
+const huecosALaVista = computed(() => props.cobertura.faltan.slice(0, TOPE_HUECOS));
+
+const huecosDeMas = computed(() => Math.max(0, props.cobertura.faltan.length - TOPE_HUECOS));
 </script>
 
 <template>
@@ -52,34 +67,41 @@ const props = defineProps<{
             (sistema, rol), que es otro denominador. Un indicador con el
             denominador de al lado equivocado es peor que ninguno.
         -->
-        <section class="rounded-xl border border-border bg-card p-4">
-            <div class="flex flex-wrap items-baseline justify-between gap-2">
-                <h2 class="text-sm font-semibold">Roles ENS designados</h2>
-                <p class="text-sm text-muted-foreground">
-                    <Cifra class="font-semibold text-foreground" :valor="cobertura.designados" />
-                    de {{ cobertura.exigibles }} nombramientos vigentes
+        <Card size="sm">
+            <CardHeader>
+                <div class="flex flex-wrap items-baseline justify-between gap-2">
+                    <CardTitle>Roles ENS designados</CardTitle>
+                    <p class="text-sm text-muted-foreground">
+                        <Cifra class="font-semibold text-foreground" :valor="cobertura.designados" />
+                        de {{ cobertura.exigibles }} nombramientos vigentes
+                    </p>
+                </div>
+            </CardHeader>
+
+            <CardContent class="space-y-3">
+                <p v-if="cobertura.faltan.length === 0" class="text-sm text-muted-foreground">
+                    Todos los sistemas tienen designados los cinco roles que el ENS exige.
                 </p>
-            </div>
+                <ul v-else class="flex flex-wrap gap-2">
+                    <li
+                        v-for="hueco in huecosALaVista"
+                        :key="`${hueco.sistema}-${hueco.rol}`"
+                        class="rounded-full px-2.5 py-0.5 text-xs text-muted-foreground ring-1 ring-foreground/10"
+                    >
+                        <span class="cifra">{{ hueco.sistema }}</span> · {{ hueco.rol }}
+                    </li>
+                    <li v-if="huecosDeMas > 0" class="px-1 py-0.5 text-xs text-muted-foreground">
+                        y {{ huecosDeMas }} más
+                    </li>
+                </ul>
 
-            <p v-if="cobertura.faltan.length === 0" class="mt-2 text-sm text-muted-foreground">
-                Todos los sistemas tienen designados los cinco roles que el ENS exige.
-            </p>
-            <ul v-else class="mt-2 flex flex-wrap gap-2">
-                <li
-                    v-for="(hueco, i) in cobertura.faltan"
-                    :key="i"
-                    class="rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground"
-                >
-                    <span class="cifra">{{ hueco.sistema }}</span> · {{ hueco.rol }}
-                </li>
-            </ul>
-
-            <p class="mt-3 text-xs text-muted-foreground">
-                Un nombramiento se registra desde la ficha de la persona. Statera no comprueba que
-                esté firmado ni que quien lo recibe tenga la competencia que pide
-                <span class="cifra">mp.per.1</span>.
-            </p>
-        </section>
+                <p class="text-xs text-muted-foreground">
+                    Un nombramiento se registra desde la ficha de la persona. Statera no comprueba
+                    que esté firmado ni que quien lo recibe tenga la competencia que pide
+                    <span class="cifra">mp.per.1</span>.
+                </p>
+            </CardContent>
+        </Card>
 
         <DataTable :recurso="recurso" :filas="filas" :meta="meta" />
 
