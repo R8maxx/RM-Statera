@@ -99,12 +99,29 @@ final readonly class GenerarDocumento
      * llevó este borrador, afecta a cero filas y aquí no se hace nada. Es la
      * segunda barrera contra la doble generación, después de `ShouldBeUnique`;
      * la primera se puede perder si Redis pierde el candado, ésta no.
+     *
+     * **`$reintento` existe porque esa barrera se tragaba los reintentos, y con
+     * ellos el fallo entero.** Tras un intento fallido la fila ya está en
+     * `generando`, así que el segundo intento afectaba a cero filas y volvía sin
+     * hacer nada: el job terminaba «con éxito», `failed()` no llegaba a correr,
+     * los tres `tries` eran papel mojado y la versión se quedaba en «generando»
+     * para siempre. La ficha sondeaba dos minutos y se rendía sin poder decir
+     * qué había pasado — la peor forma de fallar que tiene este módulo.
+     *
+     * Quien sabe si esto es un reintento es el job (`attempts() > 1`), no esta
+     * acción, y por eso el dato entra por parámetro en vez de deducirse del
+     * estado: `generando` significa lo mismo para el trabajador que la dejó así
+     * y para otro que se la encuentre, y sólo el primero puede retomarla.
      */
-    public function ejecutar(DocumentoVersion $version): void
+    public function ejecutar(DocumentoVersion $version, bool $reintento = false): void
     {
+        $retomables = $reintento
+            ? [EstadoGeneracion::Encolada->value, EstadoGeneracion::Generando->value]
+            : [EstadoGeneracion::Encolada->value];
+
         $tomado = DB::table('documento_versiones')
             ->where('id', $version->id)
-            ->where('estado_generacion', EstadoGeneracion::Encolada->value)
+            ->whereIn('estado_generacion', $retomables)
             ->update(['estado_generacion' => EstadoGeneracion::Generando->value, 'updated_at' => now()]);
 
         if ($tomado === 0) {

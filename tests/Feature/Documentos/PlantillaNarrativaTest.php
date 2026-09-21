@@ -15,6 +15,9 @@ use App\Domain\Documento\Narrativa\MaterializarSecciones;
 use App\Domain\Documento\Narrativa\ResolverNarrativa;
 use App\Domain\Documento\Narrativa\TextosDeFabrica;
 use App\Domain\Sistema\Models\Sistema;
+use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Support\Facades\DB;
+use Inertia\Testing\AssertableInertia;
 
 /**
  * La cadena documento → plantilla → fábrica.
@@ -138,4 +141,78 @@ it('cambiar el tipo del documento no deja secciones huérfanas', function (): vo
     // —con un texto de hace meses— si alguien devolviera el documento a SoA.
     expect(DocumentoSeccion::query()->where('seccion', 'nota_exclusiones')->exists())->toBeFalse();
     expect(DocumentoSeccion::query()->where('seccion', 'nota_derivacion')->exists())->toBeTrue();
+});
+
+/**
+ * El índice, desde que la búsqueda entra en los textos.
+ *
+ * Los textos viajan al cliente porque la búsqueda los recorre; la familia
+ * separa lo calculado de lo redactado, que el dominio distingue desde hace
+ * tiempo y la pantalla mezclaba; y quién tocó qué y cuándo lo guardaba el
+ * modelo desde la primera migración sin que se enseñara en ninguna parte.
+ */
+it('el índice manda cada tipo con sus secciones, su familia y su último retoque', function (): void {
+    $usuario = usuarioCon(organizacion: $this->organizacion);
+
+    PlantillaSeccion::query()->create([
+        'tipo' => TipoDocumento::Politica->value,
+        'seccion' => SeccionNarrativa::Introduccion->value,
+        'contenido_md' => 'Una frase muy concreta que sólo está aquí.',
+        'actualizado_por_id' => $usuario->id,
+    ]);
+
+    $this->actingAs($usuario)->get('/plantillas-documento')
+        ->assertInertia(function (AssertableInertia $pagina) use ($usuario): void {
+            /** @var list<array<string, mixed>> $tipos */
+            $tipos = $pagina->toArray()['props']['tipos'];
+
+            $porValor = collect($tipos)->keyBy('valor');
+
+            expect($porValor)->toHaveCount(count(TipoDocumento::cases()));
+
+            $politica = $porValor[TipoDocumento::Politica->value];
+
+            expect($politica['familia'])->toBe('redactado')
+                ->and($politica['personalizadas'])->toBe(1)
+                ->and($politica['retoque']['por'])->toBe($usuario->name)
+                // El contenido va dentro: es lo que el buscador recorre.
+                ->and(collect($politica['secciones'])->pluck('contenido'))
+                ->toContain('Una frase muy concreta que sólo está aquí.');
+
+            expect($porValor[TipoDocumento::SoaIso->value]['familia'])->toBe('calculado')
+                ->and($porValor[TipoDocumento::SoaIso->value]['retoque'])->toBeNull();
+        });
+});
+
+/**
+ * Dieciséis consultas para pintar ocho tarjetas.
+ *
+ * `personalizadas()` resolvía la plantilla de cada tipo por su cuenta y al lado
+ * iba un `count()` por tipo. Se fija el techo porque la pantalla crece con cada
+ * tipo de documento nuevo y el coste no debe crecer con él.
+ */
+it('el índice no consulta una vez por tipo', function (): void {
+    $usuario = usuarioCon(organizacion: $this->organizacion);
+
+    /** @var list<string> $consultas */
+    $consultas = [];
+    DB::listen(function (QueryExecuted $consulta) use (&$consultas): void {
+        $consultas[] = $consulta->sql;
+    });
+
+    $this->actingAs($usuario)->get('/plantillas-documento')->assertOk();
+
+    $delModulo = array_values(array_filter(
+        $consultas,
+        fn (string $sql): bool => str_contains($sql, 'documento_plantilla_secciones')
+            || str_contains($sql, 'from "documentos"'),
+    ));
+
+    /*
+     * Tres: los textos, el recuento de documentos y el último retoque. Cuatro
+     * con filas propias, porque entonces hay que traer los nombres de quien las
+     * tocó. Lo que no puede volver es una consulta POR TIPO, que es lo que había
+     * y lo que crece con cada tipo de documento nuevo.
+     */
+    expect($delModulo)->toHaveCount(3, implode("\n", $delModulo));
 });

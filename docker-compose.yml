@@ -31,7 +31,27 @@ services:
       DB_HOST: postgres
       REDIS_HOST: redis
       GOTENBERG_URL: http://gotenberg:3000
-      AWS_ENDPOINT: http://minio.localhost:9000
+      # Dos endpoints de MinIO, y no es duplicación: son dos preguntas distintas.
+      #
+      # `AWS_ENDPOINT` es POR DÓNDE CONECTA EL SERVIDOR, y tiene que ser un
+      # nombre de red normal. Aquí ponía `minio.localhost` y **libcurl (>= 7.77)
+      # cortocircuita todo nombre `*.localhost` a 127.0.0.1 sin consultar al
+      # resolutor** (RFC 6761): Docker resolvía el alias correctamente —`getent
+      # hosts minio.localhost` devolvía la IP del contenedor— y curl ni
+      # preguntaba, así que **toda** escritura a S3 moría con «Connection
+      # refused after 0 ms». Dentro del contenedor, 127.0.0.1:9000 es php-fpm.
+      #
+      # `AWS_ENDPOINT_PUBLICO` es CON QUÉ HOST SE FIRMA la URL temporal, que es
+      # lo que abre el navegador. El host va dentro de la firma SigV4, así que
+      # reescribirlo después la invalida: se firma directamente para este
+      # nombre. Fuera de la red, los navegadores resuelven cualquier
+      # `*.localhost` a loopback por su cuenta, donde está publicado el 9000.
+      AWS_ENDPOINT: http://minio:9000
+      AWS_ENDPOINT_PUBLICO: http://minio.localhost:9000
+      # Por encima del `timeout: 300` del supervisor `documentos` de Horizon.
+      # Con los 90 s de por defecto, una generación larga se devuelve a la cola
+      # mientras el primer trabajador sigue vivo y se come un intento de tres.
+      REDIS_QUEUE_RETRY_AFTER: "360"
     volumes:
       - .:/var/www/html
     depends_on:
@@ -72,7 +92,27 @@ services:
       DB_HOST: postgres
       REDIS_HOST: redis
       GOTENBERG_URL: http://gotenberg:3000
-      AWS_ENDPOINT: http://minio.localhost:9000
+      # Dos endpoints de MinIO, y no es duplicación: son dos preguntas distintas.
+      #
+      # `AWS_ENDPOINT` es POR DÓNDE CONECTA EL SERVIDOR, y tiene que ser un
+      # nombre de red normal. Aquí ponía `minio.localhost` y **libcurl (>= 7.77)
+      # cortocircuita todo nombre `*.localhost` a 127.0.0.1 sin consultar al
+      # resolutor** (RFC 6761): Docker resolvía el alias correctamente —`getent
+      # hosts minio.localhost` devolvía la IP del contenedor— y curl ni
+      # preguntaba, así que **toda** escritura a S3 moría con «Connection
+      # refused after 0 ms». Dentro del contenedor, 127.0.0.1:9000 es php-fpm.
+      #
+      # `AWS_ENDPOINT_PUBLICO` es CON QUÉ HOST SE FIRMA la URL temporal, que es
+      # lo que abre el navegador. El host va dentro de la firma SigV4, así que
+      # reescribirlo después la invalida: se firma directamente para este
+      # nombre. Fuera de la red, los navegadores resuelven cualquier
+      # `*.localhost` a loopback por su cuenta, donde está publicado el 9000.
+      AWS_ENDPOINT: http://minio:9000
+      AWS_ENDPOINT_PUBLICO: http://minio.localhost:9000
+      # Por encima del `timeout: 300` del supervisor `documentos` de Horizon.
+      # Con los 90 s de por defecto, una generación larga se devuelve a la cola
+      # mientras el primer trabajador sigue vivo y se come un intento de tres.
+      REDIS_QUEUE_RETRY_AFTER: "360"
     # Horizon y no `queue:work`: las cuatro colas y sus tiempos ya están
     # declarados en config/horizon.php, y aquí sí existen pcntl y posix.
     command: ["php", "artisan", "horizon"]

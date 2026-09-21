@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import IndiceSecciones from '@/components/documento/IndiceSecciones.vue';
 import SeccionesNarrativa, { type SeccionNarrativa } from '@/components/documento/SeccionesNarrativa.vue';
 import Aviso from '@/components/Aviso.vue';
 import FormularioRecurso from '@/components/formulario/FormularioRecurso.vue';
@@ -19,6 +20,7 @@ const props = defineProps<{
             :action="`/plantillas-documento/${tipo.valor}`"
             method="put"
             etiqueta-enviar="Guardar plantilla"
+            ancho
             url-cancelar="/plantillas-documento"
             #default="{ errors }"
         >
@@ -35,12 +37,28 @@ const props = defineProps<{
                 partir de ahora.
             </Aviso>
 
-            <SeccionesNarrativa
-                :secciones="secciones"
-                :errores="errors"
-                :url-restablecer="(clave) => `/plantillas-documento/${props.tipo.valor}/${clave}`"
-                etiqueta-restablecer="Restablecer al texto de Statera"
-            />
+            <!--
+                El índice al lado y no encima: una plantilla del ENS tiene once
+                huecos y la única forma de llegar al último era rodar. Dentro del
+                ancho del formulario, así que los editores se estrechan un poco;
+                a cambio se ve dónde estás. Desaparece por debajo de `lg`, donde
+                no cabe y donde la página ya se recorre de un tirón.
+            -->
+            <div class="flex gap-6">
+                <IndiceSecciones
+                    :entradas="secciones.map((seccion) => ({ clave: seccion.clave, etiqueta: seccion.etiqueta }))"
+                    titulo="Huecos"
+                />
+
+                <div class="min-w-0 flex-1 space-y-6">
+                    <SeccionesNarrativa
+                        :secciones="secciones"
+                        :errores="errors"
+                        :url-restablecer="(clave) => `/plantillas-documento/${props.tipo.valor}/${clave}`"
+                        etiqueta-restablecer="Restablecer al texto de Statera"
+                    />
+                </div>
+            </div>
         </FormularioRecurso>
     </AppLayout>
 </template>

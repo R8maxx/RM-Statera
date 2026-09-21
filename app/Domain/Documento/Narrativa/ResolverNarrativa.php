@@ -91,6 +91,41 @@ final class ResolverNarrativa
     }
 
     /**
+     * Las plantillas de TODOS los tipos, en una sola consulta.
+     *
+     * Existe por el índice de `/plantillas-documento`, que necesita los ocho a la
+     * vez: llamar a `paraPlantilla()` en un bucle son ocho consultas, y con el
+     * recuento de documentos al lado eran dieciséis para pintar ocho tarjetas.
+     *
+     * La regla de resolución no se reescribe aquí —fila propia si existe, texto
+     * de fábrica si no—, se aplica sobre las filas ya traídas.
+     *
+     * @return array<string, array<string, string>> tipo => (sección => texto)
+     */
+    public function todasLasPlantillas(): array
+    {
+        $suyas = [];
+
+        foreach (PlantillaSeccion::query()->get() as $fila) {
+            $suyas[$fila->tipo->value][$fila->seccion->value] = $fila->contenido_md;
+        }
+
+        $plantillas = [];
+
+        foreach (TipoDocumento::cases() as $tipo) {
+            $delTipo = $suyas[$tipo->value] ?? [];
+
+            foreach (SeccionNarrativa::paraTipo($tipo) as $seccion) {
+                $plantillas[$tipo->value][$seccion->value] = array_key_exists($seccion->value, $delTipo)
+                    ? (string) $delTipo[$seccion->value]
+                    : TextosDeFabrica::para($tipo, $seccion);
+            }
+        }
+
+        return $plantillas;
+    }
+
+    /**
      * Lo que diría la plantilla para un hueco, ignorando lo que tenga el
      * documento. Es contra esto contra lo que se compara para decidir si un
      * texto está «retocado», y es a esto a lo que vuelve «Restablecer».

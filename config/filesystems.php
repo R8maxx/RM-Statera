@@ -57,6 +57,11 @@ return [
             'bucket' => env('AWS_BUCKET'),
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
+            // Por dónde conecta el servidor y con qué host se firma la URL que
+            // abre el navegador no son la misma pregunta. Lo desarrolla
+            // `AppServiceProvider::firmarConElEndpointPublico()`; si está vacío
+            // o coincide con `endpoint`, no se monta nada.
+            'endpoint_publico' => env('AWS_ENDPOINT_PUBLICO'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
             'throw' => false,
             'report' => false,
@@ -82,6 +87,11 @@ return [
             'bucket' => env('AWS_BUCKET_DOCUMENTOS', 'statera-documentos'),
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
+            // Por dónde conecta el servidor y con qué host se firma la URL que
+            // abre el navegador no son la misma pregunta. Lo desarrolla
+            // `AppServiceProvider::firmarConElEndpointPublico()`; si está vacío
+            // o coincide con `endpoint`, no se monta nada.
+            'endpoint_publico' => env('AWS_ENDPOINT_PUBLICO'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
             'visibility' => 'private',
             // Un `put` que fallara en silencio dejaría una versión marcada como
@@ -99,6 +109,11 @@ return [
             'bucket' => env('AWS_BUCKET', 'statera-evidencias'),
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
+            // Por dónde conecta el servidor y con qué host se firma la URL que
+            // abre el navegador no son la misma pregunta. Lo desarrolla
+            // `AppServiceProvider::firmarConElEndpointPublico()`; si está vacío
+            // o coincide con `endpoint`, no se monta nada.
+            'endpoint_publico' => env('AWS_ENDPOINT_PUBLICO'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
             'visibility' => 'private',
             'throw' => true,

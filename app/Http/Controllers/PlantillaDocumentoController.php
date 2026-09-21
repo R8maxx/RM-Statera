@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Domain\Documento\Enums\SeccionNarrativa;
 use App\Domain\Documento\Enums\TipoDocumento;
 use App\Domain\Documento\Models\Documento;
+use App\Domain\Documento\Models\PlantillaSeccion;
 use App\Domain\Documento\Narrativa\GuardarPlantilla;
 use App\Domain\Documento\Narrativa\MarkdownDocumento;
 use App\Domain\Documento\Narrativa\ResolverNarrativa;
@@ -26,21 +27,116 @@ use Inertia\Response;
  */
 class PlantillaDocumentoController extends Controller
 {
-    public function index(): Response
+    /**
+     * Las ocho plantillas, con sus textos dentro.
+     *
+     * **Los textos viajan al cliente porque la búsqueda entra en ellos**, que es
+     * lo que de verdad falta aquí: son cincuenta y seis huecos repartidos por
+     * ocho pantallas y no había forma de encontrar dónde se escribió una frase.
+     * Buscar sólo sobre ocho títulos no vale el control que ocupa.
+     *
+     * El corpus de fábrica **mide 10,9 kB** —medido, no estimado: cincuenta y
+     * seis huecos, el mayor de 671 caracteres—, así que se manda entero y se
+     * filtra en cliente, como en la ficha de una acción formativa. El tope
+     * teórico son 56 × 20.000 caracteres; el día que una organización se acerque,
+     * esto se convierte en una búsqueda de servidor.
+     *
+     * Tres consultas y no dieciséis: una por los textos, una por el recuento de
+     * documentos y una por quién tocó cada plantilla la última vez.
+     */
+    public function index(ResolverNarrativa $resolver): Response
     {
+        $plantillas = $resolver->todasLasPlantillas();
+        $documentos = $this->documentosPorTipo();
+        $retoques = $this->ultimoRetoquePorTipo();
+
         return Inertia::render('plantillas/Index', [
             'tipos' => array_map(
-                fn (TipoDocumento $tipo): array => [
-                    'valor' => $tipo->value,
-                    'etiqueta' => $tipo->etiqueta(),
-                    'corta' => $tipo->etiquetaCorta(),
-                    'secciones' => count(SeccionNarrativa::paraTipo($tipo)),
-                    'personalizadas' => $this->personalizadas($tipo),
-                    'documentos' => Documento::query()->where('tipo', $tipo->value)->count(),
-                ],
+                function (TipoDocumento $tipo) use ($plantillas, $documentos, $retoques): array {
+                    $secciones = array_map(
+                        function (SeccionNarrativa $seccion) use ($tipo, $plantillas): array {
+                            $actual = $plantillas[$tipo->value][$seccion->value] ?? '';
+
+                            return [
+                                'clave' => $seccion->value,
+                                'etiqueta' => $seccion->etiqueta(),
+                                'contenido' => $actual,
+                                // «Personalizado» es «distinto del que trae
+                                // Statera», igual que en el editor.
+                                'personalizada' => $actual !== TextosDeFabrica::para($tipo, $seccion),
+                            ];
+                        },
+                        SeccionNarrativa::paraTipo($tipo),
+                    );
+
+                    return [
+                        'valor' => $tipo->value,
+                        'etiqueta' => $tipo->etiqueta(),
+                        // Una declaración se calcula y una política se redacta:
+                        // son dos géneros distintos y la pantalla los mezclaba.
+                        'familia' => $tipo->esRedactado() ? 'redactado' : 'calculado',
+                        'secciones' => $secciones,
+                        'personalizadas' => count(array_filter($secciones, fn (array $s): bool => $s['personalizada'])),
+                        'documentos' => $documentos[$tipo->value] ?? 0,
+                        'retoque' => $retoques[$tipo->value] ?? null,
+                    ];
+                },
                 TipoDocumento::cases(),
             ),
         ]);
+    }
+
+    /**
+     * Cuántos documentos hay de cada tipo, en una consulta.
+     *
+     * @return array<string, int>
+     */
+    private function documentosPorTipo(): array
+    {
+        /** @var array<string, int> $recuento */
+        $recuento = Documento::query()
+            ->selectRaw('tipo, count(*) as total')
+            ->groupBy('tipo')
+            ->pluck('total', 'tipo')
+            ->map(fn (mixed $total): int => (int) $total)
+            ->all();
+
+        return $recuento;
+    }
+
+    /**
+     * Cuándo se tocó por última vez cada plantilla y quién la tocó.
+     *
+     * El modelo lo guarda desde el principio y la pantalla no lo enseñaba, que en
+     * una herramienta de cumplimiento es justo el dato que se pregunta.
+     *
+     * `User` **no lleva el scope de organización** (la autenticación tiene que
+     * poder encontrar a alguien antes de saber de qué organización es), así que
+     * un `User::query()` suelto listaría usuarios de todos los clientes. Aquí no
+     * hace falta acotar a mano porque los ids salen de filas que **sí** están
+     * acotadas por las tres capas.
+     *
+     * @return array<string, array{en: string, por: ?string}>
+     */
+    private function ultimoRetoquePorTipo(): array
+    {
+        $filas = PlantillaSeccion::query()
+            ->with('actualizadoPor:id,name')
+            ->orderByDesc('updated_at')
+            ->get();
+
+        $retoques = [];
+
+        foreach ($filas as $fila) {
+            // Ordenadas de más reciente a más antigua: la primera de cada tipo es
+            // la que manda.
+            $retoques[$fila->tipo->value] ??= [
+                'en' => (string) $fila->updated_at?->toIso8601String(),
+                'por' => $fila->actualizadoPor?->name,
+            ];
+        }
+
+        return $retoques;
     }
 
     public function edit(
@@ -110,22 +206,5 @@ class PlantillaDocumentoController extends Controller
         Inertia::flash('exito', "«{$clave->etiqueta()}» vuelve al texto que trae Statera.");
 
         return to_route('plantillas.edit', $tipo->value);
-    }
-
-    /** Cuántos huecos ha tocado la organización respecto a lo que trae Statera. */
-    private function personalizadas(TipoDocumento $tipo): int
-    {
-        $resolver = app(ResolverNarrativa::class);
-        $textos = $resolver->paraPlantilla($tipo);
-
-        $distintos = 0;
-
-        foreach (SeccionNarrativa::paraTipo($tipo) as $seccion) {
-            if (($textos[$seccion->value] ?? '') !== TextosDeFabrica::para($tipo, $seccion)) {
-                $distintos++;
-            }
-        }
-
-        return $distintos;
     }
 }

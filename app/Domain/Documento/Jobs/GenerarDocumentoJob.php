@@ -78,7 +78,15 @@ final class GenerarDocumentoJob implements ShouldBeUnique, ShouldQueue
             return;
         }
 
-        $generar->ejecutar($version);
+        /*
+         * `attempts() > 1` es lo que distingue «esta fila la dejé yo a medias»
+         * de «se la llevó otro trabajador». Sin esto, el segundo intento se
+         * encontraba la fila en `generando`, la barrera anti-doble-generación lo
+         * mandaba de vuelta sin hacer nada, el job terminaba bien y `failed()`
+         * no llegaba a marcar el fallo nunca: la versión se quedaba «generando»
+         * para siempre y los tres intentos no servían de nada.
+         */
+        $generar->ejecutar($version, $this->attempts() > 1);
 
         /*
          * Si esta generación venía de una firma, aquí se cierra la aprobación:

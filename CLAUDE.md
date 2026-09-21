@@ -2303,13 +2303,35 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
 
   Cuatro cosas que no se ven leyendo el `docker-compose.yml`:
 
-  1. **El alias de red `minio.localhost` no es cosmético.** `temporaryUrl()` firma con
-     SigV4 y **el host va dentro de la firma**, así que reescribirlo después la
-     invalida: el navegador tiene que llegar por el mismo nombre que usó el servidor.
-     Dentro de la red ese nombre resuelve al contenedor por el alias; fuera, los
-     navegadores resuelven cualquier `*.localhost` a loopback por su cuenta, donde
-     está publicado el 9000. Poner `minio` a secas rompe **toda** descarga de
-     evidencias y documentos, y el síntoma —un host desconocido— no menciona S3.
+  1. **MinIO tiene DOS endpoints, y el reparto no es cosmético: conectar y firmar
+     son dos preguntas distintas.** `AWS_ENDPOINT` es por dónde sale el servidor y
+     `AWS_ENDPOINT_PUBLICO` es con qué host se firma la URL temporal que abre el
+     navegador; los monta `AlmacenServiceProvider` sobre `DiscoConEndpointPublico`,
+     y si coinciden —o el público está vacío, que es el caso de producción— no se
+     monta nada y el disco es el de Laravel.
+
+     Las dos mitades, porque cada una tiene su trampa:
+
+     - **Firmar.** `temporaryUrl()` firma con SigV4 y **el host va dentro de la
+       firma**, así que reescribirlo después la invalida —eso es exactamente lo que
+       hace la opción `temporary_url` de Laravel, y por eso no se usa—. El nombre
+       tiene que ser desde el principio el que el navegador vaya a resolver:
+       `minio.localhost`, porque los navegadores mandan cualquier `*.localhost` a
+       loopback por su cuenta y ahí está publicado el 9000.
+     - **Conectar.** Ese nombre **el servidor no lo puede usar**: libcurl, desde la
+       7.77, resuelve internamente todo nombre terminado en `.localhost` a
+       127.0.0.1 sin preguntar al resolutor. El alias de red de Docker estaba bien
+       puesto —`getent hosts minio.localhost` devolvía la IP del contenedor— y curl
+       ni lo consultaba. Durante cinco días **no se generó un solo PDF**: cada
+       subida moría en 0 ms con «Connection refused», y dentro del contenedor
+       127.0.0.1:9000 es php-fpm, así que el síntoma no menciona ni a MinIO ni al
+       DNS. El endpoint de conexión es `http://minio:9000` y **nunca un
+       `*.localhost`**.
+
+     Y el hook que Laravel documenta para esto, `buildTemporaryUrlsUsing()`, **no
+     sirve en un disco de S3**: lo consulta `FilesystemAdapter::temporaryUrl()` y
+     `AwsS3V3Adapter` sobrescribe ese método sin mirarlo. Registrarlo compila, no
+     avisa y no se aplica nunca. De ahí la subclase.
   2. **Las imágenes de MinIO vienen de `quay.io`, no de Docker Hub**, donde
      `minio/minio` y `minio/mc` ya no existen. Un repositorio que no existe se anuncia
      como «pull access denied», que parece un problema de credenciales y no lo es. Van

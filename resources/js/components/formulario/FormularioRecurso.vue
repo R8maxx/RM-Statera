@@ -29,8 +29,15 @@ withDefaults(
         method?: Method;
         etiquetaEnviar?: string;
         urlCancelar: string;
+        /**
+         * Una columna más ancha, para los formularios que además del campo
+         * llevan algo al lado —hoy sólo el índice de la plantilla de un
+         * documento—. `SeccionFormulario` ya gasta 15rem en su explicación; con
+         * un índice delante, la caja de texto se queda sin sitio para escribir.
+         */
+        ancho?: boolean;
     }>(),
-    { method: 'post', etiquetaEnviar: 'Guardar' },
+    { method: 'post', etiquetaEnviar: 'Guardar', ancho: false },
 );
 
 const { variantesEntrada } = useMovimientoReducido();
@@ -101,7 +108,8 @@ function irAlCampo(nombre: string): void {
         :action="action"
         :method="method"
         #default="{ errors, processing, hasErrors }"
-        class="mx-auto w-full max-w-4xl pb-24"
+        class="mx-auto w-full pb-24"
+        :class="ancho ? 'max-w-6xl' : 'max-w-4xl'"
     >
         <div ref="ancla" class="contents" />
 
