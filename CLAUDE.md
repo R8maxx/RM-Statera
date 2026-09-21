@@ -224,6 +224,22 @@ El orden importa: el catálogo y el motor son la parte más específica del domi
     inventarle un número sería una opinión de la herramienta disfrazada de plazo
     legal — lo mismo que el producto se niega a hacer con el riesgo residual.
 
+20. ✅ Puestos, datos de la persona y adjuntos. **No es un módulo de los
+    diecinueve**: es lo que al § 4.8 le faltaba para poder usarse. Quién es cada
+    persona —hasta aquí `nombre` y `email` y poco más—, qué puesto ocupa —hasta
+    aquí una **cadena de texto libre**, así que «Analista» y «analista» eran dos
+    puestos para cualquier recuento— y dónde se guarda el título de un curso
+    —hasta aquí en ningún sitio: sólo se podía **señalar una evidencia que ya
+    existiera**—.
+
+    Con él, `mp.per.1` —la caracterización del puesto de trabajo— pasa a tener
+    dónde escribirse, que es una de las dos cosas que el § 4.8 declaraba que no
+    hacía. La otra —comprobar que la plantilla esté completa— sigue sin hacerse.
+
+    De paso, el **ritmo vertical de la página** deja de ponerlo cada componente
+    por su cuenta y pasa al contenedor: una tarjeta intercalada entre dos bloques
+    salía pegada a lo de abajo, y se veía en `/personas`.
+
 ## El catálogo
 
 Vive en `catalogo/*.yaml`, versionado en el repositorio, y se carga con un comando idempotente:
@@ -261,7 +277,7 @@ Lo demás va dentro. Con `app` basta para todo lo de PHP; `vite` es el de Node:
 ```sh
 docker compose exec app php artisan migrate
 docker compose exec app php artisan catalogo:importar       # ISO, ENS, mapeos y las amenazas de MAGERIT
-docker compose exec app php artisan db:seed                 # organización, usuarios, sistema, inventario, tareas, riesgos y personas (sintéticos)
+docker compose exec app php artisan db:seed                 # organización, usuarios, sistema, inventario, tareas, riesgos, personas y puestos (sintéticos)
 docker compose exec app php artisan avisos:enviar --dry-run # lo que saldría por correo, sin enviarlo
 docker compose exec app php artisan indicadores:medir --dry-run # la cifra que se sellaría, sin escribirla
 docker compose exec app composer test                       # Pest sobre PostgreSQL
@@ -274,7 +290,8 @@ docker compose logs -f app queue vite
 ```
 
 Cinco servicios propios: `nginx` (el 8000), `app` (php-fpm), `queue` (Horizon),
-`vite` (el 5173) y `minio-init`, que crea los buckets y se apaga. Detrás siguen
+`vite` (el 5173) y `minio-init`, que crea los **tres** buckets —evidencias,
+documentos y adjuntos— y se apaga. Detrás siguen
 `postgres`, `redis`, `gotenberg` y `minio`.
 
 ## Prioridad de cobertura de tests
@@ -1817,11 +1834,206 @@ escritura muere con un «null value in column». No lanza: escribe mal.
   designaciones ni revoca su cuenta. La checklist de salida es lo que lo recuerda,
   y el rojo del módulo es no haberla cerrado.
 - **No comprueba que la plantilla esté completa**, ni que todo puesto tenga
-  caracterización.
+  caracterización. Desde los puestos, la caracterización al menos **tiene dónde
+  escribirse** y se puede contar quién no la tiene; comprobarla sigue sin
+  hacerse.
 - **No entra en el calendario de obligaciones**, y aquí sí hará falta: la
   formación que toca este año **no la cubre ni `Fuente::Documento` ni las tareas**,
   a diferencia de objetivos, mejoras y revisión por la dirección. Es la primera
   `Fuente` que el § 4.16 va a necesitar de verdad.
+
+---
+
+## Los puestos y los datos de la persona
+
+Lo que el § 4.8 dejó fuera y una organización real necesita para usarlo: quién es
+cada persona, qué puesto ocupa y cómo se ordena la plantilla.
+
+### El nombre completo lo calcula PostgreSQL
+
+`personas` gana `nif`, `nombre_pila`, `apellido1`, `apellido2`, `telefono`,
+`telefono_fijo`, `direccion` y `fecha_nacimiento`. Y **`nombre` no desaparece ni
+cambia de significado**: sigue siendo el nombre completo que se muestra, se
+ordena y se busca —lo leen dieciséis sitios, y en `PersonaRecurso` es columna
+ordenable, campo de búsqueda y `ordenPorDefecto()`—, pero pasa a **derivarse** de
+las partes con una **columna generada `STORED`**.
+
+Tiene que ser columna de SQL y no accesor de PHP porque se ordena y se busca con
+índice; y no puede escribirse al lado de sus partes porque sería el mismo dato en
+dos sitios que pueden discrepar, que es lo que el repositorio ya evita con
+`activa`, con `vigente` y con el ámbito de una cuestión del DAFO.
+
+Tres cosas que costaron:
+
+1. **`concat_ws` NO sirve**: PostgreSQL rechaza la columna con «generation
+   expression is not immutable» —acepta `VARIADIC "any"` y su salida depende de
+   la función de salida de cada tipo—. La expresión va con `coalesce` + `||` +
+   `regexp_replace`, y el `regexp_replace` **no es adorno**: sin él, un apellido
+   vacío deja el hueco doble —«Ana  Prat»— que era justo lo que `concat_ws`
+   evitaba saltándose los nulos.
+2. **No hay `ALTER COLUMN … SET GENERATED` para una expresión.** Lo que existe
+   desde PG 17 reescribe la de una columna que **ya** es generada. De plana a
+   generada hay que renombrar y crear al lado.
+3. **Tras el `INSERT`, Eloquent sólo recupera el `id`**, así que una persona
+   recién creada llegaba **sin `nombre`** y `DesignarRol` moría con un `TypeError`
+   que no menciona la columna. `Persona` relee la fila en `created`, y va en el
+   modelo y no en cada llamador porque vale igual para el seeder, una factory y un
+   importador.
+
+**Sin migración de datos, y es deliberado.** El `RENAME` deja el nombre completo
+de siempre en `nombre_pila`, los apellidos nacen nulos y la generada reproduce el
+mismo texto byte a byte. Partir «María del Carmen de la Fuente Gómez» es una
+heurística que se equivoca, y equivocarse aquí cambia el nombre impreso en un
+nombramiento firmado.
+
+**Protección de datos, que aquí se implementa y no se comenta.** NIF, fecha de
+nacimiento, teléfonos y domicilio son datos personales en una herramienta que
+está en el alcance de su propio SGSI. Ninguno entra en la búsqueda libre ni en el
+CSV; sólo el NIF llega a la tabla, **oculto por defecto**. Es único por
+organización —índice parcial, los nulos no chocan— y se normaliza a mayúsculas y
+sin separadores, o «12345678z» y «12345678-Z» serían dos documentos distintos.
+**No se valida la letra**: un NIE y un pasaporte no la tienen, y rechazarlos sería
+impedir dar de alta a alguien que trabaja aquí. Y `RegistraTraza` guardará sus
+valores anteriores en `eventos_auditoria`: es correcto para la trazabilidad e
+implica que el log pasa a contener datos personales, y eso hay que saberlo antes.
+
+### La jerarquía vive en el puesto, no en la persona
+
+`puestos` —con `reporta_a_id`— y `asignaciones_puesto` entre medias. El
+organigrama de personas sale de cruzarlo con quién ocupa cada puesto, así que es
+**un solo árbol con dos lecturas** y no dos que puedan discrepar; y que alguien
+entre o se vaya **no lo mueve**, que es lo que envejece a un organigrama de
+personas en dos semanas.
+
+La asignación **lleva vigencia y no se borra**, patrón literal de
+`designaciones_rol`: «¿desde cuándo ocupa ese puesto?» es la pregunta del auditor
+(invariante 7). Índice único parcial sobre `persona_id` y **no** sobre
+`puesto_id` — varias personas ocupan «Técnico de sistemas» a la vez. Cambiar de
+puesto **cierra el anterior el día antes**, en la misma transacción: dos
+asignaciones que se solapan un día harían que «qué puesto ocupaba el 3 de marzo»
+tuviera dos respuestas.
+
+**El ciclo no cabe en un `CHECK`**: es una condición entre filas, y contra un
+grafo con un bucle la CTE del organigrama no devuelve un resultado raro, **no
+termina**. El `CHECK` tapa el bucle de un salto; el resto lo rechaza
+`AsignarSuperior`, precedente exacto de `RegistrarDependencia`, y está en el
+dominio porque vale igual para un importador. La CTE arrastra además la ruta en un
+`ARRAY` como red de seguridad.
+
+**La CTE necesita `::text` en las dos ramas.** La base devuelve `varchar(255)` y
+la recursiva una concatenación sin límite, y PostgreSQL exige que los tipos casen:
+«recursive query column N has type character varying(255) in non-recursive term».
+Lo cazó un test, no una lectura.
+
+**La migración de datos es la que podía perder información en silencio.** Sin
+petición no hay contexto, RLS deniega por defecto y un `INSERT … SELECT` escribe
+**cero filas sin error** — y el `DROP COLUMN personas.puesto` de la línea
+siguiente sí funciona. Va por `ContextoOrganizacion::comoMantenimiento()`, tercera
+aparición en el repositorio, y **comprueba el recuento** antes de dejar que la
+transacción se cierre. Los códigos salen de
+`row_number() OVER (PARTITION BY organizacion_id ORDER BY titulo)`, así que el
+único por organización se cumple por construcción y dos organizaciones con el
+mismo texto acaban en dos filas distintas.
+
+**`/puestos/organigrama` es ruta propia y no conmutador de cliente**, que es la
+decisión ya tomada para `/tareas/tablero` y `/activos/etiquetas`. Se pinta como
+**lista sangrada y no como diagrama de cajas**, lo mismo que decidió
+`GrafoDependencias`: a 375 px un diagrama de nodos se lee peor que la misma cadena
+en una lista.
+
+> **El fallo de animación que costó un rato, y que vale para toda la aplicación.**
+> `motion.main` del layout anima con **etiquetas de variante** —«oculto»/«visible»—
+> y esas etiquetas **se heredan hasta los hijos**. Un `motion.li` que declare
+> `initial`/`animate` como **objetos** entra en conflicto con la etiqueta heredada
+> y se queda congelado en su estado inicial: las filas salen en el DOM con
+> `opacity: 0` y la pantalla parece tener un solo elemento. El patrón que funciona
+> es el de `TiraIndicadores`: el escalonado lo declara el padre con `:variants` y
+> los hijos sólo **nombran** su variante.
+>
+> **`components/activo/GrafoDependencias.vue` tiene ese fallo y sigue teniéndolo**:
+> el bloque «Depende de» de la ficha de un activo se pinta con sus filas
+> invisibles. Se intentó arreglar con el mismo patrón y no bastó, así que queda
+> **anotado y sin tocar** en vez de medio arreglado.
+
+**Sin verbo de permiso nuevo**: se reutilizan `personas.ver` y
+`personas.gestionar`. Es el mismo módulo, y un `puestos.*` habría que acordarse de
+añadirlo a mano en las listas literales de `Rol::permisos()` para `Tecnico` y
+`Auditor`, que es la trampa que `RolesTest` existe para cazar.
+
+Con `puestos.competencias` relleno, **`mp.per.1` pasa a tener dónde escribirse** y
+el indicador «puestos sin caracterizar» se puede calcular. **Sigue sin hacerse**:
+comprobar que la plantilla esté completa, que el organigrama lo esté, y que quien
+ocupa un puesto reúna la competencia que ese puesto pide.
+
+---
+
+## Los adjuntos
+
+La documentación que cuelga de un registro. Hasta aquí lo único posible era
+**referenciar una evidencia ya existente** —`acciones_formativas.evidencia_id`,
+`acuerdos_confidencialidad.evidencia_id`—, y esas dos claves **se quedan**.
+
+**Un adjunto no es una evidencia, y la frontera es el propósito.** Una evidencia
+prueba un requisito y por eso lleva caducidad, periodicidad y responsable; un
+adjunto documenta un registro —el título de un curso, el contrato firmado, la hoja
+de firmas escaneada— y no tiene nada de eso. Obligar a rellenar cuatro campos de
+caducidad para subir un PDF es cómo se consigue que no se suba, y el diálogo lo
+dice por escrito para que nadie ponga aquí lo que va allí.
+
+**Pivotes explícitas y no una relación polimórfica.** En todo el repositorio no
+hay un solo `morphTo` y esto no lo estrena: el dialecto es la pivote con nombre
+—`implantacion_tarea`, `evidencia_implantacion`— y a cambio se conservan **claves
+foráneas reales**, que un morph no puede tener. El tercer anfitrión entra con una
+pivote y sin tocar `adjuntos`. Y es **N:M de verdad**: el certificado de un curso
+documenta a la vez a quien lo hizo y a la sesión donde se impartió, y registrarlo
+dos veces sería subir el mismo fichero dos veces.
+
+**Disco propio, y de ahí sale la diferencia que define el módulo: borrar un
+adjunto borra también el objeto del almacén.** El bucket de evidencias lleva
+Object Lock en modo compliance —por eso `EvidenciaController::destroy()` deja el
+fichero a propósito—, y con eso un DNI subido por error **no se podría borrar
+nunca**. Con datos personales dentro eso es un problema y no una garantía: quien
+ejerce su derecho de supresión no acepta «la fila ya no está».
+
+Lo copiado de `RegistrarEvidencia`, porque allí ya costó: la huella se calcula del
+fichero **recibido y antes de subirlo** —se mide lo que llegó, no lo que quedó en
+el bucket—, el nombre en el almacén es un ULID bajo el prefijo de la organización,
+y la descarga es un **redirect a URL firmada de cinco minutos**, nunca un enlace
+al bucket.
+
+**Sin verbo de permiso nuevo**: un adjunto no es un módulo, es una capacidad que
+se le añade a un registro, así que las rutas cuelgan del anfitrión y heredan el
+suyo — la descarga con `.ver` y la subida con `.gestionar`. `ConAdjuntos` +
+`TieneAdjuntos` son el contrato; la interfaz existe porque **sin morph no hay un
+tipo común**, y `adjuntosCargados()` porque la magia de Eloquent que resuelve una
+relación en propiedad no cruza una interfaz.
+
+**Sin lista de `mimes`**, igual que una evidencia: lo que hay que adjuntar no lo
+decide esta herramienta, y una lista blanca corta acaba en gente renombrando
+extensiones. El bucket es privado y la descarga va con
+`Content-Disposition: attachment`, así que nada se sirve en línea.
+
+Dos cosas que se probaron y se quitaron:
+
+- **El `CHECK (tamano > 0)`.** Un fichero vacío es un error de quien lo sube, no
+  una incoherencia de los datos, y con la restricción puesta lo que ve esa persona
+  es un 500 hablando de una restricción de PostgreSQL.
+- **Un composable que desplazara hasta el bloque** al llegar desde el menú «…» con
+  `#adjuntos`. El `preserveScroll` del `DataTable` —que está ahí para que las demás
+  acciones de fila no salten al principio— gana a cualquier `scrollIntoView` al
+  montar. **El ancla marca y no desplaza**, y queda dicho: un composable que no
+  hace lo que promete es peor que no tenerlo.
+
+### Lo que este módulo declara que no hace todavía
+
+- **No versiona un adjunto**: se sube otro y se borra el anterior.
+- **No busca dentro del fichero** ni extrae texto.
+- **No comprueba que lo subido corresponda** al registro donde se cuelga: que el
+  título adjuntado a una formación sea de esa formación no lo mira nadie.
+- **No hay pantalla propia de adjuntos** ni recuento en el panel: se ven desde la
+  ficha de su anfitrión y no hay «todos los documentos de la organización».
+- **Un adjunto sin anfitrión no existe por construcción** —se crea vinculado—,
+  pero **desvincular no está expuesto**: lo que la interfaz ofrece es borrar.
 
 ---
 
