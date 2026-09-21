@@ -63,7 +63,7 @@ const escalonado = variantesEscalonado(0.04);
 </script>
 
 <template>
-    <section class="mb-6" :aria-label="`Lo que pide acción: ${denominadorEtiqueta}`">
+    <section :aria-label="`Lo que pide acción: ${denominadorEtiqueta}`">
         <motion.ul
             v-if="abiertas.length > 0"
             class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"

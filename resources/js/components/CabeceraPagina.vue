@@ -38,7 +38,7 @@ const { reducido } = useMovimientoReducido();
 </script>
 
 <template>
-    <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
+    <div class="flex flex-wrap items-start justify-between gap-4">
         <div class="min-w-0">
             <!-- 3 px por 40, en violeta. El gesto distintivo de la marca. -->
             <motion.span

@@ -395,6 +395,19 @@ const salir = (): void => router.post('/logout');
                         «Saltar al contenido» desplaza la página pero deja el
                         foco donde estaba, y el siguiente tabulador vuelve al
                         principio de la navegación.
+
+                        `space-y-6` es el RITMO VERTICAL de la página, y vive
+                        aquí a propósito: antes lo ponía cada componente por su
+                        cuenta —`CabeceraPagina` y `TiraIndicadores` llevaban
+                        `mb-6`, `DataTable` y `Card` no llevan nada—, así que
+                        una tarjeta intercalada entre dos bloques salía pegada
+                        a lo de abajo. Se veía en `/personas`, con la tarjeta de
+                        cobertura del 5.3 a tope con la barra de la tabla.
+
+                        El contenedor es quien sabe separar a sus hijos; un
+                        componente no puede saber si tiene algo debajo. Por eso
+                        los `mb-6` salieron de los dos componentes: dejarlos
+                        sumaría 48 px donde toca 24.
                     -->
                     <motion.main
                         id="contenido"
@@ -403,7 +416,7 @@ const salir = (): void => router.post('/logout');
                         :variants="variantesEntrada"
                         initial="oculto"
                         animate="visible"
-                        class="min-w-0 flex-1 px-4 py-6 outline-none sm:px-6 lg:px-8"
+                        class="min-w-0 flex-1 space-y-6 px-4 py-6 outline-none sm:px-6 lg:px-8"
                     >
                         <slot />
                     </motion.main>

@@ -160,7 +160,7 @@ function insignia(tipo: TipoPlantilla) {
 
             Sin atajo de teclado: `/` y `⌘K` ya son de la paleta de comandos.
         -->
-        <div class="mb-6 flex flex-wrap items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
             <div class="relative w-full max-w-sm">
                 <SearchIcon
                     class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"

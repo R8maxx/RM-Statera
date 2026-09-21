@@ -202,7 +202,7 @@ const entradaRejilla = computed(() => {
             </template>
         </CabeceraPagina>
 
-        <div class="mb-4 flex flex-wrap items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
             <Link :href="`/tareas/calendario?mes=${rejilla.anterior}`">
                 <Button variant="outline" size="icon-sm" aria-label="Mes anterior">
                     <ChevronLeftIcon class="size-4" />
