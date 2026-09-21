@@ -52,9 +52,19 @@ const edicion = props.incidente !== null;
 const valor = computed(() => ({
     codigo: props.incidente?.codigo ?? props.sugerencia?.codigo ?? '',
     fechaDeteccion: props.incidente?.fecha_deteccion ?? props.sugerencia?.fecha_deteccion ?? '',
-    clasificacion: props.incidente?.clasificacion ?? 'otros',
     peligrosidad: props.incidente?.peligrosidad ?? 'baja',
 }));
+
+/*
+ * La clasificación **no** sale de `valor`, y no es un capricho: `valor` es un
+ * `computed` que devuelve un objeto plano, así que escribir en una de sus
+ * propiedades con `v-model` no invalida nada. La ayuda contextual de debajo se
+ * quedaba congelada en la descripción de la clase inicial, y una vuelta del
+ * servidor con errores de validación recalculaba el objeto y **perdía la clase
+ * elegida**. Es lo único de este formulario que el usuario gobierna en vivo, así
+ * que lleva su propio `ref`.
+ */
+const clasificacion = ref(props.incidente?.clasificacion ?? 'otros');
 
 /*
  * Las cinco dimensiones y las dos casillas de notificación se llevan en local
@@ -92,7 +102,7 @@ const opcionesClasificacion = computed(() =>
 
 const ayudaClasificacion = computed(
     () =>
-        props.clasificaciones.find((clase) => clase.valor === valor.value.clasificacion)?.descripcion ??
+        props.clasificaciones.find((clase) => clase.valor === clasificacion.value)?.descripcion ??
         '',
 );
 
@@ -162,7 +172,7 @@ function alternarActivo(id: number, marcado: boolean): void {
 
             <SeccionFormulario titulo="Cómo se clasifica">
                 <CampoSelect
-                    v-model="valor.clasificacion"
+                    v-model="clasificacion"
                     nombre="clasificacion"
                     etiqueta="Clasificación"
                     :opciones="opcionesClasificacion"

@@ -32,13 +32,24 @@ final readonly class PlazoNotificacion
     /** Las horas del artículo 33.1 del RGPD. */
     public const HORAS_AEPD = 72;
 
+    /**
+     * `estado` y `etiqueta` son dos cosas y no una.
+     *
+     * `estado` es la palabra del badge —vocabulario cerrado, como el resto del
+     * producto— y `etiqueta` es la frase que se lee al lado, con el número
+     * dentro. Estaban colapsadas en una sola, y la frase entera iba dentro de
+     * una píldora que no parte línea: en la columna estrecha de la ficha,
+     * «Plazo de la AEPD vencido sin notificar» se cortaba contra el borde.
+     */
     private function __construct(
         public bool $aplica,
         public bool $notificado,
         public bool $vencido,
         public ?int $horasRestantes,
+        public string $estado,
         public string $etiqueta,
         public string $tono,
+        public string $icono,
     ) {}
 
     public static function aepd(Incidente $incidente, ?Carbon $ahora = null): self
@@ -49,8 +60,10 @@ final readonly class PlazoNotificacion
                 notificado: false,
                 vencido: false,
                 horasRestantes: null,
+                estado: 'No procede',
                 etiqueta: 'Sin datos personales afectados',
                 tono: 'no_aplica',
+                icono: 'CircleSlash',
             );
         }
 
@@ -67,10 +80,12 @@ final readonly class PlazoNotificacion
                 notificado: true,
                 vencido: ! $aTiempo,
                 horasRestantes: null,
+                estado: $aTiempo ? 'Notificada' : 'Fuera de plazo',
                 etiqueta: $aTiempo
                     ? 'Notificada a la AEPD dentro de plazo'
                     : 'Notificada a la AEPD fuera de plazo',
                 tono: $aTiempo ? 'implantado' : 'caducada',
+                icono: $aTiempo ? 'CircleCheck' : 'CircleAlert',
             );
         }
 
@@ -84,8 +99,10 @@ final readonly class PlazoNotificacion
                 notificado: false,
                 vencido: true,
                 horasRestantes: 0,
+                estado: 'Vencido',
                 etiqueta: 'Plazo de la AEPD vencido sin notificar',
                 tono: 'caducada',
+                icono: 'CircleAlert',
             );
         }
 
@@ -98,8 +115,10 @@ final readonly class PlazoNotificacion
             notificado: false,
             vencido: false,
             horasRestantes: $restantes,
+            estado: sprintf('Quedan %d h', $restantes),
             etiqueta: sprintf('Quedan %d h para notificar a la AEPD', $restantes),
             tono: $restantes <= 24 ? 'en_progreso' : 'planificado',
+            icono: 'Clock',
         );
     }
 
@@ -114,8 +133,10 @@ final readonly class PlazoNotificacion
                 notificado: false,
                 vencido: false,
                 horasRestantes: null,
+                estado: 'No procede',
                 etiqueta: 'No procede notificar al CCN-CERT',
                 tono: 'no_aplica',
+                icono: 'CircleSlash',
             );
         }
 
@@ -125,8 +146,10 @@ final readonly class PlazoNotificacion
                 notificado: true,
                 vencido: false,
                 horasRestantes: null,
+                estado: 'Notificado',
                 etiqueta: 'Notificado al CCN-CERT el '.$incidente->notificado_ccn_cert_en->format('d/m/Y H:i'),
                 tono: 'implantado',
+                icono: 'CircleCheck',
             );
         }
 
@@ -136,9 +159,12 @@ final readonly class PlazoNotificacion
             vencido: false,
             horasRestantes: null,
             // Sin rojo y sin cuenta atrás, a propósito: el ENS dice «sin
-            // dilación» y no pone horas.
+            // dilación» y no pone horas. Y por lo mismo el badge dice
+            // «Pendiente» y no un número: el reloj es de la AEPD.
+            estado: 'Pendiente',
             etiqueta: 'Pendiente de notificar al CCN-CERT (sin dilación)',
             tono: 'en_progreso',
+            icono: 'Clock',
         );
     }
 }

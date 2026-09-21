@@ -125,8 +125,10 @@ class IncidenteController extends Controller
                     'notificadoEn' => $incidente->notificado_aepd_en?->format('d/m/Y H:i'),
                     'vencido' => $aepd->vencido,
                     'horasRestantes' => $aepd->horasRestantes,
+                    'estado' => $aepd->estado,
                     'etiqueta' => $aepd->etiqueta,
                     'tono' => $aepd->tono,
+                    'icono' => $aepd->icono,
                     // El número sale del RGPD y va citado: un plazo sin su fuente
                     // es una opinión.
                     'fundamento' => 'Artículo 33.1 del RGPD: 72 horas desde que se tiene constancia.',
@@ -139,8 +141,10 @@ class IncidenteController extends Controller
                     'notificadoEn' => $incidente->notificado_ccn_cert_en?->format('d/m/Y H:i'),
                     'vencido' => false,
                     'horasRestantes' => null,
+                    'estado' => $ccn->estado,
                     'etiqueta' => $ccn->etiqueta,
                     'tono' => $ccn->tono,
+                    'icono' => $ccn->icono,
                     /*
                      * **Sin cuenta atrás, y se dice por escrito.** El RD 311/2022
                      * no fija horas: dice «sin dilación». Poner un número sería

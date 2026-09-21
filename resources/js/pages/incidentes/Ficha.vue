@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import BotonEstado from '@/components/BotonEstado.vue';
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
+import Aviso from '@/components/Aviso.vue';
 import AvisoNotificacion, { type Notificacion } from '@/components/incidente/AvisoNotificacion.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
@@ -110,6 +111,13 @@ const disponibles = computed(() => (props.puedeGestionar ? props.transiciones : 
 
 const sinLeccion = computed(() => (props.incidente.leccion_aprendida ?? '').trim() === '');
 
+/**
+ * Sólo se avisa de que falta la lección cuando cerrar está sobre la mesa. En un
+ * incidente recién abierto, «para cerrarlo hace falta…» es una instrucción para
+ * un botón que todavía no existe.
+ */
+const cerrarALaVista = computed(() => disponibles.value.some((paso) => paso.exigeLeccion));
+
 function mover(paso: Destino): void {
     // Cerrar sin lección aprendida lo rechaza el dominio; decirlo aquí antes de
     // enviar se explica mucho mejor que un error después.
@@ -143,12 +151,14 @@ function mover(paso: Destino): void {
 
 const leccion = useForm({ leccion_aprendida: props.incidente.leccion_aprendida ?? '' });
 
+/**
+ * Con el propio formulario y no con `router.put`: el `:error` del campo lee
+ * `leccion.errors`, y mandándolo por el router esa rama no se rellenaba nunca
+ * —un fallo de validación se perdía en silencio— ni había estado de envío con
+ * el que impedir el doble clic.
+ */
 function guardarLeccion(): void {
-    router.put(
-        `/incidentes/${props.incidente.id}/leccion`,
-        { leccion_aprendida: leccion.leccion_aprendida },
-        { preserveScroll: true },
-    );
+    leccion.put(`/incidentes/${props.incidente.id}/leccion`, { preserveScroll: true });
 }
 
 /* --- Las notificaciones --- */
@@ -222,17 +232,15 @@ function anotarNotificacion(): void {
             El único rojo del módulo, y arriba del todo cuando aplica: 72 h desde
             la detección, artículo 33.1 del RGPD.
         -->
-        <div
+        <Aviso
             v-if="notificaciones.aepd.vencido && !notificaciones.aepd.notificado"
-            class="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm"
+            tono="error"
+            titulo="Plazo de la AEPD vencido sin notificar"
         >
-            <p class="font-medium">Plazo de la AEPD vencido sin notificar.</p>
-            <p class="text-muted-foreground">
-                Pasaron las 72 horas que fija el artículo 33.1 del RGPD desde que se tuvo
-                constancia. Notificar tarde sigue siendo mejor que no notificar, y la fecha real
-                queda anotada tal cual.
-            </p>
-        </div>
+            Pasaron las 72 horas que fija el artículo 33.1 del RGPD desde que se tuvo constancia.
+            Notificar tarde sigue siendo mejor que no notificar, y la fecha real queda anotada tal
+            cual.
+        </Aviso>
 
         <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
             <div class="space-y-6">
@@ -292,6 +300,7 @@ function anotarNotificacion(): void {
                             v-if="puedeGestionar"
                             variant="outline"
                             size="sm"
+                            :disabled="leccion.processing"
                             @click="guardarLeccion"
                         >
                             Guardar
@@ -307,7 +316,7 @@ function anotarNotificacion(): void {
                             />
                         </div>
 
-                        <p v-if="sinLeccion" class="text-xs text-muted-foreground">
+                        <p v-if="sinLeccion && cerrarALaVista" class="text-xs text-muted-foreground">
                             Para cerrar el incidente hace falta escribir arriba qué se aprendió.
                         </p>
 
@@ -358,6 +367,9 @@ function anotarNotificacion(): void {
                                     }"
                                 />
                                 <span class="text-xs text-muted-foreground">
+                                    <template v-if="paso.anterior">
+                                        desde «{{ paso.anterior }}» ·
+                                    </template>
                                     {{ paso.fecha }}
                                     <template v-if="paso.usuario"> · {{ paso.usuario }}</template>
                                 </span>
