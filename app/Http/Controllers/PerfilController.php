@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Domain\Autorizacion\PermisosDeLaCuenta;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -62,10 +63,24 @@ class PerfilController extends Controller
     private function estado(?User $usuario): array
     {
         return [
+            /*
+             * El nombre y el correo viajan para que el formulario los PRECARGUE.
+             * Antes el cliente arrancaba con dos cadenas vacías y el valor real
+             * puesto de `placeholder`: quien pulsaba «Guardar» sin reescribir
+             * los dos campos recibía un error de validación, y quien cambiaba
+             * sólo el nombre mandaba el correo vacío.
+             */
             'usuario' => [
                 'nombre' => $usuario?->name,
                 'email' => $usuario?->email,
+                'foto' => $usuario?->urlFoto(),
             ],
+
+            // Sólo lectura: qué puede hacer esta cuenta y qué no. Gestionar los
+            // permisos de otros es el § 4.19 y no cuelga de aquí.
+            'permisos' => $usuario === null
+                ? ['roles' => [], 'modulos' => [], 'sinAcceso' => []]
+                : PermisosDeLaCuenta::de($usuario),
             'dosFactores' => [
                 'confirmado' => (bool) $usuario?->dosFactoresConfirmado(),
                 'pendiente' => (bool) $usuario?->dosFactoresPendiente(),

@@ -22,6 +22,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property int $id
  * @property string $name
  * @property string $email
+ * @property ?string $foto_ruta
  * @property ?int $organizacion_id
  * @property ?Carbon $two_factor_confirmed_at
  * @property ?string $two_factor_secret
@@ -52,6 +53,30 @@ class User extends Authenticatable implements PasskeyUser
     public function dosFactoresPendiente(): bool
     {
         return $this->two_factor_secret !== null && $this->two_factor_confirmed_at === null;
+    }
+
+    /**
+     * Por dónde pide el navegador la foto de perfil, o nulo si no hay.
+     *
+     * Es **siempre la misma ruta y sin identificar a nadie**: la foto sólo se
+     * pinta en el chrome y en `/perfil`, y siempre es la de quien mira. Una
+     * ruta con `{usuario}` habría que acotarla a mano, porque `users` es el
+     * único modelo de datos propios sin scope global y sin RLS, y ningún test
+     * de aislamiento avisaría de que se olvidó.
+     *
+     * **El sufijo de versión no es adorno.** La URL es fija, así que sin él el
+     * navegador sirve de su caché la foto vieja y cambiarla no se ve —un fallo
+     * que aparece dos días después y en otra pantalla—. El ULID del fichero ya
+     * es distinto en cada subida, así que sirve de versión tal cual y no hace
+     * falta calcular ningún hash.
+     */
+    public function urlFoto(): ?string
+    {
+        if ($this->foto_ruta === null) {
+            return null;
+        }
+
+        return '/perfil/foto?v='.pathinfo($this->foto_ruta, PATHINFO_FILENAME);
     }
 
     /**

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AvatarUsuario from '@/components/AvatarUsuario.vue';
 import Logotipo from '@/components/Logotipo.vue';
 import PaletaComandos from '@/components/PaletaComandos.vue';
 import RecorridoGuiado from '@/components/RecorridoGuiado.vue';
@@ -47,13 +48,6 @@ const pagina = usePage();
 
 const usuario = computed(() => pagina.props.auth.usuario);
 const organizacion = computed(() => pagina.props.organizacion);
-const iniciales = computed(() =>
-    (usuario.value?.nombre ?? '?')
-        .split(' ')
-        .slice(0, 2)
-        .map((parte) => parte.charAt(0).toUpperCase())
-        .join(''),
-);
 
 const rutaActual = computed(() => new URL(pagina.url, 'http://x').pathname);
 const seccion = computed(() => entradaDe(rutaActual.value));
@@ -341,11 +335,12 @@ const salir = (): void => router.post('/logout');
                             <DropdownMenu>
                                 <DropdownMenuTrigger as-child>
                                     <Button variant="ghost" size="sm" class="gap-2">
-                                        <span
-                                            class="flex size-6 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground"
-                                        >
-                                            {{ iniciales }}
-                                        </span>
+                                        <AvatarUsuario
+                                            :nombre="usuario?.nombre"
+                                            :foto="usuario?.foto"
+                                            tamano="sm"
+                                            clase="text-[11px]"
+                                        />
                                         <span class="hidden truncate sm:inline">{{ usuario?.nombre }}</span>
                                     </Button>
                                 </DropdownMenuTrigger>

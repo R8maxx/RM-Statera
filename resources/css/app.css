@@ -866,6 +866,58 @@
 }
 
 /*
+ * El cambio de tema: una disolución, y nada más.
+ * ----------------------------------------------
+ * Pasar de oscuro a claro cambia la luminancia de la pantalla entera de golpe,
+ * y de noche eso es un fogonazo. Es el mismo motivo por el que el tema se
+ * aplica en un script en línea antes del primer pintado: no es adorno, es
+ * evitar un salto brusco (DESIGN.md §10, «prevenir un cambio brusco»).
+ *
+ * Lo hace la API de transiciones de vista, que fotografía el antes y el
+ * después y los funde en el compositor. La alternativa —una transición de
+ * `background-color` y `color` sobre toda la página— repinta cada elemento en
+ * cada fotograma, y en `/activos/{activo}/grafo` o en una checklist de 122
+ * filas eso se nota. Aquí se funden dos imágenes y ya está.
+ *
+ * **No es un recorte circular desde el botón.** Un barrido desde el control
+ * sería un quinto momento de deleite, y el presupuesto son cuatro y están
+ * enumerados. Esto no añade nada a la lista: sólo quita el fogonazo.
+ *
+ * Se dejan los valores por defecto del navegador salvo la duración y la curva.
+ * Eso importa: la hoja de estilos de usuario-agente funde con
+ * `mix-blend-mode: plus-lighter`, que es lo que evita el bajón de brillo a
+ * mitad de camino. Poner la vieja a `animation: none` para que la nueva entre
+ * encima —el truco que se ve por ahí— con ese blend suma las dos y sobreexpone
+ * el fotograma central.
+ *
+ * `--curva-en-pantalla` y no `--curva`: esto no aparece ni desaparece, son los
+ * mismos píxeles cambiando de aspecto. Con la curva de salida el fundido se va
+ * en el primer cuarto y arrastra una cola que no se ve.
+ */
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation-duration: var(--duracion-lenta);
+    animation-timing-function: var(--curva-en-pantalla);
+}
+
+/*
+ * Con movimiento reducido el fundido se acorta, no se quita: menos y más
+ * suave, no cero (DESIGN.md §10). Aquí no hay desplazamiento que perder —es
+ * opacidad pura— y lo que se evitaría quitándolo es justamente el corte seco.
+ *
+ * Hace falta declararlo: el `@media` global de abajo actúa sobre `*`, y los
+ * pseudo-elementos de la transición de vista viven fuera del árbol del
+ * documento, así que ese comodín no los alcanza.
+ */
+@media (prefers-reduced-motion: reduce) {
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+        animation-duration: var(--duracion-rapida);
+        animation-timing-function: linear;
+    }
+}
+
+/*
  * Red de seguridad de accesibilidad. Cada componente que anima consulta además
  * `useMovimientoReducido`, pero esto cubre lo que venga de Reka, de
  * `tw-animate-css` o de un descuido.

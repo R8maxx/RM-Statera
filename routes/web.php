@@ -20,6 +20,7 @@ use App\Http\Controllers\ObjetivoController;
 use App\Http\Controllers\PanelController;
 use App\Http\Controllers\ParteInteresadaController;
 use App\Http\Controllers\PerfilController;
+use App\Http\Controllers\PerfilFotoController;
 use App\Http\Controllers\PersonaController;
 use App\Http\Controllers\PlantillaDocumentoController;
 use App\Http\Controllers\PuestoController;
@@ -81,6 +82,20 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/perfil/dos-factores', [PerfilController::class, 'dosFactores'])
         ->middleware('password.confirm')
         ->name('perfil.dos-factores');
+
+    /*
+    | La foto de perfil. **Sin parámetro de usuario en ninguna de las tres**:
+    | sólo se sirve la de quien mira, así que no hay aislamiento que declarar.
+    | Con `{usuario}` habría que acotarlo a mano, porque `users` es el único
+    | modelo de datos propios sin scope global y sin RLS, y ningún test de
+    | aislamiento se pondría rojo si alguien lo olvidara.
+    |
+    | Sin permiso y sin `ExigirDosFactores`, como el resto de `/perfil`: se
+    | escribe sobre uno mismo.
+    */
+    Route::get('/perfil/foto', [PerfilFotoController::class, 'show'])->name('perfil.foto');
+    Route::post('/perfil/foto', [PerfilFotoController::class, 'store'])->name('perfil.foto.guardar');
+    Route::delete('/perfil/foto', [PerfilFotoController::class, 'destroy'])->name('perfil.foto.borrar');
 
     /*
     |--------------------------------------------------------------------------

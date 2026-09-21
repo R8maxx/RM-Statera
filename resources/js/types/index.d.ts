@@ -10,6 +10,11 @@ export interface UsuarioAutenticado {
     id: number;
     nombre: string;
     email: string;
+    /**
+     * La ruta por la que pedir la foto de perfil, con su sufijo de versión, o
+     * nulo si no hay. La construye `User::urlFoto()`; el cliente no la compone.
+     */
+    foto: string | null;
     dosFactores: boolean;
 }
 

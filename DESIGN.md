@@ -488,6 +488,20 @@ Y sigue en pie la mitad de la regla que protege la herramienta: **lo decorativo 
 - **`.tachado` es la otra utilidad de `app.css`**, y existe porque `text-decoration` no se puede animar. Un paso que se marca hecho se tacha con un `scaleX` sobre un pseudo-elemento: la raya se traza de izquierda a derecha y confirma que el clic llegó, que en una lista que se guarda contra el servidor es el único acuse que hay.
 - **Toda lista que puede menguar lleva salida**, con `AnimatePresence` o `<TransitionGroup>`. Una fila que desaparece de un fotograma al siguiente y arrastra a las de abajo es el salto más común y el más fácil de evitar.
 
+### El cambio de tema se funde, y no hace nada más
+
+Pasar de oscuro a claro cambia la luminancia de la pantalla entera de un fotograma al siguiente, y de noche eso es un fogonazo. Es el mismo motivo por el que el tema se aplica en un script en línea antes del primer pintado: **no es adorno, es prevenir un cambio brusco**, que es una de las razones por las que algo se anima aquí.
+
+Es una **disolución de 380 ms con `--curva-en-pantalla`**, y la cura la API de transiciones de vista: fotografía el antes y el después y los funde en el compositor. Una transición de `background-color` sobre toda la página repintaría cada elemento en cada fotograma, y en el grafo de un activo o en una checklist de 122 filas eso se nota.
+
+Tres decisiones que la acotan:
+
+- **No es un barrido circular desde el botón**, que es el tratamiento que se ve por ahí. Sería un quinto momento de deleite, y el presupuesto son cuatro. Esto quita el fogonazo y no añade nada a esa lista.
+- **`--curva-en-pantalla` y no `--curva`.** No aparece ni desaparece nada: son los mismos píxeles cambiando de aspecto. Con la curva de salida el fundido se consume en el primer cuarto y arrastra una cola que no se ve.
+- **Sólo cuando la luminancia cambia de verdad.** Las preferencias son tres y los temas son dos: elegir «el del sistema» estando ya en claro y con el sistema en claro no cambia un píxel, y disolver la pantalla para dejarla igual es una animación que miente sobre lo que ha pasado.
+
+Con `prefers-reduced-motion` se acorta a 120 ms y pasa a lineal, no se quita: aquí no hay desplazamiento que perder —es opacidad pura— y lo que se recuperaría quitándola es justamente el corte seco. Hay que declararlo aparte porque el `@media` global actúa sobre `*` y los pseudo-elementos de la transición de vista viven fuera del árbol del documento.
+
 ### Los cuatro momentos, y sólo cuatro
 
 1. **La entrada al acceso.** La pila del formulario escalona a 60 ms; la balanza se asienta al entrar bien y se desequilibra una vez al fallar.

@@ -127,3 +127,27 @@ it('exige sesión iniciada', function (): void {
     $this->get('/perfil')->assertRedirect('/login');
     $this->get('/perfil/dos-factores')->assertRedirect('/login');
 });
+
+/*
+|--------------------------------------------------------------------------
+| La identidad llega puesta
+|--------------------------------------------------------------------------
+|
+| El formulario arrancaba con `useForm({ name: '', email: '' })` y el valor
+| real sólo como `placeholder`: quien entraba y pulsaba «Guardar» sin
+| reescribir los dos campos recibía un error de validación, y quien cambiaba
+| sólo el nombre mandaba el correo vacío. La pantalla tiene que servir los
+| valores actuales para que el cliente pueda precargarlos.
+|
+*/
+
+it('sirve el nombre y el correo actuales, no un hueco', function (): void {
+    $this->usuario->forceFill(['name' => 'Nadia Quintela', 'email' => 'nadia@ejemplo.test'])->save();
+
+    $this->actingAs($this->usuario->fresh())
+        ->get('/perfil')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->where('usuario.nombre', 'Nadia Quintela')
+            ->where('usuario.email', 'nadia@ejemplo.test')
+        );
+});

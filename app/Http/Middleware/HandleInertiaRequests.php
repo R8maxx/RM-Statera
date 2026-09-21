@@ -40,6 +40,11 @@ class HandleInertiaRequests extends Middleware
                     'id' => $usuario->id,
                     'nombre' => $usuario->name,
                     'email' => $usuario->email,
+                    // La ruta es fija y el sufijo de versión es el ULID del
+                    // fichero: sin él el navegador serviría de su caché la foto
+                    // vieja y cambiarla no se vería. Nulo cuando no hay foto, y
+                    // entonces el chrome cae al círculo de iniciales.
+                    'foto' => $usuario->urlFoto(),
                     'dosFactores' => $usuario->two_factor_confirmed_at !== null,
                 ],
                 // Los permisos viajan como lista plana: el frontend solo decide
