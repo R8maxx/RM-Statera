@@ -22,6 +22,7 @@ use App\Http\Controllers\ParteInteresadaController;
 use App\Http\Controllers\PerfilController;
 use App\Http\Controllers\PersonaController;
 use App\Http\Controllers\PlantillaDocumentoController;
+use App\Http\Controllers\PuestoController;
 use App\Http\Controllers\RevisionDireccionController;
 use App\Http\Controllers\RevisionInventarioController;
 use App\Http\Controllers\RiesgoController;
@@ -1065,6 +1066,26 @@ Route::middleware('auth')->group(function (): void {
 
         Route::get('/formacion/{accion}', [FormacionController::class, 'show'])
             ->name('formacion.show');
+
+        Route::get('/puestos', [PuestoController::class, 'index'])
+            ->name('puestos.index');
+
+        /*
+         * Las dos antes que `{puesto}`, para que no se lean como un id. El
+         * organigrama es RUTA y no conmutador de cliente, como `/tareas/tablero`
+         * y `/activos/etiquetas`: el estado es la URL, porque un conmutador que
+         * recuerda la última vista hace que el enlace que alguien pega en un
+         * correo abra otra pantalla.
+         */
+        Route::get('/puestos/organigrama', [PuestoController::class, 'organigrama'])
+            ->name('puestos.organigrama');
+
+        Route::get('/puestos/crear', [PuestoController::class, 'create'])
+            ->middleware(['can:personas.gestionar', ExigirDosFactores::class])
+            ->name('puestos.create');
+
+        Route::get('/puestos/{puesto}', [PuestoController::class, 'show'])
+            ->name('puestos.show');
     });
 
     Route::middleware(['can:personas.gestionar', ExigirDosFactores::class])
@@ -1103,6 +1124,25 @@ Route::middleware('auth')->group(function (): void {
             // asistencias es un gesto, no veinte peticiones.
             Route::put('/formacion/{accion}/asistencia', [FormacionController::class, 'registrarAsistencia'])
                 ->name('formacion.asistencia');
+
+            // Los puestos van con el permiso de personas y sin verbo propio: es
+            // el mismo módulo, y un `puestos.*` nuevo habría que acordarse de
+            // añadirlo a mano en las listas literales de `Rol::permisos()`.
+            Route::post('/puestos', [PuestoController::class, 'store'])
+                ->name('puestos.store');
+            Route::get('/puestos/{puesto}/editar', [PuestoController::class, 'edit'])
+                ->name('puestos.edit');
+            Route::put('/puestos/{puesto}', [PuestoController::class, 'update'])
+                ->name('puestos.update');
+            Route::delete('/puestos/{puesto}', [PuestoController::class, 'destroy'])
+                ->name('puestos.destroy');
+
+            // Quién ocupa qué puesto, con vigencia: se asigna y se cierra desde
+            // la ficha de la persona, que es donde se mira.
+            Route::post('/personas/{persona}/puesto', [PersonaController::class, 'asignarPuesto'])
+                ->name('personas.puesto.asignar');
+            Route::delete('/personas/{persona}/asignaciones/{asignacion}', [PersonaController::class, 'cerrarPuesto'])
+                ->name('personas.puesto.cerrar');
         });
 
     /*

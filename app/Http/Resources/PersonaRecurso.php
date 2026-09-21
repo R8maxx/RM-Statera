@@ -71,6 +71,18 @@ final class PersonaRecurso extends Recurso
                 (select count(*) from pasos_persona pp
                     where pp.persona_id = personas.id and pp.tipo = 'baja' and pp.hecho_en is null) as baja_pendiente
             SQL)
+            /*
+             * El puesto ya no es una columna de `personas`: es la asignación
+             * vigente. Por subconsulta y no por join, como las cuatro de arriba —
+             * con el join, una persona con tres asignaciones históricas saldría
+             * tres veces y la paginación contaría mal.
+             */
+            ->selectRaw(<<<'SQL'
+                (select pu.titulo from asignaciones_puesto ap
+                    join puestos pu on pu.id = ap.puesto_id
+                    where ap.persona_id = personas.id and ap.hasta is null
+                    limit 1) as puesto
+            SQL)
             ->with('usuario');
     }
 
@@ -82,6 +94,13 @@ final class PersonaRecurso extends Recurso
 
             Columna::texto('nombre', 'Nombre')->ordenable(),
 
+            /*
+             * Ordenable sobre el alias de la subconsulta —PostgreSQL resuelve el
+             * `ORDER BY` contra la columna de salida—, pero **no buscable**: un
+             * alias del `SELECT` no es visible en el `WHERE`, y meterlo en la
+             * búsqueda daría «column "puesto" does not exist». Para buscar por
+             * puesto está `/puestos`.
+             */
             Columna::texto('puesto', 'Puesto')->ordenable(),
 
             Columna::badge('estado', 'Estado')
@@ -169,9 +188,8 @@ final class PersonaRecurso extends Recurso
             Filtro::busqueda('q', 'Buscar', [
                 'codigo' => 'codigo',
                 'nombre' => 'nombre',
-                'puesto' => 'puesto',
                 'email' => 'nombre',
-            ])->placeholder('Buscar por código, nombre, puesto o correo…'),
+            ])->placeholder('Buscar por código, nombre o correo…'),
 
             /*
              * Por scope, no con la condición escrita otra vez aquí: son los mismos

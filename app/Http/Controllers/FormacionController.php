@@ -110,7 +110,7 @@ class FormacionController extends Controller
                     'id' => $persona->id,
                     'codigo' => $persona->codigo,
                     'nombre' => $persona->nombre,
-                    'puesto' => $persona->puesto,
+                    'puesto' => $persona->puestoVigente()?->titulo,
                     'activa' => $persona->estaActiva(),
                     'convocada' => $convocadas->has($persona->id),
                     'asistio' => (bool) $convocadas->get($persona->id)?->asistio,

@@ -23,6 +23,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { conOpcionVacia, SIN_VALOR } from '@/lib/formularios';
 import { Link, router, useForm } from '@inertiajs/vue3';
 import {
+    BriefcaseIcon,
     ChevronRightIcon,
     FileSignatureIcon,
     GraduationCapIcon,
@@ -38,6 +39,18 @@ interface Opcion {
 interface OpcionRol extends Opcion {
     unico: boolean;
     incompatibles: string[];
+}
+
+interface Asignacion {
+    id: number;
+    puesto_id: number;
+    puesto: string | null;
+    codigo: string | null;
+    desde: string;
+    hasta: string | null;
+    vigente: boolean;
+    asignadaPor: string | null;
+    nota: string | null;
 }
 
 interface Persona {
@@ -128,6 +141,8 @@ const props = defineProps<{
     designaciones: Designacion[];
     formacion: Formacion[];
     acuerdos: Acuerdo[];
+    asignaciones: Asignacion[];
+    puestos: Opcion[];
     pasos: Checklist[];
     maximoPasos: number;
     puedeGestionar: boolean;
@@ -212,6 +227,37 @@ const hayDatosDeContacto = computed(
 
 const vigentes = computed(() => props.designaciones.filter((item) => item.vigente));
 const historicas = computed(() => props.designaciones.filter((item) => !item.vigente));
+
+/* --- El puesto que ocupa --- */
+
+const asignacionVigente = computed(() => props.asignaciones.find((una) => una.vigente) ?? null);
+const asignacionesPasadas = computed(() => props.asignaciones.filter((una) => !una.vigente));
+
+const asignandoPuesto = ref(false);
+
+const puestoForm = useForm({ puesto_id: '', desde: '', nota: '' });
+
+function abrirPuesto(): void {
+    puestoForm.reset();
+    puestoForm.clearErrors();
+    puestoForm.desde = new Date().toISOString().slice(0, 10);
+    asignandoPuesto.value = true;
+}
+
+function asignarPuesto(): void {
+    puestoForm.post(`/personas/${props.persona.id}/puesto`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            asignandoPuesto.value = false;
+            puestoForm.reset();
+        },
+    });
+}
+
+/** Cierra el puesto sin poner otro: **no borra la fila**, le pone fecha de fin. */
+function cerrarPuesto(id: number): void {
+    router.delete(`/personas/${props.persona.id}/asignaciones/${id}`, { preserveScroll: true });
+}
 
 /* --- El acuerdo de confidencialidad: mp.per.2 --- */
 
@@ -349,6 +395,80 @@ function guardarLista(tipo: string, pasos: Paso[]): void {
 
         <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
             <div class="space-y-6">
+                <!--
+                    El puesto va ANTES que los nombramientos, y no es un capricho
+                    de orden: el puesto es lo que esta persona hace todos los
+                    días, y un nombramiento ENS es un cargo que se le suma. Al
+                    revés, la primera tarjeta estaría vacía para casi toda la
+                    plantilla.
+                -->
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Puesto</CardTitle>
+                        <CardDescription>
+                            El puesto de trabajo, no el rol ENS. Las asignaciones llevan vigencia y
+                            no se borran: la pregunta del auditor es desde cuándo, y también hasta
+                            cuándo.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent class="space-y-4">
+                        <EstadoVacio
+                            v-if="asignacionVigente === null"
+                            :icono="BriefcaseIcon"
+                            titulo="Sin puesto asignado"
+                            descripcion="Asignarle uno es lo que la coloca en el organigrama."
+                        />
+
+                        <div v-else class="flex flex-wrap items-center gap-2 text-sm">
+                            <Link
+                                :href="`/puestos/${asignacionVigente.puesto_id}`"
+                                class="font-medium underline-offset-4 hover:underline"
+                            >
+                                <span class="cifra text-muted-foreground">{{ asignacionVigente.codigo }}</span>
+                                {{ asignacionVigente.puesto }}
+                            </Link>
+                            <span class="text-muted-foreground">desde el {{ asignacionVigente.desde }}</span>
+                            <span v-if="asignacionVigente.nota" class="text-muted-foreground">
+                                · {{ asignacionVigente.nota }}
+                            </span>
+                            <Button
+                                v-if="puedeGestionar"
+                                variant="ghost"
+                                size="sm"
+                                @click="cerrarPuesto(asignacionVigente.id)"
+                            >
+                                Dejar el puesto
+                            </Button>
+                        </div>
+
+                        <div v-if="asignacionesPasadas.length > 0" class="space-y-1">
+                            <h3 class="text-sm text-muted-foreground">Antes ocupó</h3>
+                            <ul class="divide-y divide-border">
+                                <li
+                                    v-for="pasada in asignacionesPasadas"
+                                    :key="pasada.id"
+                                    class="flex flex-wrap items-center gap-2 py-2 text-sm text-muted-foreground"
+                                >
+                                    <Link
+                                        :href="`/puestos/${pasada.puesto_id}`"
+                                        class="underline-offset-4 hover:underline"
+                                    >{{ pasada.puesto }}</Link>
+                                    <span>del {{ pasada.desde }} al {{ pasada.hasta }}</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <Button
+                            v-if="puedeGestionar && persona.activa"
+                            variant="outline"
+                            size="sm"
+                            @click="abrirPuesto"
+                        >
+                            {{ asignacionVigente === null ? 'Asignar un puesto' : 'Cambiar de puesto' }}
+                        </Button>
+                    </CardContent>
+                </Card>
+
                 <!-- Cláusula 5.3 -->
                 <Card>
                     <CardHeader>
@@ -765,6 +885,57 @@ function guardarLista(tipo: string, pasos: Paso[]): void {
         </Dialog>
 
         <!-- Registrar acuerdo -->
+        <!--
+            Cambiar de puesto CIERRA el anterior, no lo sustituye: eso lo hace
+            `AsignarPuesto` en una transacción, porque entre las dos escrituras
+            la persona estaría sin puesto.
+        -->
+        <Dialog v-model:open="asignandoPuesto">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Asignar un puesto</DialogTitle>
+                    <DialogDescription>
+                        Si ya ocupaba otro, se cierra el día antes de empezar éste: dos
+                        asignaciones que se solapan harían que «qué puesto tenía el 3 de marzo»
+                        tuviera dos respuestas.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div class="space-y-4">
+                    <CampoSelect
+                        nombre="puesto_id"
+                        etiqueta="Puesto"
+                        :opciones="puestos"
+                        v-model="puestoForm.puesto_id"
+                        :error="puestoForm.errors.puesto_id"
+                        requerido
+                    />
+
+                    <CampoTexto
+                        nombre="desde"
+                        etiqueta="Desde"
+                        tipo="date"
+                        v-model="puestoForm.desde"
+                        :error="puestoForm.errors.desde"
+                        ayuda="Puede ser pasada: al meter el histórico, lo normal es registrar algo que empezó hace años."
+                    />
+
+                    <CampoTextarea
+                        nombre="nota"
+                        etiqueta="Nota"
+                        :filas="2"
+                        v-model="puestoForm.nota"
+                        :error="puestoForm.errors.nota"
+                    />
+                </div>
+
+                <DialogFooter>
+                    <Button variant="outline" @click="asignandoPuesto = false">Cancelar</Button>
+                    <Button :disabled="puestoForm.processing" @click="asignarPuesto">Asignar</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
         <Dialog v-model:open="firmando">
             <DialogContent>
                 <DialogHeader>

@@ -43,7 +43,6 @@ use LogicException;
  * @property ?string $telefono_fijo
  * @property ?string $direccion
  * @property ?Carbon $fecha_nacimiento
- * @property ?string $puesto
  * @property ?string $email
  * @property ?int $user_id
  * @property Carbon $fecha_alta
@@ -86,7 +85,6 @@ class Persona extends Model
         'telefono_fijo',
         'direccion',
         'fecha_nacimiento',
-        'puesto',
         'email',
         'user_id',
         'fecha_alta',
@@ -178,6 +176,36 @@ class Persona extends Model
     public function asistencias(): HasMany
     {
         return $this->hasMany(Asistencia::class);
+    }
+
+    /**
+     * Las asignaciones de puesto, vigentes y cerradas.
+     *
+     * **Sin joins ni orden**, como `Auditoria::puntos()` y `Puesto::asignaciones()`:
+     * el *route model binding* acotado resuelve el hijo con un `where` sin
+     * cualificar, y con otra tabla unida muere con «column reference "id" is
+     * ambiguous», un error que no menciona ni la ruta ni la relación.
+     *
+     * @return HasMany<AsignacionPuesto, $this>
+     */
+    public function asignaciones(): HasMany
+    {
+        return $this->hasMany(AsignacionPuesto::class);
+    }
+
+    /**
+     * El puesto que ocupa hoy, si ocupa alguno.
+     *
+     * **Se deriva de la asignación vigente y no se guarda en `personas`**, que es
+     * lo mismo que `activa` con `fecha_baja` y `vigente` con el estado del
+     * análisis del contexto: con una columna al lado, cambiar de puesto sería
+     * escribir en dos sitios y acordarse de los dos.
+     */
+    public function puestoVigente(): ?Puesto
+    {
+        return $this->asignaciones
+            ->first(static fn (AsignacionPuesto $asignacion): bool => $asignacion->estaVigente())
+            ?->puesto;
     }
 
     /** @return HasMany<AcuerdoConfidencialidad, $this> */
@@ -329,6 +357,12 @@ class Persona extends Model
     {
         if ($childType === 'designacion') {
             return $this->designaciones()->where($campo ?? 'designaciones_rol.id', $value)->first();
+        }
+
+        // `asignacion` → `asignacions` en inglés, que no es la tabla. Quinta vez
+        // en el producto que este plural hay que escribirlo a mano.
+        if ($childType === 'asignacion') {
+            return $this->asignaciones()->where($campo ?? 'asignaciones_puesto.id', $value)->first();
         }
 
         return parent::resolveChildRouteBinding($childType, $value, $campo);

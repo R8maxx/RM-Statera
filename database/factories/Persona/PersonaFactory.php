@@ -51,7 +51,6 @@ class PersonaFactory extends Factory
             'direccion' => null,
             'fecha_nacimiento' => null,
 
-            'puesto' => fake()->jobTitle(),
             'email' => fake()->unique()->safeEmail(),
             'user_id' => null,
             'fecha_alta' => Carbon::today()->subMonths(fake()->numberBetween(1, 60)),
