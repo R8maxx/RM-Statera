@@ -34,7 +34,23 @@ class PersonaFactory extends Factory
     {
         return [
             'codigo' => sprintf('PER-%03d', fake()->unique()->numberBetween(1, 999)),
-            'nombre' => fake()->name(),
+
+            /*
+             * `nombre` NO se declara: es una columna generada y escribirla haría
+             * que PostgreSQL rechazara el `INSERT` entero. Sale de estas tres.
+             */
+            'nombre_pila' => fake()->firstName(),
+            'apellido1' => fake()->lastName(),
+            'apellido2' => fake()->lastName(),
+
+            // Sintético y con la forma de un NIF, sin serlo: la letra no se
+            // valida en ningún sitio y aquí tampoco se finge que cuadre.
+            'nif' => sprintf('%08dX', fake()->unique()->numberBetween(1, 99999999)),
+            'telefono' => null,
+            'telefono_fijo' => null,
+            'direccion' => null,
+            'fecha_nacimiento' => null,
+
             'puesto' => fake()->jobTitle(),
             'email' => fake()->unique()->safeEmail(),
             'user_id' => null,

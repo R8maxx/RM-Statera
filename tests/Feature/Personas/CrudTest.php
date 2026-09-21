@@ -67,7 +67,8 @@ it('da de alta a una persona sin cuenta de Statera', function (): void {
     $this->actingAs($this->usuario)
         ->post('/personas', [
             'codigo' => 'PER-010',
-            'nombre' => 'Carla Ibáñez',
+            'nombre_pila' => 'Carla',
+            'apellido1' => 'Ibáñez',
             'puesto' => 'Atención al cliente',
             'email' => null,
             'user_id' => null,
@@ -79,7 +80,9 @@ it('da de alta a una persona sin cuenta de Statera', function (): void {
     $persona = Persona::query()->where('codigo', 'PER-010')->sole();
 
     expect($persona->user_id)->toBeNull()
-        ->and($persona->estaActiva())->toBeTrue();
+        ->and($persona->estaActiva())->toBeTrue()
+        // El nombre completo lo arma PostgreSQL desde las partes.
+        ->and($persona->nombre)->toBe('Carla Ibáñez');
 });
 
 it('no deja vincular la misma cuenta a dos personas', function (): void {
@@ -88,7 +91,8 @@ it('no deja vincular la misma cuenta a dos personas', function (): void {
     $this->actingAs($this->usuario)
         ->post('/personas', [
             'codigo' => 'PER-011',
-            'nombre' => 'Otra persona',
+            'nombre_pila' => 'Otra',
+            'apellido1' => 'Persona',
             'user_id' => $this->usuario->id,
             'fecha_alta' => Carbon::today()->toDateString(),
         ])
@@ -99,7 +103,8 @@ it('rechaza una baja anterior al alta', function (): void {
     $this->actingAs($this->usuario)
         ->post('/personas', [
             'codigo' => 'PER-012',
-            'nombre' => 'Elena Prat',
+            'nombre_pila' => 'Elena',
+            'apellido1' => 'Prat',
             'fecha_alta' => Carbon::today()->toDateString(),
             'fecha_baja' => Carbon::today()->subMonth()->toDateString(),
         ])

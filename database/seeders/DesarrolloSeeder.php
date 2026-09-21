@@ -299,7 +299,11 @@ class DesarrolloSeeder extends Seeder
 
         $ana = Persona::query()->create([
             'codigo' => 'PER-001',
-            'nombre' => 'Ana Ruiz',
+            'nombre_pila' => 'Ana',
+            'apellido1' => 'Ruiz',
+            'apellido2' => 'Beltrán',
+            'nif' => '00000001A',
+            'telefono' => '+34 600 000 001',
             'puesto' => 'Responsable de seguridad de la información',
             'email' => 'responsable@statera.test',
             'user_id' => $responsable?->id,
@@ -308,7 +312,12 @@ class DesarrolloSeeder extends Seeder
 
         $bruno = Persona::query()->create([
             'codigo' => 'PER-002',
-            'nombre' => 'Bruno Sáez',
+            'nombre_pila' => 'Bruno',
+            'apellido1' => 'Sáez',
+            'apellido2' => 'Molina',
+            'nif' => '00000002B',
+            'telefono' => '+34 600 000 002',
+            'telefono_fijo' => '+34 960 000 002',
             'puesto' => 'Administrador de sistemas',
             'email' => 'tecnico@statera.test',
             'user_id' => $tecnica?->id,
@@ -318,7 +327,9 @@ class DesarrolloSeeder extends Seeder
         // Sin cuenta: la mayoría de una plantilla no entra nunca en Statera.
         $carla = Persona::query()->create([
             'codigo' => 'PER-003',
-            'nombre' => 'Carla Ibáñez',
+            'nombre_pila' => 'Carla',
+            'apellido1' => 'Ibáñez',
+            'nif' => '00000003C',
             'puesto' => 'Atención al cliente',
             'fecha_alta' => Carbon::today()->subMonths(14),
         ]);
@@ -326,7 +337,9 @@ class DesarrolloSeeder extends Seeder
         // La que pide acción: ni formación ni acuerdo.
         $diego = Persona::query()->create([
             'codigo' => 'PER-004',
-            'nombre' => 'Diego Ferrer',
+            'nombre_pila' => 'Diego',
+            'apellido1' => 'Ferrer',
+            'apellido2' => 'Lago',
             'puesto' => 'Comercial',
             'fecha_alta' => Carbon::today()->subMonths(3),
         ]);
@@ -334,7 +347,9 @@ class DesarrolloSeeder extends Seeder
         // El rojo: se fue y la checklist de salida está a medias.
         $elena = Persona::query()->create([
             'codigo' => 'PER-005',
-            'nombre' => 'Elena Prat',
+            'nombre_pila' => 'Elena',
+            'apellido1' => 'Prat',
+            'nif' => '00000005E',
             'puesto' => 'Desarrolladora',
             'fecha_alta' => Carbon::today()->subYears(3),
             'fecha_baja' => Carbon::today()->subMonth(),

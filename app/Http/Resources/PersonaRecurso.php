@@ -145,6 +145,18 @@ final class PersonaRecurso extends Recurso
                 ->ayuda('La cuenta de Statera de esta persona, si tiene. La mayoría no tiene.')
                 ->formato(fn (Persona $fila): ?string => $fila->usuario?->email),
 
+            /*
+             * **Oculta por defecto, y a propósito.** Es un dato personal en una
+             * herramienta que está en el alcance de su propio SGSI: quien lo
+             * necesita lo enseña, y no se pinta en una tabla que alguien puede
+             * tener abierta en una pantalla compartida. Por lo mismo no entra en
+             * la búsqueda libre — ahí está el resto de la ficha.
+             */
+            Columna::texto('nif', 'NIF')
+                ->oculta()
+                ->ancho('9rem')
+                ->ayuda('Documento de identidad. Dato personal: va oculto salvo que se pida.'),
+
             Columna::fecha('fecha_alta', 'Alta')->ordenable()->oculta(),
             Columna::fecha('fecha_baja', 'Baja')->ordenable()->oculta(),
         ];

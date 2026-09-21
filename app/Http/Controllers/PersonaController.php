@@ -75,6 +75,8 @@ class PersonaController extends Controller
 
     public function store(GuardarPersonaRequest $request): RedirectResponse
     {
+        // `nombre` llega relleno porque `Persona` relee la fila al crearse: es
+        // columna generada y el `INSERT` no la devuelve. Ver el modelo.
         $persona = Persona::query()->create($request->validated());
 
         Inertia::flash('exito', "{$persona->nombre} está en el registro de personas.");
@@ -293,6 +295,14 @@ class PersonaController extends Controller
             'id' => $persona->id,
             'codigo' => $persona->codigo,
             'nombre' => $persona->nombre,
+            'nombre_pila' => $persona->nombre_pila,
+            'apellido1' => $persona->apellido1,
+            'apellido2' => $persona->apellido2,
+            'nif' => $persona->nif,
+            'telefono' => $persona->telefono,
+            'telefono_fijo' => $persona->telefono_fijo,
+            'direccion' => $persona->direccion,
+            'fecha_nacimiento' => $persona->fecha_nacimiento?->toDateString(),
             'puesto' => $persona->puesto,
             'email' => $persona->email,
             'user_id' => $persona->user_id,

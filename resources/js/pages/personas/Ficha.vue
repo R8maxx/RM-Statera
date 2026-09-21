@@ -44,6 +44,14 @@ interface Persona {
     id: number;
     codigo: string;
     nombre: string;
+    nombre_pila: string;
+    apellido1: string | null;
+    apellido2: string | null;
+    nif: string | null;
+    telefono: string | null;
+    telefono_fijo: string | null;
+    direccion: string | null;
+    fecha_nacimiento: string | null;
     puesto: string | null;
     email: string | null;
     usuario: string | null;
@@ -187,6 +195,20 @@ const revocadasALaVista = ref(false);
 
 const { asentada: revocadasAsentadas, alTerminarTransicion: alTerminarRevocadas } =
     useDesplegable(revocadasALaVista);
+
+/*
+ * La tarjeta de identificación sólo se pinta si hay algo que enseñar. Una
+ * tarjeta con cinco rótulos y ningún valor ocupa sitio para decir lo mismo que
+ * su ausencia, que es el criterio del resto del producto con los estados vacíos.
+ */
+const hayDatosDeContacto = computed(
+    () =>
+        props.persona.nif !== null ||
+        props.persona.fecha_nacimiento !== null ||
+        props.persona.telefono !== null ||
+        props.persona.telefono_fijo !== null ||
+        props.persona.direccion !== null,
+);
 
 const vigentes = computed(() => props.designaciones.filter((item) => item.vigente));
 const historicas = computed(() => props.designaciones.filter((item) => !item.vigente));
@@ -617,6 +639,43 @@ function guardarLista(tipo: string, pasos: Paso[]): void {
                         <Button v-if="puedeGestionar" variant="outline" size="sm" @click="abrirAcuerdo">
                             Registrar acuerdo
                         </Button>
+                    </CardContent>
+                </Card>
+
+                <!--
+                    Los datos personales van en la columna lateral y no en la
+                    cabecera: identifican y localizan a quien figura en un
+                    nombramiento, pero no son lo que se viene a mirar a esta
+                    ficha. Si no hay ninguno, la tarjeta no se pinta — un bloque
+                    con cinco guiones no dice nada que su ausencia no diga.
+                -->
+                <Card v-if="hayDatosDeContacto">
+                    <CardHeader>
+                        <CardTitle>Identificación y contacto</CardTitle>
+                    </CardHeader>
+                    <CardContent class="text-sm">
+                        <dl class="grid gap-2">
+                            <div v-if="persona.nif" class="grid gap-1">
+                                <dt class="text-muted-foreground">NIF o documento</dt>
+                                <dd class="cifra font-medium">{{ persona.nif }}</dd>
+                            </div>
+                            <div v-if="persona.fecha_nacimiento" class="grid gap-1">
+                                <dt class="text-muted-foreground">Fecha de nacimiento</dt>
+                                <dd class="font-medium">{{ persona.fecha_nacimiento }}</dd>
+                            </div>
+                            <div v-if="persona.telefono" class="grid gap-1">
+                                <dt class="text-muted-foreground">Teléfono</dt>
+                                <dd class="font-medium">{{ persona.telefono }}</dd>
+                            </div>
+                            <div v-if="persona.telefono_fijo" class="grid gap-1">
+                                <dt class="text-muted-foreground">Teléfono fijo</dt>
+                                <dd class="font-medium">{{ persona.telefono_fijo }}</dd>
+                            </div>
+                            <div v-if="persona.direccion" class="grid gap-1">
+                                <dt class="text-muted-foreground">Dirección</dt>
+                                <dd class="font-medium whitespace-pre-line">{{ persona.direccion }}</dd>
+                            </div>
+                        </dl>
                     </CardContent>
                 </Card>
 

@@ -10,12 +10,14 @@ use App\Domain\Traza\Concerns\RegistraTraza;
 use App\Models\User;
 use Database\Factories\Persona\PersonaFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use LogicException;
 
 /**
  * Una persona de la organización: § 4.8, cláusula 5.3 y `mp.per.*`.
@@ -32,7 +34,15 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $organizacion_id
  * @property string $codigo
- * @property string $nombre
+ * @property string $nombre_pila
+ * @property ?string $apellido1
+ * @property ?string $apellido2
+ * @property-read string $nombre el completo, que calcula PostgreSQL
+ * @property ?string $nif
+ * @property ?string $telefono
+ * @property ?string $telefono_fijo
+ * @property ?string $direccion
+ * @property ?Carbon $fecha_nacimiento
  * @property ?string $puesto
  * @property ?string $email
  * @property ?int $user_id
@@ -60,10 +70,22 @@ class Persona extends Model
      */
     public const MESES_DE_VIGENCIA_FORMATIVA = 12;
 
+    /**
+     * `nombre` NO está, y no es un olvido: la calcula PostgreSQL.
+     *
+     * Ver el accesor de abajo y la migración `ampliar_datos_de_la_persona`.
+     */
     protected $fillable = [
         'organizacion_id',
         'codigo',
-        'nombre',
+        'nombre_pila',
+        'apellido1',
+        'apellido2',
+        'nif',
+        'telefono',
+        'telefono_fijo',
+        'direccion',
+        'fecha_nacimiento',
         'puesto',
         'email',
         'user_id',
@@ -71,6 +93,58 @@ class Persona extends Model
         'fecha_baja',
         'notas',
     ];
+
+    /**
+     * Tras insertar hay que releer la fila, porque `nombre` la calcula la base.
+     *
+     * El `INSERT` de Eloquent sólo recupera el `id`, así que una persona recién
+     * creada llega **sin `nombre`** y lo primero que lo lea recibe `null`: un
+     * `TypeError` en la excepción de `DesignarRol`, un mensaje que empieza por un
+     * espacio en el controlador, o un `sprintf` con un hueco. Y ninguno de los
+     * tres menciona la palabra «generada».
+     *
+     * Va aquí y no en cada llamador por lo mismo que la regla de una transición
+     * vive en la acción de dominio y no en el `FormRequest`: vale igual para el
+     * controlador, para el seeder, para una factory y para un importador. Es el
+     * mismo problema que resuelven a mano `CrearTarea`, `RegistrarAuditoria` y
+     * `GenerarDocumento::encolar()` con sus valores por defecto de la base; la
+     * diferencia es que aquí la columna **nunca** se puede escribir desde PHP, así
+     * que no hay forma de adelantarla.
+     *
+     * La alternativa era recomponer el nombre en PHP, y sería la misma regla
+     * escrita dos veces — justo lo que la columna generada existe para evitar.
+     */
+    protected static function booted(): void
+    {
+        static::created(static function (self $persona): void {
+            $persona->refresh();
+        });
+    }
+
+    /**
+     * El nombre completo lo calcula la base y aquí sólo se lee.
+     *
+     * Es **columna generada `STORED`** y no un accesor de PHP, porque
+     * `PersonaRecurso` la ordena, la busca y la usa de `ordenPorDefecto()`: eso
+     * exige una columna de SQL de verdad. Y no se escribe al lado de sus partes
+     * porque sería el mismo dato en dos sitios que pueden discrepar.
+     *
+     * El `set` que lanza no es paranoia. Sacarla de `$fillable` tapa la
+     * asignación masiva, pero `$persona->nombre = 'x'` seguiría llegando a la
+     * base, y allí PostgreSQL contesta «cannot insert a non-DEFAULT value into
+     * column "nombre"» — un error que no menciona ni el modelo ni la línea que
+     * lo escribió.
+     *
+     * @return Attribute<string, never>
+     */
+    protected function nombre(): Attribute
+    {
+        return Attribute::make(
+            set: fn (): never => throw new LogicException(
+                'personas.nombre la calcula la base desde nombre_pila, apellido1 y apellido2: escribe esas tres.',
+            ),
+        );
+    }
 
     /** @return BelongsTo<User, $this> */
     public function usuario(): BelongsTo
@@ -266,6 +340,7 @@ class Persona extends Model
         return [
             'fecha_alta' => 'date',
             'fecha_baja' => 'date',
+            'fecha_nacimiento' => 'date',
         ];
     }
 
