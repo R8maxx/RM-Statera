@@ -390,6 +390,66 @@ class ActivoController extends Controller
     }
 
     /**
+     * El grafo de dependencias de un activo, como diagrama.
+     *
+     * **Ruta propia y no un bloque más de la ficha**, por lo mismo que el
+     * organigrama: es un lienzo que se arrastra y se acerca, y eso no cabe en la
+     * columna de una ficha. Los dos bloques —«Depende de» y «Lo sostiene»— se
+     * quedan donde están y siguen siendo el camino accesible: se recorren con el
+     * teclado y caben en 375 px sin arrastrar.
+     *
+     * Lo que el diagrama añade y las dos listas no pueden: **los rombos**. Si dos
+     * servicios se apoyan en la misma base de datos, cada lista la enseña una vez
+     * y el diagrama enseña los dos vínculos, que es de donde viene la valoración
+     * efectiva de esa base de datos.
+     */
+    public function grafo(
+        Request $request,
+        Activo $activo,
+        GrafoActivos $grafo,
+        ValoracionEfectiva $efectiva,
+    ): Response {
+        $vecindad = $grafo->vecindadDe($activo);
+
+        /*
+         * La valoración efectiva de TODOS los activos en una consulta, y no una
+         * por nodo: `paraLaOrganizacion()` existe justamente para esto, y es la
+         * misma entrada que alimenta la tabla — con un test que fija que coincide
+         * con la de la ficha.
+         */
+        $valoraciones = $efectiva->paraLaOrganizacion();
+
+        return Inertia::render('activos/Grafo', [
+            'activo' => [
+                'id' => $activo->id,
+                'codigo' => $activo->codigo,
+                'nombre' => $activo->nombre,
+            ],
+            'nodos' => $vecindad['nodos']->map(function (Activo $uno) use ($vecindad, $valoraciones): array {
+                $valoracion = $valoraciones[$uno->id] ?? null;
+                $maximo = $valoracion?->nivelMaximo();
+
+                return [
+                    'id' => $uno->id,
+                    'codigo' => $uno->codigo,
+                    'nombre' => $uno->nombre,
+                    'tipo' => $uno->tipo->value,
+                    'tipoEtiqueta' => $uno->tipo->etiqueta(),
+                    'tipoIcono' => $uno->tipo->icono(),
+                    'sentido' => $vecindad['sentidos'][$uno->id] ?? 'abajo',
+                    // El nivel máximo de la valoración EFECTIVA, que es lo que
+                    // sube por el grafo y lo que el color de la caja dice.
+                    'nivel' => $maximo?->value,
+                    'nivelEtiqueta' => $maximo?->etiqueta(),
+                    'nivelTono' => $maximo?->tono() ?? 'no_aplica',
+                ];
+            })->values()->all(),
+            'aristas' => $vecindad['aristas'],
+            'puedeGestionar' => $request->user()?->can(Permiso::ActivosGestionar->value) ?? false,
+        ]);
+    }
+
+    /**
      * La forma corta con la que viaja un activo dentro del grafo de otro.
      *
      * @return array<string, mixed>

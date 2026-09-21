@@ -63,6 +63,82 @@ final class GrafoActivos
      * Lo usa la comprobación de ciclos: añadir «origen depende de destino»
      * cierra un ciclo justamente cuando destino ya llega a origen.
      */
+    /**
+     * La vecindad de un activo: lo que necesita, lo que lo sostiene y **las
+     * aristas de verdad**.
+     *
+     * Existe porque `dependenciasDe()` y `dependientesDe()` NO sirven para
+     * dibujar. Aquéllas devuelven los nodos alcanzables con su **profundidad
+     * mínima** —el `DISTINCT ON (id)` de `recorrer()`—, que es exactamente lo que
+     * una lista sangrada necesita y lo que a un diagrama le falta: si dos
+     * servicios dependen de la misma base de datos, la lista la enseña una vez y
+     * a un salto, y el diagrama tiene que dibujar **los dos vínculos**. Perder
+     * uno es perder justo lo que el grafo existe para enseñar.
+     *
+     * Así que los nodos salen del recorrido —que ya sabe de profundidad, de
+     * organización y de ciclos— y **las aristas de una segunda consulta acotada
+     * al conjunto de nodos**, que es lo que las devuelve todas: los rombos, los
+     * atajos y los vínculos entre dos ramas distintas.
+     *
+     * `sentido` dice de qué lado del activo cae cada nodo: `abajo` lo que
+     * necesita, `arriba` lo que se cae con él, `centro` él mismo. Un activo puede
+     * estar en los dos lados —un rombo que vuelve— y en ese caso gana `abajo`,
+     * porque es donde su valoración empieza a subir.
+     *
+     * @return array{
+     *     nodos: Collection<int, Activo>,
+     *     aristas: list<array{desde: int, hacia: int, nota: ?string}>,
+     *     sentidos: array<int, string>,
+     * }
+     */
+    public function vecindadDe(Activo $activo): array
+    {
+        $organizacionId = $this->contexto->idObligatorio();
+
+        $dependencias = $this->dependenciasDe($activo);
+        $dependientes = $this->dependientesDe($activo);
+
+        $sentidos = [$activo->id => 'centro'];
+
+        foreach ($dependientes as $uno) {
+            $sentidos[$uno->id] = 'arriba';
+        }
+
+        // `abajo` se escribe después para que gane en un rombo que vuelve.
+        foreach ($dependencias as $uno) {
+            $sentidos[$uno->id] = 'abajo';
+        }
+
+        $nodos = new Collection([$activo, ...$dependencias->all(), ...$dependientes->all()]);
+        $nodos = $nodos->unique('id')->values();
+
+        $ids = $nodos->pluck('id')->all();
+
+        /*
+         * Las aristas, acotadas a los nodos que se van a dibujar. Sin el `IN` de
+         * los dos extremos entrarían vínculos hacia activos que no están en el
+         * lienzo y Vue Flow los descartaría en silencio, dejando aristas que no
+         * se ven y un `console` limpio.
+         */
+        $aristas = DB::select(<<<'SQL'
+            SELECT d.activo_id AS desde, d.depende_de_id AS hacia, d.nota
+            FROM activo_dependencias d
+            WHERE d.organizacion_id = ?
+              AND d.activo_id = ANY(?)
+              AND d.depende_de_id = ANY(?)
+        SQL, [$organizacionId, '{'.implode(',', $ids).'}', '{'.implode(',', $ids).'}']);
+
+        return [
+            'nodos' => $nodos,
+            'aristas' => array_map(static fn (object $fila): array => [
+                'desde' => (int) $fila->desde,
+                'hacia' => (int) $fila->hacia,
+                'nota' => $fila->nota === null ? null : (string) $fila->nota,
+            ], $aristas),
+            'sentidos' => $sentidos,
+        ];
+    }
+
     public function alcanza(Activo|int $origen, Activo|int $destino): bool
     {
         $destinoId = $destino instanceof Activo ? $destino->id : $destino;

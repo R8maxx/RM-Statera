@@ -24,6 +24,7 @@ import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { formatoFecha } from '@/lib/celdas';
 import type { Opcion } from '@/lib/formularios';
+import { NetworkIcon } from '@lucide/vue';
 import { Link, router, useForm } from '@inertiajs/vue3';
 import { motion } from 'motion-v';
 import { computed, ref } from 'vue';
@@ -235,9 +236,23 @@ function retirar(dependenciaId: number): void {
                                 </CardDescription>
                             </div>
 
-                            <Button variant="outline" size="sm" @click="abierto = true">
-                                Declarar dependencia
-                            </Button>
+                            <div class="flex shrink-0 items-center gap-2">
+                                <!--
+                                    El diagrama enseña lo que estas dos listas no
+                                    pueden: los rombos. Se ofrece desde aquí y no
+                                    desde el sidebar porque es el grafo DE ESTE
+                                    activo, no una pantalla del módulo.
+                                -->
+                                <Link :href="`/activos/${activo.id}/grafo`">
+                                    <Button variant="outline" size="sm">
+                                        <NetworkIcon class="size-4" aria-hidden="true" />
+                                        Ver el grafo
+                                    </Button>
+                                </Link>
+                                <Button variant="outline" size="sm" @click="abierto = true">
+                                    Declarar dependencia
+                                </Button>
+                            </div>
                         </CardHeader>
 
                         <CardContent>

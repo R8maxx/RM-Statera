@@ -77,6 +77,7 @@ Por defecto un asistente genera aquí código obsoleto. Estos tres puntos son lo
 | Tablas | TanStack Table 9.2.4, versión exacta |
 | Arrastrar y soltar | `@atlaskit/pragmatic-drag-and-drop` 3.1.0, versión exacta. Sólo el tablero, y siempre con el menú detrás |
 | Organigrama | `d3-hierarchy` 3.1.2 (disposición) + `@vue-flow/core` 1.48.2 (lienzo), versión exacta. Sólo el organigrama, y siempre con la lista detrás |
+| Grafo de activos | `elkjs` 0.12.0 (disposición de DAG) sobre el mismo lienzo, versión exacta. Sólo la vecindad de un activo, y siempre con las listas de la ficha detrás |
 | PDF | Gotenberg 8.9.1 en contenedor |
 | Colas | Redis + Horizon (`documentos`, `importadores`, `notificaciones`, `default`) |
 | Evidencias | S3 con versionado y Object Lock; disco `evidencias` |
@@ -2033,6 +2034,92 @@ ocupa un puesto reúna la competencia que ese puesto pide.
 
 ---
 
+## El grafo de dependencias de un activo
+
+`/activos/{activo}/grafo`. **Ruta propia y no un bloque más de la ficha**, por lo
+mismo que el organigrama: es un lienzo que se arrastra y se acerca, y eso no cabe
+en la columna de una ficha. Los dos bloques —«Depende de» y «Lo sostiene»— se
+quedan donde están **y siguen siendo el camino accesible**: se recorren con el
+teclado y caben en 375 px sin arrastrar. El diagrama lo dice debajo y enlaza a
+ellos.
+
+### Lo que el diagrama añade y las dos listas no pueden: el rombo
+
+`dependenciasDe()` y `dependientesDe()` devuelven los nodos alcanzables con su
+**profundidad mínima** —el `DISTINCT ON (id)` de `recorrer()`—, que es
+exactamente lo que una lista sangrada necesita. Para dibujar falta lo otro: si
+dos servicios se apoyan en la misma base de datos, la lista la enseña **una vez
+y a un salto**, y el diagrama tiene que dibujar **los dos vínculos**, porque es
+de donde a esa base de datos le sube la valoración efectiva. Lo mismo con el
+atajo: un servicio que depende de la aplicación **y** directamente de la base.
+
+De ahí `GrafoActivos::vecindadDe()`, que es el método nuevo: **los nodos salen
+del recorrido** —que ya sabe de profundidad, de organización y de ciclos— y **las
+aristas de una segunda consulta acotada al conjunto de nodos**, que es lo que las
+devuelve todas. El `IN` de los dos extremos no es adorno: sin él entrarían
+vínculos hacia activos que no están en el lienzo, y Vue Flow los descarta en
+silencio — aristas que no se ven y una consola limpia.
+
+`sentido` dice de qué lado cae cada nodo: `arriba` lo que se cae con él, `abajo`
+lo que necesita, `centro` él mismo. En un rombo que vuelve **gana `abajo`**,
+porque es donde su valoración empieza a subir.
+
+### El color es la valoración EFECTIVA, que es lo que paga la pantalla
+
+Una base de datos valorada «bajo» que sostiene un servicio esencial vale «alto»,
+y aquí se ve **por dónde** le sube. El tono lo declara el dominio con
+`NivelDimension::tono()`, que **delega en `aCategoria()`** en vez de escribir un
+segundo mapa: ese método ya dice que `Bajo/Medio/Alto` son `Basica/Media/Alta`, y
+dos matches con la misma correspondencia es cómo se acaba con uno de los dos
+desactualizado. `Na` va al gris de `no_aplica` y no al primer escalón: la
+dimensión no aplica, que no es valorarla en lo más bajo.
+
+El nivel va **además escrito** en la caja, porque el color no puede ser el único
+canal y un ordinal de tres escalones distingue peor que un estado: «medio» y
+«alto» son el mismo teal a distinta fuerza.
+
+La valoración de todos los nodos sale de **una** consulta —
+`ValoracionEfectiva::paraLaOrganizacion()`—, que es la misma entrada que alimenta
+la tabla y que tiene un test fijando que coincide con la de la ficha.
+
+### Tres cosas que costaron
+
+1. **El worker de ELK no se puede usar aquí.** Ver el desvío del stack: assets en
+   otro origen, y un `Worker` cross-origin lo prohíbe el navegador.
+2. **El encuadre se pide por REFERENCIA al componente**, no con el `fitView` de
+   `useVueFlow()`. El composable llamado en el `setup` crea su propio store, y
+   este `<VueFlow>` monta más tarde —detrás del `v-if` del estado de carga,
+   porque los nodos llegan de una promesa—, así que acaba en otra instancia. El
+   `fitView` se llamaba sobre un store vacío y **no fallaba**: el lienzo se
+   quedaba a zoom 1 sin desplazar, con el grafo medio fuera. Se vio a 485 px.
+3. **`lib/grafoActivos.ts` NO importa los tipos de Vue Flow** y describe su
+   propia forma. `motion-v` y Vue Flow amplían los dos los `HTMLAttributes` de
+   Vue con un `DragControls` distinto, así que el `Node` que se resuelve en un
+   `.ts` no es idéntico al que se resuelve en un `.vue` y `vue-tsc` rechaza la
+   asignación con un error de doscientas líneas sobre `domAttributes`. De paso es
+   lo correcto: ese fichero coloca, no dibuja.
+
+### Lo que se probó y se quitó
+
+**La nota del vínculo pintada sobre la arista.** Dos aristas que convergen en el
+mismo nodo —el rombo, que es el caso que la pantalla existe para enseñar— dejan
+sus etiquetas a la misma altura y se leen **como una sola frase**: «El servidor
+aloja la base de datos. La información del gestor vive aquí.» parecía una nota y
+eran dos. Inventar una frase que nadie escribió es peor que no enseñarla, y la
+nota ya vive en las listas de la ficha, donde tiene sitio.
+
+### Lo que esta pantalla declara que no hace
+
+- **No es el mapa del inventario**: dibuja la vecindad de **un** activo. Un mapa
+  completo necesitaría filtros por sistema o por tipo para decir algo, y con ELK
+  en el hilo principal querría volver al worker.
+- **No se edita arrastrando.** Los vínculos se declaran y se retiran desde la
+  ficha, que es donde `RegistrarDependencia` rechaza los ciclos.
+- **No se recorre con el teclado**, por ser un lienzo. Las dos listas de la ficha
+  sí, y lo dice la propia pantalla.
+
+---
+
 ## Los adjuntos
 
 La documentación que cuelga de un registro. Hasta aquí lo único posible era
@@ -2728,6 +2815,29 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
 
   **Dónde NO entran**: las gráficas del panel y de los documentos siguen a mano,
   por lo que dice el punto siguiente.
+
+- **`elkjs` entra por el grafo de activos, y `d3-hierarchy` no servía.** No es
+  preferencia: un organigrama es un **árbol** —cada puesto reporta a uno— y el
+  grafo de activos es un **DAG**, porque `activo_dependencias` es N:M. Dos
+  servicios pueden apoyarse en la misma base de datos, y ese rombo es justamente
+  lo que hay que ver: es de donde a esa base de datos le sube la valoración
+  efectiva. Un tidy-tree no sabe dibujarlo — tendría que romper uno de los dos
+  vínculos, que es perder el dato por el que existe la pantalla.
+
+  **Corre en el hilo principal y no en un web worker**, que es su diseño, y aquí
+  no se puede tener: en desarrollo la aplicación se sirve por el 8000 (nginx) y
+  los assets por el 5173 (Vite), y **un `Worker` de otro origen lo prohíbe el
+  navegador** —«cannot be accessed from origin»—. Es una regla de seguridad, no
+  algo que CORS arregle. Con `elk.bundled.js` no hay worker que construir; lo
+  que se paga es que la colocación bloquea el hilo, y no se nota porque esta
+  pantalla dibuja la **vecindad** de un activo y no el inventario entero.
+
+  **Lo que cuesta, dicho con el número**: el chunk de esa pantalla pesa
+  **445 kB gzip**, y es el más gordo del producto con diferencia. Va en su propio
+  chunk y el bundle principal no se mueve, pero si algún día molesta, el cambio
+  es a `@dagrejs/dagre` —unos 30 kB, también coloca DAGs— a cambio de perder el
+  enrutado de aristas que es lo que hace legible un rombo. La decisión fue
+  consciente.
 
 - **Las gráficas se pintan a mano, y en el PDF las pintará el servidor.** El stack no decía nada de gráficas, ni a favor ni en contra, así que queda escrito aquí. Dos renderizadores por un motivo concreto: en un documento que va a PDF/A-3b y aspira a PDF/UA no debería ejecutarse JavaScript, porque un canvas entra como mapa de bits y se lleva por delante el texto seleccionable. En pantalla, SVG y CSS sobre los tokens de `app.css` (`AnilloProgreso`, `BarraSegmentada`, `components/grafica/`); en el documento, SVG generado en PHP cuando llegue el módulo de documentos. **Chart.js se descartó** por lo anterior y porque obliga a escribir los colores en JavaScript en vez de leerlos de los tokens. Una librería —`d3-scale` y `d3-shape`, que son funciones puras sin DOM— entra el día que haya una serie histórica **con eje de tiempo irregular**: escalas y ticks legibles es lo único que no compensa escribir a mano. **Con el § 4.14 dentro ya hay serie histórica y la librería sigue fuera**, y el matiz es el que importa: el eje de un indicador son cubos etiquetados y equiespaciados que impone `Periodicidad` —«T1 2026», «T2 2026»—, así que los ticks vienen escritos de casa y no hay escala que elegir. Lo pinta `grafica/GraficaSerie.vue` a mano.
 

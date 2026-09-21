@@ -284,6 +284,14 @@ Route::middleware('auth')->group(function (): void {
             ->name('activos.etiquetas');
 
         Route::get('/activos/{activo}', [ActivoController::class, 'show'])->name('activos.show');
+
+        /*
+         * El grafo de dependencias como diagrama. Ruta propia y no un bloque de
+         * la ficha: es un lienzo que se arrastra, y los dos bloques de la ficha
+         * siguen siendo el camino accesible.
+         */
+        Route::get('/activos/{activo}/grafo', [ActivoController::class, 'grafo'])
+            ->name('activos.grafo');
     });
 
     Route::middleware(['can:activos.gestionar', ExigirDosFactores::class])->group(function (): void {

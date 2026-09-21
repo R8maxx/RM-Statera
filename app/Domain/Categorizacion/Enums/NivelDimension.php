@@ -62,6 +62,30 @@ enum NivelDimension: string
         };
     }
 
+    /**
+     * El tono, en la familia **ordinal**.
+     *
+     * Y no es un préstamo de la escala del ENS: es **la misma escala**, y lo dice
+     * este propio enum en `aCategoria()` —`Bajo→Basica`, `Medio→Media`,
+     * `Alto→Alta`—. Por eso el mapa se delega ahí en vez de escribirse otra vez:
+     * dos matches con la misma correspondencia es cómo se acaba con una de las
+     * dos desactualizada.
+     *
+     * Es la advertencia del propio `lib/tonos.ts` leída al revés: lo que rompió
+     * la prioridad de una tarea fue cruzar una escala de CUATRO escalones con una
+     * de tres. Aquí los escalones son los mismos tres, más `Na`.
+     *
+     * **`Na` no es «lo más bajo»**: la dimensión no aplica al sistema, que es
+     * otra cosa que valorarla en bajo. De ahí el gris de `no_aplica` y no el
+     * primer escalón del ordinal.
+     */
+    public function tono(): string
+    {
+        $categoria = $this->aCategoria();
+
+        return $categoria === null ? 'no_aplica' : $categoria->value;
+    }
+
     public function alcanza(self $minimo): bool
     {
         return $this->peso() >= $minimo->peso();
