@@ -1995,19 +1995,31 @@ Tres cosas del diagrama que no se ven leyéndolo:
 ficha del puesto, que es donde `AsignarSuperior` comprueba los ciclos; dejar mover
 nodos aquí prometería que el organigrama se edita arrastrando.
 
-> **El fallo de animación que costó un rato, y que vale para toda la aplicación.**
-> `motion.main` del layout anima con **etiquetas de variante** —«oculto»/«visible»—
-> y esas etiquetas **se heredan hasta los hijos**. Un `motion.li` que declare
-> `initial`/`animate` como **objetos** entra en conflicto con la etiqueta heredada
-> y se queda congelado en su estado inicial: las filas salen en el DOM con
-> `opacity: 0` y la pantalla parece tener un solo elemento. El patrón que funciona
-> es el de `TiraIndicadores`: el escalonado lo declara el padre con `:variants` y
-> los hijos sólo **nombran** su variante.
+> **El falso positivo que costó un rato, y que vale para cualquier animación de
+> este producto.** Al montar el organigrama pareció que las filas salían
+> congeladas a `opacity: 0`, y de ahí se dedujo un fallo de herencia de variantes
+> de `motion-v` que **no existe**: se llegó a anotar que
+> `components/activo/GrafoDependencias.vue` lo tenía, y es falso — ese bloque se
+> pinta perfectamente.
 >
-> **`components/activo/GrafoDependencias.vue` tiene ese fallo y sigue teniéndolo**:
-> el bloque «Depende de» de la ficha de un activo se pinta con sus filas
-> invisibles. Se intentó arreglar con el mismo patrón y no bastó, así que queda
-> **anotado y sin tocar** en vez de medio arreglado.
+> Lo que pasaba era la **forma de medir**. Las animaciones van por
+> `requestAnimationFrame`, que **no avanza mientras la ventana no pinta** —una
+> ventana tapada, minimizada o recién abierta por automatización—. Un
+> `getComputedStyle` en ese momento devuelve el estado `initial` de todo:
+> `opacity: 0` en las filas, en el `<main>` del layout y en el filete de la
+> cabecera. Parece un fallo y es una foto tomada antes de que empiece la película.
+>
+> **Cómo comprobarlo de verdad**: muestrear en el tiempo —llega a `opacity: 1` en
+> menos de 250 ms— o mirar una captura, no un `getComputedStyle` suelto. Si el
+> `<main>` también sale a cero, no hay un fallo en el componente: no está
+> pintando nadie.
+>
+> Del episodio sí queda una preferencia, no una corrección: el escalonado de una
+> lista se declara **en el padre con `:variants`** y los hijos sólo nombran su
+> variante, que es lo que hacen `TiraIndicadores` y otros seis sitios. Con
+> objetos en `initial`/`animate` también funciona —`GrafoDependencias` lo hace—,
+> pero tener un solo patrón para lo mismo vale más que el matiz de escalonar por
+> nivel en vez de por fila.
 
 **Sin verbo de permiso nuevo**: se reutilizan `personas.ver` y
 `personas.gestionar`. Es el mismo módulo, y un `puestos.*` habría que acordarse de

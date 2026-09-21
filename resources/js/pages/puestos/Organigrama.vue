@@ -48,13 +48,19 @@ const props = defineProps<{
 
 /*
  * El escalonado lo declara el PADRE y los hijos sólo nombran su variante, que es
- * el patrón de `TiraIndicadores` y el único que funciona aquí: `motion.main` del
- * layout ya anima con etiquetas de variante —«oculto»/«visible»—, y esas
- * etiquetas **se heredan hasta los hijos**. Un `motion.li` que declare
- * `initial`/`animate` como objetos entra en conflicto con la etiqueta heredada y
- * se queda congelado en su estado inicial: los nodos salen en el DOM con
- * `opacity: 0` y la pantalla parece tener un solo puesto. Costó un rato y no se
- * ve leyendo el componente.
+ * el patrón de `TiraIndicadores` y de otros seis sitios.
+ *
+ * **Con objetos en `initial`/`animate` también funciona** —así lo hace
+ * `GrafoDependencias`—, y se llegó a creer lo contrario: pareció que las filas
+ * salían congeladas a `opacity: 0`, y era la medición. Las animaciones van por
+ * `requestAnimationFrame`, que no avanza mientras la ventana no pinta, así que un
+ * `getComputedStyle` en ese momento devuelve el estado inicial de todo — del
+ * `<main>` del layout incluido. Está contado en CLAUDE.md para que no vuelva a
+ * deducirse un fallo de ahí.
+ *
+ * Se queda este patrón por tener uno solo para lo mismo, no porque el otro falle.
+ * Lo que se pierde es escalonar por nivel —dos hermanos entraban juntos— y lo que
+ * se gana es que la lista se lea igual que las demás del producto.
  */
 const { variantesEntrada, variantesEscalonado } = useMovimientoReducido();
 
