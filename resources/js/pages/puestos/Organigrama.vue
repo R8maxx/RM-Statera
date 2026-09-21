@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
+import ConmutadorOrganigrama from '@/components/puesto/ConmutadorOrganigrama.vue';
 import EstadoVacio from '@/components/EstadoVacio.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -33,6 +34,7 @@ interface Nodo {
     codigo: string;
     titulo: string;
     profundidad: number;
+    reportaA: number | null;
     caracterizado: boolean;
     ocupantes: Ocupante[];
 }
@@ -66,6 +68,7 @@ const escalonado = variantesEscalonado(0.04);
             descripcion="Quién depende de quién, por puesto y con quien lo ocupa al lado. La jerarquía vive en el puesto, así que no se mueve porque alguien entre o se vaya."
         >
             <template #acciones>
+                <ConmutadorOrganigrama />
                 <Link href="/puestos">
                     <Button variant="outline">Ver la tabla</Button>
                 </Link>

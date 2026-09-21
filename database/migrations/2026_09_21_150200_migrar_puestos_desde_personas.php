@@ -57,9 +57,10 @@ use Illuminate\Support\Facades\Schema;
  *
  * El `down()` devuelve la columna y la rellena desde la asignación **vigente**,
  * que es todo lo que una columna de texto sabe representar. Se pierde el
- * histórico entero, las fechas, quién no tenía asignación vigente, los puestos
- * sin ocupar, la ficha de puesto y el organigrama. Sirve para desandar un
- * despliegue del mismo día, no para volver de verdad.
+ * histórico entero, las fechas, los puestos sin ocupar, la ficha de puesto y el
+ * organigrama — y **el puesto de quien está de baja**, que el `up()` deja
+ * cerrado a propósito. Sirve para desandar un despliegue del mismo día, no para
+ * volver de verdad.
  */
 return new class extends Migration
 {
@@ -90,11 +91,20 @@ return new class extends Migration
                 ) distintos
             SQL);
 
-            // La asignación vigente de cada quien tenía puesto, desde su alta.
+            /*
+             * La asignación de quien tenía puesto, desde su alta.
+             *
+             * **Y cerrada el día de la baja para quien ya no está.** La columna
+             * de texto no distinguía las dos cosas —guardaba el último puesto de
+             * todo el mundo, estuviera o no—, pero una asignación vigente sobre
+             * alguien que se fue es falsa: aparecería ocupando su puesto en el
+             * organigrama y el puesto no figuraría como vacante, que es
+             * justamente lo que hay que ver para cubrirlo.
+             */
             DB::statement(<<<SQL
                 INSERT INTO asignaciones_puesto
-                    (organizacion_id, persona_id, puesto_id, desde, created_at, updated_at)
-                SELECT p.organizacion_id, p.id, pu.id, p.fecha_alta, now(), now()
+                    (organizacion_id, persona_id, puesto_id, desde, hasta, created_at, updated_at)
+                SELECT p.organizacion_id, p.id, pu.id, p.fecha_alta, p.fecha_baja, now(), now()
                 FROM personas p
                 INNER JOIN puestos pu
                     ON pu.organizacion_id = p.organizacion_id
@@ -132,17 +142,45 @@ return new class extends Migration
         });
 
         app(ContextoOrganizacion::class)->comoMantenimiento(static function (): void {
+            /*
+             * Desde la asignación MÁS RECIENTE y no desde la vigente, que es lo
+             * que hace fiel la vuelta: la columna de texto guardaba el último
+             * puesto de cada persona **hubiera o no baja**, así que restaurar
+             * sólo las vigentes dejaba sin puesto a quien ya no está — y con él
+             * desaparecía el puesto entero si era su único ocupante. Pasó al
+             * escribir esto.
+             */
             DB::statement(<<<'SQL'
                 UPDATE personas p
-                   SET puesto = pu.titulo
-                  FROM asignaciones_puesto ap
-                 INNER JOIN puestos pu ON pu.id = ap.puesto_id
-                 WHERE ap.persona_id = p.id
-                   AND ap.hasta IS NULL
+                   SET puesto = ultima.titulo
+                  FROM (
+                        SELECT DISTINCT ON (ap.persona_id)
+                               ap.persona_id, pu.titulo
+                          FROM asignaciones_puesto ap
+                    INNER JOIN puestos pu ON pu.id = ap.puesto_id
+                      ORDER BY ap.persona_id, ap.desde DESC, ap.id DESC
+                       ) ultima
+                 WHERE ultima.persona_id = p.id
             SQL);
         });
 
-        // Las tablas NO se tiran aquí: eso es de `create_puestos_tables`, y
-        // hacerlo dejaría a la migración de RLS sin tablas que desproteger.
+        /*
+         * Y se vacía lo que el `up()` llenó.
+         *
+         * Las TABLAS no se tiran aquí —eso es de `create_puestos_tables`, y
+         * hacerlo dejaría a la migración de RLS sin tablas que desproteger—,
+         * pero las FILAS sí: sin esto, un `rollback` seguido de un `migrate`
+         * vuelve a insertar los mismos códigos y choca con el índice único, que
+         * es exactamente lo que pasó al escribir esto.
+         *
+         * Se vacían **enteras** y no sólo las que insertó el `up()`, porque no
+         * hay forma de distinguirlas de las que alguien haya creado después. Es
+         * destructivo y va con el resto de la advertencia de arriba: esto
+         * desanda un despliegue del mismo día, no vuelve de verdad.
+         */
+        app(ContextoOrganizacion::class)->comoMantenimiento(static function (): void {
+            DB::statement('DELETE FROM asignaciones_puesto');
+            DB::statement('DELETE FROM puestos');
+        });
     }
 };

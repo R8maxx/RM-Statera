@@ -1080,6 +1080,22 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/puestos/organigrama', [PuestoController::class, 'organigrama'])
             ->name('puestos.organigrama');
 
+        /*
+         * Las dos vistas de diagrama, hermanas de la lista. Tres rutas y no un
+         * conmutador de cliente, por lo mismo que `/tareas`: el estado es la
+         * URL, así que el enlace que alguien pega en un correo abre la vista que
+         * estaba mirando.
+         *
+         * La lista sigue siendo la de `/puestos/organigrama` a propósito: es la
+         * única de las tres que se recorre con el teclado y que cabe en 375 px
+         * sin arrastrar.
+         */
+        Route::get('/puestos/organigrama/grafo', [PuestoController::class, 'grafo'])
+            ->name('puestos.organigrama.grafo');
+
+        Route::get('/puestos/organigrama/grafo-personas', [PuestoController::class, 'grafoConPersonas'])
+            ->name('puestos.organigrama.personas');
+
         Route::get('/puestos/crear', [PuestoController::class, 'create'])
             ->middleware(['can:personas.gestionar', ExigirDosFactores::class])
             ->name('puestos.create');

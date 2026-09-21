@@ -76,6 +76,7 @@ Por defecto un asistente genera aquí código obsoleto. Estos tres puntos son lo
 | Estilos / componentes | Tailwind CSS 4 + shadcn-vue (sobre Reka UI) |
 | Tablas | TanStack Table 9.2.4, versión exacta |
 | Arrastrar y soltar | `@atlaskit/pragmatic-drag-and-drop` 3.1.0, versión exacta. Sólo el tablero, y siempre con el menú detrás |
+| Organigrama | `d3-hierarchy` 3.1.2 (disposición) + `@vue-flow/core` 1.48.2 (lienzo), versión exacta. Sólo el organigrama, y siempre con la lista detrás |
 | PDF | Gotenberg 8.9.1 en contenedor |
 | Colas | Redis + Horizon (`documentos`, `importadores`, `notificaciones`, `default`) |
 | Evidencias | S3 con versionado y Object Lock; disco `evidencias` |
@@ -1935,11 +1936,64 @@ transacción se cierre. Los códigos salen de
 único por organización se cumple por construcción y dos organizaciones con el
 mismo texto acaban en dos filas distintas.
 
-**`/puestos/organigrama` es ruta propia y no conmutador de cliente**, que es la
-decisión ya tomada para `/tareas/tablero` y `/activos/etiquetas`. Se pinta como
-**lista sangrada y no como diagrama de cajas**, lo mismo que decidió
-`GrafoDependencias`: a 375 px un diagrama de nodos se lee peor que la misma cadena
-en una lista.
+**Y la asignación se cierra el día de la baja para quien ya no está.** La columna
+de texto no distinguía las dos cosas —guardaba el último puesto de todo el mundo,
+estuviera o no—, pero una asignación vigente sobre alguien que se fue es falsa:
+lo pinta ocupando su puesto en el organigrama y deja el puesto fuera de
+«vacantes», que es justo lo que hay que ver para cubrirlo. **Se vio en el
+diagrama**, no en un test.
+
+Dos cosas más del `down()`, las dos aprendidas rompiéndolo: **vacía las filas que
+el `up()` insertó** —si no, un `rollback` seguido de un `migrate` choca con el
+índice único—, y **restaura desde la asignación más reciente y no desde la
+vigente**, porque la columna original guardaba el último puesto hubiera o no baja
+y restaurar sólo las vigentes se llevaba por delante el puesto de quien ya no
+está.
+
+**El organigrama son tres rutas hermanas**, no un conmutador de cliente: la
+decisión ya tomada para `/tareas`, porque el enlace que alguien pega en un correo
+tiene que abrir la vista que estaba mirando.
+
+| Ruta | Qué enseña |
+|---|---|
+| `/puestos/organigrama` | Lista sangrada. **La vista por defecto** |
+| `/puestos/organigrama/grafo` | Diagrama de cajas, sólo los puestos |
+| `/puestos/organigrama/grafo-personas` | El mismo diagrama con los ocupantes dentro |
+
+**La lista sigue siendo la de por defecto aunque haya diagrama**, y no por
+antigüedad: es la única de las tres que se recorre entera con el teclado y que
+cabe en 375 px sin arrastrar. Un lienzo de nodos no hace ninguna de las dos
+cosas, así que es la alternativa y no el sustituto — DESIGN.md § 11. Las dos
+vistas de diagrama lo dicen debajo y enlazan a la lista.
+
+**El scroll vive en la caja y no en la página**, que es lo que permite tener un
+diagrama sin romper la regla de no desplazar la página en horizontal: en móvil se
+navega arrastrando dentro del lienzo, y el minimapa se oculta por debajo de `sm`
+porque a esa anchura estorba más que orienta.
+
+**El mismo payload para las tres vistas**, ocupantes incluidos: son cinco campos
+por nodo, y ahorrarlos en la que no los pinta obligaría a tres consultas y a que
+el conmutador cambiara de datos además de de forma. Quien decide qué se enseña es
+el componente.
+
+Tres cosas del diagrama que no se ven leyéndolo:
+
+1. **La raíz sintética.** `d3-hierarchy` sólo sabe colocar un árbol, y una
+   organización puede tener varias raíces —las tiene mientras el organigrama se
+   monta—. Se cuelgan todas de una falsa, se coloca el conjunto y la falsa se
+   descarta. De paso recoge los puestos cuyo superior ya no existe, que es lo que
+   deja un borrado: verlos arriba es lo que permite arreglarlos.
+2. **El tamaño de la caja vive en `lib/organigrama.ts` y no en el componente**,
+   porque **la disposición depende de él**: d3 separa los hermanos por el ancho
+   que se le diga, y un componente que pintara cajas más anchas que las
+   declaradas las solaparía.
+3. **El encuadre se pide en `onNodesInitialized` y no con `fit-view-on-init`.**
+   Aquél corre antes de que el lienzo tenga su tamaño definitivo, y en una ventana
+   estrecha deja el árbol medio fuera. Se vio a 500 px.
+
+**Nada se arrastra ni se conecta en el lienzo.** La jerarquía se cambia en la
+ficha del puesto, que es donde `AsignarSuperior` comprueba los ciclos; dejar mover
+nodos aquí prometería que el organigrama se edita arrastrando.
 
 > **El fallo de animación que costó un rato, y que vale para toda la aplicación.**
 > `motion.main` del layout anima con **etiquetas de variante** —«oculto»/«visible»—
@@ -2636,6 +2690,32 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
 - **El formulario de acceso se ancla arriba, no se centra en vertical.** Con centrado, aparecer el aviso de credenciales incorrectas empuja todos los campos hacia abajo y hay que volver a buscar el cursor. El panel de marca de la derecha es de color sólido en los dos temas a propósito: es una superficie de marca, como lo sería una fotografía, no una sección que se haya quedado sin invertir.
 
 - **En el acceso, logotipo, título, campos, ayuda y pie forman una sola pila y comparten borde izquierdo.** El logotipo estaba pegado al borde del navegador y el formulario centrado en una columna de casi mil píxeles: sin ningún eje en común se leían como dos cosas sueltas flotando en el mismo hueco. Por eso el `<footer>` repite el `mx-auto w-full max-w-[26rem]` de la pila en vez de centrarse en la columna. Y por eso **el símbolo no se repite**: el panel llevaba un `Logotipo` de 36 px justo encima de la balanza que gira, la misma figura dos veces en la misma superficie. El respaldo «un producto de RM Technology» vive en la columna del formulario, que es la única que se ve por debajo de `lg`.
+
+- **`d3-hierarchy` y `@vue-flow/core` entran por el organigrama, y sólo por él.**
+  La puerta que este documento tenía abierta a d3 era para escalas de tiempo, así
+  que ésta es otra: lo que se compra es **la disposición de un árbol**, el
+  tidy-tree de Reingold–Tilford, que es el otro caso de «no compensa escribirlo a
+  mano» — hacerlo son unas ciento cincuenta líneas y ramas que se solapan en
+  cuanto el árbol se ensancha. `d3-hierarchy` sigue cumpliendo el criterio de
+  siempre: **función pura, sin DOM**.
+
+  Vue Flow es la excepción de verdad, y va con su motivo: aporta el lienzo con su
+  pan y su zoom, que es lo que hace usable un diagrama que no cabe en la pantalla,
+  y **no calcula la disposición** — por eso `d3-hierarchy` hace falta igual y no
+  es uno u otro. Lo que **no** aporta es el aspecto: los nodos son componentes
+  nuestros con los tokens de `app.css`, así que la regla que descartó Chart.js
+  —«obliga a escribir los colores en JavaScript en vez de leerlos de los tokens»—
+  se sigue cumpliendo. El tema propio de la librería se reescribe contra los
+  tokens en `Grafo.vue`.
+
+  Las tres van a **versión exacta**, como TanStack Table y pragmatic-drag-and-drop:
+  que una librería de interacción cambie de comportamiento bajo los pies no lo
+  caza ningún test. Y pesan **72 kB gzip en su propio chunk**, que sólo carga esa
+  pantalla: el bundle principal no se mueve. Mismo criterio que `@number-flow/vue`
+  y que el editor de TipTap.
+
+  **Dónde NO entran**: las gráficas del panel y de los documentos siguen a mano,
+  por lo que dice el punto siguiente.
 
 - **Las gráficas se pintan a mano, y en el PDF las pintará el servidor.** El stack no decía nada de gráficas, ni a favor ni en contra, así que queda escrito aquí. Dos renderizadores por un motivo concreto: en un documento que va a PDF/A-3b y aspira a PDF/UA no debería ejecutarse JavaScript, porque un canvas entra como mapa de bits y se lleva por delante el texto seleccionable. En pantalla, SVG y CSS sobre los tokens de `app.css` (`AnilloProgreso`, `BarraSegmentada`, `components/grafica/`); en el documento, SVG generado en PHP cuando llegue el módulo de documentos. **Chart.js se descartó** por lo anterior y porque obliga a escribir los colores en JavaScript en vez de leerlos de los tokens. Una librería —`d3-scale` y `d3-shape`, que son funciones puras sin DOM— entra el día que haya una serie histórica **con eje de tiempo irregular**: escalas y ticks legibles es lo único que no compensa escribir a mano. **Con el § 4.14 dentro ya hay serie histórica y la librería sigue fuera**, y el matiz es el que importa: el eje de un indicador son cubos etiquetados y equiespaciados que impone `Periodicidad` —«T1 2026», «T2 2026»—, así que los ticks vienen escritos de casa y no hay escala que elegir. Lo pinta `grafica/GraficaSerie.vue` a mano.
 

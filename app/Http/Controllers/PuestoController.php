@@ -46,14 +46,53 @@ class PuestoController extends Controller
     }
 
     /**
-     * El organigrama: **pantalla propia y no un bloque de la tabla**.
+     * El organigrama, en lista sangrada.
      *
-     * Es una ruta y no un conmutador de cliente, que es la decisión ya tomada
-     * para `/tareas/tablero` y `/activos/etiquetas`: «un conmutador que recuerda
-     * la última vista hace que el enlace que alguien pega en un correo abra otra
-     * pantalla».
+     * Es **pantalla propia y no un bloque de la tabla**, y una ruta y no un
+     * conmutador de cliente: la decisión ya tomada para `/tareas/tablero` y
+     * `/activos/etiquetas`, porque «un conmutador que recuerda la última vista
+     * hace que el enlace que alguien pega en un correo abra otra pantalla».
+     *
+     * **Sigue siendo la vista por defecto aunque ahora haya diagrama**, y el
+     * motivo no es la costumbre: es la única de las tres que se recorre entera
+     * con el teclado y que cabe en 375 px sin arrastrar. Un lienzo de nodos no
+     * hace ninguna de las dos cosas, así que es la alternativa y no el sustituto
+     * — DESIGN.md § 11.
      */
     public function organigrama(Request $request, Organigrama $organigrama): Response
+    {
+        return Inertia::render('puestos/Organigrama', $this->vista($request, $organigrama));
+    }
+
+    /** El mismo árbol, como diagrama de cajas y sin quién lo ocupa. */
+    public function grafo(Request $request, Organigrama $organigrama): Response
+    {
+        return Inertia::render('puestos/Grafo', [
+            ...$this->vista($request, $organigrama),
+            'conPersonas' => false,
+        ]);
+    }
+
+    /** El diagrama con los ocupantes dentro de cada caja. */
+    public function grafoConPersonas(Request $request, Organigrama $organigrama): Response
+    {
+        return Inertia::render('puestos/Grafo', [
+            ...$this->vista($request, $organigrama),
+            'conPersonas' => true,
+        ]);
+    }
+
+    /**
+     * Lo que las tres vistas comparten.
+     *
+     * **El mismo payload para las tres**, incluidos los ocupantes: son cinco
+     * campos por nodo y ahorrarlos en la vista que no los pinta obligaría a tres
+     * consultas distintas y a que el conmutador cambiara de datos además de de
+     * forma. Quien decide qué se enseña es el componente.
+     *
+     * @return array<string, mixed>
+     */
+    private function vista(Request $request, Organigrama $organigrama): array
     {
         /*
          * `Puesto::hydrate()` devuelve una `Support\Collection`, que no tiene
@@ -65,12 +104,13 @@ class PuestoController extends Controller
             $consulta->whereNull('hasta')->with('persona');
         }]);
 
-        return Inertia::render('puestos/Organigrama', [
+        return [
             'nodos' => $arbol->map(fn (Puesto $puesto): array => [
                 'id' => $puesto->id,
                 'codigo' => $puesto->codigo,
                 'titulo' => $puesto->titulo,
                 'profundidad' => (int) $puesto->getAttribute('profundidad'),
+                'reportaA' => $puesto->reporta_a_id,
                 'caracterizado' => $puesto->estaCaracterizado(),
                 'ocupantes' => $puesto->asignaciones
                     ->map(fn (AsignacionPuesto $asignacion): array => [
@@ -83,7 +123,7 @@ class PuestoController extends Controller
             'sueltos' => Puesto::query()->whereNull('reporta_a_id')->count(),
             'total' => Puesto::query()->count(),
             'puedeGestionar' => $this->puede($request, Permiso::PersonasGestionar),
-        ]);
+        ];
     }
 
     public function create(CodigoPuesto $codigo): Response

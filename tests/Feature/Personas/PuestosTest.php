@@ -240,6 +240,63 @@ it('pinta el organigrama con quien ocupa cada puesto', function (): void {
             ->has('nodos.1.ocupantes', 1));
 });
 
+/**
+ * Las tres vistas mandan el **mismo payload**: la diferencia es qué pinta cada
+ * componente. Si una dejara de traer los ocupantes, el conmutador cambiaría de
+ * datos además de de forma y «Con personas» saldría vacía.
+ */
+it('las dos vistas de diagrama mandan el mismo árbol que la lista', function (): void {
+    $direccion = Puesto::factory()->create(['titulo' => 'Dirección']);
+    $area = Puesto::factory()->bajo($direccion)->create();
+    ($this->asignar)(Persona::factory()->create(), $area);
+
+    foreach (['/puestos/organigrama/grafo', '/puestos/organigrama/grafo-personas'] as $ruta) {
+        $this->actingAs($this->usuario)
+            ->get($ruta)
+            ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+                ->component('puestos/Grafo')
+                ->has('nodos', 2)
+                ->has('nodos.1.ocupantes', 1)
+                // `reportaA` es lo que el cliente necesita para dibujar las
+                // aristas: la lista se apaña con `profundidad`, el grafo no.
+                ->where('nodos.1.reportaA', $direccion->id));
+    }
+});
+
+it('cada vista de diagrama dice si lleva las personas dentro', function (): void {
+    Puesto::factory()->create();
+
+    $this->actingAs($this->usuario)
+        ->get('/puestos/organigrama/grafo')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina->where('conPersonas', false));
+
+    $this->actingAs($this->usuario)
+        ->get('/puestos/organigrama/grafo-personas')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina->where('conPersonas', true));
+});
+
+/**
+ * Quien se fue no ocupa nada.
+ *
+ * Es lo que la migración de datos tuvo que corregir: la columna de texto
+ * guardaba el último puesto de todo el mundo, así que una asignación vigente
+ * sobre alguien de baja lo pintaba ocupando su puesto y lo dejaba fuera de
+ * «vacantes» — que es justo lo que hay que ver para cubrirlo.
+ */
+it('no cuenta como ocupante a quien ya no está en plantilla', function (): void {
+    $puesto = Puesto::factory()->create();
+    $persona = Persona::factory()->create();
+
+    $asignacion = ($this->asignar)($persona, $puesto);
+    $this->asignar->cerrar($asignacion);
+
+    $this->actingAs($this->usuario)
+        ->get('/puestos/organigrama/grafo-personas')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina->has('nodos.0.ocupantes', 0));
+
+    expect(Puesto::query()->vacantes()->count())->toBe(1);
+});
+
 it('propone el código del siguiente puesto, sin año', function (): void {
     Puesto::factory()->create(['codigo' => 'PUE-007']);
     Puesto::factory()->create(['codigo' => 'PUE-008']);
