@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Persona\Models;
 
+use App\Domain\Adjunto\Concerns\ConAdjuntos;
+use App\Domain\Adjunto\Concerns\TieneAdjuntos;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
 use App\Domain\Persona\Enums\TipoPasoPersona;
 use App\Domain\Traza\Concerns\RegistraTraza;
@@ -49,13 +51,14 @@ use LogicException;
  * @property ?Carbon $fecha_baja
  * @property ?string $notas
  */
-class Persona extends Model
+class Persona extends Model implements ConAdjuntos
 {
     /** @use HasFactory<PersonaFactory> */
     use HasFactory;
 
     use PerteneceAOrganizacion;
     use RegistraTraza;
+    use TieneAdjuntos;
 
     /**
      * Cuántos meses vale una formación antes de considerarse caducada.
@@ -142,6 +145,12 @@ class Persona extends Model
                 'personas.nombre la calcula la base desde nombre_pila, apellido1 y apellido2: escribe esas tres.',
             ),
         );
+    }
+
+    /** Los títulos, contratos y demás papeles de esta persona. */
+    public function tablaDeAdjuntos(): string
+    {
+        return 'persona_adjunto';
     }
 
     /** @return BelongsTo<User, $this> */

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Domain\Adjunto\BorrarAdjunto;
+use App\Domain\Adjunto\Models\Adjunto;
+use App\Domain\Adjunto\SubirAdjunto;
 use App\Domain\Autorizacion\Enums\Permiso;
 use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Organizacion\ContextoOrganizacion;
@@ -24,11 +27,13 @@ use App\Domain\Persona\Models\Persona;
 use App\Domain\Persona\Models\Puesto;
 use App\Domain\Persona\RegistroPersonas;
 use App\Domain\Sistema\Models\Sistema;
+use App\Http\Controllers\Concerns\GestionaAdjuntos;
 use App\Http\Requests\AsignarPuestoRequest;
 use App\Http\Requests\DesignarRolRequest;
 use App\Http\Requests\GuardarAcuerdoRequest;
 use App\Http\Requests\GuardarPasosRequest;
 use App\Http\Requests\GuardarPersonaRequest;
+use App\Http\Requests\SubirAdjuntoRequest;
 use App\Http\Resources\Concerns\RespondeConRecurso;
 use App\Http\Resources\PersonaRecurso;
 use App\Models\User;
@@ -52,6 +57,7 @@ use Inertia\Response;
  */
 class PersonaController extends Controller
 {
+    use GestionaAdjuntos;
     use RespondeConRecurso;
 
     public function index(Request $request, PersonaRecurso $recurso, RegistroPersonas $registro): Response
@@ -98,6 +104,7 @@ class PersonaController extends Controller
             'pasos',
             'asignaciones.puesto',
             'asignaciones.asignadaPor',
+            'adjuntos.subidoPor',
         ]);
 
         $formacion = $persona->asistencias()
@@ -168,6 +175,7 @@ class PersonaController extends Controller
                 ])
                 ->values()
                 ->all(),
+            'adjuntos' => $this->serializarAdjuntos($persona, request(), "/personas/{$persona->id}/adjuntos"),
             'acuerdos' => $persona->acuerdos
                 ->map(static fn (AcuerdoConfidencialidad $acuerdo): array => [
                     'id' => $acuerdo->id,
@@ -324,6 +332,21 @@ class PersonaController extends Controller
         Inertia::flash('exito', 'Asignación cerrada.');
 
         return to_route('personas.show', $persona);
+    }
+
+    public function subirAdjunto(SubirAdjuntoRequest $request, Persona $persona, SubirAdjunto $subir): RedirectResponse
+    {
+        return $this->subirAdjuntoDe($request, $persona, $subir, 'personas.show');
+    }
+
+    public function descargarAdjunto(Persona $persona, Adjunto $adjunto): RedirectResponse
+    {
+        return $this->descargarAdjuntoDe($adjunto);
+    }
+
+    public function borrarAdjunto(Persona $persona, Adjunto $adjunto, BorrarAdjunto $borrar): RedirectResponse
+    {
+        return $this->borrarAdjuntoDe($adjunto, $borrar, 'personas.show', $persona);
     }
 
     public function guardarAcuerdo(GuardarAcuerdoRequest $request, Persona $persona): RedirectResponse

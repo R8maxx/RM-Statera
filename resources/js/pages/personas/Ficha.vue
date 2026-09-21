@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Aviso from '@/components/Aviso.vue';
+import BloqueAdjuntos, { type Adjunto as Documento } from '@/components/adjunto/BloqueAdjuntos.vue';
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
@@ -141,6 +142,7 @@ const props = defineProps<{
     designaciones: Designacion[];
     formacion: Formacion[];
     acuerdos: Acuerdo[];
+    adjuntos: Documento[];
     asignaciones: Asignacion[];
     puestos: Opcion[];
     pasos: Checklist[];
@@ -796,6 +798,27 @@ function guardarLista(tipo: string, pasos: Paso[]): void {
                                 <dd class="font-medium whitespace-pre-line">{{ persona.direccion }}</dd>
                             </div>
                         </dl>
+                    </CardContent>
+                </Card>
+
+                <!--
+                    Los documentos de la persona: el título de un curso, el
+                    contrato firmado, el DNI escaneado. NO son evidencias —una
+                    evidencia prueba un requisito y lleva caducidad y
+                    responsable—, y el diálogo lo dice para que nadie suba aquí
+                    lo que va allí.
+                -->
+                <Card id="adjuntos">
+                    <CardHeader>
+                        <CardTitle>Documentos</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <BloqueAdjuntos
+                            :adjuntos="adjuntos"
+                            :base="`/personas/${persona.id}/adjuntos`"
+                            :puede-gestionar="puedeGestionar"
+                            vacio="Aquí van sus papeles: el título de un curso, el contrato firmado, lo que haya que conservar de esta persona."
+                        />
                     </CardContent>
                 </Card>
 

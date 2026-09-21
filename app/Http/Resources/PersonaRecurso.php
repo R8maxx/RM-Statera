@@ -209,6 +209,23 @@ final class PersonaRecurso extends Recurso
     {
         return [
             Accion::ver('/personas/{id}'),
+
+            /*
+             * El botón está en la fila y la gestión en la ficha. Va con
+             * `personas.ver` porque lleva a mirar: quien no pueda gestionar verá
+             * la lista y no el botón de subir.
+             *
+             * **El ancla marca el bloque y no desplaza**, y queda dicho porque
+             * es lo que uno espera de un `#`: `DataTable` ejecuta las acciones
+             * con `router.visit(url, { preserveScroll: true })` —que está ahí
+             * para que las demás acciones no salten al principio de la tabla— y
+             * eso gana a cualquier `scrollIntoView` que se intente al montar. Se
+             * probó y se quitó: un composable que no desplaza es peor que no
+             * tenerlo. El bloque está en la ficha y se ve.
+             */
+            (new Accion('documentos', 'Documentos', '/personas/{id}#adjuntos'))
+                ->icono('Paperclip')
+                ->permiso(Permiso::PersonasVer->value),
             Accion::eliminar(
                 '/personas/{id}',
                 '¿Eliminar a esta persona? Se pierde su formación, sus acuerdos y el histórico de sus '

@@ -1086,6 +1086,22 @@ Route::middleware('auth')->group(function (): void {
 
         Route::get('/puestos/{puesto}', [PuestoController::class, 'show'])
             ->name('puestos.show');
+
+        /*
+         * Descargar un adjunto es LECTURA, así que va con `personas.ver` y no
+         * con `gestionar`. Es un redirect a una URL firmada de cinco minutos,
+         * como la de una evidencia: el bucket es privado y nunca se enlaza.
+         *
+         * `scopeBindings()` para que el adjunto de otra persona no se descargue
+         * desde ésta: la pivote es la frontera.
+         */
+        Route::get('/personas/{persona}/adjuntos/{adjunto}/descargar', [PersonaController::class, 'descargarAdjunto'])
+            ->scopeBindings()
+            ->name('personas.adjuntos.descargar');
+
+        Route::get('/formacion/{accion}/adjuntos/{adjunto}/descargar', [FormacionController::class, 'descargarAdjunto'])
+            ->scopeBindings()
+            ->name('formacion.adjuntos.descargar');
     });
 
     Route::middleware(['can:personas.gestionar', ExigirDosFactores::class])
@@ -1143,6 +1159,22 @@ Route::middleware('auth')->group(function (): void {
                 ->name('personas.puesto.asignar');
             Route::delete('/personas/{persona}/asignaciones/{asignacion}', [PersonaController::class, 'cerrarPuesto'])
                 ->name('personas.puesto.cerrar');
+
+            /*
+             * Los documentos de una persona y de una sesión. Sin verbo de
+             * permiso propio: un adjunto no es un módulo, es una capacidad que
+             * se le añade a un registro, así que hereda el permiso de su
+             * anfitrión.
+             */
+            Route::post('/personas/{persona}/adjuntos', [PersonaController::class, 'subirAdjunto'])
+                ->name('personas.adjuntos.subir');
+            Route::delete('/personas/{persona}/adjuntos/{adjunto}', [PersonaController::class, 'borrarAdjunto'])
+                ->name('personas.adjuntos.borrar');
+
+            Route::post('/formacion/{accion}/adjuntos', [FormacionController::class, 'subirAdjunto'])
+                ->name('formacion.adjuntos.subir');
+            Route::delete('/formacion/{accion}/adjuntos/{adjunto}', [FormacionController::class, 'borrarAdjunto'])
+                ->name('formacion.adjuntos.borrar');
         });
 
     /*
