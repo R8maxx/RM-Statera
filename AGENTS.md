@@ -1,8 +1,14 @@
 # Statera
 
 Las reglas de proyecto (invariantes del modelo, convenciones, avisos de versión
-y orden de arranque) viven en `CLAUDE.md`, en la raíz del repositorio. Es la
+y la lista de módulos) viven en `CLAUDE.md`, en la raíz del repositorio. Es la
 fuente canónica: se mantiene ahí y no se duplica aquí.
+
+**Y lo específico de cada área vive en `.ai/rules/`**, un fichero por área con un
+`paths:` delante: los módulos uno a uno y los desvíos respecto al stack. No se carga
+entero, se carga el que encaje con la ruta que se está tocando. `.ai/rules/index.md`
+mapea globs a ficheros, y `CLAUDE.md § Dónde está cada cosa` lo cuenta en prosa.
+Ese índice **lo genera Boost**: lo que se escriba a mano dentro se pierde.
 
 El contexto funcional y técnico completo está en `especificacion-gestor-cumplimiento.md`
 y `stack-gestor-cumplimiento.md`.

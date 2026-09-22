@@ -13,6 +13,7 @@ Un producto de RM Technology.
 | [`especificacion-gestor-cumplimiento.md`](especificacion-gestor-cumplimiento.md) | Especificación funcional: modelo de dominio, motor de categorización, módulos, fases de entrega. |
 | [`stack-gestor-cumplimiento.md`](stack-gestor-cumplimiento.md) | Decisiones técnicas, con su justificación y lo descartado. |
 | [`CLAUDE.md`](CLAUDE.md) | Reglas de proyecto para asistentes de código: invariantes, convenciones y avisos de versión. |
+| [`.ai/rules/`](.ai/rules) | Lo específico de cada área —los módulos uno a uno y los desvíos respecto al stack—, en ficheros que se cargan según la ruta que se toca. |
 
 ## Requisitos
 
