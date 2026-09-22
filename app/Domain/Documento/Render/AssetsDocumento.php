@@ -82,21 +82,60 @@ final class AssetsDocumento
      *
      * @return list<AssetDocumento>
      */
-    public function todos(): array
+    public function todos(?string $logoPortada = null): array
     {
-        // Sólo la hoja: las fuentes viajan dentro de ella, en base64.
-        return [new AssetDocumento(self::HOJA, $this->hoja())];
+        // Sólo la hoja: las fuentes y el logo viajan dentro de ella, en base64.
+        return [new AssetDocumento(self::HOJA, $this->hoja($logoPortada))];
     }
 
     /**
      * La hoja de estilos, con el bloque de `@font-face` que corresponda a las
      * fuentes que realmente viajan.
      */
-    public function hoja(): string
+    public function hoja(?string $logoPortada = null): string
     {
         $css = (string) file_get_contents($this->directorio.'/'.self::HOJA);
 
-        return $this->declaracionesDeFuente().$css;
+        return $this->declaracionesDeFuente().$css.$this->membrete($logoPortada);
+    }
+
+    /**
+     * El logo de la organización, de fondo en la portada.
+     *
+     * **Se genera aquí y no vive en `documento.css`** por dos motivos. El
+     * primero es que el data URI cambia con cada organización, así que no puede
+     * estar en un fichero estático. El segundo es que `documento.css` lo lee
+     * además el editor del cuerpo (`lib/hojaDocumento.ts`, con `?raw`) y
+     * `HojaDelEditorTest` fija su forma: un `:root` extra o un `@media` de más
+     * lo pone rojo.
+     *
+     * **De fondo y no como nodo del cuerpo.** `EsquemaCuerpo` declara por
+     * escrito que no hay nodo de imagen ni de SVG —una remota tumbaría la
+     * generación y una incrustada inflaría la instantánea sin límite—, y un logo
+     * no necesita ninguno: es **marca, no contenido**, igual que el filete y la
+     * palabra «Statera» de la portada. Así ni el esquema, ni el renderizador, ni
+     * el `.docx` se enteran de que esto existe.
+     *
+     * Va al FINAL de la hoja para ganar a la regla de `.portada` sin subir la
+     * especificidad ni escribir un `!important`.
+     */
+    private function membrete(?string $logoPortada): string
+    {
+        if ($logoPortada === null || $logoPortada === '') {
+            return '';
+        }
+
+        // La URL va entre comillas simples: un data URI lleva comas y signos de
+        // igual, y sin comillas el parser de CSS corta por donde no debe.
+        return <<<CSS
+
+            .portada {
+                background-image: url('{$logoPortada}');
+                background-repeat: no-repeat;
+                background-position: top right;
+                background-size: auto 0.5in;
+            }
+            CSS;
     }
 
     /** Si el documento va a salir con la tipografía de marca o con la genérica. */

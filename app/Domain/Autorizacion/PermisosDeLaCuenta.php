@@ -30,16 +30,37 @@ use Illuminate\Support\Str;
  * `PermisosDeLaCuentaTest`, porque `entradaDe()` devuelve `undefined` en
  * silencio y la fila saldría sin nombre sin que fallara nadie.
  *
+ * **Salvo los que no son módulos**, que se declaran en `FUERA_DEL_MAPA`. Es el
+ * patrón de `RlsDeclaradaTest` con sus cuatro excepciones: no se afloja la
+ * regla, se escribe quién está exento y el test exige que quien deje de estarlo
+ * salga de la lista.
+ *
  * El orden es el de declaración de `Permiso`, que ya agrupa por módulo y es el
  * mismo orden con el que se lee el enum.
  */
 final readonly class PermisosDeLaCuenta
 {
     /**
+     * Los prefijos de permiso que NO son un módulo del mapa de navegación.
+     *
+     * `lib/navegacion.ts` lista módulos, y la ficha del tenant no lo es: está
+     * fuera a propósito, porque una entrada ahí la pintaría en el sidebar de
+     * los tres roles cuando sólo uno puede abrirla. Como el cliente resuelve el
+     * título contra ese mapa, aquí hace falta decirle cómo se llama — si no, su
+     * fila saldría **sin nombre y sin icono**, que es justo lo que el test de
+     * esta clase existe para impedir.
+     *
+     * @var array<string, string>
+     */
+    private const FUERA_DEL_MAPA = [
+        'organizacion' => 'La organización',
+    ];
+
+    /**
      * @return array{
      *     roles: list<array{clave: string, etiqueta: string, descripcion: ?string}>,
-     *     modulos: list<array{clave: string, href: string, verbos: list<array{clave: string, etiqueta: string, tiene: bool}>}>,
-     *     sinAcceso: list<array{clave: string, href: string}>,
+     *     modulos: list<array{clave: string, href: string, etiqueta: ?string, verbos: list<array{clave: string, etiqueta: string, tiene: bool}>}>,
+     *     sinAcceso: list<array{clave: string, href: string, etiqueta: ?string}>,
      * }
      */
     public static function de(User $usuario): array
@@ -56,7 +77,12 @@ final readonly class PermisosDeLaCuenta
                 'tiene' => in_array($permiso->value, $concedidos, true),
             ], $permisos);
 
-            $entrada = ['clave' => $clave, 'href' => self::href($clave)];
+            $entrada = [
+                'clave' => $clave,
+                'href' => self::href($clave),
+                // Nulo para un módulo de verdad: ahí manda `lib/navegacion.ts`.
+                'etiqueta' => self::FUERA_DEL_MAPA[$clave] ?? null,
+            ];
 
             /*
              * El reparto es «tengo algo de este módulo» y no «tengo su .ver»:

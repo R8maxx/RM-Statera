@@ -67,8 +67,18 @@ registrarCampoObligatorio(props.nombre, () => props.requerido === true);
 </script>
 
 <template>
+    <!--
+        `content-start` no es adorno: sin él, dos campos lado a lado en una
+        rejilla de dos columnas **no alinean sus inputs** cuando uno lleva ayuda
+        y el otro no. La celda corta se estira hasta la altura de la larga
+        —`align-items: stretch` es el valor por defecto— y esta rejilla interna
+        reparte el hueco sobrante entre sus filas, así que el input del campo sin
+        ayuda baja. Medido: 28 px de desfase entre «CIF» y «Sector».
+
+        Es la misma corrección que `SeccionFormulario` ya lleva en su contenedor.
+    -->
     <div
-        class="grid gap-2"
+        class="grid content-start gap-2"
         :class="requerido ? 'border-l-2 border-primary pl-3' : undefined"
     >
         <Label :for="id" :class="etiquetaOculta ? 'sr-only' : undefined">

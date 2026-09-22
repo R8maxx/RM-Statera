@@ -12,7 +12,7 @@ import { formatoFechaHora } from '@/lib/celdas';
 import { entradaDe } from '@/lib/navegacion';
 import { usePasskeyRegister } from '@laravel/passkeys/vue';
 import { Link, router, useForm } from '@inertiajs/vue3';
-import { CheckIcon, MinusIcon } from '@lucide/vue';
+import { BuildingIcon, CheckIcon, MinusIcon } from '@lucide/vue';
 import { motion } from 'motion-v';
 import { computed, ref } from 'vue';
 
@@ -33,13 +33,15 @@ interface Verbo {
 interface ModuloPermitido {
     clave: string;
     href: string;
+    /** Sólo para los prefijos que no son módulos del mapa. Normalmente nulo. */
+    etiqueta: string | null;
     verbos: Verbo[];
 }
 
 interface Permisos {
     roles: { clave: string; etiqueta: string; descripcion: string | null }[];
     modulos: ModuloPermitido[];
-    sinAcceso: { clave: string; href: string }[];
+    sinAcceso: { clave: string; href: string; etiqueta: string | null }[];
 }
 
 const props = defineProps<{
@@ -89,7 +91,8 @@ const {
  * de permiso tenga entrada allí lo clava `PermisosDeLaCuentaTest`, porque
  * `entradaDe()` devuelve `undefined` en silencio y la fila saldría sin nombre.
  */
-const nombreDe = (href: string): string => entradaDe(href)?.titulo ?? href.replace(/^\//, '');
+const nombreDe = (modulo: { href: string; etiqueta: string | null }): string =>
+    entradaDe(modulo.href)?.titulo ?? modulo.etiqueta ?? modulo.href.replace(/^\//, '');
 const iconoDe = (href: string) => entradaDe(href)?.icono;
 
 /** El verbo sin su módulo: `activos.gestionar` → «gestionar». */
@@ -477,8 +480,11 @@ const cuando = (valor: string | null): string =>
                         class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2.5 first:pt-0 last:pb-0"
                     >
                         <span class="flex min-w-0 items-center gap-2 text-sm">
-                            <component :is="iconoDe(modulo.href)" class="size-4 shrink-0 text-muted-foreground" />
-                            <span class="truncate">{{ nombreDe(modulo.href) }}</span>
+                            <component
+                                :is="iconoDe(modulo.href) ?? BuildingIcon"
+                                class="size-4 shrink-0 text-muted-foreground"
+                            />
+                            <span class="truncate">{{ nombreDe(modulo) }}</span>
                         </span>
 
                         <span class="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -510,7 +516,7 @@ const cuando = (valor: string | null): string =>
                 -->
                 <p v-if="permisos.sinAcceso.length > 0" class="text-sm text-muted-foreground">
                     No ves:
-                    {{ permisos.sinAcceso.map((modulo) => nombreDe(modulo.href)).join(' · ') }}.
+                    {{ permisos.sinAcceso.map(nombreDe).join(' · ') }}.
                 </p>
             </SeccionFormulario>
         </motion.div>

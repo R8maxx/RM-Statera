@@ -196,6 +196,23 @@ enum Permiso: string
     case DocumentosRedactar = 'documentos.redactar';
     case DocumentosPlantillas = 'documentos.plantillas';
 
+    /*
+     * La ficha del tenant: razón social, CIF, domicilio, las dos banderas del
+     * ENS y la base de las etiquetas.
+     *
+     * **Un solo verbo y sin `.ver`**, que es lo contrario del resto de módulos.
+     * `RolesTest` recorre `Permiso::cases()` y exige que el Auditor tenga TODO
+     * permiso acabado en `.ver`; crear `organizacion.ver` se lo daría, y esta
+     * pantalla es del responsable de seguridad. Con un único verbo de escritura
+     * queda fuera del Auditor **por construcción** y no por una lista que haya
+     * que recordar.
+     *
+     * Lo que se toca aquí sale impreso en documentos firmados y gobierna los QR
+     * ya pegados en el parque de activos, así que es la misma familia que
+     * `sistemas.valorar`: no es configuración, es una declaración.
+     */
+    case OrganizacionGestionar = 'organizacion.gestionar';
+
     public function etiqueta(): string
     {
         return match ($this) {
@@ -242,6 +259,7 @@ enum Permiso: string
             self::DocumentosAprobar => 'Aprobar documentos y entregar la versión firmada',
             self::DocumentosRedactar => 'Redactar los textos de un documento',
             self::DocumentosPlantillas => 'Definir los textos base de la organización',
+            self::OrganizacionGestionar => 'Mantener la ficha de la organización y la base de las etiquetas',
         };
     }
 

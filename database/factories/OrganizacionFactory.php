@@ -24,6 +24,11 @@ class OrganizacionFactory extends Factory
     {
         return [
             'nombre' => fake()->unique()->company(),
+            // La razón social se deja NULA a propósito, que es el estado de toda
+            // organización anterior a la ficha: así `nombreLegal()` cae a
+            // `nombre` y los tests de contenido de los seis documentos siguen
+            // afirmando exactamente lo que afirmaban.
+            'razon_social' => null,
             'cif' => 'B'.fake()->unique()->numerify('########'),
             'sector' => fake()->word(),
             'sujeto_obligado_ens' => false,
@@ -40,5 +45,13 @@ class OrganizacionFactory extends Factory
     public function proveedorPublico(): self
     {
         return $this->state(fn (): array => ['proveedor_sector_publico' => true]);
+    }
+
+    /** Con la identificación legal rellena, para lo que se imprime en un documento. */
+    public function conRazonSocial(?string $razonSocial = null): self
+    {
+        return $this->state(fn (array $atributos): array => [
+            'razon_social' => $razonSocial ?? $atributos['nombre'].', S.L.',
+        ]);
     }
 }

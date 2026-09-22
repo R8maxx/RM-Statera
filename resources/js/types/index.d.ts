@@ -21,6 +21,11 @@ export interface UsuarioAutenticado {
 export interface OrganizacionActiva {
     id: number;
     nombre: string;
+    /**
+     * El logo del cliente, con su sufijo de versión, o nulo si no lo ha subido.
+     * Lo compone `Organizacion::urlMarca()`; el cliente no arma la ruta.
+     */
+    logo: string | null;
 }
 
 export interface PropsCompartidos {

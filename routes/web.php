@@ -17,6 +17,8 @@ use App\Http\Controllers\MejoraController;
 use App\Http\Controllers\MetodologiaRiesgoController;
 use App\Http\Controllers\NoConformidadController;
 use App\Http\Controllers\ObjetivoController;
+use App\Http\Controllers\OrganizacionController;
+use App\Http\Controllers\OrganizacionMarcaController;
 use App\Http\Controllers\PanelController;
 use App\Http\Controllers\ParteInteresadaController;
 use App\Http\Controllers\PerfilController;
@@ -1260,5 +1262,53 @@ Route::middleware('auth')->group(function (): void {
             ->name('plantillas.update');
         Route::delete('/plantillas-documento/{tipo}/{seccion}', [PlantillaDocumentoController::class, 'restablecer'])
             ->name('plantillas.restablecer');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | La ficha de la organización
+    |--------------------------------------------------------------------------
+    |
+    | La raíz del tenant: razón social, CIF, domicilio, las dos banderas del ENS
+    | y la base de las etiquetas de activos.
+    |
+    | **Sin parámetro de ruta**, igual que `/perfil/foto`: la organización sale
+    | del contexto y nunca de la URL. `organizaciones` no lleva scope global ni
+    | RLS —es la organización—, así que un `{organizacion}` habría que acotarlo a
+    | mano y ningún test de aislamiento se pondría rojo si alguien lo olvidara.
+    |
+    | Un solo verbo y sin `.ver`: `RolesTest` exige que el Auditor tenga todo
+    | permiso acabado en `.ver`, y esta pantalla es del responsable de seguridad.
+    | Con un único verbo de escritura queda fuera por construcción.
+    */
+
+    Route::middleware('can:organizacion.gestionar')->group(function (): void {
+        Route::get('/organizacion', [OrganizacionController::class, 'edit'])
+            ->name('organizacion.edit');
+    });
+
+    Route::middleware(['can:organizacion.gestionar', ExigirDosFactores::class])->group(function (): void {
+        Route::put('/organizacion', [OrganizacionController::class, 'update'])
+            ->name('organizacion.update');
+    });
+
+    /*
+    | El logo y el símbolo. **Verlos no lleva permiso de gestión**: el logo lo
+    | pinta el sidebar de cualquiera que haya entrado, y lo que se sirve es
+    | siempre el de su propia organización, que sale del contexto. Sólo escribir
+    | va con `organizacion.gestionar`.
+    |
+    | `{pieza}` se resuelve con el enum `PiezaDeMarca`, no con una cadena: un
+    | valor inventado responde 404 sin llegar al controlador, igual que `{tipo}`
+    | en las plantillas de documento.
+    */
+    Route::get('/organizacion/marca/{pieza}', [OrganizacionMarcaController::class, 'show'])
+        ->name('organizacion.marca');
+
+    Route::middleware(['can:organizacion.gestionar', ExigirDosFactores::class])->group(function (): void {
+        Route::post('/organizacion/marca/{pieza}', [OrganizacionMarcaController::class, 'store'])
+            ->name('organizacion.marca.guardar');
+        Route::delete('/organizacion/marca/{pieza}', [OrganizacionMarcaController::class, 'destroy'])
+            ->name('organizacion.marca.borrar');
     });
 });

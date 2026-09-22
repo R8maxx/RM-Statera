@@ -28,10 +28,36 @@
         padding-bottom: 2pt;
     }
     .cab__marca { font-weight: 700; color: #007E81; letter-spacing: 0.08em; text-transform: uppercase; }
+@if (! empty($simbolo))
+    /*
+        El símbolo de la organización, incrustado como data URI. No puede ser un
+        fichero del multipart: este documento se renderiza en un contexto aparte
+        que no lo recibe.
+
+        8 pt de alto, que es lo que cabe al lado de un texto de 7 pt sin engordar
+        la banda. `width: auto` para no deformar: un símbolo que llegue apaisado
+        sale apaisado, porque el logo del cliente no se recorta (DESIGN.md §2).
+
+        La regla va dentro de la condición y no suelta: sin símbolo, la cabecera
+        tiene que salir byte a byte como salía antes de que existiera la marca.
+        Es lo que permite meter esto sin revisar ningún documento anterior.
+
+        Y ojo con escribir una directiva de Blade dentro de un comentario CSS de
+        esta plantilla: Blade compila el fichero entero antes de que exista
+        ningún CSS, así que la interpreta igual. Costó 71 tests en rojo.
+    */
+    .cab__simbolo { height: 8pt; width: auto; vertical-align: -1pt; margin-right: 4pt; }
+@endif
 </style>
 <div class="cab">
     <div class="cab__fila">
-        <span><span class="cab__marca">Statera</span> · {{ $organizacion }}</span>
+        <span>
+            {{-- Sin símbolo subido, la cabecera sale exactamente como salía. --}}
+            @if (! empty($simbolo))
+                <img class="cab__simbolo" src="{{ $simbolo }}" alt="">
+            @endif
+            <span class="cab__marca">Statera</span> · {{ $organizacion }}
+        </span>
         <span>{{ $codigo }} — {{ $titulo }}</span>
     </div>
 </div>

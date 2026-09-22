@@ -141,7 +141,16 @@ class DesarrolloSeeder extends Seeder
             ['cif' => 'B00000000'],
             [
                 'nombre' => 'Organización de pruebas',
+                // La razón social sí se siembra: es lo que se imprime en la
+                // portada de los documentos, y con ella puesta el HTML de
+                // `documentos:generar --html` enseña el caso real y no el
+                // respaldo.
+                'razon_social' => 'Organización de Pruebas, S.L.',
                 'sector' => 'Servicios digitales',
+                'domicilio' => 'Calle Sintética, 1',
+                'codigo_postal' => '28001',
+                'municipio' => 'Madrid',
+                'provincia' => 'Madrid',
                 'sujeto_obligado_ens' => false,
                 'proveedor_sector_publico' => true,
                 'activa' => true,

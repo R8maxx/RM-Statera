@@ -15,6 +15,8 @@ use App\Domain\Documento\Models\DocumentoVersion;
 use App\Domain\Documento\Render\AssetsDocumento;
 use App\Domain\Documento\Render\ClienteGotenberg;
 use App\Domain\Documento\Render\SolicitudPdf;
+use App\Domain\Organizacion\Marca\MarcaDeLaOrganizacion;
+use App\Domain\Organizacion\Marca\PiezaDeMarca;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -39,6 +41,7 @@ final readonly class GenerarDocumento
         private ClienteGotenberg $gotenberg,
         private AssetsDocumento $assets,
         private HtmlDocumento $html,
+        private MarcaDeLaOrganizacion $marca,
     ) {}
 
     /**
@@ -223,6 +226,13 @@ final readonly class GenerarDocumento
                 'organizacion' => $portada['organizacion'] ?? '',
                 'codigo' => $documento->codigo,
                 'titulo' => $documento->titulo,
+                /*
+                 * El símbolo va INCRUSTADO y no como asset: la cabecera se
+                 * renderiza en un contexto aparte que no recibe el multipart.
+                 * Nulo cuando la organización no ha subido ninguno, y entonces
+                 * la cabecera sale exactamente como salía.
+                 */
+                'simbolo' => $this->marca->dataUri($documento->organizacion, PiezaDeMarca::Simbolo),
             ])->render(),
 
             pie: View::make('documentos.pie', [
@@ -237,7 +247,9 @@ final readonly class GenerarDocumento
                 'fecha' => $portada['fecha'] ?? '',
             ])->render(),
 
-            assets: $this->assets->todos(),
+            assets: $this->assets->todos(
+                $this->marca->dataUri($documento->organizacion, PiezaDeMarca::Logo),
+            ),
 
             metadatos: [
                 'Title' => $documento->titulo.' — '.$documento->codigo,

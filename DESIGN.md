@@ -62,6 +62,31 @@ La fuente de verdad de la geometría es `resources/js/components/Logotipo.vue`. 
 
 La balanza ampliada, recortada por el borde del lienzo y al 6–10 % de opacidad, sirve de fondo en portadas, cabeceras de informe y estados vacíos. Una por pieza, nunca repetida en patrón.
 
+### El logo de la organización cliente
+
+Una organización sube su propio logo y aparece en su documentación. **Esto es co-branding, no marca blanca**: el white-labeling está fuera de alcance en CLAUDE.md, PRODUCT.md y la especificación, y esta sección no lo reabre. La herramienta sigue siendo Statera y lo sigue diciendo.
+
+**Dos piezas, porque un logo con nombre dentro no se lee a 8 mm.** Es el mismo reparto que tiene el propio Statera entre `completo` y `simbolo`.
+
+| Pieza | Dónde | Tamaño impreso |
+|---|---|---|
+| **Logo horizontal** | Portada del PDF, arriba a la derecha; desplegable de organización | 0.5 in de alto en papel; 20 px en pantalla |
+| **Símbolo cuadrado** | Cabecera de cada página del PDF | 8 pt de alto |
+
+Las dos son **opcionales y degradan a lo que hay hoy**: sin logo, la portada sale como siempre; sin símbolo, la cabecera sigue siendo «Statera · organización» en texto.
+
+**Dónde conviven, y dónde no.**
+
+- **Nunca juntos en la misma pieza.** En el sidebar, Statera arriba y el logo del cliente abajo, en el bloque de organización, separados por el ancho del panel. En la portada, el cliente arriba a la derecha y el crédito de Statera en el pie. No se colocan lado a lado ni se componen en un lockup: §2 prohíbe encerrar el símbolo en una forma ajena y recomponerlo, y un logo pegado al otro es exactamente eso.
+- **El logo del cliente no entra** en el panel de acceso, ni en los estados vacíos, ni como marca de agua, ni en los correos. Son superficies de la herramienta, no del cliente.
+- **Zona de respeto:** el alto de la propia pieza por los cuatro lados. En la portada eso lo da el margen de la hoja.
+
+**No se recolorea, no se recorta y no se deforma.** Llega como lo manda su dueño y se escala por el alto conservando proporción. Un logo de cliente no es nuestro para retocarlo, y en un documento firmado eso importa.
+
+**Va como fondo CSS y no como imagen del cuerpo**, así que no entra en el árbol de etiquetas del PDF. Es correcto para algo decorativo cuya organización se nombra en texto en la ficha de la misma portada: un lector de pantalla no gana nada leyendo «logo».
+
+**Fondo transparente o claro.** El documento es siempre tema claro y la portada es blanca; un logo pensado sólo para fondo oscuro se verá mal y la herramienta no lo va a corregir. Se dice en la pantalla.
+
 ## 3. Color
 
 Tres familias: teal (marca), violeta (acento) y una neutra con tinte frío. Todas en `oklch`, que es como están escritas en `resources/css/app.css` — la fuente de verdad. Los hex de estas tablas son la conversión a sRGB, para PDF, correo e impresión.

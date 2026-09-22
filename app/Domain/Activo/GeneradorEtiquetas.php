@@ -67,10 +67,18 @@ final class GeneradorEtiquetas
      * etiqueta impresa dura años: si la aplicación vive tras un proxy o con un
      * dominio propio por cliente, apuntar a la URL de desarrollo obligaría a
      * reimprimir el parque entero.
+     *
+     * **Es `?:` y no `??`, y ahí estuvo el fallo.** Mientras esa columna sólo la
+     * escribían los seeders nunca llegaba a ser cadena vacía; desde que hay un
+     * formulario, vaciar el campo manda `''`, que **atraviesa un `??`** y deja
+     * la URL en `/activos/3` — sin host, codificada en una pegatina que alguien
+     * imprime y pega durante años. `GuardarFichaOrganizacion` ya la normaliza a
+     * nulo, y la regla se repite aquí porque tiene que valer también para un
+     * importador o una escritura directa.
      */
     public function contenido(Activo $activo, Organizacion $organizacion): string
     {
-        $base = rtrim($organizacion->url_base_etiquetas ?? (string) config('app.url'), '/');
+        $base = rtrim($organizacion->url_base_etiquetas ?: (string) config('app.url'), '/');
 
         return "{$base}/activos/{$activo->id}";
     }

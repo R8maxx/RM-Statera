@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domain\Autorizacion\Enums\Permiso;
 use App\Domain\Autorizacion\Enums\Rol;
+use App\Domain\Autorizacion\PermisosDeLaCuenta;
 use Inertia\Testing\AssertableInertia;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -95,20 +96,33 @@ it('reparte los módulos entre los que se ven y los que no, derivándolo del enu
         ->and($visibles->intersect($ocultos))->toBeEmpty();
 });
 
-it('con los tres roles de partida nadie tiene un módulo oculto', function (): void {
+it('el responsable de seguridad no tiene ningún módulo oculto y los otros dos sí', function (): void {
     /*
-     * Hoy los tres roles del § 4.19 llevan el `.ver` de los diecisiete módulos,
-     * así que el resumen «no ves: …» no se pinta nunca. Queda clavado para que
-     * el día que eso cambie se sepa por este test y no por una pantalla que
-     * empieza a decir algo nuevo sin que nadie lo haya decidido.
+     * Hasta la ficha de la organización, los tres roles del § 4.19 llevaban el
+     * `.ver` de los diecisiete módulos y el resumen «no ves: …» **no se pintaba
+     * nunca**. `organizacion.gestionar` es el primer permiso sin pareja de
+     * lectura y sólo lo tiene el responsable de seguridad, así que desde aquí
+     * esa rama está viva para los otros dos. Lo cazó este mismo test, que es
+     * para lo que se escribió.
+     *
+     * El reparto se deriva del enum y no se fija a mano.
      */
-    foreach (Rol::cases() as $rol) {
-        $usuario = usuarioCon($rol);
+    $ocultosDe = function (Rol $rol): array {
+        $props = $this->actingAs(usuarioCon($rol))->get('/perfil')->viewData('page')['props'];
 
-        $this->actingAs($usuario)
-            ->get('/perfil')
-            ->assertInertia(fn (AssertableInertia $pagina) => $pagina->has('permisos.sinAcceso', 0));
-    }
+        return collect($props['permisos']['sinAcceso'])->pluck('clave')->sort()->values()->all();
+    };
+
+    expect($ocultosDe(Rol::ResponsableSeguridad))->toBe([]);
+
+    $suyos = collect(Rol::Tecnico->permisos())->map(fn (Permiso $p): string => $p->value);
+    $esperados = collect(Permiso::cases())
+        ->groupBy(fn (Permiso $p): string => Str::before($p->value, '.'))
+        ->reject(fn ($verbos): bool => $verbos->contains(fn (Permiso $p): bool => $suyos->contains($p->value)))
+        ->keys()->sort()->values()->all();
+
+    expect($ocultosDe(Rol::Tecnico))->toBe($esperados)
+        ->and($esperados)->toContain('organizacion');
 });
 
 it('un módulo revocado entero baja al resumen y deja de ocupar una fila', function (): void {
@@ -164,7 +178,7 @@ it('refleja lo que se le quita AL ROL, no al usuario', function (): void {
 |
 */
 
-it('todo prefijo de permiso tiene entrada en el mapa de navegación', function (): void {
+it('todo prefijo de permiso tiene nombre: o está en el mapa, o está declarado', function (): void {
     $fuente = (string) file_get_contents(resource_path('js/lib/navegacion.ts'));
 
     preg_match_all("/href:\s*'([^']+)'/", $fuente, $coincidencias);
@@ -172,12 +186,42 @@ it('todo prefijo de permiso tiene entrada en el mapa de navegación', function (
 
     expect($hrefs)->not->toBeEmpty('No se encontró ningún href en navegacion.ts: el patrón dejó de casar.');
 
-    $sinEntrada = collect(Permiso::cases())
+    /*
+     * La excepción se declara, no se afloja la regla. `organizacion` no está en
+     * el mapa a propósito —una entrada ahí pintaría la ficha del tenant en el
+     * sidebar de los tres roles cuando sólo uno puede abrirla—, así que su
+     * nombre lo manda el servidor desde `PermisosDeLaCuenta::FUERA_DEL_MAPA`.
+     * Es el patrón de las cuatro excepciones de `RlsDeclaradaTest`.
+     */
+    $declarados = array_keys(
+        (new ReflectionClass(PermisosDeLaCuenta::class))->getConstant('FUERA_DEL_MAPA')
+    );
+
+    $sinNombre = collect(Permiso::cases())
         ->map(fn (Permiso $permiso): string => Str::before($permiso->value, '.'))
         ->unique()
         ->reject(fn (string $prefijo): bool => in_array('/'.str_replace('_', '-', $prefijo), $hrefs, true))
+        ->reject(fn (string $prefijo): bool => in_array($prefijo, $declarados, true))
         ->values()
         ->all();
 
-    expect($sinEntrada)->toBe([]);
+    expect($sinNombre)->toBe([]);
+});
+
+it('no sobra ninguna excepción declarada', function (): void {
+    // La otra dirección: un prefijo que entre en el mapa de navegación tiene que
+    // salir de la lista de excepciones, o habría dos fuentes para su nombre.
+    $fuente = (string) file_get_contents(resource_path('js/lib/navegacion.ts'));
+    preg_match_all("/href:\s*'([^']+)'/", $fuente, $coincidencias);
+
+    $declarados = array_keys(
+        (new ReflectionClass(PermisosDeLaCuenta::class))->getConstant('FUERA_DEL_MAPA')
+    );
+
+    $sobran = array_values(array_filter(
+        $declarados,
+        fn (string $prefijo): bool => in_array('/'.str_replace('_', '-', $prefijo), $coincidencias[1], true),
+    ));
+
+    expect($sobran)->toBe([]);
 });

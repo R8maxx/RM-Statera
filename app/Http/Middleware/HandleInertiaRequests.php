@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Domain\Organizacion\ContextoOrganizacion;
+use App\Domain\Organizacion\Marca\PiezaDeMarca;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -58,6 +59,9 @@ class HandleInertiaRequests extends Middleware
                 ? [
                     'id' => $usuario->organizacion->id,
                     'nombre' => $usuario->organizacion->nombre,
+                    // El logo del cliente en el chrome. Nulo mientras no lo
+                    // suba nadie, y entonces el sidebar sale como salía.
+                    'logo' => $usuario->organizacion->urlMarca(PiezaDeMarca::Logo),
                 ]
                 : null,
         ];

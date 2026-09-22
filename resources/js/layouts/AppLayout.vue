@@ -49,6 +49,18 @@ const pagina = usePage();
 const usuario = computed(() => pagina.props.auth.usuario);
 const organizacion = computed(() => pagina.props.organizacion);
 
+/**
+ * Si la sesión tiene un permiso, para decidir qué se PINTA.
+ *
+ * Primer lector de `auth.permisos`, que `HandleInertiaRequests` comparte desde
+ * el principio y que hasta ahora no usaba nadie en el cliente. Su comentario ya
+ * decía para qué era: «el frontend solo decide qué pinta, nunca qué autoriza».
+ * Sin esto, un enlace a una pantalla de un solo rol se le pintaría a los tres y
+ * dos se llevarían un 403 — que es lo que ya le pasa a `/plantillas-documento`
+ * y no hay por qué repetir.
+ */
+const puede = (permiso: string): boolean => pagina.props.auth.permisos.includes(permiso);
+
 const rutaActual = computed(() => new URL(pagina.url, 'http://x').pathname);
 const seccion = computed(() => entradaDe(rutaActual.value));
 
@@ -195,10 +207,45 @@ const salir = (): void => router.post('/logout');
                                     Organización activa
                                 </DropdownMenuLabel>
                                 <DropdownMenuItem v-if="organizacion" disabled>
-                                    <ShieldCheckIcon class="size-4 text-primary" />
+                                    <!--
+                                        El logo del cliente donde estaba el
+                                        escudo. Statera se queda arriba del
+                                        panel: esto es co-branding y no marca
+                                        blanca, que sigue fuera de alcance.
+                                        `DESIGN.md` §2 pide que no se compongan
+                                        en la misma pieza, y aquí los separa el
+                                        alto del sidebar entero.
+                                    -->
+                                    <img
+                                        v-if="organizacion.logo"
+                                        :src="organizacion.logo"
+                                        alt=""
+                                        class="h-5 w-auto max-w-[5rem] object-contain"
+                                    />
+                                    <ShieldCheckIcon v-else class="size-4 text-primary" />
                                     {{ organizacion.nombre }}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem v-else disabled>Sin contexto de organización</DropdownMenuItem>
+
+                                <!--
+                                    La ficha del tenant no está en
+                                    `lib/navegacion.ts` —ese fichero es el mapa
+                                    de MÓDULOS y esto no lo es—, así que su
+                                    puerta es este desplegable, que es donde ya
+                                    se mira para preguntarse de qué organización
+                                    hablamos. Mismo precedente que la metodología
+                                    de riesgo, que se enlaza desde la ficha de un
+                                    riesgo y tampoco tiene entrada de menú.
+                                -->
+                                <template v-if="organizacion && puede('organizacion.gestionar')">
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem as-child>
+                                        <Link href="/organizacion">
+                                            <BuildingIcon class="size-4" />
+                                            La ficha de la organización
+                                        </Link>
+                                    </DropdownMenuItem>
+                                </template>
                             </DropdownMenuContent>
                         </DropdownMenu>
 

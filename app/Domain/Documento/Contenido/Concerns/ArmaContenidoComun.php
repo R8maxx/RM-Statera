@@ -34,7 +34,15 @@ trait ArmaContenidoComun
         return [
             // `organizacion_id` es NOT NULL; `sistema_id` sí falta en los tipos
             // de ámbito organizativo, que son todos los redactados.
-            'organizacion' => $organizacion->nombre,
+            //
+            // La RAZÓN SOCIAL y no `nombre`: un documento entregable lo firma
+            // una persona jurídica, no una marca. `nombreLegal()` cae a `nombre`
+            // mientras nadie la haya rellenado, que es el estado de toda
+            // organización anterior a la ficha — así ningún documento cambió de
+            // texto por migrar. Es el único punto donde `Organizacion` toca la
+            // portada, así que de aquí se propaga solo a la ficha de la primera
+            // página y a la cabecera de todas las demás.
+            'organizacion' => $organizacion->nombreLegal(),
             'cif' => $organizacion->cif,
             'sistemaCodigo' => $sistema?->codigo,
             'sistemaNombre' => $sistema?->nombre,
