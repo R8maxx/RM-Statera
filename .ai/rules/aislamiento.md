@@ -68,3 +68,18 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
   mirando —`$version->organizacion_id`— y no del contexto: bajo RLS es la misma, y así la consulta no
   depende de que alguien haya fijado el contexto antes. Ya había un caso de esto en el formulario de
   documentos, corregido al llegar el § 4.5.
+
+- **Y acordarse no era el mecanismo: lo comprueba `ConsultasDeUsuarioAcotadasTest`.** Cuando el § 4.16
+  fue a tocar el desplegable del calendario, había **doce** `User::query()` sin acotar repartidos por
+  seis módulos —controlador y `Recurso` de cada uno: tareas, riesgos, activos, evidencias,
+  implantaciones y revisiones de inventario—, mientras los otros diecinueve sitios sí lo hacían y uno
+  de ellos lo llevaba comentado. Con treinta y un sitios en dos capas, la disciplina no basta. El test
+  recorre `app/`, salta las líneas de comentario —`PlantillaDocumentoController` explica en su docblock
+  por qué ahí no hace falta, y leer esa explicación como una infracción enseñaría a no escribirlas— y
+  mira las cinco líneas siguientes a cada consulta buscando `organizacion_id`. Es la capa que faltaba:
+  `RlsDeclaradaTest` y `FactoriesSinOrganizacionTest` interrogan al esquema, y aquí no hay esquema que
+  interrogar porque la fuga no está en la base, está en la consulta.
+
+  Usa `toBeTrue($mensaje)` y no `toContain`, **a propósito**: `toContain` es variádico en Pest y se
+  traga el mensaje como una segunda aguja, con lo que el test falla siempre y por el motivo
+  equivocado. Pasó al escribirlo.

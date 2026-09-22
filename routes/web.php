@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\ActivoController;
 use App\Http\Controllers\AuditoriaController;
+use App\Http\Controllers\CalendarioController;
 use App\Http\Controllers\ContextoController;
 use App\Http\Controllers\CuestionContextoController;
 use App\Http\Controllers\DocumentoController;
@@ -17,6 +18,7 @@ use App\Http\Controllers\MejoraController;
 use App\Http\Controllers\MetodologiaRiesgoController;
 use App\Http\Controllers\NoConformidadController;
 use App\Http\Controllers\ObjetivoController;
+use App\Http\Controllers\ObligacionController;
 use App\Http\Controllers\OrganizacionController;
 use App\Http\Controllers\OrganizacionMarcaController;
 use App\Http\Controllers\PanelController;
@@ -33,6 +35,8 @@ use App\Http\Controllers\SistemaController;
 use App\Http\Controllers\TareaController;
 use App\Http\Controllers\ValoracionSistemaController;
 use App\Http\Middleware\ExigirDosFactores;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -436,6 +440,82 @@ Route::middleware('auth')->group(function (): void {
 
     /*
     |--------------------------------------------------------------------------
+    | Calendario de obligaciones — § 4.16
+    |--------------------------------------------------------------------------
+    |
+    | Dos superficies y no una con conmutador, por el mismo motivo que Personas,
+    | Puestos y Formación van separadas en `lib/navegacion.ts`: la rejilla enseña
+    | siete fuentes de seis módulos y el registro enseña una. Un conmutador entre
+    | ellas diría que son dos formas de ver el mismo dato, y no lo son.
+    |
+    | El calendario **no cuelga de `/obligaciones`**: colgarlo de cualquier
+    | registro repetiría la mentira que ya contaba `/tareas/calendario`.
+    */
+
+    Route::middleware('can:calendario.ver')->group(function (): void {
+        Route::get('/calendario', [CalendarioController::class, 'index'])->name('calendario.index');
+    });
+
+    Route::middleware('can:obligaciones.ver')->group(function (): void {
+        Route::get('/obligaciones', [ObligacionController::class, 'index'])->name('obligaciones.index');
+
+        // Antes que `{compromiso}`, para que `crear` no se lea como un id.
+        Route::get('/obligaciones/crear', [ObligacionController::class, 'create'])
+            ->middleware(['can:obligaciones.gestionar', ExigirDosFactores::class])
+            ->name('obligaciones.create');
+
+        Route::get('/obligaciones/{compromiso}', [ObligacionController::class, 'show'])
+            ->name('obligaciones.show');
+    });
+
+    Route::middleware(['can:obligaciones.gestionar', ExigirDosFactores::class])->group(function (): void {
+        Route::post('/obligaciones', [ObligacionController::class, 'store'])->name('obligaciones.store');
+
+        /*
+         * Asumir del catálogo, y asumirlas todas de una vez.
+         *
+         * `predefinidas` existe porque si no el registro se queda vacío para
+         * siempre: nadie declara a mano seis obligaciones que ya se sabe de
+         * memoria, y un registro vacío es lo mismo que no tener el módulo.
+         */
+        Route::post('/obligaciones/asumir/{obligacion}', [ObligacionController::class, 'asumir'])
+            ->name('obligaciones.asumir');
+
+        Route::post('/obligaciones/predefinidas', [ObligacionController::class, 'predefinidas'])
+            ->name('obligaciones.predefinidas');
+
+        Route::get('/obligaciones/{compromiso}/editar', [ObligacionController::class, 'edit'])
+            ->name('obligaciones.edit');
+
+        Route::put('/obligaciones/{compromiso}', [ObligacionController::class, 'update'])
+            ->name('obligaciones.update');
+
+        Route::post('/obligaciones/{compromiso}/retirada', [ObligacionController::class, 'retirar'])
+            ->name('obligaciones.retirar');
+
+        Route::delete('/obligaciones/{compromiso}', [ObligacionController::class, 'destroy'])
+            ->name('obligaciones.destroy');
+
+        /*
+         * El histórico de cumplimiento.
+         *
+         * `scopeBindings()` pluraliza en inglés y `cumplimiento` → `cumplimientos`
+         * coincide con el español, así que aquí NO hace falta
+         * `resolveChildRouteBinding()` escrito a mano — a diferencia de los cuatro
+         * casos que sí lo llevan. Que la ruta de al lado funcione no dice nada de
+         * ésta, así que lo fija un test de aislamiento y no la lectura de la ruta.
+         */
+        Route::post('/obligaciones/{compromiso}/cumplimientos', [ObligacionController::class, 'cumplir'])
+            ->scopeBindings()
+            ->name('obligaciones.cumplimientos.store');
+
+        Route::delete('/obligaciones/{compromiso}/cumplimientos/{cumplimiento}', [ObligacionController::class, 'borrarCumplimiento'])
+            ->scopeBindings()
+            ->name('obligaciones.cumplimientos.destroy');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
     | Plan de acción
     |--------------------------------------------------------------------------
     */
@@ -453,7 +533,18 @@ Route::middleware('auth')->group(function (): void {
          * Van antes que `{tarea}` para que no se lean como identificadores.
          */
         Route::get('/tareas/tablero', [TareaController::class, 'tablero'])->name('tareas.tablero');
-        Route::get('/tareas/calendario', [TareaController::class, 'calendario'])->name('tareas.calendario');
+
+        /*
+         * El calendario se mudó a `/calendario` con el § 4.16: enseña siete
+         * fuentes de seis módulos y ya no es una vista del plan de acción.
+         *
+         * Esta línea existe porque la URL del mes se guarda y se comparte, y un
+         * 404 en una dirección que alguien pegó en un correo es el mismo fallo
+         * que ya cerró «un mes que no se entiende es el de hoy». **302 y no
+         * 301**: un 301 lo cachea el navegador para siempre y el día que esto
+         * tenga que cambiar no hay forma de purgarlo en las máquinas de la gente.
+         */
+        Route::get('/tareas/calendario', static fn (Request $peticion): RedirectResponse => redirect()->route('calendario.index', $peticion->query(), 302));
 
         // Antes que `{tarea}`, para que `crear` no se lea como un id.
         Route::get('/tareas/crear', [TareaController::class, 'create'])

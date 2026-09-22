@@ -74,9 +74,18 @@ final class ImportarCatalogoCommand extends Command
     private function presentar(ResultadoImportacion $resultado): void
     {
         $this->newLine();
+
+        /*
+         * El rótulo de la derecha es el marco, y `mapeos` cuando no hay ninguno.
+         * **Era el literal `'mapeos'`**, y el § 4.16 lo puso en evidencia: un
+         * fichero de obligaciones tampoco tiene marco y salía rotulado como un
+         * fichero de mapeos, con el recuento correcto debajo y el nombre
+         * equivocado encima. Con `tipo` cada fichero dice lo que es, y el quinto
+         * no repetirá el error.
+         */
         $this->components->twoColumnDetail(
             '<fg=cyan>'.$this->relativo($resultado->fichero).'</>',
-            $resultado->marco ?? 'mapeos',
+            $resultado->marco ?? $resultado->tipo,
         );
 
         if ($resultado->tipo === 'mapeos') {
@@ -89,6 +98,12 @@ final class ImportarCatalogoCommand extends Command
 
         if ($resultado->tipo === 'amenazas') {
             $this->presentarAmenazas($resultado);
+
+            return;
+        }
+
+        if ($resultado->tipo === 'obligaciones') {
+            $this->presentarObligaciones($resultado);
 
             return;
         }
@@ -165,6 +180,43 @@ final class ImportarCatalogoCommand extends Command
             ));
 
             $this->components->twoColumnDetail('Riesgos afectados', (string) $resultado->riesgosAfectados);
+        }
+    }
+
+    /**
+     * El diff del catálogo de obligaciones periódicas del § 4.16.
+     *
+     * Mismo recuento y mismo aviso que los otros dos, con lo que aquí arrastra
+     * retirar una fila: los compromisos que las organizaciones tengan asumidos, y
+     * con ellos el histórico de haberlos cumplido, que es lo que un auditor pide
+     * del periodo anterior.
+     */
+    private function presentarObligaciones(ResultadoImportacion $resultado): void
+    {
+        $resumen = $resultado->resumen();
+
+        $this->components->twoColumnDetail('Obligaciones nuevas', (string) $resumen['nuevos']);
+        $this->components->twoColumnDetail('Obligaciones modificadas', (string) $resumen['modificados']);
+        $this->components->twoColumnDetail('Obligaciones retiradas', (string) $resumen['retirados']);
+
+        if ($resumen['reactivados'] > 0) {
+            $this->components->twoColumnDetail('Obligaciones reactivadas', (string) $resumen['reactivados']);
+        }
+
+        $this->components->twoColumnDetail('Sin cambios', (string) $resumen['sin_cambios']);
+
+        if ($this->option('diff')) {
+            $this->detallar($resultado);
+        }
+
+        if ($resultado->retirados !== []) {
+            $this->newLine();
+            $this->components->warn(sprintf(
+                '%d obligación(es) ya no aparecen en el fichero. No se han borrado: quedan marcadas como no vigentes.',
+                count($resultado->retirados),
+            ));
+
+            $this->components->twoColumnDetail('Compromisos afectados', (string) $resultado->compromisosAfectados);
         }
     }
 

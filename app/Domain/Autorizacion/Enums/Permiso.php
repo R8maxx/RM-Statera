@@ -213,6 +213,25 @@ enum Permiso: string
      */
     case OrganizacionGestionar = 'organizacion.gestionar';
 
+    /*
+     * El calendario de obligaciones del § 4.16, y **el único módulo con un verbo
+     * de lectura que no es el de su propia tabla**: `calendario.ver` abre una
+     * rejilla que enseña vencimientos de seis registros distintos.
+     *
+     * Por eso el permiso no basta y la pantalla filtra además **por fuente**:
+     * quien no tenga `indicadores.ver` no ve chips de indicador. Sin eso, el
+     * calendario sería una puerta lateral a seis módulos con un solo permiso, que
+     * es exactamente lo que `AlertasDelPanel` ya evita en el panel.
+     *
+     * Y **dos verbos y ninguno de supervisión**: registrar que una auditoría se
+     * hizo es sellar un hecho, no firmar una decisión. Lo que sí se firma —el
+     * acta, el objetivo, el riesgo aceptado— ya tiene su verbo en el registro que
+     * cumple la obligación.
+     */
+    case CalendarioVer = 'calendario.ver';
+    case ObligacionesVer = 'obligaciones.ver';
+    case ObligacionesGestionar = 'obligaciones.gestionar';
+
     public function etiqueta(): string
     {
         return match ($this) {
@@ -260,6 +279,9 @@ enum Permiso: string
             self::DocumentosRedactar => 'Redactar los textos de un documento',
             self::DocumentosPlantillas => 'Definir los textos base de la organización',
             self::OrganizacionGestionar => 'Mantener la ficha de la organización y la base de las etiquetas',
+            self::CalendarioVer => 'Ver el calendario de vencimientos',
+            self::ObligacionesVer => 'Ver las obligaciones periódicas y su histórico de cumplimiento',
+            self::ObligacionesGestionar => 'Asumir obligaciones, retirarlas y registrar cumplimientos',
         };
     }
 

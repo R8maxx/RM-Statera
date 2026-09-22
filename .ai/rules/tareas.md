@@ -1,12 +1,11 @@
 ---
 paths:
   - app/Domain/Tarea/**
-  - app/Domain/Aviso/**
   - resources/js/pages/tareas/**
   - resources/js/components/tarea/**
 ---
 
-# El plan de acción, el tablero y el calendario
+# El plan de acción y el tablero
 
 ## Desvíos respecto al stack
 
@@ -76,11 +75,18 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
   `/tareas/crear?implantacion={id}`, que preselecciona el origen y **no lo deja cambiar** —preguntarlo
   invita a cambiarlo—.
 
-- **El plan de acción tiene tres pantallas y cada una es una ruta**: `/tareas`, `/tareas/tablero` y
-  `/tareas/calendario`. No son pestañas: el servidor manda datos distintos en cada una —el tablero
-  agrupa, el calendario acota por mes— y así se pueden enlazar y compartir. Precedente: `activos.etiquetas`.
-  El conmutador **no guarda nada en el navegador**: el estado es la URL, porque un conmutador que
-  recuerda la última vista hace que el enlace que alguien pega en un correo abra otra pantalla.
+- **El plan de acción tiene dos pantallas y cada una es una ruta**: `/tareas` y `/tareas/tablero`. No
+  son pestañas: el servidor manda datos distintos en cada una y así se pueden enlazar y compartir.
+  Precedente: `activos.etiquetas`. El conmutador **no guarda nada en el navegador**: el estado es la
+  URL, porque un conmutador que recuerda la última vista hace que el enlace que alguien pega en un
+  correo abra otra pantalla.
+
+  **Eran tres, y el calendario se fue con el § 4.16** a `/calendario`, con su fichero de reglas y con
+  `app/Domain/Aviso/**` detrás. No sobraba un botón: enseña vencimientos de siete registros de seis
+  módulos y dejó de ser una vista del plan. Dejarlo apuntando a `/calendario?filter[fuente]=tarea`
+  tampoco valía, por un detalle del componente: lo activo se marca comparando `pathname` exacto, así
+  que ese botón nunca se habría visto activo. `/tareas/calendario` se queda como **redirección 302**
+  —no 301, que el navegador cachea para siempre— porque la URL del mes se guarda y se comparte.
 
 - **El tablero tiene cuatro columnas y no cinco.** `descartada` no tiene columna porque descartar exige
   motivo y eso no cabe en un gesto, y porque una columna de descartadas crece para siempre sin que nadie
@@ -102,23 +108,6 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
   mucho peor que no dejar soltar. El servidor lo vuelve a comprobar igual —`CambiarEstadoTarea` es quien
   manda—: esto es para que el gesto no mienta, no para fiarse del navegador.
 
-- **El calendario enseña vencimientos, no tareas.** Una tarea que vence y una evidencia que caduca son la
-  misma pregunta para quien mira el mes, y § 4.16 —calendario de obligaciones— incluye literalmente la
-  caducidad de evidencias. Por eso `CalendarioVencimientos` vive en `app/Domain/Aviso/` y no en `Tarea/`:
-  es su primera pieza, y cuando lleguen la revisión por la dirección o la auditoría interna se cuelgan de
-  `Fuente` sin mudar nada. Es además **el único sitio donde se decide qué es un vencimiento**: el resumen
-  diario que sale por correo se apoya en él, porque si cada uno consultara por su cuenta acabarían
-  discrepando y el que se mira menos es el que se queda mal.
-
-- **La rejilla del mes se calcula en el servidor (`RejillaMes`), no en el navegador.** No es preferencia:
-  aquí hay con qué probarla —meses de 28, 30 y 31 días, bisiestos, meses que empiezan en domingo, cambios
-  de año— y en `resources/js` no hay runner de tests. La aritmética de fechas es justo donde un fallo se
-  ve tarde y mal. **Seis semanas siempre**, aunque el mes quepa en cinco: una rejilla que cambia de alto
-  al pasar de mes hace saltar la página bajo el cursor. Y **un mes que no se entiende es el de hoy**,
-  mismo criterio que los extremos de un rango de fechas: un 500 en una URL que alguien comparte es peor
-  que enseñar otro mes. No entró ninguna librería de fechas, ni el `Calendar` de Reka UI: ése es un
-  **selector**, no una rejilla de eventos.
-
 - **El plazo y el tono de prioridad viven en el dominio** (`Tarea\Plazo`, `PrioridadTarea::tono()`), no en
   `TareaRecurso`. Los leen la tabla, el tablero y el calendario: con la regla escrita tres veces, la tabla
   dice «Vencida» y el tablero «En plazo» el día que una cambie.
@@ -126,28 +115,6 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
 - **El tablero no ofrece `estado` ni `bloqueadas`.** Las columnas **son** el estado: filtrar por él
   vacía tres de las cuatro y deja un tablero que parece roto. Se declara en
   `TareaController::FILTROS_QUE_SOBRAN`, no escondiéndolo en el cliente.
-
-- **El calendario declara sus propios filtros y no hereda los de tareas.** Enseña vencimientos: la mitad
-  de lo que sale son evidencias, que no tienen prioridad ni origen. Filtrar por «prioridad crítica» o
-  dejaría las evidencias intactas —el filtro mintiendo— o las haría desaparecer sin explicación. Los
-  tres de `FiltrosVencimiento` —fuente, responsable, sólo lo vencido— significan lo mismo para las dos
-  fuentes, y seguirán valiendo cuando § 4.16 traiga el resto de lo periódico.
-
-- **En el calendario el color dice QUÉ es la cosa, y el rojo que se pasó de fecha.** `Vencimiento` lleva
-  dos pares de campos y no uno: `tono` es distancia temporal y lo lee el **correo diario**;
-  `estadoTono`/`estadoEtiqueta` son el estado —de la tarea, o la vigencia de la evidencia— y los lee el
-  calendario. Reinterpretar `tono` habría cambiado el asunto del correo sin querer. **Lo vencido gana
-  siempre** y es el único rojo de la pantalla; hay un test que recorre los estados comprobando que
-  ninguno se lo gasta. Y el estado viaja **también en texto**, porque § 11 no deja que dependa del color.
-
-- **Los días del calendario se distinguen con cuatro fondos sólidos**, no con alfa. Antes eran
-  `bg-muted/40` y `bg-muted/20` sobre `bg-card` —dos transparencias casi idénticas y, peor, las dos en
-  el mismo atributo, así que decidía el orden en que Tailwind emite las clases y no el código—. Es el
-  mismo fallo que ya está documentado para las celdas ancladas de la tabla. Hoy lleva además la barra de
-  2 px del ítem activo del sidebar: `accent` es un teal demasiado pálido para cargar solo con eso.
-
-- **Tope de tres vencimientos por día, con su «y N más».** Un día con doce estiraba la fila entera y el
-  mes dejaba de caber en la pantalla. Mismo patrón que el tope por columna del tablero.
 
 - **Una subtarea es un paso de una lista de comprobación, no una tarea.** No está en `tareas` con un
   `parent_id` y el motivo es aritmético: **hoy hay trece sitios que cuentan tareas** —panel,

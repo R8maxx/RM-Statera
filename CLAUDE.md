@@ -96,7 +96,7 @@ No usar paquetes de multi-tenancy de terceros: es la frontera de seguridad princ
 
 ## Los módulos
 
-Veintitrés puntos, y el orden importa: el catálogo y el motor son la parte más
+Veinticuatro puntos, y el orden importa: el catálogo y el motor son la parte más
 específica del dominio y la que más se estropea si se improvisa; el resto es CRUD con
 reglas de negocio encima. **El porqué de cada uno —qué problema abrió, qué decisión se
 tomó y qué dejó declarado que no hace— está en su fichero de reglas**, y la bitácora
@@ -127,19 +127,23 @@ completa con el razonamiento del orden, en `.ai/rules/orden-de-arranque.md`.
 | 21 | Mi cuenta | — | `perfil.md` |
 | 22 | La ficha de la organización | — | `organizacion.md` |
 | 23 | La marca del cliente | — | `organizacion.md` |
+| 24 | El calendario de obligaciones | 4.16 | `obligaciones.md` |
 
-**La fase 3 sigue abierta.** Queda el calendario de obligaciones completo (§ 4.16), del
-que hoy existen tres `Fuente` de las once que enumera la especificación; los otros dos
-tercios del flujo de conformidad (§ 4.17); informes y exportación (§ 4.18); la gestión
-de cuentas y roles (§ 4.19); proveedores (§ 4.9), y el registro de vulnerabilidades del
-invariante 8.
+**La fase 3 sigue abierta, y le queda un módulo.** El calendario de obligaciones
+(§ 4.16) está completo —siete `Fuente` derivadas y un catálogo de obligaciones
+periódicas para lo que no sale de ningún registro—, así que de la fase 3 sólo falta
+**continuidad (§ 4.11)**.
+
+Después de ella: los otros dos tercios del flujo de conformidad (§ 4.17); informes y
+exportación (§ 4.18); la gestión de cuentas y roles (§ 4.19); proveedores (§ 4.9), y el
+registro de vulnerabilidades del invariante 8.
 
 ## El catálogo
 
 Vive en `catalogo/*.yaml`, versionado en el repositorio, y se carga con un comando idempotente:
 
 ```sh
-php artisan catalogo:importar                    # importa los tres ficheros
+php artisan catalogo:importar                    # importa los cuatro ficheros
 php artisan catalogo:importar --dry-run          # muestra el diff sin escribir
 php artisan catalogo:importar catalogo/ens-rd311-2022.yaml
 ```
@@ -159,7 +163,7 @@ Lo demás va dentro. Con `app` basta para todo lo de PHP; `vite` es el de Node:
 
 ```sh
 docker compose exec app php artisan migrate
-docker compose exec app php artisan catalogo:importar       # ISO, ENS, mapeos y las amenazas de MAGERIT
+docker compose exec app php artisan catalogo:importar       # ISO, ENS, mapeos, amenazas de MAGERIT y obligaciones periódicas
 docker compose exec app php artisan db:seed                 # organización, usuarios, sistema, inventario, tareas, riesgos, personas y puestos (sintéticos)
 docker compose exec app php artisan avisos:enviar --dry-run # lo que saldría por correo, sin enviarlo
 docker compose exec app php artisan indicadores:medir --dry-run # la cifra que se sellaría, sin escribirla
@@ -187,7 +191,7 @@ Por orden, según dónde duele un fallo silencioso:
 4. **Importador del catálogo**, incluida la idempotencia y el diff.
 5. Resto de módulos: flujos principales.
 
-Y seis tests **descubren** en vez de enumerar, así que cubren solos lo que traiga el
+Y nueve tests **descubren** en vez de enumerar, así que cubren solos lo que traiga el
 módulo siguiente. Cuáles son y qué convierte en rojo cada uno, en `.ai/rules/tests.md`.
 
 ## Dónde está cada cosa
@@ -219,7 +223,7 @@ sobre el directorio pilla lo que un encaje de ruta se deja.
 | `interfaz.md` | `resources/js/**` | `lib/tonos.ts` y `lib/navegacion.ts` como mapas únicos; los tres canales de un estado; qué librería entró, cuál no y por qué |
 | `tests.md` | `tests/**` | Los seis tests que descubren en vez de enumerar |
 | `infraestructura.md` | `docker-compose.yml`, `docker/**`, `.env.example` | Los dos endpoints de MinIO, `quay.io`, el `ARG UID`, `predis` |
-| `orden-de-arranque.md` | este fichero, `README.md`, `PRODUCT.md` | La bitácora de los 23 puntos, con el razonamiento del orden |
+| `orden-de-arranque.md` | este fichero, `README.md`, `PRODUCT.md` | La bitácora de los 24 puntos, con el razonamiento del orden |
 
 ### Por módulo
 
@@ -231,7 +235,8 @@ sobre el directorio pilla lo que un encaje de ruta se deja.
 | `activos.md` | `app/Domain/Activo/**`, sus pantallas, `lib/grafoActivos.ts`, `config/obsolescencia.php` |
 | `documentos.md` | `app/Domain/Documento/**`, sus pantallas y las plantillas |
 | `documentos-render.md` | `resources/views/documentos/**`, `Documento/Render/**`, `lib/cuerpoDocumento.ts` |
-| `tareas.md` | `app/Domain/Tarea/**`, `app/Domain/Aviso/**` y sus tres pantallas |
+| `tareas.md` | `app/Domain/Tarea/**` y sus dos pantallas |
+| `obligaciones.md` | `app/Domain/Obligacion/**`, `app/Domain/Aviso/**`, el calendario y las obligaciones |
 | `riesgos.md` | `app/Domain/Riesgo/**` y sus pantallas |
 | `auditorias.md` | `app/Domain/Auditoria/**` y sus pantallas |
 | `no-conformidades.md` | `app/Domain/NoConformidad/**` y sus pantallas |

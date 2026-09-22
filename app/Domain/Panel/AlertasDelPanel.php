@@ -13,6 +13,7 @@ use App\Domain\Incidente\RegistroIncidentes;
 use App\Domain\Metrica\RegistroIndicadores;
 use App\Domain\NoConformidad\RegistroNoConformidades;
 use App\Domain\Objetivo\RegistroObjetivos;
+use App\Domain\Obligacion\RegistroObligaciones;
 use App\Domain\Persona\RegistroPersonas;
 use App\Domain\Riesgo\RegistroRiesgos;
 use App\Domain\Tarea\ResumenPlanDeAccion;
@@ -85,6 +86,9 @@ final readonly class AlertasDelPanel
     public const FUENTES = [
         [Permiso::EvidenciasVer, RegistroEvidencias::class],
         [Permiso::TareasVer, ResumenPlanDeAccion::class],
+        // Tercera y no última: un compromiso se pasa de fecha sin que nadie lo
+        // toque, igual que una evidencia y que una tarea.
+        [Permiso::ObligacionesVer, RegistroObligaciones::class],
         [Permiso::IncidentesVer, RegistroIncidentes::class],
         [Permiso::RiesgosVer, RegistroRiesgos::class],
         [Permiso::NoConformidadesVer, RegistroNoConformidades::class],

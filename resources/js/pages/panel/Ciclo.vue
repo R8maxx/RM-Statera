@@ -5,6 +5,7 @@ import ResumenIncidentesPanel from '@/components/incidente/ResumenIncidentesPane
 import ResumenMetricasPanel from '@/components/metrica/ResumenMetricasPanel.vue';
 import ResumenNoConformidadesPanel from '@/components/no-conformidad/ResumenNoConformidadesPanel.vue';
 import ResumenObjetivosPanel from '@/components/objetivo/ResumenObjetivosPanel.vue';
+import ResumenObligacionesPanel from '@/components/obligacion/ResumenObligacionesPanel.vue';
 import ResumenPlanPanel from '@/components/tarea/ResumenPlanPanel.vue';
 import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -36,6 +37,7 @@ const props = defineProps<{
     incidentes: App.Http.Resources.Panel.ResumenIncidentesPanel | null;
     desempeno: App.Http.Resources.Panel.ResumenMetricasPanel | null;
     objetivos: App.Http.Resources.Panel.ResumenObjetivosPanel | null;
+    obligaciones: App.Http.Resources.Panel.ResumenObligacionesPanel | null;
 }>();
 
 const { variantesEntrada, variantesEscalonado } = useMovimientoReducido();
@@ -53,7 +55,14 @@ const vacia = computed(
         (props.noConformidades?.total ?? 0) === 0 &&
         (props.incidentes?.total ?? 0) === 0 &&
         (props.desempeno?.total ?? 0) === 0 &&
-        (props.objetivos?.total ?? 0) === 0,
+        (props.objetivos?.total ?? 0) === 0 &&
+        /*
+         * Y las obligaciones. Sin esta línea, la vista dejaría de pintar el
+         * estado vacío en cuanto existiera una sola obligación y el resto
+         * siguiera a cero: una pestaña con una tarjeta suelta es peor que la
+         * vacía explicada.
+         */
+        (props.obligaciones?.total ?? 0) === 0,
 );
 </script>
 
@@ -79,6 +88,16 @@ const vacia = computed(
             -->
             <motion.section v-if="plan.total > 0" :variants="variantesEntrada">
                 <ResumenPlanPanel :plan="plan" />
+            </motion.section>
+
+            <!-- ── Obligaciones periódicas ────────────────────────────────── -->
+            <!--
+                Detrás del plan: la misma pregunta —qué hay abierto y para
+                cuándo— con otra cadencia. Con el registro vacío no se pinta,
+                como las demás.
+            -->
+            <motion.section v-if="obligaciones && obligaciones.total > 0" :variants="variantesEntrada">
+                <ResumenObligacionesPanel :resumen="obligaciones" />
             </motion.section>
 
             <!-- ── No conformidades ───────────────────────────────────────── -->

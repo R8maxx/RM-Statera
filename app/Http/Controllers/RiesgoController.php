@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Activo\Models\Activo;
 use App\Domain\Implantacion\Models\Implantacion;
+use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Riesgo\AceptarRiesgo;
 use App\Domain\Riesgo\CalculoRiesgo;
 use App\Domain\Riesgo\CoberturaSalvaguardas;
@@ -384,6 +385,7 @@ class RiesgoController extends Controller
                 ])
                 ->all(),
             'personas' => User::query()
+                ->where('organizacion_id', app(ContextoOrganizacion::class)->idObligatorio())
                 ->orderBy('name')
                 ->get()
                 ->map(fn (User $usuario): array => [

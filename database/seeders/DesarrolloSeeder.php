@@ -85,6 +85,10 @@ use App\Domain\Objetivo\Enums\EstadoObjetivo;
 use App\Domain\Objetivo\Models\Objetivo;
 use App\Domain\Objetivo\RegistrarObjetivo;
 use App\Domain\Objetivo\VincularIndicador;
+use App\Domain\Obligacion\AsumirObligacion;
+use App\Domain\Obligacion\Models\Compromiso;
+use App\Domain\Obligacion\ObligacionesAplicables;
+use App\Domain\Obligacion\RegistrarCumplimiento;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Organizacion\Models\Organizacion;
 use App\Domain\Persona\AsignarPuesto;
@@ -259,7 +263,79 @@ class DesarrolloSeeder extends Seeder
         // El último de todos: recoge las siete entradas de la 9.3.2, así que
         // sembrarlo antes daría un acta con seis ceros y una fecha.
         $this->revisionDireccionDeEjemplo();
+        // Después de la revisión y de las auditorías: los compromisos apuntan a
+        // ellas como prueba de haberse cumplido.
+        $this->obligacionesDeEjemplo($organizacion, $sistema);
         $this->documentoDeEjemplo($sistema);
+    }
+
+    /**
+     * El calendario de obligaciones, con las tres situaciones que hay que poder
+     * distinguir de un vistazo.
+     *
+     * Mismo criterio que los cuatro riesgos y las tres no conformidades: un
+     * registro de ejemplo donde todo está igual no enseña nada. Aquí se siembran
+     * **una al día, una fuera de plazo y una nunca cumplida**, que son los tres
+     * estados que la tabla, el panel y el calendario tienen que separar.
+     *
+     * Se asumen del catálogo y no se inventan: es el camino real, y de paso
+     * comprueba que el filtro de `ObligacionesAplicables` deja pasar lo que le
+     * toca a esta organización —proveedora del sector público, categoría básica—.
+     */
+    private function obligacionesDeEjemplo(Organizacion $organizacion, Sistema $sistema): void
+    {
+        if (Compromiso::query()->exists()) {
+            return;
+        }
+
+        $asumir = app(AsumirObligacion::class);
+        $registrar = app(RegistrarCumplimiento::class);
+
+        $aplicables = app(ObligacionesAplicables::class)->para($organizacion)->keyBy('codigo');
+
+        /*
+         * Al día, con su prueba: la revisión por la dirección se celebró hace
+         * tres meses y el acta lo demuestra.
+         *
+         * Es la que cierra el hueco que el acta llevaba impreso —«no se comprueba
+         * que la revisión se celebre con la periodicidad comprometida»—, así que
+         * es también la que conviene que alguien vea al abrir el módulo.
+         *
+         * **La auditoría interna no sale aquí y no es un olvido**: es del marco
+         * ISO y esta organización sólo tiene un sistema del ENS, así que
+         * `ObligacionesAplicables` la descarta. Sembrarla a mano sería saltarse
+         * el filtro que el módulo existe para aplicar.
+         */
+        $revision = $aplicables->get('sgsi.revision-direccion');
+
+        if ($revision !== null) {
+            $compromiso = $asumir($revision, Carbon::today()->subYear());
+            $acta = RevisionDireccion::query()->orderByDesc('fecha')->first();
+
+            $registrar(
+                $compromiso,
+                Carbon::today()->subMonths(3),
+                $acta === null ? [] : ['revision_direccion_id' => $acta->id],
+            );
+        }
+
+        // Fuera de plazo: el reloj arrancó hace catorce meses y nadie la cumplió.
+        $ines = $aplicables->get('ens.ines');
+
+        if ($ines !== null) {
+            $asumir($ines, Carbon::today()->subMonths(14));
+        }
+
+        /*
+         * Nunca cumplida y todavía en plazo: es la que enseña que «nunca
+         * cumplida» no es lo mismo que «fuera de plazo». La conformidad va
+         * colgada del sistema, que es lo que la distingue del informe INES.
+         */
+        $conformidad = $aplicables->get('ens.conformidad');
+
+        if ($conformidad !== null) {
+            $asumir($conformidad, Carbon::today()->subMonths(2), $sistema->id);
+        }
     }
 
     /**

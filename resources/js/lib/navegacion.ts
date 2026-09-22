@@ -1,5 +1,7 @@
 import {
     BoxesIcon,
+    CalendarCheckIcon,
+    CalendarDaysIcon,
     ClipboardCheckIcon,
     ClipboardListIcon,
     ClipboardXIcon,
@@ -84,6 +86,41 @@ export const navegacion: GrupoNavegacion[] = [
                 href: '/tareas',
                 icono: ListTodoIcon,
                 alias: ['plan de acción', 'plan', 'pendientes', 'acciones', 'kanban', 'to-do', 'deberes'],
+            },
+            /*
+             * El calendario y las obligaciones: § 4.16.
+             *
+             * **Dos entradas y no una con conmutador**, con el mismo precedente
+             * que Personas / Puestos / Formación: la rejilla enseña siete fuentes
+             * de seis módulos y el registro enseña una sola cosa con su
+             * histórico. Un conmutador entre ellas diría que son dos formas de
+             * ver el mismo dato, y no lo son.
+             *
+             * El calendario dejó de colgar de `/tareas` aquí y en las rutas: con
+             * tres fuentes pasaba por una vista del plan, con siete ya no.
+             */
+            {
+                titulo: 'Calendario',
+                href: '/calendario',
+                icono: CalendarDaysIcon,
+                // Sin el alias «calendario», que es su propio título, ni
+                // «obligaciones», que es el de la entrada de al lado: dos
+                // entradas que responden a la misma palabra dejan a la paleta
+                // sin poder desempatar.
+                alias: ['vencimientos', 'plazos', 'qué toca', 'agenda', 'próximos', 'mes'],
+            },
+            {
+                titulo: 'Obligaciones',
+                href: '/obligaciones',
+                icono: CalendarCheckIcon,
+                /*
+                 * Sin «auditoría interna» —título de `/auditorias`—, sin «ens»
+                 * —ya es de Sistemas— y sin «formación» ni «revisión», que son
+                 * títulos de otras entradas. Lo que queda son las palabras con
+                 * las que se busca esto y nada más: los nombres propios de cada
+                 * obligación.
+                 */
+                alias: ['periódicas', 'cadencia', 'ines', 'informe del estado de seguridad', 'renovación de conformidad', 'distintivo', 'seguimiento', 'compromisos'],
             },
             {
                 titulo: 'Auditorías',

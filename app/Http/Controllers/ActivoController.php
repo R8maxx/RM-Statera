@@ -20,6 +20,7 @@ use App\Domain\Autorizacion\Enums\Permiso;
 use App\Domain\Catalogo\Enums\Dimension;
 use App\Domain\Categorizacion\Enums\NivelDimension;
 use App\Domain\Categorizacion\ValoracionDimensiones;
+use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Riesgo\Models\Riesgo;
 use App\Domain\Sistema\Models\Sistema;
 use App\Http\Requests\GuardarActivoRequest;
@@ -596,6 +597,7 @@ class ActivoController extends Controller
             // escribir otra.
             'sistemasOperativos' => app(Obsolescencia::class)->sistemasOperativos(),
             'personas' => User::query()
+                ->where('organizacion_id', app(ContextoOrganizacion::class)->idObligatorio())
                 ->orderBy('name')
                 ->get()
                 ->map(fn (User $usuario): array => [

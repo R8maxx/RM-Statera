@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Resources;
 
 use App\Domain\Autorizacion\Enums\Permiso;
+use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Tarea\Coste;
 use App\Domain\Tarea\Enums\EstadoTarea;
 use App\Domain\Tarea\Enums\OrigenTarea;
@@ -148,6 +149,7 @@ final class TareaRecurso extends Recurso
                 OrigenTarea::cases(),
             )),
             Filtro::select('responsable_id', 'Responsable', fn (): array => User::query()
+                ->where('organizacion_id', app(ContextoOrganizacion::class)->idObligatorio())
                 ->orderBy('name')
                 ->get()
                 ->map(fn (User $usuario): Opcion => new Opcion((string) $usuario->id, $usuario->name))

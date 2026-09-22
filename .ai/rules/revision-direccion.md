@@ -204,11 +204,17 @@ Las cuatro van impresas en el acta, no sólo aquí:
   representada. Tampoco hay firma electrónica cualificada. `users` son cuentas de
   Statera y a una revisión por la dirección asiste gente que no tiene cuenta —§ 4.8
   no existe—.
-- **No se comprueba que la revisión se celebre con la periodicidad comprometida**:
-  se registran las que se convocan y no se avisa de la que falta. Ese aviso vive en
-  el § 4.16, y `Aviso\Fuente` sigue con tres casos. **No entra una `Fuente` nueva
-  aquí**: lo que vence es la revisión del acta aprobada, que `Fuente::Documento` ya
-  recoge — mismo argumento que dejó fuera al análisis del contexto.
+- ~~**No se comprueba que la revisión se celebre con la periodicidad
+  comprometida**~~. **El § 4.16 lo cierra**, y no con una `Fuente` nueva —lo que
+  vence es la revisión del acta aprobada, que `Fuente::Documento` ya recogía— sino
+  con una **obligación del catálogo**: `sgsi.revision-direccion`, que se cumple
+  registrando el acta. Ésa era justamente la mitad que ninguna fuente derivada
+  podía cubrir: lo que falta es la reunión que **no** se convocó, y de eso no hay
+  fila que consultar.
+
+  Lo que queda declarado es que **la periodicidad hay que declararla**: Statera no
+  la impone, porque ni ISO ni el ENS ponen un número. Sin compromiso asumido no hay
+  contra qué avisar, y la limitación impresa del acta lo dice con esas palabras.
 - **Desvincular una decisión de un acta firmada sí cambia** lo que la revisión
   siguiente verá como «acciones previas». El acta congeló las entradas, no las
   salidas.

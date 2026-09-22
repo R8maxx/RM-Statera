@@ -192,9 +192,14 @@ de este ciclo es `objetivos.aprobar`, y llegó con la 6.2: comprometerse a una c
 
 ### Lo que este módulo declara que no hace todavía
 
-- **No entra en el calendario de obligaciones.** El periodo que cierra sin medir es el rojo del
-  módulo y hoy sólo se ve en la tabla, en el panel y en la ficha: `Aviso\Fuente` sigue con sus tres
-  casos, así que ni el aviso diario ni la vista de mes lo recogen. Es trabajo aparte, y va declarado.
+- ~~**No entra en el calendario de obligaciones**~~. **Entra desde el § 4.16**: el periodo cerrado sin
+  medir es `Fuente::Indicador`, y sale en la vista de mes y en el aviso diario. La fecha es el fin de
+  ese periodo, calculada con `Periodicidad::periodoAnteriorA()` —la misma función que usa
+  `periodoSinMedir()`—, así que la regla sigue escrita una vez.
+
+  Lo que **no hace** es avisar de que el periodo en curso va a cerrar, ni pintar los periodos
+  anteriores: sólo el último cerrado. Avisar antes sería inventar un plazo al que nadie se comprometió,
+  que es lo mismo que el producto se niega a hacer con el CCN-CERT y con el riesgo residual.
 - **No comprueba que lo que se mide cubra lo que hay que medir.** La 9.1 a) pide determinar qué
   necesita seguimiento; Statera registra lo que se declare y no dice si falta algo.
 - ~~**No vincula indicadores con objetivos de seguridad**~~. Lo hace desde la 6.2, y la pivote es la

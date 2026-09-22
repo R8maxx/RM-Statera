@@ -1,0 +1,146 @@
+# Catálogo de obligaciones periódicas — § 4.16, el calendario de obligaciones
+#
+# Lo que hay que hacer cada tanto y **no sale de ningún registro**. El calendario
+# deriva de datos que ya existen los plazos de las tareas, la caducidad de las
+# evidencias, la revisión de un documento firmado, la formación que vence, el
+# periodo de un indicador que cierra sin medir y la fecha objetivo de una medida
+# del plan. Lo de aquí no se puede derivar de nada: lo que vence no es una fila
+# que exista, es una fila que debería existir y no está.
+#
+# ---------------------------------------------------------------------------
+# QUÉ HAY AQUÍ Y QUÉ NO
+#
+# Va lo periódico que la especificación enumera en su § 4.16 y que ningún módulo
+# produce por su cuenta. NO van las otras cinco cosas de esa lista, porque el
+# calendario ya las recoge sin que nadie las declare, y declararlas aquí pintaría
+# dos chips para un solo compromiso.
+#
+# Tampoco va la **reevaluación de proveedores**, que la § 4.16 sí lista: el § 4.9
+# no existe, la § 2.2 ya declara `proveedores.fecha_evaluacion` y
+# `proxima_evaluacion`, y crear el compromiso ahora obligaría a migrarlo cuando
+# llegue ese módulo. Queda dicho, que es lo que este proyecto hace con lo que aún
+# no puede afirmar.
+#
+# `periodicidad_meses` es **la sugerida**. Lo que manda es la que la organización
+# asume al aceptar la obligación, que puede ser más estricta: el catálogo propone
+# un mínimo, no impone un máximo.
+#
+# `categoria_minima` es la categoría ENS **a partir de la cual** muerde. Sin ella,
+# muerde siempre. Se compara contra la categoría del sistema, que se deriva de las
+# cinco dimensiones y no se marca a mano (invariante 4).
+#
+# ---------------------------------------------------------------------------
+# POR QUÉ `revisado: false`
+#
+# Por una sola cosa, y es de datos y no de modelo: **`base_legal` cita el
+# instrumento y el nombre de la obligación, no el artículo**. Las cláusulas de ISO
+# 27001 que aparecen —9.2, 9.3 y 8.2— sí están contrastadas contra la norma. La
+# numeración de artículos del RD 311/2022 está **pendiente de contraste celda a
+# celda con el texto consolidado de BOE-A-2022-7191**, que es el mismo trabajo que
+# ya se hizo con el Anexo II y del que salieron 73 celdas mal de 273.
+#
+# Una cita de artículo equivocada dentro de un entregable es peor que no citarlo:
+# un auditor respeta una limitación declarada y suspende una inventada. Así que
+# aquí no hay ningún número de artículo que no se pueda sostener.
+#
+# La periodicidad bienal de la renovación de la conformidad sale de la
+# especificación (§ 4.16, «no coincide con el ciclo de 3 años de ISO») y entra con
+# la misma advertencia.
+
+fuente: 'Especificación § 4.16; ISO/IEC 27001:2022 cláusulas 8.2, 9.2 y 9.3; Real Decreto 311/2022'
+revisado: false
+
+obligaciones:
+
+  # =========================================================================
+  # Las que piden los dos marcos con palabras distintas: sin `marco`, porque
+  # es la misma reunión y el mismo trabajo, y exigirlas dos veces sería
+  # exactamente el problema que este producto vino a resolver.
+  # =========================================================================
+
+  - codigo: sgsi.revision-direccion
+    nombre: Revisión por la dirección
+    descripcion: >-
+      Convocar la revisión del sistema de gestión con la dirección y levantar
+      acta. Lo que este compromiso vigila no es el acta —esa ya vence sola, por
+      su propia revisión— sino la reunión que no se convocó.
+    base_legal: 'ISO/IEC 27001:2022, cláusula 9.3'
+    periodicidad_meses: 12
+    referencia: revision_direccion
+    orden: 10
+
+  - codigo: sgsi.reevaluacion-riesgos
+    nombre: Reevaluación del análisis de riesgos
+    descripcion: >-
+      Volver a apreciar los riesgos a intervalos planificados. La periodicidad
+      que la organización tenga declarada en su metodología es la que debería
+      asumir aquí.
+    base_legal: 'ISO/IEC 27001:2022, cláusula 8.2'
+    periodicidad_meses: 12
+    orden: 20
+
+  # =========================================================================
+  # ISO 27001
+  # =========================================================================
+
+  - codigo: iso.auditoria-interna
+    nombre: Auditoría interna del SGSI
+    descripcion: >-
+      Ejecutar el programa de auditoría interna. El compromiso avisa de la que
+      toca; planificar su alcance, sus criterios y su método sigue siendo trabajo
+      de quien la programa.
+    base_legal: 'ISO/IEC 27001:2022, cláusula 9.2'
+    marco: ISO27001-2022
+    periodicidad_meses: 12
+    referencia: auditoria
+    orden: 30
+
+  - codigo: iso.auditoria-seguimiento
+    nombre: Auditoría de seguimiento de la certificación
+    descripcion: >-
+      La visita anual de la entidad de certificación entre una recertificación y
+      la siguiente. Sólo aplica a quien esté certificado.
+    base_legal: 'Ciclo de certificación, ISO/IEC 17021-1'
+    marco: ISO27001-2022
+    periodicidad_meses: 12
+    referencia: auditoria
+    orden: 40
+
+  # =========================================================================
+  # ENS
+  # =========================================================================
+
+  - codigo: ens.ines
+    nombre: Informe del estado de la seguridad (INES)
+    descripcion: >-
+      Reportar al CCN el estado de seguridad del sistema. Es donde se usa el
+      nivel de madurez L0–L5 que cada implantación ya guarda; Statera no genera
+      el informe, así que la prueba es el justificante de haberlo presentado.
+    base_legal: 'Real Decreto 311/2022, informe del estado de la seguridad'
+    marco: ENS-RD311-2022
+    periodicidad_meses: 12
+    orden: 50
+
+  - codigo: ens.conformidad
+    nombre: Renovación de la conformidad con el ENS
+    descripcion: >-
+      Renovar la Declaración de Conformidad en categoría básica, o la
+      Certificación en media y alta. Es bienal, y por eso no cae nunca en el
+      mismo año que la recertificación de ISO, que va a tres.
+    base_legal: 'Real Decreto 311/2022, conformidad con el Esquema Nacional de Seguridad'
+    marco: ENS-RD311-2022
+    periodicidad_meses: 24
+    referencia: documento
+    orden: 60
+
+  - codigo: ens.pruebas-continuidad
+    nombre: Pruebas de los planes de continuidad
+    descripcion: >-
+      Probar los planes y registrar el resultado. No es exigible en categoría
+      básica, así que hoy no se propone a nadie; entra sola el día que un sistema
+      alcance categoría media, sin migración y sin tocar el código.
+    base_legal: 'Real Decreto 311/2022, Anexo II, op.cont'
+    marco: ENS-RD311-2022
+    periodicidad_meses: 12
+    categoria_minima: media
+    orden: 70

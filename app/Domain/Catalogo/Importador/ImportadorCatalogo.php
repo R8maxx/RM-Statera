@@ -12,6 +12,8 @@ use App\Domain\Catalogo\Models\Marco;
 use App\Domain\Catalogo\Models\PerfilCumplimiento;
 use App\Domain\Catalogo\Models\Refuerzo;
 use App\Domain\Catalogo\Models\Requisito;
+use App\Domain\Obligacion\Enums\ReferenciaCumplimiento;
+use App\Domain\Obligacion\Models\Obligacion;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Riesgo\Enums\GrupoAmenaza;
 use App\Domain\Riesgo\Models\Amenaza;
@@ -50,16 +52,17 @@ final class ImportadorCatalogo
      *
      * @var list<string>
      */
-    private const RAICES = ['amenazas', 'mapeos', 'marco'];
+    private const RAICES = ['amenazas', 'mapeos', 'marco', 'obligaciones'];
 
-    private const ERROR_RAIZ = 'Falta la clave raíz. Se esperaba `marco`, `mapeos` o `amenazas`.';
+    private const ERROR_RAIZ = 'Falta la clave raíz. Se esperaba `marco`, `mapeos`, `amenazas` u `obligaciones`.';
 
     /**
      * Ficheros de un directorio en orden seguro de importación.
      *
      * **El orden no es alfabético, aunque lo parezca con los nombres de hoy.**
      * Primero las amenazas, que no referencian nada; después los que definen
-     * marcos; y al final los mapeos, que necesitan que ambos extremos existan.
+     * marcos; luego las obligaciones, que apuntan a un marco por su código; y al
+     * final los mapeos, que necesitan que ambos extremos existan.
      *
      * @return list<string>
      */
@@ -68,7 +71,7 @@ final class ImportadorCatalogo
         $ficheros = glob(rtrim($directorio, '/').'/*.{yaml,yml}', GLOB_BRACE) ?: [];
         sort($ficheros);
 
-        $porTipo = ['amenazas' => [], 'marco' => [], 'mapeos' => []];
+        $porTipo = ['amenazas' => [], 'marco' => [], 'obligaciones' => [], 'mapeos' => []];
 
         foreach ($ficheros as $fichero) {
             $tipo = $this->tipoDe($fichero);
@@ -79,7 +82,7 @@ final class ImportadorCatalogo
             $porTipo[array_key_exists($tipo, $porTipo) ? $tipo : 'marco'][] = $fichero;
         }
 
-        return [...$porTipo['amenazas'], ...$porTipo['marco'], ...$porTipo['mapeos']];
+        return [...$porTipo['amenazas'], ...$porTipo['marco'], ...$porTipo['obligaciones'], ...$porTipo['mapeos']];
     }
 
     public function importar(string $fichero, bool $simulacion = false): ResultadoImportacion
@@ -90,15 +93,18 @@ final class ImportadorCatalogo
 
         try {
             /*
-             * Un `match` y no un ternario: con tres tipos de fichero, un ternario
-             * convierte «la clave raíz está mal escrita» en «marco: el campo
-             * codigo es obligatorio», que no menciona la causa y manda a buscar
-             * al sitio equivocado. La rama final no se alcanza —`leer()` ya lo
-             * comprueba— y está para que añadir un cuarto tipo no vuelva a dejar
-             * un camino mudo.
+             * Un `match` y no un ternario: con cuatro tipos de fichero, un
+             * ternario convierte «la clave raíz está mal escrita» en «marco: el
+             * campo codigo es obligatorio», que no menciona la causa y manda a
+             * buscar al sitio equivocado. La rama final no se alcanza —`leer()`
+             * ya lo comprueba— y está para que añadir un tipo más no vuelva a
+             * dejar un camino mudo. El cuarto llegó con el § 4.16 y entró aquí,
+             * en `RAICES` y en `ficherosDe()`, que son los tres sitios que la
+             * lista de raíces existe para no multiplicar.
              */
             $resultado = match (true) {
                 array_key_exists('amenazas', $documento) => $this->importarAmenazas($fichero, $documento, $simulacion),
+                array_key_exists('obligaciones', $documento) => $this->importarObligaciones($fichero, $documento, $simulacion),
                 array_key_exists('mapeos', $documento) => $this->importarMapeos($fichero, $documento, $simulacion),
                 array_key_exists('marco', $documento) => $this->importarMarco($fichero, $documento, $simulacion),
                 default => throw new CatalogoInvalido($fichero, [self::ERROR_RAIZ]),
@@ -728,6 +734,226 @@ final class ImportadorCatalogo
         $resultado->riesgosAfectados = $this->contarRiesgosAfectados($resultado->retirados, $existentes);
 
         return $resultado;
+    }
+
+    /**
+     * El catálogo de obligaciones periódicas del § 4.16.
+     *
+     * Mismo contrato que los requisitos y las amenazas, y por los mismos motivos:
+     * empareja por clave natural (`codigo`), distingue lo modificado por huella y
+     * **no borra** lo que desaparece de una revisión, porque puede haber
+     * compromisos colgando de ello y el auditor preguntará por el histórico de
+     * haberlos cumplido.
+     *
+     * Lo propio suyo es `marco`, que llega por **código y no por id** —los ids son
+     * de la base, los códigos son del marco— y que puede venir vacío: la revisión
+     * por la dirección la piden ISO y el ENS con palabras distintas y es la misma
+     * reunión.
+     *
+     * @param  array<string, mixed>  $documento
+     */
+    private function importarObligaciones(string $fichero, array $documento, bool $simulacion): ResultadoImportacion
+    {
+        $crudas = $documento['obligaciones'] ?? null;
+
+        if (! is_array($crudas) || $crudas === []) {
+            throw new CatalogoInvalido($fichero, ['obligaciones: se esperaba una lista no vacía.']);
+        }
+
+        $referencias = array_map(
+            static fn (ReferenciaCumplimiento $referencia): string => $referencia->value,
+            ReferenciaCumplimiento::cases(),
+        );
+
+        $errores = [];
+        $planas = [];
+        $vistos = [];
+
+        /** @var array<string, int> $marcos */
+        $marcos = Marco::query()->pluck('id', 'codigo')->all();
+
+        foreach (array_values($crudas) as $indice => $obligacion) {
+            $donde = "obligaciones[{$indice}]";
+
+            if (! is_array($obligacion)) {
+                $errores[] = "{$donde}: se esperaba un mapa.";
+
+                continue;
+            }
+
+            $validador = Validator::make($obligacion, [
+                'codigo' => ['required', 'string', 'max:255'],
+                'nombre' => ['required', 'string', 'max:255'],
+                'descripcion' => ['nullable', 'string'],
+                'base_legal' => ['nullable', 'string', 'max:255'],
+                'marco' => ['nullable', 'string'],
+                'periodicidad_meses' => ['required', 'integer', 'between:1,120'],
+                'categoria_minima' => ['nullable', 'string', 'in:'.implode(',', self::CATEGORIAS)],
+                'referencia' => ['nullable', 'string', 'in:'.implode(',', $referencias)],
+                'orden' => ['nullable', 'integer', 'min:0'],
+            ]);
+
+            if ($validador->fails()) {
+                foreach ($validador->errors()->all() as $error) {
+                    $errores[] = "{$donde}: {$error}";
+                }
+
+                continue;
+            }
+
+            $codigo = (string) $obligacion['codigo'];
+
+            if (isset($vistos[$codigo])) {
+                $errores[] = "obligaciones: código duplicado [{$codigo}].";
+            }
+
+            $vistos[$codigo] = true;
+
+            $marco = isset($obligacion['marco']) ? (string) $obligacion['marco'] : null;
+
+            /*
+             * Un marco que no existe es un error y no un aviso: la obligación se
+             * guardaría sin él y se propondría a todo el mundo, incluidas las
+             * organizaciones que no están sujetas a ese marco. Callarlo sería
+             * exigir de más en silencio.
+             */
+            if ($marco !== null && ! array_key_exists($marco, $marcos)) {
+                $errores[] = "{$donde}: el marco [{$marco}] no existe. Impórtalo antes.";
+
+                continue;
+            }
+
+            $planas[] = [
+                'codigo' => $codigo,
+                'marco_id' => $marco === null ? null : $marcos[$marco],
+                'nombre' => (string) $obligacion['nombre'],
+                'descripcion' => isset($obligacion['descripcion']) ? (string) $obligacion['descripcion'] : null,
+                'base_legal' => isset($obligacion['base_legal']) ? (string) $obligacion['base_legal'] : null,
+                'periodicidad_meses_sugerida' => (int) $obligacion['periodicidad_meses'],
+                'categoria_minima' => isset($obligacion['categoria_minima']) ? (string) $obligacion['categoria_minima'] : null,
+                'referencia_sugerida' => isset($obligacion['referencia']) ? (string) $obligacion['referencia'] : null,
+                'orden' => isset($obligacion['orden']) ? (int) $obligacion['orden'] : $indice + 1,
+            ];
+        }
+
+        if ($errores !== []) {
+            throw new CatalogoInvalido($fichero, $errores);
+        }
+
+        $resultado = new ResultadoImportacion($fichero, 'obligaciones', $simulacion);
+
+        /** @var array<string, Obligacion> $existentes */
+        $existentes = Obligacion::query()->get()->keyBy('codigo')->all();
+
+        $importadas = [];
+
+        foreach ($planas as $plana) {
+            $codigo = $plana['codigo'];
+            $huella = hash('sha256', (string) json_encode($plana, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+
+            $atributos = [...$plana, 'huella' => $huella];
+            $existente = $existentes[$codigo] ?? null;
+
+            if ($existente === null) {
+                Obligacion::query()->create([...$atributos, 'vigente' => true, 'retirado_en' => null]);
+                $resultado->nuevos[] = $codigo;
+            } else {
+                if ($existente->huella === $huella && $existente->vigente) {
+                    $resultado->sinCambios++;
+                } else {
+                    if (! $existente->vigente) {
+                        $resultado->reactivados[] = $codigo;
+                    }
+
+                    if ($existente->huella !== $huella) {
+                        $resultado->modificados[] = [
+                            'codigo' => $codigo,
+                            'cambios' => $this->cambiosEnObligacion($existente, $atributos),
+                        ];
+                    }
+                }
+
+                $existente->fill([...$atributos, 'vigente' => true, 'retirado_en' => null])->save();
+            }
+
+            $importadas[$codigo] = true;
+        }
+
+        foreach (array_diff(array_keys($existentes), array_keys($importadas)) as $codigo) {
+            $obligacion = $existentes[$codigo];
+
+            if (! $obligacion->vigente) {
+                continue;
+            }
+
+            // No se borra: se marca. Puede haber compromisos colgando de ella, y
+            // con ellos el histórico de haberlos cumplido.
+            $obligacion->update(['vigente' => false, 'retirado_en' => Carbon::now()]);
+            $resultado->retirados[] = $codigo;
+        }
+
+        $resultado->compromisosAfectados = $this->contarCompromisosAfectados($resultado->retirados, $existentes);
+
+        return $resultado;
+    }
+
+    /**
+     * @param  array<string, mixed>  $nuevos
+     * @return list<string>
+     */
+    private function cambiosEnObligacion(Obligacion $existente, array $nuevos): array
+    {
+        $cambios = [];
+
+        $campos = [
+            'nombre',
+            'descripcion',
+            'base_legal',
+            'marco_id',
+            'periodicidad_meses_sugerida',
+            'orden',
+        ];
+
+        foreach ($campos as $campo) {
+            if ($existente->{$campo} != $nuevos[$campo]) {
+                $cambios[] = $campo;
+            }
+        }
+
+        foreach (['categoria_minima', 'referencia_sugerida'] as $campo) {
+            if ($existente->{$campo}?->value !== $nuevos[$campo]) {
+                $cambios[] = $campo;
+            }
+        }
+
+        return $cambios === [] ? ['huella'] : $cambios;
+    }
+
+    /**
+     * A cuántos compromisos afecta retirar estas obligaciones.
+     *
+     * Cruza organizaciones por definición —una obligación del catálogo global la
+     * asume quien quiera—, y por eso pasa por `comoMantenimiento()`, que es la
+     * única puerta que atraviesa las tres capas de aislamiento. Mismo caso que el
+     * recuento de implantaciones y el de riesgos.
+     *
+     * @param  list<string>  $retirados
+     * @param  array<string, Obligacion>  $existentes
+     */
+    private function contarCompromisosAfectados(array $retirados, array $existentes): int
+    {
+        if ($retirados === [] || ! Schema::hasTable('compromisos')) {
+            return 0;
+        }
+
+        $ids = array_values(array_map(
+            static fn (Obligacion $obligacion): int => $obligacion->id,
+            array_intersect_key($existentes, array_flip($retirados)),
+        ));
+
+        return app(ContextoOrganizacion::class)->comoMantenimiento(
+            fn (): int => DB::table('compromisos')->whereIn('obligacion_id', $ids)->count()
+        );
     }
 
     /**

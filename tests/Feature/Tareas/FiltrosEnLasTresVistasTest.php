@@ -17,6 +17,12 @@ use Inertia\Testing\AssertableInertia;
 | garantiza que enseñen lo mismo: con la condición escrita tres veces, la tabla
 | dice doce y el tablero nueve, y a partir de ahí nadie se fía de ninguna.
 |
+| **Siguen siendo tres, pero ya no son tres vistas del plan.** Con el § 4.16 el
+| calendario se mudó a `/calendario` y dejó de colgar de `/tareas`; el fichero
+| conserva el nombre porque lo que comprueba —que las tres superficies apliquen la
+| misma declaración de filtros— no ha cambiado, y el calendario sigue siendo la
+| que más lo necesita: su URL con el mes puesto es de las que se guardan.
+|
 */
 
 beforeEach(function (): void {
@@ -120,14 +126,18 @@ it('los chips dicen lo que se aplicó de verdad', function (): void {
 
 /**
  * El 400 por defecto de spatie convierte cualquier URL guardada en un error en
- * cuanto se renombra un filtro. Vale para las tres vistas.
+ * cuanto se renombra un filtro.
+ *
+ * Vale para las dos vistas del plan **y para el calendario**, que desde el § 4.16
+ * ya no es una de ellas: se quedó en este test porque la regla es la misma y la
+ * URL del mes es justamente de las que se guardan.
  */
 it('un filtro no declarado se ignora en vez de romper la petición', function (): void {
     Tarea::factory()->count(2)->create();
 
     $this->actingAs($this->usuario)->get('/tareas?filter[platano]=1')->assertOk();
     $this->actingAs($this->usuario)->get('/tareas/tablero?filter[platano]=1')->assertOk();
-    $this->actingAs($this->usuario)->get('/tareas/calendario?filter[platano]=1')->assertOk();
+    $this->actingAs($this->usuario)->get('/calendario?filter[platano]=1')->assertOk();
 });
 
 it('el tablero sigue respetando su ventana de cerradas al filtrar', function (): void {

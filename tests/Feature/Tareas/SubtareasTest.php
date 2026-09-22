@@ -263,6 +263,6 @@ it('las subtareas no salen en la tabla, ni en el tablero, ni en el calendario', 
         });
 
     $this->actingAs($this->usuario)
-        ->get('/tareas/calendario?mes=2026-09')
+        ->get('/calendario?mes=2026-09')
         ->assertInertia(fn (AssertableInertia $pagina) => $pagina->has('vencimientos', 1));
 });

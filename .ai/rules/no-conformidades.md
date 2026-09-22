@@ -141,9 +141,13 @@ sobre la persona no quita lo que hereda y el test pasaría por el motivo equivoc
 
 **Lo que este módulo declara que no hace todavía**, y está escrito además en la limitación de la DdA:
 el informe de auditoría interna como documento generado, el programa anual de auditoría, comprobar que
-el alcance auditado cubra lo exigible, y la cuarta `Fuente` del calendario de obligaciones —la
+el alcance auditado cubra lo exigible, y **su propia `Fuente` en el calendario de obligaciones** —la
 `fecha_prevista` de una no conformidad vence el mismo día que sus acciones correctivas, y el calendario
 pintaría tres chips para un solo compromiso—.
+
+> El ordinal se ha quitado. Decía «la cuarta `Fuente`» y con el § 4.16 pasó a haber siete, así que la
+> frase habría envejecido igual que la del plan de adecuación. El argumento —tres chips para un
+> compromiso— no depende del número y se queda; el número, no.
 
 **Y el § 4.17 se queda a un tercio.** El flujo de conformidad de categoría básica son tres pasos
 —autoevaluación → Declaración de Conformidad → publicación del distintivo— y de esos existe el primero:

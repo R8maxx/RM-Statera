@@ -2,8 +2,9 @@
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
 import EstadoVacio from '@/components/EstadoVacio.vue';
 import IconoTipo from '@/components/IconoTipo.vue';
+import FiltroFuentes from '@/components/calendario/FiltroFuentes.vue';
+import PanelDia from '@/components/calendario/PanelDia.vue';
 import BarraFiltros from '@/components/tabla/BarraFiltros.vue';
-import ConmutadorVista from '@/components/tarea/ConmutadorVista.vue';
 import { Button } from '@/components/ui/button';
 import { useFiltrosServidor } from '@/composables/useFiltrosServidor';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -65,7 +66,29 @@ const busqueda = computed<Filtro | null>(
     () => props.filtros.find((filtro) => filtro.tipo === 'busqueda') ?? null,
 );
 
-const sueltos = computed(() => props.filtros.filter((filtro) => filtro.tipo !== 'busqueda'));
+/*
+ * El filtro de fuente sale de aquí: sube a la fila de chips, que es a la vez
+ * filtro y leyenda. Calcularlo excluyéndolo —en vez de duplicar la lista— es lo
+ * que impide que el control acabe viviendo en dos sitios.
+ */
+const filtroFuente = computed<Filtro | null>(
+    () => props.filtros.find((filtro) => filtro.clave === 'fuente') ?? null,
+);
+
+const sueltos = computed(() =>
+    props.filtros.filter((filtro) => filtro.tipo !== 'busqueda' && filtro.clave !== 'fuente'),
+);
+
+/** Lo que el servidor aplicó de verdad, que es lo que marcan los chips. */
+const fuentesActivas = computed<string[]>(() => {
+    const aplicado = props.filtrosAplicados.fuente;
+
+    if (aplicado === undefined) {
+        return [];
+    }
+
+    return Array.isArray(aplicado) ? aplicado : [aplicado];
+});
 
 /** Lo que cae cada día, indexado por `Y-m-d`. */
 const porDia = computed(() => {
@@ -193,17 +216,18 @@ const entradaRejilla = computed(() => {
 
 <template>
     <AppLayout titulo="Calendario">
+        <!--
+            Sin conmutador de vistas: esto dejó de ser una de las tres formas de
+            mirar el plan de acción. Enseña vencimientos de siete registros
+            distintos, y el conmutador habría seguido diciendo que es del plan.
+        -->
         <CabeceraPagina
             titulo="Calendario"
-            descripcion="Qué hay que atender y cuándo: plazos de tareas y caducidades de evidencias en el mismo sitio."
-        >
-            <template #acciones>
-                <ConmutadorVista />
-            </template>
-        </CabeceraPagina>
+            descripcion="Todo lo que tiene fecha, en el mismo mes: plazos, caducidades, revisiones y lo periódico que la organización se ha declarado."
+        />
 
         <div class="flex flex-wrap items-center gap-2">
-            <Link :href="`/tareas/calendario?mes=${rejilla.anterior}`">
+            <Link :href="`/calendario?mes=${rejilla.anterior}`">
                 <Button variant="outline" size="icon-sm" aria-label="Mes anterior">
                     <ChevronLeftIcon class="size-4" />
                 </Button>
@@ -211,13 +235,13 @@ const entradaRejilla = computed(() => {
 
             <h2 class="min-w-48 text-base font-medium">{{ rejilla.etiqueta }}</h2>
 
-            <Link :href="`/tareas/calendario?mes=${rejilla.siguiente}`">
+            <Link :href="`/calendario?mes=${rejilla.siguiente}`">
                 <Button variant="outline" size="icon-sm" aria-label="Mes siguiente">
                     <ChevronRightIcon class="size-4" />
                 </Button>
             </Link>
 
-            <Link href="/tareas/calendario" class="ml-1">
+            <Link href="/calendario" class="ml-1">
                 <Button variant="ghost" size="sm">Hoy</Button>
             </Link>
 
@@ -234,6 +258,17 @@ const entradaRejilla = computed(() => {
             />
         </div>
 
+        <!--
+            Filtro y leyenda a la vez. Ver `FiltroFuentes`: con siete fuentes el
+            icono es el único canal que las separa, y esta fila es su clave.
+        -->
+        <FiltroFuentes
+            v-if="filtroFuente"
+            :filtro="filtroFuente"
+            :seleccionadas="fuentesActivas"
+            @aplicar="aplicarFiltro"
+        />
+
         <EstadoVacio
             v-if="vencimientos.length === 0"
             :icono="CalendarDaysIcon"
@@ -241,7 +276,7 @@ const entradaRejilla = computed(() => {
             :descripcion="
                 hayFiltrosActivos
                     ? 'Ningún vencimiento cumple estos filtros. Prueba a quitar alguno o cambia de mes.'
-                    : 'Ni plazos de tareas ni caducidades de evidencias. Cambia de mes para ver otros.'
+                    : 'Nada con fecha este mes. Cambia de mes para ver otros.'
             "
         />
 
@@ -313,16 +348,27 @@ const entradaRejilla = computed(() => {
                     <!--
                         Un tope por día, con su salida. Sin él, un día con doce
                         vencimientos estira la fila entera y el mes deja de caber
-                        en la pantalla.
+                        en la pantalla. La salida es un botón y no un párrafo: lo
+                        que esconde el tope tiene que tener puerta, y con el
+                        tabulador.
                     -->
-                    <p v-if="del(dia.dia).length > POR_DIA" class="mt-1 text-xs text-muted-foreground">
-                        y {{ del(dia.dia).length - POR_DIA }} más
-                    </p>
+                    <PanelDia
+                        v-if="del(dia.dia).length > POR_DIA"
+                        :dia="dia.dia"
+                        :vencimientos="del(dia.dia)"
+                        :ocultos="del(dia.dia).length - POR_DIA"
+                    />
                 </div>
             </motion.div>
 
-            <!-- § 3: leyenda siempre que haya dos tonos o más. -->
-            <ul v-if="leyenda.length > 1" class="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
+            <!--
+                § 3: leyenda siempre que haya dos tonos o más. Con rótulo, porque
+                ahora hay dos filas de claves y la de arriba dice QUÉ es la cosa:
+                sin él, ésta parecería más de lo mismo.
+            -->
+            <div v-if="leyenda.length > 1" class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+                <span class="text-xs font-medium text-muted-foreground">Cómo va</span>
+            <ul class="flex flex-wrap gap-x-4 gap-y-1.5">
                 <li
                     v-for="tramo in leyenda"
                     :key="tramo.tono"
@@ -332,6 +378,7 @@ const entradaRejilla = computed(() => {
                     {{ tramo.etiqueta }}
                 </li>
             </ul>
+            </div>
         </div>
 
         <!-- La agenda: la misma información, en la forma que cabe en un móvil. -->
@@ -360,9 +407,17 @@ const entradaRejilla = computed(() => {
             </ol>
         </div>
 
+        <!--
+            **Sin enumerar las fuentes.** El pie decía «se ven los plazos de las
+            tareas abiertas y las caducidades de las evidencias» y llevaba siendo
+            falso desde el § 4.5, sin que nadie lo notara. La enumeración la hace
+            la fila de chips, que se genera del enum: un recuento dentro de un
+            texto envejece cada vez que el producto crece.
+        -->
         <p class="mt-4 text-xs text-muted-foreground">
-            Se ven los plazos de las tareas abiertas y las caducidades de las evidencias. Cuando lleguen los
-            demás vencimientos periódicos —revisión por la dirección, auditoría interna— aparecerán aquí.
+            Lo periódico que no sale de ningún registro —el informe INES, la renovación de conformidad, las
+            auditorías— se declara en
+            <Link href="/obligaciones" class="underline underline-offset-2">Obligaciones</Link>.
         </p>
     </AppLayout>
 </template>

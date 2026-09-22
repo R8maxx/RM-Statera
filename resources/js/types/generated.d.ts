@@ -18,12 +18,12 @@ export type TipoHallazgo = 'nc_mayor' | 'nc_menor' | 'observacion' | 'oportunida
 }
 namespace Autorizacion {
 namespace Enums {
-export type Permiso = 'panel.ver' | 'contexto.ver' | 'contexto.gestionar' | 'contexto.aprobar' | 'sistemas.ver' | 'sistemas.gestionar' | 'sistemas.valorar' | 'implantaciones.ver' | 'implantaciones.gestionar' | 'evidencias.ver' | 'evidencias.gestionar' | 'activos.ver' | 'activos.gestionar' | 'riesgos.ver' | 'riesgos.gestionar' | 'riesgos.aceptar' | 'tareas.ver' | 'tareas.gestionar' | 'auditorias.ver' | 'auditorias.gestionar' | 'no_conformidades.ver' | 'no_conformidades.gestionar' | 'no_conformidades.verificar' | 'mejoras.ver' | 'mejoras.gestionar' | 'indicadores.ver' | 'indicadores.gestionar' | 'objetivos.ver' | 'objetivos.gestionar' | 'objetivos.aprobar' | 'personas.ver' | 'personas.gestionar' | 'personas.designar' | 'incidentes.ver' | 'incidentes.gestionar' | 'revision_direccion.ver' | 'revision_direccion.gestionar' | 'revision_direccion.aprobar' | 'documentos.ver' | 'documentos.generar' | 'documentos.aprobar' | 'documentos.redactar' | 'documentos.plantillas' | 'organizacion.gestionar';
+export type Permiso = 'panel.ver' | 'contexto.ver' | 'contexto.gestionar' | 'contexto.aprobar' | 'sistemas.ver' | 'sistemas.gestionar' | 'sistemas.valorar' | 'implantaciones.ver' | 'implantaciones.gestionar' | 'evidencias.ver' | 'evidencias.gestionar' | 'activos.ver' | 'activos.gestionar' | 'riesgos.ver' | 'riesgos.gestionar' | 'riesgos.aceptar' | 'tareas.ver' | 'tareas.gestionar' | 'auditorias.ver' | 'auditorias.gestionar' | 'no_conformidades.ver' | 'no_conformidades.gestionar' | 'no_conformidades.verificar' | 'mejoras.ver' | 'mejoras.gestionar' | 'indicadores.ver' | 'indicadores.gestionar' | 'objetivos.ver' | 'objetivos.gestionar' | 'objetivos.aprobar' | 'personas.ver' | 'personas.gestionar' | 'personas.designar' | 'incidentes.ver' | 'incidentes.gestionar' | 'revision_direccion.ver' | 'revision_direccion.gestionar' | 'revision_direccion.aprobar' | 'documentos.ver' | 'documentos.generar' | 'documentos.aprobar' | 'documentos.redactar' | 'documentos.plantillas' | 'organizacion.gestionar' | 'calendario.ver' | 'obligaciones.ver' | 'obligaciones.gestionar';
 export type Rol = 'responsable_seguridad' | 'tecnico' | 'auditor';
 }
 }
 namespace Aviso {
-export type Fuente = 'tarea' | 'evidencia' | 'documento';
+export type Fuente = 'tarea' | 'evidencia' | 'documento' | 'formacion' | 'indicador' | 'implantacion' | 'obligacion';
 export type Vencimiento = {
 readonly url: string,
 readonly icono: string,
@@ -119,6 +119,23 @@ export type OrigenNoConformidad = 'auditoria' | 'incidente' | 'revision_direccio
 namespace Objetivo {
 namespace Enums {
 export type EstadoObjetivo = 'propuesto' | 'aprobado' | 'alcanzado' | 'no_alcanzado' | 'retirado';
+}
+}
+namespace Obligacion {
+export type Referencia = {
+readonly tipo: App.Domain.Obligacion.Enums.ReferenciaCumplimiento,
+readonly id: number,
+readonly etiqueta: string,
+readonly icono: string,
+readonly url: string,
+};
+namespace Enums {
+export type ReferenciaCumplimiento = 'auditoria' | 'revision_direccion' | 'documento';
+}
+}
+namespace Organizacion {
+namespace Marca {
+export type PiezaDeMarca = 'logo' | 'simbolo';
 }
 }
 namespace Persona {
@@ -225,6 +242,7 @@ readonly filtros: Record<string, string | string[]>,
 export type Opcion = {
 readonly valor: string,
 readonly etiqueta: string,
+readonly icono: string | null,
 };
 export type ValorEnlace = {
 readonly etiqueta: string,
@@ -307,6 +325,13 @@ readonly filtro: string,
 readonly base: string,
 readonly ayuda: string | null,
 };
+export type ProximaObligacion = {
+readonly id: number,
+readonly titulo: string,
+readonly fecha: string,
+readonly dias: number,
+readonly cuando: string,
+};
 export type Reparto = {
 readonly clave: string,
 readonly etiqueta: string,
@@ -373,6 +398,14 @@ readonly vencidos: number,
 readonly sinIndicador: number,
 readonly sinActuacion: number,
 readonly porEstado: App.Http.Resources.Panel.Reparto[],
+};
+export type ResumenObligacionesPanel = {
+readonly total: number,
+readonly vencidas: number,
+readonly porVencer: number,
+readonly nuncaCumplidas: number,
+readonly sinResponsable: number,
+readonly proxima: App.Http.Resources.Panel.ProximaObligacion | null,
 };
 export type ResumenPanel = {
 readonly sistemas: number,

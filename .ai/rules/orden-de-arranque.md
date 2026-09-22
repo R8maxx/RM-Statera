@@ -109,8 +109,9 @@ El orden importa: el catálogo y el motor son la parte más específica del domi
     inmutabilidad y el octavo verbo de supervisión.
 
     Lo que **sigue abierto de la fase 3**: el calendario de obligaciones completo
-    (§ 4.16), del que hoy existen tres `Fuente` de las once que enumera la
-    especificación, y los otros dos tercios del flujo de conformidad (§ 4.17).
+    (§ 4.16) —cerrado en el punto 24— y la continuidad (§ 4.11), más los otros dos
+    tercios del flujo de conformidad (§ 4.17), que la especificación no asigna a
+    esta fase.
 
 18. ✅ Personas (§ 4.8) y la cláusula 5.3. **El primero de los dos módulos que
     muerden hoy**: en categoría básica ya son exigibles `mp.per.2`, `mp.per.3` y
@@ -197,3 +198,41 @@ El orden importa: el catálogo y el motor son la parte más específica del domi
     Trae la primera dependencia de seguridad del repositorio,
     `enshrined/svg-sanitize`, porque un logo corporativo llega en SVG y eso es un
     documento XML.
+
+24. ✅ El calendario de obligaciones (§ 4.16). **El módulo que más módulos tenían
+    esperando**: cinco ficheros de reglas lo citaban por su nombre en su sección de
+    limitaciones —personas, métricas, documentos, revisión por la dirección y el
+    propio plan de acción—, y tres de esas limitaciones iban impresas en PDF que se
+    le entregan a un auditor.
+
+    La decisión del módulo no son las fuentes: es **haber visto que son dos mitades
+    y que ninguna sustituye a la otra**. Seis de las once cosas periódicas que
+    enumera la especificación se derivan de datos que ya existían —la fecha límite
+    de una tarea, la caducidad de una evidencia, la revisión de una versión
+    firmada, la última formación de una persona, el periodo de un indicador, la
+    fecha objetivo de una medida— y entraron como `Fuente`, sin una columna nueva.
+    Las otras cinco **no tienen de dónde derivarse**: lo que vence en el informe
+    INES no es una fila que exista, es una fila que debería existir y no está. Una
+    `Fuente` más no lo resuelve porque no hay nada que consultar, y por eso hay
+    tres tablas.
+
+    Es además el módulo que cierra **el hueco que el acta de la revisión por la
+    dirección llevaba impreso**: «no se comprueba que la revisión se celebre con la
+    periodicidad comprometida». No se cerró con una `Fuente` —lo que vence es la
+    revisión del acta aprobada, que `Fuente::Documento` ya recogía— sino con una
+    fila del catálogo: lo que faltaba era avisar de la reunión que **no** se
+    convocó.
+
+    Lo que lo hace barato de crecer es que las obligaciones son **datos**: siete
+    casos de `Fuente` y no once, porque el informe INES, la renovación de
+    conformidad y la auditoría de seguimiento son filas de `catalogo/obligaciones.yaml`
+    y no casos de un enum. Añadir la reevaluación de proveedores el día que llegue
+    el § 4.9 es una línea de YAML.
+
+    Y trae dos hallazgos que no eran del módulo. El primero, **doce `User::query()`
+    sin acotar por organización** en seis módulos —controlador y `Recurso` de cada
+    uno—, que listaban a los usuarios de todos los clientes en el desplegable de
+    responsable; los otros diecinueve sitios sí lo hacían y uno lo llevaba
+    comentado, así que lo que faltaba no era disciplina sino un test. El segundo,
+    que el rótulo del importador de catálogo salía por defecto como «mapeos» para
+    cualquier fichero sin marco: el cuarto tipo lo puso en evidencia.

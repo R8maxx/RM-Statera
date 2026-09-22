@@ -75,8 +75,11 @@ const nombreAccesible = computed(() => props.titulo ?? props.filtro.etiqueta);
 const opciones = computed<Opcion[]>(() =>
     props.filtro.tipo === 'booleano'
         ? [
-              { valor: '1', etiqueta: 'Sí' },
-              { valor: '0', etiqueta: 'No' },
+              // `icono: null` explícito: `Opcion` lo lleva desde que el § 4.16
+              // necesitó que los chips de fuente del calendario trajeran el del
+              // dominio. Un booleano no tiene icono y aquí se dice.
+              { valor: '1', etiqueta: 'Sí', icono: null },
+              { valor: '0', etiqueta: 'No', icono: null },
           ]
         : props.filtro.opciones,
 );

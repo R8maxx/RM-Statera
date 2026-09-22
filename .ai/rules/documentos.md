@@ -282,10 +282,15 @@ mensaje de `GuardarDocumentoRequest` decía «La %s es de %s», que con un tipo 
 ENS» (y el «de el ENS» ya estaba mal antes).
 
 **Lo que el plan declara que no hace**: no contrasta plazos contra capacidad, no ordena las medidas por
-dependencia, no exige que toda medida pendiente tenga fecha o responsable, y **el calendario de
-obligaciones todavía no incluye las fechas objetivo** — el aviso diario y la vista de mes siguen
-recogiendo sólo tareas y evidencias. Esa cuarta `Fuente` es un trabajo aparte; mientras tanto va
-declarada, que es lo que este proyecto hace con lo que aún no puede afirmar.
+dependencia y no exige que toda medida pendiente tenga fecha o responsable.
+
+~~Y el calendario de obligaciones todavía no incluye las fechas objetivo~~: **las incluye desde el
+§ 4.16**, con `Fuente::Implantacion`, y la limitación impresa se reescribió. De paso, aquella frase
+llevaba **dos** cosas falsas: decía que el aviso diario recogía «sólo tareas y evidencias» cuando
+`Fuente::Documento` existía desde el propio § 4.5, y llamaba «cuarta» a una fuente que ya era la quinta.
+Es la misma lección que `Aviso\Fuente` tiene escrita en su cabecera —un recuento dentro de un comentario
+envejece cada vez que el producto crece—, y por eso la frase nueva declara **lo que falta** y no lo que
+hay.
 
 ```sh
 php artisan documentos:generar PLA-ENS-01 --html   # sigue siendo el bucle rápido

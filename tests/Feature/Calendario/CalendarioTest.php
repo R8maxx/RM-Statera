@@ -2,13 +2,27 @@
 
 declare(strict_types=1);
 
+use App\Domain\Autorizacion\Enums\Permiso;
 use App\Domain\Autorizacion\Enums\Rol;
+use App\Domain\Aviso\CalendarioVencimientos;
+use App\Domain\Aviso\FiltrosVencimiento;
+use App\Domain\Aviso\Fuente;
+use App\Domain\Documento\Models\Documento;
+use App\Domain\Documento\Models\DocumentoVersion;
 use App\Domain\Evidencia\Models\Evidencia;
+use App\Domain\Implantacion\Enums\EstadoImplantacion;
+use App\Domain\Implantacion\Models\Implantacion;
+use App\Domain\Metrica\Models\Indicador;
+use App\Domain\Obligacion\Models\Compromiso;
 use App\Domain\Organizacion\Models\Organizacion;
+use App\Domain\Persona\Models\AccionFormativa;
+use App\Domain\Persona\Models\Persona;
 use App\Domain\Tarea\Enums\EstadoTarea;
 use App\Domain\Tarea\Models\Tarea;
 use Illuminate\Support\Carbon;
 use Inertia\Testing\AssertableInertia;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 /*
 |--------------------------------------------------------------------------
@@ -37,7 +51,7 @@ function vencimientosDe(string $mes, array $filtros = []): array
         ->implode('&');
 
     test()->actingAs(test()->usuario)
-        ->get("/tareas/calendario?mes={$mes}".($query === '' ? '' : "&{$query}"))
+        ->get("/calendario?mes={$mes}".($query === '' ? '' : "&{$query}"))
         ->assertOk()
         ->assertInertia(function (AssertableInertia $pagina) use (&$vencimientos): void {
             $vencimientos = $pagina->toArray()['props']['vencimientos'];
@@ -102,16 +116,16 @@ it('no enseña el plazo de una tarea ya cerrada', function (): void {
 
 it('un mes que no se entiende no rompe la pantalla', function (string $basura): void {
     $this->actingAs($this->usuario)
-        ->get('/tareas/calendario?mes='.urlencode($basura))
+        ->get('/calendario?mes='.urlencode($basura))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $pagina) => $pagina
-            ->component('tareas/Calendario')
+            ->component('calendario/Index')
             ->where('rejilla.mes', Carbon::today()->format('Y-m')));
 })->with(['2026-13', 'septiembre', "2026-09'; DROP TABLE tareas;--", '']);
 
 it('la rejilla siempre trae seis semanas', function (): void {
     $this->actingAs($this->usuario)
-        ->get('/tareas/calendario?mes=2026-02')
+        ->get('/calendario?mes=2026-02')
         ->assertInertia(fn (AssertableInertia $pagina) => $pagina->has('rejilla.dias', 42));
 });
 
@@ -131,7 +145,7 @@ it('no cruza la frontera de organización', function (): void {
 
 it('el auditor puede mirarlo', function (): void {
     $this->actingAs(usuarioCon(Rol::Auditor))
-        ->get('/tareas/calendario')
+        ->get('/calendario')
         ->assertOk();
 });
 
@@ -208,7 +222,7 @@ it('un filtro con basura se ignora en vez de romper', function (): void {
     Tarea::factory()->paraElDia('2026-09-10')->create();
 
     $this->actingAs($this->usuario)
-        ->get('/tareas/calendario?mes=2026-09&filter[fuente]=platano&filter[responsable_id]=hola')
+        ->get('/calendario?mes=2026-09&filter[fuente]=platano&filter[responsable_id]=hola')
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $pagina) => $pagina->has('vencimientos', 1));
 });
@@ -274,4 +288,173 @@ it('ningún estado que no sea vencido gasta el rojo', function (): void {
     }
 
     Carbon::setTestNow();
+});
+
+/*
+|--------------------------------------------------------------------------
+| Las siete fuentes, descubiertas y no enumeradas
+|--------------------------------------------------------------------------
+|
+| Los tres tests de arriba enumeran tareas y evidencias, y con dos fuentes eso
+| valía. Con siete, enumerar es exactamente cómo se cuela una: la fuente nueva se
+| escribe, nadie amplía el test, y el día que gaste rojo sin estar vencida nadie
+| se entera.
+|
+| Estos recorren `Fuente::cases()`. Un caso nuevo sin sembrar **pone la suite en
+| rojo con su nombre**, que es lo que obliga a extender el sembrador y con él la
+| comprobación.
+|
+*/
+
+/** Siembra algo de esta fuente, pasado de fecha o en plazo. */
+function sembrarVencimiento(Fuente $fuente, bool $pasado): void
+{
+    $dias = $pasado ? -20 : 20;
+    $fecha = Carbon::today()->addDays($dias);
+
+    match ($fuente) {
+        Fuente::Tarea => Tarea::factory()->paraElDia($fecha->toDateString())->create(),
+
+        Fuente::Evidencia => Evidencia::factory()->create(['fecha_caducidad' => $fecha]),
+
+        Fuente::Documento => DocumentoVersion::factory()
+            ->delDocumento(Documento::factory()->politica()->create([
+                'codigo' => 'POL-'.fake()->unique()->numerify('####'),
+            ])->id)
+            ->emitida()
+            ->create(['fecha_proxima_revision' => $fecha]),
+
+        /*
+         * La formación vence doce meses después de la última asistencia, así que
+         * lo que se coloca es la sesión: la fecha del chip sale de ahí.
+         */
+        Fuente::Formacion => (function () use ($fecha): void {
+            $persona = Persona::factory()->create();
+            $accion = AccionFormativa::factory()->create([
+                'fecha' => $fecha->copy()->subMonths(Persona::MESES_DE_VIGENCIA_FORMATIVA),
+            ]);
+
+            $persona->asistencias()->create([
+                'accion_formativa_id' => $accion->id,
+                'asistio' => true,
+            ]);
+        })(),
+
+        /*
+         * Un indicador no tiene mitad «en plazo»: lo que se pinta es el periodo
+         * que YA cerró sin medición, y eso es siempre pasado. Va declarado en
+         * `Fuente::Indicador`, y por eso en plazo no se siembra nada.
+         */
+        Fuente::Indicador => $pasado ? Indicador::factory()->create() : null,
+
+        Fuente::Implantacion => Implantacion::factory()->create([
+            'estado' => EstadoImplantacion::NoIniciado->value,
+            'fecha_objetivo' => $fecha,
+        ]),
+
+        Fuente::Obligacion => Compromiso::factory()
+            ->cada(12)
+            ->create(['computa_desde' => $fecha->copy()->subYear()]),
+    };
+}
+
+/** Lo que el calendario devuelve en una ventana ancha, sin filtros. */
+function todosLosVencimientos(): array
+{
+    return app(CalendarioVencimientos::class)->entre(
+        Carbon::today()->subYears(3),
+        Carbon::today()->addYears(3),
+        FiltrosVencimiento::ninguno(),
+    );
+}
+
+it('toda fuente pasada de fecha se pinta en rojo', function (): void {
+    foreach (Fuente::cases() as $fuente) {
+        sembrarVencimiento($fuente, pasado: true);
+    }
+
+    $porFuente = collect(todosLosVencimientos())->groupBy(fn ($v): string => $v->fuente->value);
+
+    foreach (Fuente::cases() as $fuente) {
+        expect($porFuente->has($fuente->value))->toBeTrue(
+            "La fuente `{$fuente->value}` no produjo ningún vencimiento: amplía `sembrarVencimiento()`.",
+        );
+
+        foreach ($porFuente[$fuente->value] as $vencimiento) {
+            expect($vencimiento->estadoTono)->toBe(
+                'caducada',
+                "Un `{$fuente->value}` pasado de fecha no se pintó en rojo.",
+            );
+        }
+    }
+});
+
+it('ninguna fuente en plazo gasta el rojo', function (): void {
+    foreach (Fuente::cases() as $fuente) {
+        sembrarVencimiento($fuente, pasado: false);
+    }
+
+    foreach (todosLosVencimientos() as $vencimiento) {
+        expect($vencimiento->estadoTono)->not->toBe(
+            'caducada',
+            "Un `{$vencimiento->fuente->value}` en plazo gastó el rojo, que es sólo del plazo.",
+        );
+    }
+});
+
+/*
+|--------------------------------------------------------------------------
+| Cada fuente va con el permiso de su módulo
+|--------------------------------------------------------------------------
+|
+| La rejilla enseña siete registros con una sola llave, así que `calendario.ver`
+| no basta: sin esto sería una puerta lateral a seis módulos. El permiso se
+| quita **al rol** y no al usuario, porque `revokePermissionTo` sobre la persona
+| no quita lo que hereda y el test pasaría por el motivo equivocado.
+|
+*/
+
+it('quien no puede ver un módulo no ve sus chips', function (): void {
+    Tarea::factory()->paraElDia(Carbon::today()->addDays(5)->toDateString())->create();
+    Indicador::factory()->create();
+
+    $rol = Role::query()
+        ->where('name', Rol::ResponsableSeguridad->value)
+        ->where('organizacion_id', $this->organizacion->id)
+        ->firstOrFail();
+
+    $rol->revokePermissionTo(Permiso::IndicadoresVer->value);
+
+    app()->forgetInstance(PermissionRegistrar::class);
+    app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+    $mes = Carbon::today()->format('Y-m');
+
+    $this->actingAs($this->usuario->fresh())
+        ->get("/calendario?mes={$mes}")
+        ->assertOk()
+        ->assertInertia(function (AssertableInertia $pagina): void {
+            $fuentes = array_column($pagina->toArray()['props']['vencimientos'], 'fuente');
+
+            expect($fuentes)->not->toContain('indicador');
+
+            $opciones = collect($pagina->toArray()['props']['filtros'])
+                ->firstWhere('clave', 'fuente')['opciones'];
+
+            expect(array_column($opciones, 'valor'))->not->toContain('indicador');
+        });
+});
+
+/**
+ * La URL del mes se guarda y se comparte, así que la ruta vieja no puede
+ * devolver un 404: eso convertiría en error una dirección que alguien pegó en un
+ * correo. **302 y no 301**, porque un 301 lo cachea el navegador para siempre y
+ * el día que esto tenga que cambiar no hay forma de purgarlo.
+ */
+it('la ruta vieja redirige conservando el mes', function (): void {
+    $this->actingAs($this->usuario)
+        ->get('/tareas/calendario?mes=2026-11&filter[vencidos]=1')
+        ->assertStatus(302)
+        ->assertRedirectContains('/calendario')
+        ->assertRedirectContains('mes=2026-11');
 });

@@ -3,14 +3,21 @@
 declare(strict_types=1);
 
 use App\Domain\Autorizacion\Enums\Rol;
+use App\Domain\Aviso\Fuente;
 use App\Domain\Aviso\Notifications\VencimientosDelDia;
 use App\Domain\Aviso\ResumenVencimientos;
 use App\Domain\Documento\Models\Documento;
 use App\Domain\Documento\Models\DocumentoVersion;
 use App\Domain\Documento\ResumenDocumental;
 use App\Domain\Evidencia\Models\Evidencia;
+use App\Domain\Implantacion\Enums\EstadoImplantacion;
+use App\Domain\Implantacion\Models\Implantacion;
+use App\Domain\Metrica\Models\Indicador;
+use App\Domain\Obligacion\Models\Compromiso;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Organizacion\Models\Organizacion;
+use App\Domain\Persona\Models\AccionFormativa;
+use App\Domain\Persona\Models\Persona;
 use App\Domain\Tarea\Enums\EstadoTarea;
 use App\Domain\Tarea\Models\Tarea;
 use Illuminate\Support\Carbon;
@@ -44,11 +51,11 @@ it('reparte lo caducado de lo que está por caducar', function (): void {
 
     $vencimientos = app(ResumenVencimientos::class)();
 
-    expect($vencimientos->evidenciasCaducadas)->toHaveCount(1)
-        ->and($vencimientos->evidenciasPorCaducar)->toHaveCount(1)
-        ->and($vencimientos->evidenciasCaducadas[0]->titulo)->toBe('Certificado vencido')
-        ->and($vencimientos->evidenciasCaducadas[0]->cuando('caduca', 'caducó'))->toBe('caducó hace 4 días')
-        ->and($vencimientos->evidenciasPorCaducar[0]->cuando('caduca', 'caducó'))->toBe('caduca en 10 días');
+    expect($vencimientos->pasadosDe(Fuente::Evidencia))->toHaveCount(1)
+        ->and($vencimientos->proximosDe(Fuente::Evidencia))->toHaveCount(1)
+        ->and($vencimientos->pasadosDe(Fuente::Evidencia)[0]->titulo)->toBe('Certificado vencido')
+        ->and($vencimientos->pasadosDe(Fuente::Evidencia)[0]->cuando('caduca', 'caducó'))->toBe('caducó hace 4 días')
+        ->and($vencimientos->proximosDe(Fuente::Evidencia)[0]->cuando('caduca', 'caducó'))->toBe('caduca en 10 días');
 });
 
 it('la que caduca hoy cuenta como por caducar, no como caducada', function (): void {
@@ -56,9 +63,9 @@ it('la que caduca hoy cuenta como por caducar, no como caducada', function (): v
 
     $vencimientos = app(ResumenVencimientos::class)();
 
-    expect($vencimientos->evidenciasCaducadas)->toBeEmpty()
-        ->and($vencimientos->evidenciasPorCaducar)->toHaveCount(1)
-        ->and($vencimientos->evidenciasPorCaducar[0]->cuando('caduca', 'caducó'))->toBe('caduca hoy');
+    expect($vencimientos->pasadosDe(Fuente::Evidencia))->toBeEmpty()
+        ->and($vencimientos->proximosDe(Fuente::Evidencia))->toHaveCount(1)
+        ->and($vencimientos->proximosDe(Fuente::Evidencia)[0]->cuando('caduca', 'caducó'))->toBe('caduca hoy');
 });
 
 it('avisa al responsable de seguridad y no al técnico', function (): void {
@@ -159,11 +166,11 @@ it('cuenta las tareas vencidas aparte de las evidencias caducadas', function ():
 
     $vencimientos = app(ResumenVencimientos::class)();
 
-    expect($vencimientos->evidenciasCaducadas)->toHaveCount(1)
-        ->and($vencimientos->tareasVencidas)->toHaveCount(1)
-        ->and($vencimientos->tareasPorVencer)->toHaveCount(1)
+    expect($vencimientos->pasadosDe(Fuente::Evidencia))->toHaveCount(1)
+        ->and($vencimientos->pasadosDe(Fuente::Tarea))->toHaveCount(1)
+        ->and($vencimientos->proximosDe(Fuente::Tarea))->toHaveCount(1)
         ->and($vencimientos->pasados())->toBe(2)
-        ->and($vencimientos->tareasVencidas[0]->cuando())->toBe('venció hace 5 días');
+        ->and($vencimientos->pasadosDe(Fuente::Tarea)[0]->cuando())->toBe('venció hace 5 días');
 });
 
 /**
@@ -217,8 +224,8 @@ it('la tarea de otra organización tampoco cruza', function (): void {
 
     $vencimientos = app(ResumenVencimientos::class)();
 
-    expect($vencimientos->tareasVencidas)->toHaveCount(1)
-        ->and($vencimientos->tareasVencidas[0]->titulo)->toBe('Tarea propia');
+    expect($vencimientos->pasadosDe(Fuente::Tarea))->toHaveCount(1)
+        ->and($vencimientos->pasadosDe(Fuente::Tarea)[0]->titulo)->toBe('Tarea propia');
 });
 
 /**
@@ -288,10 +295,10 @@ it('separa la revisión vencida de la que toca pronto', function (): void {
 
     $vencimientos = app(ResumenVencimientos::class)();
 
-    expect($vencimientos->documentosRevisionVencida)->toHaveCount(1)
-        ->and($vencimientos->documentosPorRevisar)->toHaveCount(1)
-        ->and($vencimientos->documentosRevisionVencida[0]->titulo)->toContain('Política vieja')
-        ->and($vencimientos->documentosRevisionVencida[0]->cuando('toca revisar', 'tocaba revisar'))
+    expect($vencimientos->pasadosDe(Fuente::Documento))->toHaveCount(1)
+        ->and($vencimientos->proximosDe(Fuente::Documento))->toHaveCount(1)
+        ->and($vencimientos->pasadosDe(Fuente::Documento)[0]->titulo)->toContain('Política vieja')
+        ->and($vencimientos->pasadosDe(Fuente::Documento)[0]->cuando('toca revisar', 'tocaba revisar'))
         ->toBe('tocaba revisar hace 10 días');
 });
 
@@ -309,8 +316,8 @@ it('un documento sin versión aprobada no vence', function (): void {
 
     $vencimientos = app(ResumenVencimientos::class)();
 
-    expect($vencimientos->documentosRevisionVencida)->toBeEmpty()
-        ->and($vencimientos->documentosPorRevisar)->toBeEmpty();
+    expect($vencimientos->pasadosDe(Fuente::Documento))->toBeEmpty()
+        ->and($vencimientos->proximosDe(Fuente::Documento))->toBeEmpty();
 });
 
 it('el correo nombra la revisión documental en su propio bloque', function (): void {
@@ -338,7 +345,7 @@ it('el documento de otra organización tampoco cruza', function (): void {
 
     comoOrganizacion($this->organizacion);
 
-    expect(app(ResumenVencimientos::class)()->documentosRevisionVencida)->toBeEmpty();
+    expect(app(ResumenVencimientos::class)()->pasadosDe(Fuente::Documento))->toBeEmpty();
 });
 
 /**
@@ -352,5 +359,85 @@ it('el indicador de la tabla cuenta lo mismo que el aviso', function (): void {
     $alertas = collect(app(ResumenDocumental::class)->alertas())->keyBy('clave');
 
     expect($alertas['revision_vencida']->valor)
-        ->toBe(count(app(ResumenVencimientos::class)()->documentosRevisionVencida));
+        ->toBe(count(app(ResumenVencimientos::class)()->pasadosDe(Fuente::Documento)));
 });
+
+/*
+|--------------------------------------------------------------------------
+| El recuento no se olvida de ninguna fuente
+|--------------------------------------------------------------------------
+|
+| `Vencimientos` tenía seis propiedades fijas y `pasados()` las sumaba a mano.
+| Con siete fuentes serían catorce, y olvidar una **no rompe nada**: el asunto
+| del correo diría «3 cosas pasadas de fecha» habiendo 9, que es el fallo más
+| caro del módulo porque no falla.
+|
+| Este test lo cierra recorriendo `Fuente::cases()`. Una fuente nueva sin sembrar
+| pone la suite en rojo con su nombre.
+|
+*/
+
+it('el recuento de lo pasado incluye todas las fuentes', function (): void {
+    foreach (Fuente::cases() as $fuente) {
+        sembrarPasadoDe($fuente);
+    }
+
+    $vencimientos = app(ResumenVencimientos::class)();
+
+    foreach (Fuente::cases() as $fuente) {
+        expect($vencimientos->pasadosDe($fuente))->not->toBeEmpty(
+            "La fuente `{$fuente->value}` no produjo nada pasado de fecha: amplía `sembrarPasadoDe()`.",
+        );
+    }
+
+    expect($vencimientos->pasados())->toBe(count(Fuente::cases()));
+});
+
+it('el correo abre un bloque por cada fuente que trae algo', function (): void {
+    foreach (Fuente::cases() as $fuente) {
+        sembrarPasadoDe($fuente);
+    }
+
+    $correo = (new VencimientosDelDia('Tal S.L.', app(ResumenVencimientos::class)()))
+        ->toMail(new stdClass);
+
+    $texto = implode(' ', $correo->introLines);
+
+    foreach (Fuente::cases() as $fuente) {
+        expect($texto)->toContain($fuente->tituloPasados());
+    }
+});
+
+/** Una cosa pasada de fecha de esta fuente, y exactamente una. */
+function sembrarPasadoDe(Fuente $fuente): void
+{
+    $fecha = Carbon::today()->subDays(20);
+
+    match ($fuente) {
+        Fuente::Tarea => Tarea::factory()->create(['fecha_limite' => $fecha]),
+
+        Fuente::Evidencia => Evidencia::factory()->create(['fecha_caducidad' => $fecha]),
+
+        Fuente::Documento => politicaAprobadaCon($fecha, 'Política pasada'),
+
+        Fuente::Formacion => (function () use ($fecha): void {
+            $persona = Persona::factory()->create();
+            $accion = AccionFormativa::factory()->create([
+                'fecha' => $fecha->copy()->subMonths(Persona::MESES_DE_VIGENCIA_FORMATIVA),
+            ]);
+
+            $persona->asistencias()->create(['accion_formativa_id' => $accion->id, 'asistio' => true]);
+        })(),
+
+        Fuente::Indicador => Indicador::factory()->create(),
+
+        Fuente::Implantacion => Implantacion::factory()->create([
+            'estado' => EstadoImplantacion::NoIniciado->value,
+            'fecha_objetivo' => $fecha,
+        ]),
+
+        Fuente::Obligacion => Compromiso::factory()->cada(12)->create([
+            'computa_desde' => $fecha->copy()->subYear(),
+        ]),
+    };
+}

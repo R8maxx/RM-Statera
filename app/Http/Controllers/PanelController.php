@@ -13,6 +13,7 @@ use App\Domain\Incidente\RegistroIncidentes;
 use App\Domain\Metrica\RegistroIndicadores;
 use App\Domain\NoConformidad\RegistroNoConformidades;
 use App\Domain\Objetivo\RegistroObjetivos;
+use App\Domain\Obligacion\RegistroObligaciones;
 use App\Domain\Panel\AlertasDelPanel;
 use App\Domain\Persona\RegistroPersonas;
 use App\Domain\Sistema\Models\Sistema;
@@ -106,6 +107,7 @@ class PanelController extends Controller
         RegistroIncidentes $incidentes,
         RegistroIndicadores $indicadores,
         RegistroObjetivos $objetivos,
+        RegistroObligaciones $obligaciones,
         AlertasDelPanel $alertas,
     ): Response {
         return Inertia::render('panel/Ciclo', [
@@ -127,6 +129,14 @@ class PanelController extends Controller
                 : null,
             'objetivos' => $this->puede(Permiso::ObjetivosVer)
                 ? $objetivos->paraElPanel()
+                : null,
+            /*
+             * Detrás del plan: es la misma pregunta —qué hay abierto y para
+             * cuándo— con otra cadencia. Lo del plan se decidió esta semana; esto
+             * se decidió una vez y vuelve solo cada doce o veinticuatro meses.
+             */
+            'obligaciones' => $this->puede(Permiso::ObligacionesVer)
+                ? $obligaciones->paraElPanel()
                 : null,
         ]);
     }

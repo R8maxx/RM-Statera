@@ -9,6 +9,7 @@ use App\Domain\Evidencia\Enums\TipoEvidencia;
 use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Evidencia\RegistrarEvidencia;
 use App\Domain\Implantacion\Models\Implantacion;
+use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Http\Requests\GuardarEvidenciaRequest;
 use App\Http\Resources\Concerns\RespondeConRecurso;
 use App\Http\Resources\EvidenciaRecurso;
@@ -193,6 +194,7 @@ class EvidenciaController extends Controller
                 PeriodicidadRenovacion::cases(),
             ),
             'responsables' => User::query()
+                ->where('organizacion_id', app(ContextoOrganizacion::class)->idObligatorio())
                 ->orderBy('name')
                 ->get()
                 ->map(fn (User $usuario): array => [

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Domain\Activo\Models\RevisionInventario;
+use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Http\Requests\GuardarRevisionInventarioRequest;
 use App\Http\Resources\Concerns\RespondeConRecurso;
 use App\Http\Resources\RevisionInventarioRecurso;
@@ -101,6 +102,7 @@ class RevisionInventarioController extends Controller
     {
         return [
             'personas' => User::query()
+                ->where('organizacion_id', app(ContextoOrganizacion::class)->idObligatorio())
                 ->orderBy('name')
                 ->get()
                 ->map(fn (User $usuario): array => [

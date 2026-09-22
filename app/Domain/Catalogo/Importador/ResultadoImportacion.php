@@ -44,6 +44,13 @@ final class ResultadoImportacion
      */
     public int $riesgosAfectados = 0;
 
+    /**
+     * A cuántos compromisos afecta retirar una obligación del catálogo. El mismo
+     * equivalente para el fichero del § 4.16: nada se retira en silencio sin decir
+     * a qué arrastra, y aquí lo que arrastra es el histórico de haberla cumplido.
+     */
+    public int $compromisosAfectados = 0;
+
     public function __construct(
         public readonly string $fichero,
         public readonly string $tipo,

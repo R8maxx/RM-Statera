@@ -13,6 +13,7 @@ use App\Domain\Activo\Obsolescencia;
 use App\Domain\Activo\ValoracionEfectiva;
 use App\Domain\Autorizacion\Enums\Permiso;
 use App\Domain\Categorizacion\ValoracionDimensiones;
+use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Sistema\Models\Sistema;
 use App\Http\Resources\Definicion\Accion;
 use App\Http\Resources\Definicion\Columna;
@@ -364,6 +365,7 @@ final class ActivoRecurso extends Recurso
     private function usuarios(): array
     {
         return User::query()
+            ->where('organizacion_id', app(ContextoOrganizacion::class)->idObligatorio())
             ->orderBy('name')
             ->get()
             ->map(fn (User $usuario): Opcion => new Opcion((string) $usuario->id, $usuario->name))

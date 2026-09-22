@@ -306,6 +306,77 @@ class Persona extends Model implements ConAdjuntos
     }
 
     /**
+     * Cuándo le vuelve a tocar formación: su última asistencia más doce meses.
+     *
+     * La expresión está escrita **una sola vez** y la leen los tres scopes de
+     * abajo y el accesor. Es la que convierte `mp.per.4` en una fecha, que es lo
+     * que el calendario de obligaciones (§ 4.16) necesita: hasta aquí el módulo
+     * sabía decir «a esta persona le falta formación» y no «le toca el 14 de
+     * marzo».
+     *
+     * **Nula para quien nunca ha recibido ninguna**, y eso es deliberado: no hay
+     * fecha que pintar, y `fecha_alta + 12` sería inventarle un plazo que nadie
+     * ha fijado. Esa gente sale donde ya salía, en `sinFormacionReciente()` y en
+     * el panel. El calendario es por tanto un **subconjunto** del panel y nunca
+     * al revés, y hay un test que lo fija.
+     */
+    private const RENOVACION_FORMATIVA = <<<'SQL'
+        (
+            select max(af.fecha) + make_interval(months => 12)
+            from asistencias a
+            join acciones_formativas af on af.id = a.accion_formativa_id
+            where a.persona_id = personas.id and a.asistio = true
+        )
+        SQL;
+
+    /** La expresión de la fecha de renovación, para seleccionar y ordenar. */
+    public static function expresionRenovacionFormativa(): string
+    {
+        return self::RENOVACION_FORMATIVA;
+    }
+
+    /**
+     * Activas cuya formación ya caducó, con fecha.
+     *
+     * **No es lo mismo que `sinFormacionReciente()`**, y la diferencia importa:
+     * aquél incluye a quien nunca ha recibido formación y éste no, porque de ésos
+     * no hay fecha. Aquél es la cifra del panel; éste, el chip del calendario.
+     *
+     * @param  Builder<$this>  $query
+     */
+    public function scopeFormacionCaducada(Builder $query, ?Carbon $hoy = null): void
+    {
+        $query->activas()->whereRaw(self::RENOVACION_FORMATIVA.' < ?', [($hoy ?? Carbon::today())->toDateString()]);
+    }
+
+    /**
+     * Activas a las que les toca formación dentro de `$dias`, sin contar las
+     * caducadas. Misma forma que `Tarea::porVencer()` y `Evidencia::porCaducar()`,
+     * a propósito: el aviso diario junta las tres y una ventana que se contara
+     * distinto daría listas que no se pueden leer seguidas.
+     *
+     * @param  Builder<$this>  $query
+     */
+    public function scopeFormacionPorCaducar(Builder $query, int $dias = 30, ?Carbon $hoy = null): void
+    {
+        $dia = $hoy ?? Carbon::today();
+
+        $query->activas()->whereRaw(
+            self::RENOVACION_FORMATIVA.' BETWEEN ? AND ?',
+            [$dia->toDateString(), $dia->copy()->addDays($dias)->toDateString()],
+        );
+    }
+
+    /** @param Builder<$this> $query */
+    public function scopeFormacionVenceEntre(Builder $query, Carbon $desde, Carbon $hasta): void
+    {
+        $query->activas()->whereRaw(
+            self::RENOVACION_FORMATIVA.' BETWEEN ? AND ?',
+            [$desde->toDateString(), $hasta->toDateString()],
+        );
+    }
+
+    /**
      * Activas sin ningún acuerdo de confidencialidad vigente.
      *
      * `mp.per.2`: los deberes y obligaciones tienen que constar por escrito, y sin

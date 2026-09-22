@@ -200,10 +200,18 @@ escritura muere con un «null value in column». No lanza: escribe mal.
   caracterización. Desde los puestos, la caracterización al menos **tiene dónde
   escribirse** y se puede contar quién no la tiene; comprobarla sigue sin
   hacerse.
-- **No entra en el calendario de obligaciones**, y aquí sí hará falta: la
-  formación que toca este año **no la cubre ni `Fuente::Documento` ni las tareas**,
-  a diferencia de objetivos, mejoras y revisión por la dirección. Es la primera
-  `Fuente` que el § 4.16 va a necesitar de verdad.
+- ~~**No entra en el calendario de obligaciones**~~. **Entra desde el § 4.16**, y
+  era la primera `Fuente` que hacía falta de verdad: la formación que toca este
+  año no la cubría ni `Fuente::Documento` ni las tareas. Lo que la fuente pinta es
+  `Persona::formacionCaducada()` / `formacionPorCaducar()`, y **la fila es la
+  persona y no la sesión**: lo que vence es que a alguien le toca renovar, no la
+  convocatoria de marzo.
+
+  Lo que **sigue sin hacer** es avisar de quien **nunca** ha recibido formación:
+  no hay fecha que pintar y `fecha_alta + 12` sería inventarle un plazo. Ésos
+  salen donde ya salían, en `sinFormacionReciente()` y en el panel — así que el
+  calendario es un **subconjunto** del panel y nunca al revés, y hay un test que
+  lo fija.
 
 ---
 

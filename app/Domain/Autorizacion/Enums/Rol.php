@@ -173,6 +173,16 @@ enum Rol: string
                 Permiso::RevisionDireccionGestionar,
                 Permiso::DocumentosVer,
                 Permiso::DocumentosRedactar,
+                /*
+                 * El calendario y las obligaciones, enteros. Aquí tampoco hay
+                 * nada que separar: apuntar que la auditoría interna se hizo el
+                 * 14 de marzo es registrar un hecho, y quien lleva el día a día
+                 * es quien lo sabe. Lo que se firma vive en el registro que la
+                 * cumple —el acta, la auditoría— y ya tiene su verbo allí.
+                 */
+                Permiso::CalendarioVer,
+                Permiso::ObligacionesVer,
+                Permiso::ObligacionesGestionar,
             ],
 
             /*
@@ -200,6 +210,14 @@ enum Rol: string
                 Permiso::IncidentesVer,
                 Permiso::RevisionDireccionVer,
                 Permiso::DocumentosVer,
+                /*
+                 * El calendario y las obligaciones, en lectura. No es un extra:
+                 * la auditoría de seguimiento y el informe INES son exactamente
+                 * lo que un auditor externo viene a mirar, y «¿cuándo fue la
+                 * última?» es su primera pregunta.
+                 */
+                Permiso::CalendarioVer,
+                Permiso::ObligacionesVer,
             ],
         };
     }

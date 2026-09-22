@@ -16,6 +16,7 @@ use App\Domain\Implantacion\Excepciones\ExclusionNoPermitida;
 use App\Domain\Implantacion\Excepciones\TransicionNoPermitida;
 use App\Domain\Implantacion\Models\Implantacion;
 use App\Domain\Implantacion\Models\ImplantacionTransicion;
+use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Tarea\Models\Tarea;
 use App\Http\Requests\CambiarEstadoImplantacionesRequest;
 use App\Http\Requests\CambiarEstadoImplantacionRequest;
@@ -181,6 +182,7 @@ class ImplantacionController extends Controller
                 ->all()),
             'correspondencias' => $correspondencias->paraRequisito($requisito->id),
             'responsables' => User::query()
+                ->where('organizacion_id', app(ContextoOrganizacion::class)->idObligatorio())
                 ->orderBy('name')
                 ->get()
                 ->map(fn (User $usuario): array => [

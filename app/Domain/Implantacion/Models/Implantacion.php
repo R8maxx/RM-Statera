@@ -246,6 +246,31 @@ class Implantacion extends Model
         $query->pendientes()->whereDate('implantaciones.fecha_objetivo', '<', now()->toDateString());
     }
 
+    /**
+     * Pendientes cuya fecha objetivo cae dentro de los próximos `$dias`.
+     *
+     * Hermana de `objetivoVencido()`, y llega con el § 4.16: el calendario de
+     * obligaciones pinta la fecha objetivo de cada medida del plan de adecuación,
+     * y sin esto sólo sabría enseñar lo que ya se pasó. Misma ventana y misma
+     * forma que `Tarea::porVencer()`, porque las dos salen en la misma rejilla.
+     *
+     * @param  Builder<$this>  $query
+     */
+    public function scopeObjetivoPorVencer(Builder $query, int $dias = 30): void
+    {
+        $query->pendientes()
+            ->whereDate('implantaciones.fecha_objetivo', '>=', now()->toDateString())
+            ->whereDate('implantaciones.fecha_objetivo', '<=', now()->addDays($dias)->toDateString());
+    }
+
+    /** @param Builder<$this> $query */
+    public function scopeObjetivoEntre(Builder $query, Carbon $desde, Carbon $hasta): void
+    {
+        $query->pendientes()
+            ->whereDate('implantaciones.fecha_objetivo', '>=', $desde->toDateString())
+            ->whereDate('implantaciones.fecha_objetivo', '<=', $hasta->toDateString());
+    }
+
     /** @param Builder<$this> $query */
     public function scopeSinFechaObjetivo(Builder $query): void
     {

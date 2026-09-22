@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Aviso\Notifications;
 
+use App\Domain\Aviso\Fuente;
 use App\Domain\Aviso\Vencimiento;
 use App\Domain\Aviso\Vencimientos;
 use Illuminate\Bus\Queueable;
@@ -54,14 +55,23 @@ final class VencimientosDelDia extends Notification implements ShouldQueue
 
         $correo->line($this->entradilla());
 
-        $this->bloque($correo, 'Evidencias caducadas', $this->vencimientos->evidenciasCaducadas, 'caduca', 'caducó');
-        $this->bloque($correo, 'Tareas vencidas', $this->vencimientos->tareasVencidas);
-        // «Tocaba revisar» y no «venció»: lo que se ha pasado es la revisión, no
-        // el documento, que sigue aprobado y en vigor hasta que haya otro.
-        $this->bloque($correo, 'Documentos sin revisar a tiempo', $this->vencimientos->documentosRevisionVencida, 'toca revisar', 'tocaba revisar');
-        $this->bloque($correo, 'Evidencias por caducar', $this->vencimientos->evidenciasPorCaducar, 'caduca', 'caducó');
-        $this->bloque($correo, 'Tareas por vencer', $this->vencimientos->tareasPorVencer);
-        $this->bloque($correo, 'Documentos por revisar', $this->vencimientos->documentosPorRevisar, 'toca revisar', 'tocaba revisar');
+        /*
+         * Primero todo lo pasado y después todo lo próximo, y **dos bucles y no
+         * catorce llamadas escritas a mano**.
+         *
+         * El orden importa: quien abre el correo tiene que ver de un tirón lo que
+         * ya incumple, sin intercalar lo que todavía da tiempo a planificar. Y el
+         * título y el verbo de cada bloque los pone `Fuente`, así que la octava
+         * fuente no exige acordarse de escribir dos literales aquí — que era
+         * exactamente la forma de que uno se quedara fuera sin que nadie lo notara.
+         */
+        foreach (Fuente::cases() as $fuente) {
+            $this->bloque($correo, $fuente->tituloPasados(), $this->vencimientos->pasadosDe($fuente), $fuente->verbo(), $fuente->verboPasado());
+        }
+
+        foreach (Fuente::cases() as $fuente) {
+            $this->bloque($correo, $fuente->tituloProximos(), $this->vencimientos->proximosDe($fuente), $fuente->verbo(), $fuente->verboPasado());
+        }
 
         return $correo
             ->action('Abrir Statera', url('/panel'))
@@ -82,14 +92,33 @@ final class VencimientosDelDia extends Notification implements ShouldQueue
                 .$this->vencimientos->dias.' días.';
         }
 
-        $caducadas = $this->vencimientos->evidenciasCaducadas !== [];
-        $vencidas = $this->vencimientos->tareasVencidas !== [];
+        $caducadas = $this->vencimientos->pasadosDe(Fuente::Evidencia) !== [];
+        $vencidas = $this->vencimientos->pasadosDe(Fuente::Tarea) !== [];
 
-        return match (true) {
-            $caducadas && $vencidas => 'Hay pruebas caducadas y trabajo sin hacer. Una evidencia caducada deja sin prueba al requisito que sostenía, y una tarea vencida es una fecha que se comprometió y pasó.',
-            $caducadas => 'Hay evidencias caducadas. Una evidencia caducada no prueba nada: el requisito que sostenía se queda sin prueba hasta que se renueve.',
-            default => 'Hay tareas vencidas: fechas que se comprometieron y han pasado.',
-        };
+        /*
+         * Las dos primeras frases se conservan porque dicen POR QUÉ importa, que
+         * es lo que hace que se lea el primer párrafo. Para el resto de fuentes se
+         * nombra lo que hay, en vez de escribir cinco frases más: enumerar cuesta
+         * poco y afirmar de más cuesta caro.
+         */
+        if ($caducadas && $vencidas) {
+            return 'Hay pruebas caducadas y trabajo sin hacer. Una evidencia caducada deja sin prueba al requisito que sostenía, y una tarea vencida es una fecha que se comprometió y pasó.';
+        }
+
+        if ($caducadas) {
+            return 'Hay evidencias caducadas. Una evidencia caducada no prueba nada: el requisito que sostenía se queda sin prueba hasta que se renueve.';
+        }
+
+        if ($vencidas) {
+            return 'Hay tareas vencidas: fechas que se comprometieron y han pasado.';
+        }
+
+        $nombres = array_map(
+            static fn (Fuente $fuente): string => mb_strtolower($fuente->tituloPasados()),
+            $this->vencimientos->fuentesConPasados(),
+        );
+
+        return 'Hay cosas pasadas de fecha: '.implode(', ', $nombres).'.';
     }
 
     /**

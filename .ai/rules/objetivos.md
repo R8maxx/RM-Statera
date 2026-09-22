@@ -143,11 +143,16 @@ comprobaba el **primer** código del año, que sale bien incluso con el contador
 
 ### Lo que este módulo declara que no hace todavía
 
-- **No entra en el calendario de obligaciones.** El objetivo vencido es el rojo del módulo y hoy sólo
-  se ve en la tabla, en el panel y en su ficha. No entra una `Fuente` nueva a propósito: un objetivo
-  tiene tareas detrás y sus plazos ya pintan chip, y una `Fuente` propia pintaría dos el mismo día
-  para un solo compromiso. Es el argumento exacto que dejó fuera la `fecha_prevista` de una no
-  conformidad y la `fecha_objetivo` del plan de adecuación.
+- **No entra en el calendario de obligaciones**, y **sigue sin entrar después del § 4.16**. El objetivo
+  vencido es el rojo del módulo y sólo se ve en la tabla, en el panel y en su ficha. No entra una
+  `Fuente` propia a propósito: un objetivo tiene tareas detrás y sus plazos ya pintan chip, así que una
+  `Fuente` suya pintaría dos el mismo día para un solo compromiso. Es el argumento exacto que dejó fuera
+  la `fecha_prevista` de una no conformidad.
+
+  > Lo que **sí** entró con el § 4.16 fue la `fecha_objetivo` del plan de adecuación, que esta misma
+  > frase citaba como ejemplo de lo descartado. No es una contradicción: una medida pendiente **no**
+  > tiene por qué tener tarea detrás —el hallazgo que el plan existe para enseñar es justamente ésa—,
+  > así que ahí no hay chip que duplicar. Un objetivo sin tareas sí es un objetivo sin plan.
 - **No comprueba que los objetivos cubran la política de seguridad.** La 6.2 a) pide que sean
   coherentes con ella; Statera registra lo que se declare y no dice si falta algo.
 - **No exige que todo objetivo tenga indicador**, lo señala. Exigirlo impediría apuntar la idea el

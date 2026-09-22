@@ -6,6 +6,10 @@ namespace App\Domain\Aviso;
 
 use App\Domain\Documento\Models\Documento;
 use App\Domain\Evidencia\Models\Evidencia;
+use App\Domain\Implantacion\Models\Implantacion;
+use App\Domain\Metrica\Models\Indicador;
+use App\Domain\Obligacion\Models\Compromiso;
+use App\Domain\Persona\Models\Persona;
 use App\Domain\Tarea\Enums\EstadoTarea;
 use App\Domain\Tarea\Models\Tarea;
 use Illuminate\Database\Eloquent\Builder;
@@ -15,12 +19,15 @@ use Illuminate\Support\Carbon;
 /**
  * Todo lo que vence en un tramo de fechas, venga de donde venga.
  *
- * Vive en `Aviso/` y no en `Tarea/` **a propósito**: es la primera pieza del
- * calendario de obligaciones de § 4.16, que unifica todo lo periódico —revisión
- * por la dirección, auditoría interna, reevaluación de riesgos, formación,
- * pruebas de continuidad, reevaluación de proveedores, informe INES— y que
- * incluye literalmente la caducidad de evidencias. Colgarlo de tareas obligaría
- * a mudarlo el día que llegue ese módulo, o a tener dos calendarios.
+ * Vive en `Aviso/` y no en `Tarea/` **a propósito**: es el calendario de
+ * obligaciones de § 4.16, que unifica todo lo periódico. Colgarlo de tareas
+ * habría obligado a mudarlo, o a tener dos calendarios.
+ *
+ * **`entre()` recorre `Fuente::cases()` y no una lista de bloques `if`.** Eran
+ * tres y ahora son siete; con bloques escritos a mano, añadir el octavo sería
+ * acordarse de tocar aquí, y no acordarse no rompe nada: la fuente sencillamente
+ * no sale. Lo que cada fuente necesita —de qué tabla, de qué fecha y con qué
+ * estado— lo declara su propio método, y todos devuelven lo mismo.
  *
  * **Es también el único sitio donde se decide qué es un vencimiento.** El
  * resumen diario que sale por correo se apoya en esto mismo: si cada uno
@@ -42,29 +49,52 @@ final readonly class CalendarioVencimientos
     {
         $filtros ??= FiltrosVencimiento::ninguno();
 
-        $tareas = $filtros->quiere(Fuente::Tarea)
-            ? $this->deTareas($filtros->acotar(
+        $vencimientos = [];
+
+        foreach (Fuente::cases() as $fuente) {
+            if (! $filtros->quiere($fuente)) {
+                continue;
+            }
+
+            $vencimientos = [...$vencimientos, ...$this->deFuente($fuente, $desde, $hasta, $filtros)];
+        }
+
+        usort($vencimientos, static fn (Vencimiento $a, Vencimiento $b): int => [$a->dia, $a->titulo] <=> [$b->dia, $b->titulo]);
+
+        return $vencimientos;
+    }
+
+    /**
+     * La consulta de una fuente, acotada al tramo y a los filtros.
+     *
+     * El `match` es exhaustivo a propósito: un caso nuevo de `Fuente` que no se
+     * declare aquí no compila en silencio, revienta con `UnhandledMatchError`.
+     * Es lo contrario de lo que pasaba con los bloques `if`, donde la fuente
+     * nueva simplemente no aparecía.
+     *
+     * @return list<Vencimiento>
+     */
+    private function deFuente(Fuente $fuente, Carbon $desde, Carbon $hasta, FiltrosVencimiento $filtros): array
+    {
+        return match ($fuente) {
+            Fuente::Tarea => $this->deTareas($filtros->acotar(
                 Tarea::query()
                     ->abiertas()
                     ->whereNotNull('fecha_limite')
                     ->whereDate('fecha_limite', '>=', $desde)
                     ->whereDate('fecha_limite', '<=', $hasta),
                 'fecha_limite',
-            ))
-            : [];
+            )),
 
-        $evidencias = $filtros->quiere(Fuente::Evidencia)
-            ? $this->deEvidencias($filtros->acotar(
+            Fuente::Evidencia => $this->deEvidencias($filtros->acotar(
                 Evidencia::query()
                     ->whereNotNull('fecha_caducidad')
                     ->whereDate('fecha_caducidad', '>=', $desde)
                     ->whereDate('fecha_caducidad', '<=', $hasta),
                 'fecha_caducidad',
-            ))
-            : [];
+            )),
 
-        $documentos = $filtros->quiere(Fuente::Documento)
-            ? $this->deDocumentos($filtros->acotar(
+            Fuente::Documento => $this->deDocumentos($filtros->acotar(
                 Documento::query()->whereHas(
                     'versionAprobada',
                     fn (Builder $version): Builder => $version
@@ -74,14 +104,25 @@ final readonly class CalendarioVencimientos
                 ),
                 'fecha_proxima_revision',
                 'versionAprobada',
-            ))
-            : [];
+            )),
 
-        $vencimientos = [...$tareas, ...$evidencias, ...$documentos];
+            Fuente::Formacion => $this->deFormacion($filtros->acotarCalculado(
+                Persona::query()->formacionVenceEntre($desde, $hasta),
+                Persona::expresionRenovacionFormativa(),
+            )),
 
-        usort($vencimientos, static fn (Vencimiento $a, Vencimiento $b): int => [$a->dia, $a->titulo] <=> [$b->dia, $b->titulo]);
+            Fuente::Indicador => $this->deIndicadores($desde, $hasta, $filtros),
 
-        return $vencimientos;
+            Fuente::Implantacion => $this->deImplantaciones($filtros->acotar(
+                Implantacion::query()->objetivoEntre($desde, $hasta),
+                'implantaciones.fecha_objetivo',
+            )),
+
+            Fuente::Obligacion => $this->deObligaciones($filtros->acotarCalculado(
+                Compromiso::query()->proximaEntre($desde, $hasta),
+                Compromiso::expresionProxima(),
+            )),
+        };
     }
 
     /**
@@ -155,6 +196,197 @@ final readonly class CalendarioVencimientos
                 );
             })
             ->filter()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * A quién le toca renovar la formación, y cuándo.
+     *
+     * **La fila es la persona y no la sesión.** Lo que vence no es la
+     * convocatoria de marzo: es que a alguien le toca volver a formarse doce
+     * meses después de la última a la que asistió. La fecha la calcula
+     * `Persona::expresionRenovacionFormativa()`, que es la misma que usan los
+     * scopes, y por eso viene como columna añadida en vez de recalcularse aquí.
+     *
+     * Quien nunca ha recibido formación no sale: no hay fecha, y no la hay porque
+     * nadie ha fijado ninguna. Va declarado en `Fuente::Formacion`.
+     *
+     * @param  Builder<Persona>  $consulta
+     * @return list<Vencimiento>
+     */
+    public function deFormacion(Builder $consulta): array
+    {
+        $hoy = Carbon::today();
+
+        return $consulta
+            ->select('personas.*')
+            ->selectRaw(Persona::expresionRenovacionFormativa().' as renovacion_formativa')
+            ->orderBy('renovacion_formativa')
+            ->get()
+            ->map(function (Persona $persona) use ($hoy): Vencimiento {
+                $fecha = Carbon::parse((string) $persona->getAttribute('renovacion_formativa'))->startOfDay();
+                $dias = (int) $hoy->diffInDays($fecha, false);
+
+                return new Vencimiento(
+                    id: $persona->id,
+                    fuente: Fuente::Formacion,
+                    titulo: (string) $persona->getAttribute('nombre'),
+                    dia: $fecha->toDateString(),
+                    fecha: $fecha->format('d/m/Y'),
+                    dias: $dias,
+                    // Sin responsable a propósito: la persona ES la fila. Por eso
+                    // el filtro de responsable excluye esta fuente en vez de
+                    // dejarla intacta — ver `FiltrosVencimiento::quiere()`.
+                    responsable: null,
+                    tono: $this->tono($dias),
+                    estadoTono: $dias < 0 ? 'caducada' : 'implantado',
+                    estadoEtiqueta: $dias < 0 ? 'Formación caducada' : 'Formación vigente',
+                );
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Los indicadores cuyo último periodo cerrado pasó sin medirse.
+     *
+     * **La fecha es el fin de ese periodo, y se calcula en PHP.** No hay columna:
+     * sale de `Periodicidad::periodoAnteriorA()`, que es la misma función que usa
+     * `Indicador::periodoSinMedir()`. Reescribirla en SQL para poder acotar por
+     * rango sería la tercera copia de una regla que ya está en dos sitios, y aquí
+     * se puede resolver en memoria: los indicadores de una organización son
+     * decenas, no decenas de miles.
+     *
+     * Por eso esta fuente no pasa por `acotar()`: filtra después, sobre la lista.
+     *
+     * @return list<Vencimiento>
+     */
+    public function deIndicadores(Carbon $desde, Carbon $hasta, FiltrosVencimiento $filtros): array
+    {
+        $hoy = Carbon::today();
+
+        $consulta = $filtros->acotar(Indicador::query()->periodoSinMedir(), 'indicadores.created_at');
+
+        return $consulta
+            ->with('responsable:id,name')
+            ->get()
+            ->map(function (Indicador $indicador) use ($hoy): Vencimiento {
+                [, $fin] = $indicador->periodicidad->periodoAnteriorA($hoy);
+
+                $fecha = Carbon::parse($fin)->startOfDay();
+                $dias = (int) $hoy->diffInDays($fecha, false);
+
+                return new Vencimiento(
+                    id: $indicador->id,
+                    fuente: Fuente::Indicador,
+                    titulo: "{$indicador->codigo} — {$indicador->nombre}",
+                    dia: $fecha->toDateString(),
+                    fecha: $fecha->format('d/m/Y'),
+                    dias: $dias,
+                    responsable: $indicador->responsable?->name,
+                    tono: $this->tono($dias),
+                    /*
+                     * Nunca en verde: si está en esta lista es que el periodo
+                     * cerró sin medición. Lo único que cambia es si además ya se
+                     * pasó de fecha, que es lo que gasta el rojo.
+                     */
+                    estadoTono: $dias < 0 ? 'caducada' : 'no_iniciado',
+                    estadoEtiqueta: $dias < 0 ? 'Periodo sin medir' : 'Periodo abierto',
+                );
+            })
+            /*
+             * El recorte por el tramo va aquí y no en la consulta, por lo dicho
+             * arriba. `entre()` lo espera acotado: las casillas de relleno de la
+             * rejilla son días de verdad y el mes de al lado no.
+             */
+            ->filter(fn (Vencimiento $vencimiento): bool => $vencimiento->dia >= $desde->toDateString() && $vencimiento->dia <= $hasta->toDateString())
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Las medidas pendientes del plan de adecuación que llegan a su fecha
+     * objetivo.
+     *
+     * Con esto, la limitación que el plan llevaba impresa —«el calendario todavía
+     * no incluye las fechas objetivo»— deja de ser cierta.
+     *
+     * @param  Builder<Implantacion>  $consulta
+     * @return list<Vencimiento>
+     */
+    public function deImplantaciones(Builder $consulta): array
+    {
+        $hoy = Carbon::today();
+
+        return $consulta
+            ->with(['responsable:id,name', 'requisito:id,codigo,titulo'])
+            ->orderBy('implantaciones.fecha_objetivo')
+            ->get()
+            ->map(function (Implantacion $implantacion) use ($hoy): Vencimiento {
+                /** @var Carbon $fecha */
+                $fecha = $implantacion->fecha_objetivo;
+                $dias = (int) $hoy->diffInDays($fecha, false);
+
+                return new Vencimiento(
+                    id: $implantacion->id,
+                    fuente: Fuente::Implantacion,
+                    // Con el código delante, como los documentos: en una lista de
+                    // quince, «Registro de actividad» no dice de qué medida es.
+                    titulo: trim("{$implantacion->requisito?->codigo} — {$implantacion->requisito?->titulo}", ' —'),
+                    dia: $fecha->toDateString(),
+                    fecha: $fecha->format('d/m/Y'),
+                    dias: $dias,
+                    responsable: $implantacion->responsable?->name,
+                    tono: $this->tono($dias),
+                    // Por debajo del rojo, su estado real: el enum ya declara el
+                    // tono y la etiqueta de cada uno.
+                    estadoTono: $dias < 0 ? 'caducada' : $implantacion->estado->tono(),
+                    estadoEtiqueta: $dias < 0 ? 'Fuera de fecha objetivo' : $implantacion->estado->etiqueta(),
+                );
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Los compromisos periódicos a los que les toca.
+     *
+     * La fecha la calcula `Compromiso::expresionProxima()` —el último
+     * `cubre_hasta` o, sin cumplimientos, `computa_desde` más la cadencia—, que
+     * es la misma expresión que usan los scopes. Viene como columna añadida para
+     * no resolverla otra vez por fila.
+     *
+     * @param  Builder<Compromiso>  $consulta
+     * @return list<Vencimiento>
+     */
+    public function deObligaciones(Builder $consulta): array
+    {
+        $hoy = Carbon::today();
+
+        return $consulta
+            ->with('responsable:id,name')
+            ->select('compromisos.*')
+            ->selectRaw(Compromiso::expresionProxima().' as proxima_fecha')
+            ->orderBy('proxima_fecha')
+            ->get()
+            ->map(function (Compromiso $compromiso) use ($hoy): Vencimiento {
+                $fecha = Carbon::parse((string) $compromiso->getAttribute('proxima_fecha'))->startOfDay();
+                $dias = (int) $hoy->diffInDays($fecha, false);
+
+                return new Vencimiento(
+                    id: $compromiso->id,
+                    fuente: Fuente::Obligacion,
+                    titulo: $compromiso->titulo,
+                    dia: $fecha->toDateString(),
+                    fecha: $fecha->format('d/m/Y'),
+                    dias: $dias,
+                    responsable: $compromiso->responsable?->name,
+                    tono: $this->tono($dias),
+                    estadoTono: $dias < 0 ? 'caducada' : 'implantado',
+                    estadoEtiqueta: $dias < 0 ? 'Fuera de plazo' : 'Al día',
+                );
+            })
             ->values()
             ->all();
     }

@@ -8,6 +8,7 @@ use App\Domain\Autorizacion\Enums\Permiso;
 use App\Domain\Evidencia\Enums\PeriodicidadRenovacion;
 use App\Domain\Evidencia\Enums\TipoEvidencia;
 use App\Domain\Evidencia\Models\Evidencia;
+use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Http\Resources\Definicion\Accion;
 use App\Http\Resources\Definicion\Columna;
 use App\Http\Resources\Definicion\Etiquetas;
@@ -103,6 +104,7 @@ final class EvidenciaRecurso extends Recurso
                 TipoEvidencia::cases(),
             )),
             Filtro::select('responsable_id', 'Responsable', fn (): array => User::query()
+                ->where('organizacion_id', app(ContextoOrganizacion::class)->idObligatorio())
                 ->orderBy('name')
                 ->get()
                 ->map(fn (User $usuario): Opcion => new Opcion((string) $usuario->id, $usuario->name))

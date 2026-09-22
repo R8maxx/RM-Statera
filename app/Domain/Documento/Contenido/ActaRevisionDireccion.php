@@ -129,9 +129,17 @@ final class ActaRevisionDireccion implements GeneradorDocumento
             .'potestad para revisar el sistema de gestión, ni que la dirección estuviera representada. '
             .'Tampoco guarda firma electrónica cualificada del acta.',
 
-            'Statera **no comprueba que la revisión se celebre con la periodicidad comprometida**: registra '
-            .'las que se convocan y no avisa de la que falta. El calendario de obligaciones, donde ese aviso '
-            .'vivirá, todavía no recoge esta fuente.',
+            /*
+             * **Reescrita con el § 4.16.** El hueco se cerró: «celebrar la
+             * revisión por la dirección» es una obligación del catálogo, y el
+             * calendario avisa de la que falta. Lo que queda por declarar es que
+             * la periodicidad hay que declararla — Statera no la impone, porque
+             * ni ISO ni el ENS ponen un número.
+             */
+            'La **periodicidad comprometida** de la revisión es un compromiso que la organización declara '
+            .'en el calendario de obligaciones (§ 4.16), y de ahí sale el aviso de la revisión que falta. '
+            .'Lo que Statera **no hace** es imponerla: si nadie ha declarado esa periodicidad, no hay nada '
+            .'contra lo que avisar.',
         ];
     }
 

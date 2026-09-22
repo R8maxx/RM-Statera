@@ -75,5 +75,18 @@ const { variantesEntrada } = useMovimientoReducido();
         <Link v-if="accion" :href="accion.href" class="relative mt-5">
             <Button size="sm">{{ accion.etiqueta }}</Button>
         </Link>
+
+        <!--
+            La salida cuando no es un enlace.
+
+            `accion` cubre el caso normal —ir a otra pantalla— y no llega cuando
+            la salida es un POST, que es lo que necesita «asumir las obligaciones
+            del catálogo»: ahí no se navega a ningún sitio, se escriben filas. El
+            hueco admite los botones que haga falta y deja `accion` como estaba,
+            que es lo que usan las demás pantallas.
+        -->
+        <div v-if="$slots.default" class="relative mt-5 flex flex-wrap justify-center gap-2">
+            <slot />
+        </div>
     </motion.div>
 </template>

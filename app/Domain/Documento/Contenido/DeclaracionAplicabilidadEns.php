@@ -122,7 +122,16 @@ final class DeclaracionAplicabilidadEns extends DocumentoCalculado
                 .'**no figura aquí por diseño**, porque una Declaración de Aplicabilidad declara la '
                 .'situación de cada medida y no el resultado de quien la revisó. Lo que la '
                 .'herramienta **todavía no hace**: generar el informe de auditoría como documento, '
-                .'llevar el programa anual de auditoría, y **comprobar que el alcance auditado '
+                /*
+                 * **Precisada, no borrada, con el § 4.16.** El calendario avisa
+                 * ya de la auditoría que toca, pero avisar no es programar: la
+                 * 9.2.2 llama programa a planificar alcance, criterios y método,
+                 * y eso sigue sin hacerse. Decir que el programa está hecho
+                 * porque hay un aviso sería afirmar de más en un entregable.
+                 */
+                .'llevar el programa anual de auditoría —el calendario de obligaciones (§ 4.16) avisa '
+                .'de la auditoría que toca, pero no planifica su alcance, sus criterios ni su '
+                .'método—, y **comprobar que el alcance auditado '
                 .'cubra las medidas exigibles** — de modo que la ausencia de hallazgos sobre una '
                 .'medida no significa que se haya revisado.',
 

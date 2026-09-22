@@ -138,9 +138,19 @@ final class PlanAdecuacionEns extends DocumentoCalculado
                  * Mismo tratamiento que recibió la justificación de inclusión de
                  * la SoA cuando empezó a imprimir un origen más.
                  */
-                'El **calendario de obligaciones** (§ 4.16) todavía no incluye las fechas objetivo de '
-                .'las medidas, así que lo que aquí figura como fuera de plazo no aparece ni en el '
-                .'aviso diario ni en la vista de mes.',
+                /*
+                 * **Reescrita, no borrada.** El § 4.16 la volvió falsa: el
+                 * calendario ya recoge la fecha objetivo de cada medida
+                 * pendiente. Lo que se declara ahora es lo que sigue faltando,
+                 * que es lo estable — y sin enumerar lo que el calendario SÍ
+                 * recoge, que es la lección que la versión anterior de esta
+                 * misma frase dejó escrita.
+                 */
+                'El **calendario de obligaciones** (§ 4.16) recoge la fecha objetivo de cada medida '
+                .'pendiente, así que lo que aquí figura como fuera de plazo aparece también en el '
+                .'aviso diario y en la vista de mes. Lo que ese calendario **todavía no recoge** es '
+                .'la reevaluación de proveedores (§ 4.9) ni las pruebas de continuidad (§ 4.11), '
+                .'cuyos módulos no existen.',
 
                 ...$this->limitacionesBase($version, $filas),
             ],

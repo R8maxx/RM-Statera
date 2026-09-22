@@ -6,6 +6,7 @@ namespace App\Http\Resources;
 
 use App\Domain\Activo\Models\Activo;
 use App\Domain\Autorizacion\Enums\Permiso;
+use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Riesgo\Enums\DecisionRiesgo;
 use App\Domain\Riesgo\Models\Amenaza;
 use App\Domain\Riesgo\Models\Riesgo;
@@ -188,6 +189,7 @@ final class RiesgoRecurso extends Recurso
             ))->campo('vigente.decision'),
 
             Filtro::select('propietario_id', 'Propietario', fn (): array => User::query()
+                ->where('organizacion_id', app(ContextoOrganizacion::class)->idObligatorio())
                 ->orderBy('name')
                 ->get()
                 ->map(fn (User $usuario): Opcion => new Opcion((string) $usuario->id, $usuario->name))

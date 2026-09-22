@@ -11,6 +11,7 @@ use App\Domain\Categorizacion\Enums\OrigenExigencia;
 use App\Domain\Implantacion\Enums\EstadoImplantacion;
 use App\Domain\Implantacion\Enums\NivelMadurez;
 use App\Domain\Implantacion\Models\Implantacion;
+use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Sistema\Models\Sistema;
 use App\Http\Resources\Definicion\Accion;
 use App\Http\Resources\Definicion\Columna;
@@ -178,6 +179,7 @@ final class ImplantacionRecurso extends Recurso
                 NivelMadurez::cases(),
             )),
             Filtro::select('responsable_id', 'Responsable', fn (): array => User::query()
+                ->where('organizacion_id', app(ContextoOrganizacion::class)->idObligatorio())
                 ->orderBy('name')
                 ->get()
                 ->map(fn (User $usuario): Opcion => new Opcion((string) $usuario->id, $usuario->name))

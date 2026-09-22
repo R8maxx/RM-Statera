@@ -23,6 +23,7 @@ Before planning or editing, find the row whose globs match the file's path and r
 | database/migrations/** | .ai/rules/migraciones.md |
 | app/Domain/NoConformidad/**, resources/js/pages/no-conformidades/**, resources/js/components/no-conformidad/** | .ai/rules/no-conformidades.md |
 | app/Domain/Objetivo/**, resources/js/pages/objetivos/**, resources/js/components/objetivo/** | .ai/rules/objetivos.md |
+| app/Domain/Obligacion/**, app/Domain/Aviso/**, resources/js/pages/obligaciones/**, resources/js/pages/calendario/**, resources/js/components/obligacion/**, resources/js/components/calendario/** | .ai/rules/obligaciones.md |
 | CLAUDE.md, README.md, PRODUCT.md | .ai/rules/orden-de-arranque.md |
 | app/Domain/Organizacion/**, resources/js/pages/organizacion/**, resources/js/components/organizacion/** | .ai/rules/organizacion.md |
 | app/Domain/Panel/**, resources/js/pages/panel/**, resources/js/components/panel/** | .ai/rules/panel.md |
@@ -32,5 +33,5 @@ Before planning or editing, find the row whose globs match the file's path and r
 | app/Domain/RevisionDireccion/**, resources/js/pages/revision-direccion/**, resources/js/components/revision/** | .ai/rules/revision-direccion.md |
 | app/Domain/Riesgo/**, resources/js/pages/riesgos/**, resources/js/components/riesgo/** | .ai/rules/riesgos.md |
 | routes/** | .ai/rules/routing.md |
-| app/Domain/Tarea/**, app/Domain/Aviso/**, resources/js/pages/tareas/**, resources/js/components/tarea/** | .ai/rules/tareas.md |
+| app/Domain/Tarea/**, resources/js/pages/tareas/**, resources/js/components/tarea/** | .ai/rules/tareas.md |
 | tests/** | .ai/rules/tests.md |
