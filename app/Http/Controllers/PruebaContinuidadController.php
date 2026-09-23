@@ -21,6 +21,7 @@ use App\Domain\Continuidad\Models\PruebaContinuidad;
 use App\Domain\Continuidad\Models\PruebaContinuidadTransicion;
 use App\Domain\Continuidad\PlanificarPrueba;
 use App\Domain\Continuidad\RegistrarResultadoPrueba;
+use App\Domain\Continuidad\RegistroContinuidad;
 use App\Domain\Documento\Enums\TipoDocumento;
 use App\Domain\Documento\Models\Documento;
 use App\Domain\Evidencia\Models\Evidencia;
@@ -36,7 +37,6 @@ use App\Http\Requests\DerivarTareaDePruebaRequest;
 use App\Http\Requests\GuardarPruebaRequest;
 use App\Http\Requests\RegistrarResultadoPruebaRequest;
 use App\Http\Resources\Concerns\RespondeConRecurso;
-use App\Http\Resources\Panel\Indicador;
 use App\Http\Resources\PruebaContinuidadRecurso;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -75,12 +75,12 @@ class PruebaContinuidadController extends Controller
 {
     use RespondeConRecurso;
 
-    public function index(Request $request, PruebaContinuidadRecurso $recurso): Response
+    public function index(Request $request, PruebaContinuidadRecurso $recurso, RegistroContinuidad $registro): Response
     {
         return Inertia::render('continuidad/pruebas/Index', [
             ...$this->tabla($recurso, $request),
-            'alertas' => $this->alertas(),
-            'pendientes' => $this->pendientes(),
+            'alertas' => $registro->alertasDePruebas(),
+            'pendientes' => $registro->pendientesDePruebas(),
             'total' => PruebaContinuidad::query()->count(),
         ]);
     }
@@ -348,44 +348,6 @@ class PruebaContinuidadController extends Controller
         Inertia::flash('exito', "Oportunidad de mejora {$mejora->codigo} registrada.");
 
         return to_route('mejoras.show', $mejora);
-    }
-
-    /**
-     * Lo que va mal de verdad, y lo que está a medias.
-     *
-     * @return list<Indicador>
-     */
-    private function alertas(): array
-    {
-        return [
-            new Indicador(
-                clave: 'vencidas',
-                etiqueta: 'Vencidas',
-                valor: PruebaContinuidad::query()->vencidas()->count(),
-                tono: 'caducada',
-                filtro: 'filter[vencidas]=1',
-                base: '/continuidad/pruebas',
-                ayuda: 'Planificadas cuya fecha prevista ya ha pasado sin registrar resultado.',
-            ),
-        ];
-    }
-
-    /**
-     * @return list<Indicador>
-     */
-    private function pendientes(): array
-    {
-        return [
-            new Indicador(
-                clave: 'planificadas',
-                etiqueta: 'Planificadas',
-                valor: PruebaContinuidad::query()->where('estado', EstadoPrueba::Planificada->value)->count(),
-                tono: 'planificado',
-                filtro: 'filter[estado]=planificada',
-                base: '/continuidad/pruebas',
-                ayuda: 'Todavía sin resultado registrado.',
-            ),
-        ];
     }
 
     /**

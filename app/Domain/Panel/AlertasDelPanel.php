@@ -7,6 +7,7 @@ namespace App\Domain\Panel;
 use App\Domain\Activo\ResumenInventario;
 use App\Domain\Auditoria\RegistroAuditorias;
 use App\Domain\Autorizacion\Enums\Permiso;
+use App\Domain\Continuidad\RegistroContinuidad;
 use App\Domain\Documento\ResumenDocumental;
 use App\Domain\Evidencia\RegistroEvidencias;
 use App\Domain\Incidente\RegistroIncidentes;
@@ -90,6 +91,7 @@ final readonly class AlertasDelPanel
         // toque, igual que una evidencia y que una tarea.
         [Permiso::ObligacionesVer, RegistroObligaciones::class],
         [Permiso::IncidentesVer, RegistroIncidentes::class],
+        [Permiso::ContinuidadVer, RegistroContinuidad::class],
         [Permiso::RiesgosVer, RegistroRiesgos::class],
         [Permiso::NoConformidadesVer, RegistroNoConformidades::class],
         [Permiso::ObjetivosVer, RegistroObjetivos::class],

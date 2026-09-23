@@ -19,6 +19,7 @@ use App\Domain\Continuidad\Models\BiaServicio;
 use App\Domain\Continuidad\Models\BiaServicioTransicion;
 use App\Domain\Continuidad\Models\PruebaContinuidad;
 use App\Domain\Continuidad\RegistrarBia;
+use App\Domain\Continuidad\RegistroContinuidad;
 use App\Domain\Continuidad\UmbralTolerable;
 use App\Domain\Documento\Models\Documento;
 use App\Domain\Organizacion\ContextoOrganizacion;
@@ -26,7 +27,6 @@ use App\Http\Requests\CambiarEstadoBiaRequest;
 use App\Http\Requests\GuardarBiaRequest;
 use App\Http\Resources\BiaServicioRecurso;
 use App\Http\Resources\Concerns\RespondeConRecurso;
-use App\Http\Resources\Panel\Indicador;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -52,12 +52,12 @@ class BiaServicioController extends Controller
 {
     use RespondeConRecurso;
 
-    public function index(Request $request, BiaServicioRecurso $recurso): Response
+    public function index(Request $request, BiaServicioRecurso $recurso, RegistroContinuidad $registro): Response
     {
         return Inertia::render('continuidad/bia/Index', [
             ...$this->tabla($recurso, $request),
-            'alertas' => $this->alertas(),
-            'pendientes' => $this->pendientes(),
+            'alertas' => $registro->alertasDeBia(),
+            'pendientes' => $registro->pendientesDeBia(),
             'total' => BiaServicio::query()->count(),
         ]);
     }
@@ -264,75 +264,6 @@ class BiaServicioController extends Controller
     {
         return $destino === EstadoBia::Obsoleto
             || ($actual === EstadoBia::Aprobado && $destino === EstadoBia::Borrador);
-    }
-
-    /**
-     * Lo que va mal de verdad, y lo que está a medias.
-     *
-     * Mismo criterio que `RegistroIncidentes`: cada indicador cuenta con el
-     * mismo scope que usa su filtro de la tabla, así que pulsar la cifra
-     * enseña exactamente esa cifra.
-     *
-     * @return list<Indicador>
-     */
-    private function alertas(): array
-    {
-        return [
-            /*
-             * `en_progreso` (ámbar) y no `caducada` (rojo), a propósito y por
-             * el mismo motivo que `TramosImpacto.vue`: un RTO incoherente con
-             * el umbral tolerable es una contradicción que corregir, no un
-             * plazo ya incumplido — nadie ha dejado de cumplir nada todavía.
-             * El rojo del dominio se reserva a lo vencido o lo incumplido
-             * (DESIGN.md §3), y eso es exactamente `revision_vencida`, aquí
-             * abajo.
-             */
-            $this->indicador(
-                'rto_incoherente',
-                'Con un RTO por encima del umbral tolerable',
-                'rtoIncoherente',
-                'en_progreso',
-                'El RTO declarado promete más de lo que el propio BIA tolera.',
-            ),
-            $this->indicador(
-                'revision_vencida',
-                'Con la revisión vencida',
-                'revisionVencida',
-                'caducada',
-                'El BIA lleva más de doce meses sin volver a aprobarse.',
-            ),
-        ];
-    }
-
-    /**
-     * @return list<Indicador>
-     */
-    private function pendientes(): array
-    {
-        return [
-            new Indicador(
-                clave: 'borrador',
-                etiqueta: 'En borrador',
-                valor: BiaServicio::query()->where('estado', EstadoBia::Borrador->value)->count(),
-                tono: 'no_iniciado',
-                filtro: 'filter[estado]=borrador',
-                base: '/continuidad/bia',
-                ayuda: 'Todavía sin aprobar: el RTO que declara no cuenta como vigente.',
-            ),
-        ];
-    }
-
-    private function indicador(string $clave, string $etiqueta, string $scope, string $tono, ?string $ayuda = null): Indicador
-    {
-        return new Indicador(
-            clave: $clave,
-            etiqueta: $etiqueta,
-            valor: BiaServicio::query()->{$scope}()->count(),
-            tono: $tono,
-            filtro: "filter[{$clave}]=1",
-            base: '/continuidad/bia',
-            ayuda: $ayuda,
-        );
     }
 
     /**
