@@ -257,9 +257,10 @@ class NoConformidadController extends Controller
     {
         $datos = $request->validated();
 
-        // El hallazgo no se mueve en la edición: cambiarlo reescribiría de qué
-        // auditoría salió, que es lo que el registro tiene que fijar.
-        unset($datos['hallazgo_id']);
+        // Ni el hallazgo ni el incidente se mueven en la edición: cambiarlos
+        // reescribiría de qué salió, que es lo que el registro tiene que fijar.
+        // Un `incidente_id` nulo a mano la desenganchaba de su incidente.
+        unset($datos['hallazgo_id'], $datos['incidente_id']);
 
         $no_conformidad->update($datos);
 

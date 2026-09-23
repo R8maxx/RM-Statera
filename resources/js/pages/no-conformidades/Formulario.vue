@@ -25,6 +25,17 @@ interface Hallazgo {
     medida: string | null;
 }
 
+interface Incidente {
+    id: number;
+    codigo: string;
+    titulo: string;
+    estado: string;
+    tono: string;
+    icono: string;
+    peligrosidad: string;
+    fecha: string;
+}
+
 interface NoConformidad {
     id: number;
     codigo: string;
@@ -49,6 +60,8 @@ interface Sugerencia {
 const props = defineProps<{
     noConformidad: NoConformidad | null;
     hallazgo: Hallazgo | null;
+    /** Al abrirla desde un incidente (`?incidente=`); en la edición no llega. */
+    incidente?: Incidente | null;
     sugerencia: Sugerencia | null;
     origenes: Opcion[];
     responsables: Opcion[];
@@ -73,11 +86,19 @@ const valor = computed(() => ({
 /*
  * Con hallazgo detrás el origen no se elige: la base lo impone —sólo el origen
  * `auditoria` admite hallazgo— y ofrecerlo sería dejar elegir algo que se va a
- * rechazar después. Viaja igual, en un campo oculto. Lo mismo en la edición de
- * una no conformidad nacida de una prueba de continuidad o de un incidente, que
- * es lo que dice `origenFijo`.
+ * rechazar después. Viaja igual, en un campo oculto. Lo mismo al abrirla desde
+ * un incidente, y en la edición de una no conformidad nacida de una prueba de
+ * continuidad o de un incidente, que es lo que dice `origenFijo`.
+ *
+ * **El incidente viaja en su propio campo oculto, como el hallazgo.** Faltaba
+ * desde el § 4.10: el controlador mandaba el incidente y rellenaba el origen,
+ * pero el formulario no enviaba `incidente_id`, y la no conformidad se guardaba
+ * con origen `incidente` sin decir de cuál —y el incidente seguía ofreciendo
+ * abrir otra—.
  */
-const origenFijo = computed(() => props.hallazgo !== null || props.origenFijo === true);
+const origenFijo = computed(
+    () => props.hallazgo !== null || (props.incidente ?? null) !== null || props.origenFijo === true,
+);
 </script>
 
 <template>
@@ -117,6 +138,29 @@ const origenFijo = computed(() => props.hallazgo !== null || props.origenFijo ==
                     <input type="hidden" name="origen" :value="valor.origen" />
                 </div>
 
+                <div
+                    v-else-if="incidente"
+                    class="space-y-2 rounded-xl border border-border bg-muted/40 p-4"
+                >
+                    <div class="flex flex-wrap items-center gap-2">
+                        <CeldaBadge
+                            :valor="{
+                                valor: incidente.estado,
+                                etiqueta: incidente.estado,
+                                tono: incidente.tono,
+                                icono: incidente.icono,
+                            }"
+                        />
+                        <span class="cifra text-xs text-muted-foreground">{{ incidente.codigo }}</span>
+                        <span class="cifra text-xs text-muted-foreground">{{ incidente.fecha }}</span>
+                    </div>
+                    <p class="text-sm text-muted-foreground">
+                        {{ incidente.titulo }} · peligrosidad {{ incidente.peligrosidad.toLowerCase() }}
+                    </p>
+                    <input type="hidden" name="incidente_id" :value="incidente.id" />
+                    <input type="hidden" name="origen" :value="valor.origen" />
+                </div>
+
                 <CampoTexto
                     nombre="codigo"
                     etiqueta="Código"
@@ -127,7 +171,7 @@ const origenFijo = computed(() => props.hallazgo !== null || props.origenFijo ==
                     ayuda="Único dentro de la organización. Se propone el siguiente del año."
                 />
 
-                <div v-if="origenFijo && !hallazgo" class="space-y-1">
+                <div v-if="origenFijo && !hallazgo && !incidente" class="space-y-1">
                     <p class="text-sm font-medium">Origen</p>
                     <p class="text-sm text-muted-foreground">
                         {{ noConformidad?.origenEtiqueta }}: lo fija de dónde salió y no se cambia.

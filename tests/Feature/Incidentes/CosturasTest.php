@@ -219,3 +219,32 @@ it('rechaza la petición que nombra un activo de otra organización', function (
 
     expect($this->incidente->activos()->count())->toBe(0);
 });
+
+/*
+ * La edición no mueve el incidente, igual que no mueve el hallazgo. El
+ * formulario no manda `incidente_id` al editar, pero la request lo admitía: con
+ * un nulo a mano se desenganchaba la no conformidad de su incidente —y se
+ * quedaba con origen `incidente` sin decir de cuál—, y apuntándola a otro que ya
+ * tuviera la suya subía como un 500 por el índice único.
+ */
+it('la edición no desengancha ni cambia el incidente de la no conformidad', function (): void {
+    $nc = NoConformidad::factory()->deIncidente($this->incidente->id)->create();
+    $otro = Incidente::factory()->create();
+    NoConformidad::factory()->deIncidente($otro->id)->create();
+
+    foreach ([null, $otro->id] as $incidenteId) {
+        $this->actingAs($this->usuario)
+            ->put("/no-conformidades/{$nc->id}", [
+                'codigo' => $nc->codigo,
+                'origen' => OrigenNoConformidad::Incidente->value,
+                'incidente_id' => $incidenteId,
+                'descripcion' => 'Descripción corregida.',
+                'fecha_deteccion' => now()->toDateString(),
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect("/no-conformidades/{$nc->id}");
+
+        expect($nc->fresh()?->incidente_id)->toBe($this->incidente->id)
+            ->and($nc->fresh()?->descripcion)->toBe('Descripción corregida.');
+    }
+});
