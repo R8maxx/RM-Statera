@@ -8,6 +8,8 @@ use App\Domain\Activo\Models\Activo;
 use App\Domain\Continuidad\Enums\EstadoBia;
 use App\Domain\Continuidad\Enums\NivelImpacto;
 use App\Domain\Continuidad\UmbralTolerable;
+use App\Domain\Documento\Enums\TipoDocumento;
+use App\Domain\Documento\Models\Documento;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
 use App\Domain\Traza\Concerns\RegistraTraza;
 use App\Models\User;
@@ -16,6 +18,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
@@ -98,6 +101,29 @@ class BiaServicio extends Model
     public function transiciones(): HasMany
     {
         return $this->hasMany(BiaServicioTransicion::class)->orderBy('created_at');
+    }
+
+    /**
+     * Los planes de continuidad que cubren el servicio de este BIA.
+     *
+     * **Por `activo_id`, no por `id`.** La pivote `plan_continuidad_servicio`
+     * vincula el documento con el SERVICIO, no con un BIA concreto: el BIA se
+     * puede reescribir entero con `EditarBia` mientras el plan sigue cubriendo
+     * el mismo servicio de siempre, así que la clave local de este
+     * `belongsToMany` es `activo_id` y no la primaria por defecto.
+     *
+     * @return BelongsToMany<Documento, $this>
+     */
+    public function planes(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Documento::class,
+            'plan_continuidad_servicio',
+            'activo_id',
+            'documento_id',
+            'activo_id',
+            'id',
+        )->where('documentos.tipo', TipoDocumento::PlanContinuidad->value);
     }
 
     /**

@@ -35,7 +35,8 @@ final readonly class RegistroGeneradores
              */
             TipoDocumento::Politica,
             TipoDocumento::Norma,
-            TipoDocumento::Procedimiento => DocumentoRedactado::class,
+            TipoDocumento::Procedimiento,
+            TipoDocumento::PlanContinuidad => DocumentoRedactado::class,
         });
     }
 }

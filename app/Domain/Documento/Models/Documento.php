@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Documento\Models;
 
+use App\Domain\Activo\Models\Activo;
 use App\Domain\Documento\Enums\ClasificacionDocumental;
 use App\Domain\Documento\Enums\EstadoDocumental;
 use App\Domain\Documento\Enums\TipoDocumento;
@@ -16,6 +17,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
@@ -80,6 +82,26 @@ class Documento extends Model
     public function versiones(): HasMany
     {
         return $this->hasMany(DocumentoVersion::class);
+    }
+
+    /**
+     * Los servicios que cubre este plan de continuidad: § 4.11.
+     *
+     * Sólo tiene sentido sobre un documento de tipo `plan_continuidad`
+     * —`VincularServicioAPlan` lo exige antes de escribir nada—, pero la
+     * relación no lo comprueba: quien la recorre está pintando un documento
+     * concreto y ya sabe de qué tipo es.
+     *
+     * Hacia `Activo`, no hacia `BiaServicio`: un plan cubre el **servicio**, no
+     * un BIA concreto. El BIA se puede reescribir entero con `EditarBia`
+     * mientras el plan sigue cubriendo el mismo servicio de siempre.
+     *
+     * @return BelongsToMany<Activo, $this>
+     */
+    public function serviciosCubiertos(): BelongsToMany
+    {
+        return $this->belongsToMany(Activo::class, 'plan_continuidad_servicio')
+            ->withTimestamps();
     }
 
     /**

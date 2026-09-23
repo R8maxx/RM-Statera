@@ -81,7 +81,7 @@ const props = defineProps<{
     umbral: { tramo: string | null; etiqueta: string | null; horas: number | null };
     tramos: Tramo[];
     dependencias: Dependencia[];
-    planes: { id: number; titulo: string }[];
+    planes: { id: number; codigo: string; titulo: string; aprobado: boolean }[];
     pruebas: { id: number; codigo: string; fecha: string }[];
     transiciones: Destino[];
     historial: Transicion[];
@@ -287,8 +287,21 @@ function mover(paso: Destino): void {
                             descripcion="Ningún documento de continuidad cuelga todavía de este servicio."
                         />
                         <ul v-else class="divide-y divide-border">
-                            <li v-for="plan in planes" :key="plan.id" class="py-2 text-sm">
-                                {{ plan.titulo }}
+                            <li
+                                v-for="plan in planes"
+                                :key="plan.id"
+                                class="flex items-center justify-between gap-3 py-2 text-sm"
+                            >
+                                <Link :href="`/documentos/${plan.id}`" class="underline-offset-4 hover:underline">
+                                    <span class="cifra">{{ plan.codigo }}</span> · {{ plan.titulo }}
+                                </Link>
+                                <CeldaBadge
+                                    :valor="{
+                                        valor: plan.aprobado ? 'aprobado' : 'sin_aprobar',
+                                        etiqueta: plan.aprobado ? 'Aprobado' : 'Sin aprobar',
+                                        tono: plan.aprobado ? 'implantado' : 'no_iniciado',
+                                    }"
+                                />
                             </li>
                         </ul>
                     </CardContent>

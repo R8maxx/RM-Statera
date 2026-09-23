@@ -114,7 +114,8 @@ final class TextosDeFabrica
             // antes, porque su introducción no es la de una declaración.
             TipoDocumento::Politica,
             TipoDocumento::Norma,
-            TipoDocumento::Procedimiento => '',
+            TipoDocumento::Procedimiento,
+            TipoDocumento::PlanContinuidad => '',
         };
     }
 
@@ -188,7 +189,8 @@ final class TextosDeFabrica
             // No llegan aquí: `para()` desvía los redactados antes.
             TipoDocumento::Politica,
             TipoDocumento::Norma,
-            TipoDocumento::Procedimiento => '',
+            TipoDocumento::Procedimiento,
+            TipoDocumento::PlanContinuidad => '',
         };
 
         /*
@@ -227,7 +229,8 @@ final class TextosDeFabrica
             // a un documento redactado, que no deriva nada de ninguna tabla.
             TipoDocumento::Politica,
             TipoDocumento::Norma,
-            TipoDocumento::Procedimiento => '',
+            TipoDocumento::Procedimiento,
+            TipoDocumento::PlanContinuidad => '',
         };
 
         /*
@@ -287,7 +290,8 @@ final class TextosDeFabrica
             // No llegan aquí: un documento redactado no tiene tabla que explicar.
             TipoDocumento::Politica,
             TipoDocumento::Norma,
-            TipoDocumento::Procedimiento => '',
+            TipoDocumento::Procedimiento,
+            TipoDocumento::PlanContinuidad => '',
         };
     }
 

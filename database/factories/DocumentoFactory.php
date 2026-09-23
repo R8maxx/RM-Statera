@@ -115,6 +115,21 @@ class DocumentoFactory extends Factory
         ]);
     }
 
+    /**
+     * El plan de continuidad: documento redactado, de la organización entera.
+     *
+     * Sin sistema a propósito, como `politica()`: un plan de continuidad puede
+     * cubrir servicios de varios sistemas a la vez.
+     */
+    public function planContinuidad(): self
+    {
+        return $this->deTipo(TipoDocumento::PlanContinuidad)->state(fn (): array => [
+            'codigo' => 'PLN-CONT-01',
+            'titulo' => 'Plan de continuidad',
+            'sistema_id' => null,
+        ]);
+    }
+
     public function conPeriodicidad(?int $meses): self
     {
         return $this->state(fn (): array => ['periodicidad_revision_meses' => $meses]);

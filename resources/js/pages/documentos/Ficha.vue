@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
+import ServiciosDelPlan from '@/components/continuidad/ServiciosDelPlan.vue';
 import BloqueAcuse from '@/components/documento/BloqueAcuse.vue';
 import BloqueAprobacion from '@/components/documento/BloqueAprobacion.vue';
 import HistorialVersiones, { type Version } from '@/components/documento/HistorialVersiones.vue';
@@ -9,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
 import AppLayout from '@/layouts/AppLayout.vue';
+import type { Opcion } from '@/lib/formularios';
 import { motion } from 'motion-v';
 import { Link, router, useForm, usePoll } from '@inertiajs/vue3';
 import { DownloadIcon, FileTextIcon, PencilIcon, RefreshCwIcon, TypeIcon } from '@lucide/vue';
@@ -70,7 +72,15 @@ const props = defineProps<{
         lectores: { nombre: string; fecha: string }[];
         yaAcusado: boolean;
     } | null;
+    /**
+     * Sólo un plan de continuidad los manda (§ 4.11). Nulo -no una lista
+     * vacía- es lo que dice «este documento no vincula servicios», que es
+     * distinto de «todavía no cubre ninguno».
+     */
+    serviciosDelPlan: { id: number; codigo: string; nombre: string }[] | null;
+    serviciosDisponibles: Opcion[] | null;
     puedeAprobar: boolean;
+    puedeRedactar: boolean;
     cuerpoMasNuevoQueElBorrador: boolean;
 }>();
 
@@ -342,10 +352,10 @@ const kb = (bytes: number | null | undefined): string =>
                         <div class="cifra">{{ documento.codigo }}</div>
                     </div>
                     <!--
-                        Un documento redactado —política, norma, procedimiento—
-                        es de la organización entera y normalmente no cuelga de
-                        ningún sistema. Enseñar «— —» donde no hay nada es peor
-                        que no enseñar la fila.
+                        Un documento redactado —política, norma, procedimiento,
+                        plan de continuidad— es de la organización entera y
+                        normalmente no cuelga de ningún sistema. Enseñar «— —»
+                        donde no hay nada es peor que no enseñar la fila.
                     -->
                     <div v-if="documento.sistema">
                         <div class="text-muted-foreground">Sistema</div>
@@ -393,6 +403,36 @@ const kb = (bytes: number | null | undefined): string =>
                         <div class="text-muted-foreground">Notas</div>
                         <div>{{ documento.notas }}</div>
                     </div>
+                </CardContent>
+            </Card>
+            </motion.div>
+
+            <!--
+                Sólo un plan de continuidad vincula servicios (§ 4.11):
+                `serviciosDelPlan` es nulo para cualquier otro tipo y la tarjeta
+                no se ofrece, en vez de enseñarse vacía en un documento que no
+                la tiene.
+            -->
+            <motion.div
+                v-if="serviciosDelPlan !== null"
+                :variants="variantesEntrada"
+                class="lg:col-span-3"
+            >
+            <Card>
+                <CardHeader>
+                    <CardTitle>Servicios cubiertos</CardTitle>
+                    <CardDescription>
+                        Los servicios del inventario que este plan cubre. Se vinculan, no se crean:
+                        un servicio ES un activo de tipo «Servicios» y su BIA se registra aparte.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ServiciosDelPlan
+                        :documento-id="documento.id"
+                        :servicios="serviciosDelPlan"
+                        :disponibles="serviciosDisponibles ?? []"
+                        :puede-gestionar="puedeRedactar"
+                    />
                 </CardContent>
             </Card>
             </motion.div>

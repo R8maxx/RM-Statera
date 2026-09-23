@@ -79,7 +79,7 @@ export type EstadoDocumental = 'borrador' | 'en_revision' | 'aprobado' | 'rechaz
 export type EstadoGeneracion = 'encolada' | 'generando' | 'generada' | 'fallida';
 export type OrigenTexto = 'plantilla' | 'propio';
 export type SeccionNarrativa = 'introduccion' | 'objeto_y_alcance' | 'metodologia' | 'nota_resumen' | 'nota_tabla' | 'nota_derivacion' | 'nota_madurez' | 'nota_exclusiones' | 'conclusiones' | 'limitaciones_propias' | 'aprobacion';
-export type TipoDocumento = 'soa_iso' | 'dda_ens' | 'plan_adecuacion_ens' | 'analisis_contexto' | 'acta_revision' | 'politica' | 'norma' | 'procedimiento';
+export type TipoDocumento = 'soa_iso' | 'dda_ens' | 'plan_adecuacion_ens' | 'analisis_contexto' | 'acta_revision' | 'politica' | 'norma' | 'procedimiento' | 'plan_continuidad';
 }
 }
 namespace Evidencia {

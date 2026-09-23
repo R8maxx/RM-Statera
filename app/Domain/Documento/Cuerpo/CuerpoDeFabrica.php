@@ -87,7 +87,8 @@ final class CuerpoDeFabrica
                  */
                 TipoDocumento::Politica,
                 TipoDocumento::Norma,
-                TipoDocumento::Procedimiento => [],
+                TipoDocumento::Procedimiento,
+                TipoDocumento::PlanContinuidad => [],
             },
 
             ...$this->seccion(SeccionNarrativa::Conclusiones),

@@ -27,6 +27,7 @@ use App\Http\Controllers\ParteInteresadaController;
 use App\Http\Controllers\PerfilController;
 use App\Http\Controllers\PerfilFotoController;
 use App\Http\Controllers\PersonaController;
+use App\Http\Controllers\PlanContinuidadServicioController;
 use App\Http\Controllers\PlantillaDocumentoController;
 use App\Http\Controllers\PuestoController;
 use App\Http\Controllers\RevisionDireccionController;
@@ -981,6 +982,27 @@ Route::middleware('auth')->group(function (): void {
             ->name('documentos.cuerpo.edit');
         Route::put('/documentos/{documento}/cuerpo', [DocumentoCuerpoController::class, 'update'])
             ->name('documentos.cuerpo.update');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Los servicios de un plan de continuidad (§ 4.11)
+    |--------------------------------------------------------------------------
+    |
+    | **Sin `scopeBindings()`**, y a propósito: pluraliza `{activo}` en inglés
+    | —«activo» → «activos»— y `Documento` no tiene esa relación, tiene
+    | `serviciosCubiertos()`. `{documento}` y `{activo}` se resuelven cada uno
+    | por su propio binding implícito; la frontera entre organizaciones la
+    | sigue poniendo el scope global de cada modelo, y que el activo sea un
+    | servicio DE ESTE plan lo comprueba `VincularServicioAPlan`.
+    |
+    */
+
+    Route::middleware(['can:documentos.redactar', ExigirDosFactores::class])->group(function (): void {
+        Route::post('/documentos/{documento}/servicios', [PlanContinuidadServicioController::class, 'store'])
+            ->name('documentos.servicios.store');
+        Route::delete('/documentos/{documento}/servicios/{activo}', [PlanContinuidadServicioController::class, 'destroy'])
+            ->name('documentos.servicios.destroy');
     });
 
     /*

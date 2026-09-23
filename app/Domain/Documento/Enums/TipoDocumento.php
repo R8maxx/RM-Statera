@@ -61,6 +61,23 @@ enum TipoDocumento: string
     case Norma = 'norma';
     case Procedimiento = 'procedimiento';
 
+    /**
+     * El plan de continuidad: § 4.11, y el cuarto documento redactado.
+     *
+     * **Entra en la familia de los escritos, no en la de los calculados.**
+     * A diferencia del plan de adecuación —que lista lo que falta por
+     * implantar y sale de una consulta— el plan de continuidad no se deriva
+     * de ninguna tabla: lo redacta la organización, igual que un
+     * procedimiento. Lo único que este tipo añade a la familia es la relación
+     * con los servicios que cubre (`Documento::serviciosCubiertos()`), que es
+     * dato de la organización y no un hueco de plantilla.
+     *
+     * **No exige sistema**, como el resto de los redactados: un plan de
+     * continuidad es de la organización entera y puede cubrir servicios de
+     * varios sistemas a la vez.
+     */
+    case PlanContinuidad = 'plan_continuidad';
+
     public function etiqueta(): string
     {
         return match ($this) {
@@ -72,6 +89,7 @@ enum TipoDocumento: string
             self::Politica => 'Política',
             self::Norma => 'Norma',
             self::Procedimiento => 'Procedimiento',
+            self::PlanContinuidad => 'Plan de continuidad',
         };
     }
 
@@ -87,6 +105,7 @@ enum TipoDocumento: string
             self::Politica => 'Política',
             self::Norma => 'Norma',
             self::Procedimiento => 'Procedimiento',
+            self::PlanContinuidad => 'Plan de continuidad',
         };
     }
 
@@ -107,7 +126,8 @@ enum TipoDocumento: string
         return match ($this) {
             self::SoaIso, self::DdaEns, self::PlanAdecuacionEns,
             self::AnalisisContexto, self::ActaRevision => false,
-            self::Politica, self::Norma, self::Procedimiento => true,
+            self::Politica, self::Norma, self::Procedimiento,
+            self::PlanContinuidad => true,
         };
     }
 
@@ -129,7 +149,8 @@ enum TipoDocumento: string
         return match ($this) {
             self::SoaIso, self::DdaEns, self::PlanAdecuacionEns => true,
             self::AnalisisContexto, self::ActaRevision,
-            self::Politica, self::Norma, self::Procedimiento => false,
+            self::Politica, self::Norma, self::Procedimiento,
+            self::PlanContinuidad => false,
         };
     }
 
@@ -149,7 +170,8 @@ enum TipoDocumento: string
         return match ($this) {
             self::SoaIso, self::DdaEns => 'Limitaciones de esta declaración',
             self::PlanAdecuacionEns, self::AnalisisContexto, self::ActaRevision,
-            self::Politica, self::Norma, self::Procedimiento => 'Limitaciones de este documento',
+            self::Politica, self::Norma, self::Procedimiento,
+            self::PlanContinuidad => 'Limitaciones de este documento',
         };
     }
 
@@ -181,7 +203,8 @@ enum TipoDocumento: string
             self::SoaIso => 'ISO27001-2022',
             self::DdaEns, self::PlanAdecuacionEns => 'ENS-RD311-2022',
             self::AnalisisContexto, self::ActaRevision,
-            self::Politica, self::Norma, self::Procedimiento => null,
+            self::Politica, self::Norma, self::Procedimiento,
+            self::PlanContinuidad => null,
         };
     }
 

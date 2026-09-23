@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Domain\Activo\Enums\TipoActivo;
+use App\Domain\Activo\Models\Activo;
 use App\Domain\Autorizacion\Enums\Permiso;
 use App\Domain\Documento\AcusarLectura;
 use App\Domain\Documento\AprobarVersion;
@@ -99,6 +101,13 @@ class DocumentoController extends Controller
             'documento' => $this->serializar($documento),
 
             /*
+             * Sólo un plan de continuidad vincula servicios (§ 4.11), y nulo
+             * -no una lista vacía- es lo que le dice a la ficha que no ofrezca
+             * el bloque en absoluto para cualquier otro tipo.
+             */
+            ...$this->serviciosDelPlan($documento),
+
+            /*
              * La versión vigente va suelta y no dentro de `versiones`: es la que
              * se lee, la que se acusa y la que caduca, y la ficha la enseña
              * arriba. Las demás son histórico.
@@ -119,6 +128,8 @@ class DocumentoController extends Controller
 
             'puedeAprobar' => $usuario instanceof User
                 && $usuario->can(Permiso::DocumentosAprobar->value),
+            'puedeRedactar' => $usuario instanceof User
+                && $usuario->can(Permiso::DocumentosRedactar->value),
             /*
              * Si el documento se editó DESPUÉS de generar el borrador, el PDF
              * que hay en disco es anterior y no lleva esos cambios. Sin este
@@ -415,6 +426,44 @@ class DocumentoController extends Controller
     }
 
     /**
+     * Los servicios de un plan de continuidad, y los que quedan por vincular.
+     *
+     * Nulo en los dos —y no una lista vacía— para cualquier otro tipo: es lo
+     * que le dice a `documentos/Ficha.vue` que no ofrezca el bloque en
+     * absoluto, en vez de enseñarlo vacío en un documento que no lo tiene.
+     *
+     * @return array{serviciosDelPlan: list<array<string, mixed>>|null, serviciosDisponibles: list<array<string, mixed>>|null}
+     */
+    private function serviciosDelPlan(Documento $documento): array
+    {
+        if ($documento->tipo !== TipoDocumento::PlanContinuidad) {
+            return ['serviciosDelPlan' => null, 'serviciosDisponibles' => null];
+        }
+
+        $cubiertos = $documento->serviciosCubiertos()->orderBy('codigo')->get();
+
+        return [
+            'serviciosDelPlan' => $cubiertos
+                ->map(fn (Activo $activo): array => [
+                    'id' => $activo->id,
+                    'codigo' => $activo->codigo,
+                    'nombre' => $activo->nombre,
+                ])
+                ->all(),
+            'serviciosDisponibles' => Activo::query()
+                ->where('tipo', TipoActivo::Servicios->value)
+                ->whereNotIn('id', $cubiertos->pluck('id'))
+                ->orderBy('codigo')
+                ->get(['id', 'codigo', 'nombre'])
+                ->map(fn (Activo $activo): array => [
+                    'valor' => (string) $activo->id,
+                    'etiqueta' => "{$activo->codigo} · {$activo->nombre}",
+                ])
+                ->all(),
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function serializar(Documento $documento): array
@@ -553,7 +602,8 @@ class DocumentoController extends Controller
             TipoDocumento::ActaRevision,
             TipoDocumento::Politica,
             TipoDocumento::Norma,
-            TipoDocumento::Procedimiento => null,
+            TipoDocumento::Procedimiento,
+            TipoDocumento::PlanContinuidad => null,
         };
     }
 

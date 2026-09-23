@@ -19,6 +19,7 @@ use App\Domain\Continuidad\Models\BiaServicio;
 use App\Domain\Continuidad\Models\BiaServicioTransicion;
 use App\Domain\Continuidad\RegistrarBia;
 use App\Domain\Continuidad\UmbralTolerable;
+use App\Domain\Documento\Models\Documento;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Http\Requests\CambiarEstadoBiaRequest;
 use App\Http\Requests\GuardarBiaRequest;
@@ -118,10 +119,23 @@ class BiaServicioController extends Controller
                 ])
                 ->values()
                 ->all(),
-            // Documentos y pruebas: los dos módulos llegan con las tareas 4 y
-            // 5. Vacío aquí y no ausente, para que la ficha ya sepa pintar su
-            // estado vacío antes de que exista el dato.
-            'planes' => [],
+            /*
+             * Los planes de continuidad que cubren este servicio, con id,
+             * código, título y si su versión aprobada existe: es lo único que
+             * necesita la tarjeta de la ficha, y lo que `Documento` ofrece sin
+             * reabrir la consulta larga de `DocumentoRecurso`.
+             */
+            'planes' => $bia->planes()->with('versionAprobada')->get()
+                ->map(fn (Documento $plan): array => [
+                    'id' => $plan->id,
+                    'codigo' => $plan->codigo,
+                    'titulo' => $plan->titulo,
+                    'aprobado' => $plan->versionAprobada !== null,
+                ])
+                ->all(),
+            // Pruebas: llega con la tarea 5. Vacío aquí y no ausente, para
+            // que la ficha ya sepa pintar su estado vacío antes de que
+            // exista el dato.
             'pruebas' => [],
             'transiciones' => array_map(
                 fn (EstadoBia $destino): array => [

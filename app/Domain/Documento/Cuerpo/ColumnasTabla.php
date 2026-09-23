@@ -107,7 +107,8 @@ final class ColumnasTabla
             TipoDocumento::ActaRevision,
             TipoDocumento::Politica,
             TipoDocumento::Norma,
-            TipoDocumento::Procedimiento => [],
+            TipoDocumento::Procedimiento,
+            TipoDocumento::PlanContinuidad => [],
         };
     }
 
@@ -126,7 +127,8 @@ final class ColumnasTabla
             TipoDocumento::ActaRevision,
             TipoDocumento::Politica,
             TipoDocumento::Norma,
-            TipoDocumento::Procedimiento => '',
+            TipoDocumento::Procedimiento,
+            TipoDocumento::PlanContinuidad => '',
         };
     }
 }

@@ -84,7 +84,7 @@ const acuse = ref(props.documento?.exige_acuse ?? false);
             :titulo="edicion ? 'Editar documento' : 'Nuevo documento'"
             :descripcion="
                 redactado
-                    ? 'Una política, una norma o un procedimiento los escribe la organización: aquí se le da código y responsable, y el contenido se redacta después en el editor.'
+                    ? 'Una política, una norma, un procedimiento o un plan de continuidad los escribe la organización: aquí se le da código y responsable, y el contenido se redacta después en el editor.'
                     : 'Una declaración de aplicabilidad no se redacta: se genera a partir de lo que ya está registrado. Aquí sólo se decide de qué sistema es, cómo se llama y quién responde de él.'
             "
             :action="edicion ? `/documentos/${documento!.id}` : '/documentos'"
