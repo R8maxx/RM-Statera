@@ -6,6 +6,7 @@ namespace App\Domain\Obligacion\Models;
 
 use App\Domain\Catalogo\Enums\CategoriaEns;
 use App\Domain\Catalogo\Models\Marco;
+use App\Domain\Catalogo\Models\Requisito;
 use App\Domain\Obligacion\Cadencia;
 use App\Domain\Obligacion\Enums\ReferenciaCumplimiento;
 use Database\Factories\Obligacion\ObligacionFactory;
@@ -34,6 +35,7 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property string $codigo
  * @property ?int $marco_id
+ * @property ?int $requisito_id
  * @property string $nombre
  * @property ?string $descripcion
  * @property ?string $base_legal
@@ -55,6 +57,7 @@ class Obligacion extends Model
     protected $fillable = [
         'codigo',
         'marco_id',
+        'requisito_id',
         'nombre',
         'descripcion',
         'base_legal',
@@ -71,6 +74,12 @@ class Obligacion extends Model
     public function marco(): BelongsTo
     {
         return $this->belongsTo(Marco::class);
+    }
+
+    /** @return BelongsTo<Requisito, $this> */
+    public function requisito(): BelongsTo
+    {
+        return $this->belongsTo(Requisito::class);
     }
 
     /** @return HasMany<Compromiso, $this> */
@@ -95,7 +104,11 @@ class Obligacion extends Model
      *
      * Sin `categoria_minima` muerde siempre: la mayoría de las obligaciones no
      * dependen de la categoría —el informe INES lo presenta cualquiera que esté
-     * sujeto al ENS— y sólo las de continuidad y las de auditoría formal lo hacen.
+     * sujeto al ENS—. Las pruebas de continuidad ya no se filtran por aquí: desde
+     * que declaran `requisito_id`, lo que decide si muerden es si ese requisito
+     * está entre lo exigible de algún sistema (`ObligacionesAplicables`), y eso lo
+     * deriva el motor de categorización, no una categoría copiada en el catálogo
+     * de obligaciones.
      */
     public function exigibleEn(CategoriaEns $categoria): bool
     {

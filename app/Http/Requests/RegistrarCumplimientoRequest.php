@@ -18,22 +18,23 @@ use Illuminate\Validation\Validator;
  *
  * **Una sola referencia.** La base lo impone con `num_nonnulls(...) <= 1` y aquí
  * se dice en castellano: un cumplimiento apunta a la auditoría que lo demuestra,
- * o al acta, o al documento — no a los tres. La evidencia va aparte porque es
- * otra cosa: es la prueba, y convive con el registro.
+ * o al acta, o al documento, o a la prueba de continuidad realizada — no a
+ * varias a la vez. La evidencia va aparte porque es otra cosa: es la prueba, y
+ * convive con el registro.
  */
 class RegistrarCumplimientoRequest extends FormRequest
 {
     use NormalizaSeleccionVacia;
 
     /**
-     * Las cuatro referencias son opcionales y las cuatro se pueden dejar en
-     * blanco, así que las cuatro mandan centinela.
+     * Las cinco referencias son opcionales y las cinco se pueden dejar en
+     * blanco, así que las cinco mandan centinela.
      *
      * @return list<string>
      */
     protected function seleccionesOpcionales(): array
     {
-        return ['auditoria_id', 'revision_direccion_id', 'documento_id', 'evidencia_id'];
+        return ['auditoria_id', 'revision_direccion_id', 'documento_id', 'prueba_continuidad_id', 'evidencia_id'];
     }
 
     /**
@@ -47,6 +48,7 @@ class RegistrarCumplimientoRequest extends FormRequest
             'auditoria_id' => ['nullable', 'integer', 'exists:auditorias,id'],
             'revision_direccion_id' => ['nullable', 'integer', 'exists:revisiones_direccion,id'],
             'documento_id' => ['nullable', 'integer', 'exists:documentos,id'],
+            'prueba_continuidad_id' => ['nullable', 'integer', 'exists:pruebas_continuidad,id'],
             'evidencia_id' => ['nullable', 'integer', 'exists:evidencias,id'],
             'nota' => ['nullable', 'string', 'max:2000'],
         ];
@@ -74,12 +76,13 @@ class RegistrarCumplimientoRequest extends FormRequest
                     $this->input('auditoria_id'),
                     $this->input('revision_direccion_id'),
                     $this->input('documento_id'),
+                    $this->input('prueba_continuidad_id'),
                 ]);
 
                 if (count($referencias) > 1) {
                     $validador->errors()->add(
                         'auditoria_id',
-                        'Un cumplimiento apunta a un registro, no a varios: la auditoría que lo demuestra, el acta o el documento.',
+                        'Un cumplimiento apunta a un registro, no a varios: la auditoría que lo demuestra, el acta, el documento o la prueba de continuidad.',
                     );
                 }
             },

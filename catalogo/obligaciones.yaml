@@ -138,11 +138,12 @@ obligaciones:
   - codigo: ens.pruebas-continuidad
     nombre: Pruebas de los planes de continuidad
     descripcion: >-
-      Probar los planes y registrar el resultado. No es exigible en categoría
-      básica, así que hoy no se propone a nadie; entra sola el día que un sistema
-      alcance categoría media, sin migración y sin tocar el código.
+      Probar los planes y registrar el resultado. Se propone cuando algún sistema
+      tiene op.cont.3 entre sus medidas exigibles, que en el Anexo II depende de
+      la disponibilidad.
     base_legal: 'Real Decreto 311/2022, Anexo II, op.cont'
     marco: ENS-RD311-2022
+    requisito: op.cont.3
     periodicidad_meses: 12
-    categoria_minima: media
+    referencia: prueba_continuidad
     orden: 70

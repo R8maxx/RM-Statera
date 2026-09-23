@@ -25,6 +25,7 @@ enum ReferenciaCumplimiento: string
     case Auditoria = 'auditoria';
     case RevisionDireccion = 'revision_direccion';
     case Documento = 'documento';
+    case PruebaContinuidad = 'prueba_continuidad';
 
     /** La columna de `compromiso_cumplimientos` donde vive cada una. */
     public function columna(): string
@@ -33,6 +34,7 @@ enum ReferenciaCumplimiento: string
             self::Auditoria => 'auditoria_id',
             self::RevisionDireccion => 'revision_direccion_id',
             self::Documento => 'documento_id',
+            self::PruebaContinuidad => 'prueba_continuidad_id',
         };
     }
 
@@ -42,6 +44,7 @@ enum ReferenciaCumplimiento: string
             self::Auditoria => 'Auditoría',
             self::RevisionDireccion => 'Revisión por la dirección',
             self::Documento => 'Documento',
+            self::PruebaContinuidad => 'Prueba de continuidad',
         };
     }
 
@@ -51,6 +54,7 @@ enum ReferenciaCumplimiento: string
             self::Auditoria => 'SearchCheck',
             self::RevisionDireccion => 'UserRoundCheck',
             self::Documento => 'FileCheck',
+            self::PruebaContinuidad => 'FlaskConical',
         };
     }
 
@@ -60,6 +64,7 @@ enum ReferenciaCumplimiento: string
             self::Auditoria => "/auditorias/{$id}",
             self::RevisionDireccion => "/revision-direccion/{$id}",
             self::Documento => "/documentos/{$id}",
+            self::PruebaContinuidad => "/continuidad/pruebas/{$id}",
         };
     }
 }

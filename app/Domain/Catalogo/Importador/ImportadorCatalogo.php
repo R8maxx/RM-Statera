@@ -750,6 +750,14 @@ final class ImportadorCatalogo
      * por la dirección la piden ISO y el ENS con palabras distintas y es la misma
      * reunión.
      *
+     * `requisito` es del mismo estilo: llega por código y se resuelve por la
+     * clave natural `(marco.codigo, requisito.codigo)` contra el propio `marco`
+     * de la obligación, nunca por id. Es lo que le permite a una obligación como
+     * las pruebas de continuidad **derivarse** de lo que el motor de
+     * categorización ya decidió (invariante 4) en vez de copiar una categoría
+     * mínima a mano: pedirlo sin `marco` o apuntar a un requisito que no existe
+     * en ese marco son errores de importación, no avisos.
+     *
      * @param  array<string, mixed>  $documento
      */
     private function importarObligaciones(string $fichero, array $documento, bool $simulacion): ResultadoImportacion
@@ -787,6 +795,7 @@ final class ImportadorCatalogo
                 'descripcion' => ['nullable', 'string'],
                 'base_legal' => ['nullable', 'string', 'max:255'],
                 'marco' => ['nullable', 'string'],
+                'requisito' => ['nullable', 'string'],
                 'periodicidad_meses' => ['required', 'integer', 'between:1,120'],
                 'categoria_minima' => ['nullable', 'string', 'in:'.implode(',', self::CATEGORIAS)],
                 'referencia' => ['nullable', 'string', 'in:'.implode(',', $referencias)],
@@ -823,9 +832,35 @@ final class ImportadorCatalogo
                 continue;
             }
 
+            $requisito = isset($obligacion['requisito']) ? (string) $obligacion['requisito'] : null;
+            $requisitoId = null;
+
+            /*
+             * Un requisito sin marco no se puede resolver: la clave natural es
+             * `(marco.codigo, requisito.codigo)` y sin el primero no hay contra
+             * qué buscar el segundo. Es un error de importación y no un aviso,
+             * mismo criterio que un marco inexistente.
+             */
+            if ($requisito !== null && $marco === null) {
+                $errores[] = "{$donde}: `requisito` necesita `marco` para resolverse por clave natural.";
+
+                continue;
+            }
+
+            if ($requisito !== null) {
+                $requisitoId = $this->requisitoPorCodigo($marco, $requisito);
+
+                if ($requisitoId === null) {
+                    $errores[] = "{$donde}: requisito [{$requisito}] no existe en el marco [{$marco}].";
+
+                    continue;
+                }
+            }
+
             $planas[] = [
                 'codigo' => $codigo,
                 'marco_id' => $marco === null ? null : $marcos[$marco],
+                'requisito_id' => $requisitoId,
                 'nombre' => (string) $obligacion['nombre'],
                 'descripcion' => isset($obligacion['descripcion']) ? (string) $obligacion['descripcion'] : null,
                 'base_legal' => isset($obligacion['base_legal']) ? (string) $obligacion['base_legal'] : null,
@@ -918,6 +953,17 @@ final class ImportadorCatalogo
             if ($existente->{$campo} != $nuevos[$campo]) {
                 $cambios[] = $campo;
             }
+        }
+
+        /*
+         * El diff enseña el código del requisito y no su id numérico: un id no
+         * dice nada a quien lee el resultado de `catalogo:importar` en una
+         * terminal, y el código es la clave natural con la que se piensa el
+         * catálogo.
+         */
+        if ($existente->requisito_id !== $nuevos['requisito_id']) {
+            $codigo = $nuevos['requisito_id'] === null ? null : Requisito::query()->whereKey($nuevos['requisito_id'])->value('codigo');
+            $cambios[] = $codigo === null ? 'requisito' : "requisito ({$codigo})";
         }
 
         foreach (['categoria_minima', 'referencia_sugerida'] as $campo) {

@@ -6,7 +6,9 @@ use App\Domain\Catalogo\Enums\CategoriaEns;
 use App\Domain\Catalogo\Excepciones\CatalogoInvalido;
 use App\Domain\Catalogo\Importador\ImportadorCatalogo;
 use App\Domain\Catalogo\Models\Marco;
+use App\Domain\Catalogo\Models\Requisito;
 use App\Domain\Categorizacion\Enums\NivelDimension;
+use App\Domain\Implantacion\Models\Implantacion;
 use App\Domain\Obligacion\Models\Compromiso;
 use App\Domain\Obligacion\Models\Obligacion;
 use App\Domain\Obligacion\ObligacionesAplicables;
@@ -119,8 +121,9 @@ it('tampoco se propone a quien no está sujeto al ENS', function (): void {
 });
 
 /**
- * Las pruebas de continuidad no muerden en básica: no se proponen hoy y entran
- * solas el día que un sistema alcance media, sin migración y sin tocar código.
+ * El mecanismo de `categoria_minima` sigue vigente para lo que todavía lo usa
+ * —hoy nada del catálogo real, pero el filtro no se ha retirado—: una
+ * obligación no muerde hasta que algún sistema alcanza la categoría mínima.
  */
 it('una obligación de categoría media no se propone a un sistema básico', function (): void {
     $marco = Marco::factory()->create(['codigo' => 'ENS-RD311-2022']);
@@ -134,6 +137,37 @@ it('una obligación de categoría media no se propone a un sistema básico', fun
     expect(app(ObligacionesAplicables::class)->para($this->organizacion->fresh()))->toHaveCount(0);
 
     app(AplicarValoracion::class)->aplicar($sistema->fresh(), uniforme(NivelDimension::Medio), []);
+
+    expect(app(ObligacionesAplicables::class)->para($this->organizacion->fresh()))->toHaveCount(1);
+});
+
+/**
+ * El cuarto filtro: una obligación con `requisito_id` no muerde por categoría,
+ * muerde porque ese requisito está entre lo exigible de algún sistema — que es
+ * justo lo que reemplaza a `categoria_minima` para las pruebas de continuidad.
+ * Sintético y no el catálogo real: sólo hace falta una `Implantacion` con
+ * `aplica` en uno u otro valor.
+ */
+it('una obligación con requisito sólo se propone si ese requisito aplica a algún sistema', function (): void {
+    $marco = Marco::factory()->create(['codigo' => 'ENS-RD311-2022']);
+    $requisito = Requisito::factory()->create(['marco_id' => $marco->id]);
+    Obligacion::factory()->deMarco($marco->id)->create(['requisito_id' => $requisito->id]);
+
+    $sistema = Sistema::factory()->create(['marco_id' => $marco->id]);
+    $this->organizacion->update(['sujeto_obligado_ens' => true]);
+
+    Implantacion::factory()->create([
+        'sistema_id' => $sistema->id,
+        'requisito_id' => $requisito->id,
+        'aplica' => false,
+        'justificacion' => 'No aplica en la valoración de prueba.',
+        'exigencia_calculada' => null,
+        'estado' => 'no_aplica',
+    ]);
+
+    expect(app(ObligacionesAplicables::class)->para($this->organizacion->fresh()))->toHaveCount(0);
+
+    Implantacion::query()->where('requisito_id', $requisito->id)->update(['aplica' => true, 'estado' => 'no_iniciado']);
 
     expect(app(ObligacionesAplicables::class)->para($this->organizacion->fresh()))->toHaveCount(1);
 });

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Obligacion;
 
 use App\Domain\Catalogo\Enums\CategoriaEns;
+use App\Domain\Implantacion\Models\Implantacion;
 use App\Domain\Obligacion\Models\Compromiso;
 use App\Domain\Obligacion\Models\Obligacion;
 use App\Domain\Organizacion\Models\Organizacion;
@@ -21,7 +22,7 @@ use Illuminate\Support\Collection;
  * aplicabilidad se deriva; esto es lo otro, una decisión, y las decisiones las
  * firma una persona.
  *
- * Tres filtros, y ninguno inventa nada:
+ * Cuatro filtros, y ninguno inventa nada:
  *
  * 1. **El marco.** Una obligación del ENS sólo se propone a quien tenga un sistema
  *    de ese marco. Sin `marco_id` se propone siempre: la revisión por la dirección
@@ -32,8 +33,15 @@ use Illuminate\Support\Collection;
  *    reportar al CCN.
  * 3. **La categoría mínima**, contra `Sistema::categoria()`, que **se deriva** de
  *    las cinco dimensiones (invariante 4). Se compara contra la categoría más alta
- *    de sus sistemas: si uno de ellos alcanza media, las pruebas de continuidad ya
- *    muerden aunque los otros tres sigan en básica.
+ *    de sus sistemas.
+ * 4. **El requisito.** Una obligación como las pruebas de continuidad no depende
+ *    de la categoría del sistema sino de si su requisito —`op.cont.3`— está entre
+ *    lo exigible de algún sistema. `op.cont.3` sólo aplica cuando la dimensión de
+ *    Disponibilidad llega a alto, y eso puede pasar en un sistema que en conjunto
+ *    siga en básica: filtrar por categoría exigiría de menos, y copiar la
+ *    categoría en el catálogo de obligaciones sería la misma aplicabilidad
+ *    calculada dos veces y a punto de desincronizarse. Se comprueba contra
+ *    `Implantacion::aplicables()`, que es donde el motor ya lo decidió.
  */
 final readonly class ObligacionesAplicables
 {
@@ -73,17 +81,28 @@ final readonly class ObligacionesAplicables
         $categoria = $this->categoriaMasAlta($sistemas);
         $leAplicaElEns = $organizacion->leAplicaElEns();
 
+        /*
+         * Una sola consulta para todas las obligaciones y no una por cada una:
+         * el conjunto de requisitos exigibles hoy, según lo que ya decidió el
+         * motor de categorización sobre `implantaciones`.
+         */
+        $requisitosExigibles = Implantacion::query()->aplicables()->distinct()->pluck('requisito_id')->all();
+
         return Obligacion::query()
             ->vigentes()
             ->with('marco')
             ->orderBy('orden')
             ->get()
-            ->filter(function (Obligacion $obligacion) use ($marcos, $categoria, $leAplicaElEns): bool {
+            ->filter(function (Obligacion $obligacion) use ($marcos, $categoria, $leAplicaElEns, $requisitosExigibles): bool {
                 if ($obligacion->marco_id !== null && ! in_array($obligacion->marco_id, $marcos, true)) {
                     return false;
                 }
 
                 if ($this->esDelEns($obligacion) && ! $leAplicaElEns) {
+                    return false;
+                }
+
+                if ($obligacion->requisito_id !== null && ! in_array($obligacion->requisito_id, $requisitosExigibles, true)) {
                     return false;
                 }
 

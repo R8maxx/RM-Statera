@@ -6,6 +6,8 @@ namespace App\Http\Controllers;
 
 use App\Domain\Auditoria\Models\Auditoria;
 use App\Domain\Autorizacion\Enums\Permiso;
+use App\Domain\Continuidad\Enums\EstadoPrueba;
+use App\Domain\Continuidad\Models\PruebaContinuidad;
 use App\Domain\Documento\Models\Documento;
 use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Obligacion\AsumirObligacion;
@@ -170,6 +172,7 @@ class ObligacionController extends Controller
             'cumplimientos.auditoria',
             'cumplimientos.revisionDireccion',
             'cumplimientos.documento',
+            'cumplimientos.pruebaContinuidad',
             'cumplimientos.evidencia',
         ]);
 
@@ -281,7 +284,7 @@ class ObligacionController extends Controller
             $registrar(
                 $compromiso,
                 Carbon::parse($datos['fecha']),
-                array_intersect_key($datos, array_flip(['auditoria_id', 'revision_direccion_id', 'documento_id', 'evidencia_id', 'nota'])),
+                array_intersect_key($datos, array_flip(['auditoria_id', 'revision_direccion_id', 'documento_id', 'prueba_continuidad_id', 'evidencia_id', 'nota'])),
                 $request->user(),
                 isset($datos['cubre_hasta']) ? Carbon::parse($datos['cubre_hasta']) : null,
             );
@@ -370,11 +373,11 @@ class ObligacionController extends Controller
     /**
      * Con qué se puede demostrar un cumplimiento: sólo lo pide la ficha.
      *
-     * Los tres registros son excluyentes entre sí —lo impone la base— y la
+     * Los cuatro registros son excluyentes entre sí —lo impone la base— y la
      * evidencia va aparte porque es otra cosa: es la prueba, y convive con el
      * registro que la originó.
      *
-     * **Las cuatro llevan tope.** `Documento` no lo llevaba y se traía el registro
+     * **Las cinco llevan tope.** `Documento` no lo llevaba y se traía el registro
      * documental entero para un desplegable.
      *
      * @return array<string, mixed>
@@ -407,6 +410,19 @@ class ObligacionController extends Controller
                 ->limit(100)
                 ->get()
                 ->map(fn (Documento $documento): array => ['valor' => $documento->id, 'etiqueta' => "{$documento->codigo} — {$documento->titulo}"])
+                ->all(),
+
+            /*
+             * Sólo las realizadas: una prueba planificada o cancelada todavía no
+             * demuestra nada, y citarla como referencia de un cumplimiento sería
+             * dar por hecho un resultado que no existe.
+             */
+            'pruebasContinuidad' => PruebaContinuidad::query()
+                ->where('estado', EstadoPrueba::Realizada)
+                ->orderByDesc('fecha_realizacion')
+                ->limit(50)
+                ->get()
+                ->map(fn (PruebaContinuidad $prueba): array => ['valor' => $prueba->id, 'etiqueta' => "{$prueba->codigo} — {$prueba->titulo}"])
                 ->all(),
 
             'evidencias' => Evidencia::query()

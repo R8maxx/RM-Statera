@@ -140,7 +140,7 @@ readonly icono: string,
 readonly url: string,
 };
 namespace Enums {
-export type ReferenciaCumplimiento = 'auditoria' | 'revision_direccion' | 'documento';
+export type ReferenciaCumplimiento = 'auditoria' | 'revision_direccion' | 'documento' | 'prueba_continuidad';
 }
 }
 namespace Organizacion {

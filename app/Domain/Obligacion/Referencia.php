@@ -62,6 +62,7 @@ final readonly class Referencia
             ReferenciaCumplimiento::Auditoria => 'auditoria',
             ReferenciaCumplimiento::RevisionDireccion => 'revisionDireccion',
             ReferenciaCumplimiento::Documento => 'documento',
+            ReferenciaCumplimiento::PruebaContinuidad => 'pruebaContinuidad',
         };
 
         if (! $cumplimiento->relationLoaded($relacion)) {

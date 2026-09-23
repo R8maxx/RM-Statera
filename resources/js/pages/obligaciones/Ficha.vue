@@ -83,6 +83,7 @@ const props = defineProps<{
     auditorias: OpcionNumerica[];
     revisiones: OpcionNumerica[];
     documentos: OpcionNumerica[];
+    pruebasContinuidad: OpcionNumerica[];
     evidencias: OpcionNumerica[];
 }>();
 
@@ -105,6 +106,7 @@ const formulario = useForm({
     auditoria_id: '',
     revision_direccion_id: '',
     documento_id: '',
+    prueba_continuidad_id: '',
     evidencia_id: '',
     nota: '',
 });
@@ -437,6 +439,14 @@ function retirar(): void {
                         etiqueta="Documento"
                         :opciones="conOpcionVacia(comoOpciones(documentos), 'Ninguno')"
                         :error="formulario.errors.documento_id"
+                    />
+
+                    <CampoSelect
+                        v-model="formulario.prueba_continuidad_id"
+                        nombre="prueba_continuidad_id"
+                        etiqueta="Prueba de continuidad"
+                        :opciones="conOpcionVacia(comoOpciones(pruebasContinuidad), 'Ninguna')"
+                        :error="formulario.errors.prueba_continuidad_id"
                     />
 
                     <CampoSelect

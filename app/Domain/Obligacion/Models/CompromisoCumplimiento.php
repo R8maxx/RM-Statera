@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Obligacion\Models;
 
 use App\Domain\Auditoria\Models\Auditoria;
+use App\Domain\Continuidad\Models\PruebaContinuidad;
 use App\Domain\Documento\Models\Documento;
 use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Obligacion\Enums\ReferenciaCumplimiento;
@@ -42,6 +43,7 @@ use Illuminate\Support\Carbon;
  * @property ?int $auditoria_id
  * @property ?int $revision_direccion_id
  * @property ?int $documento_id
+ * @property ?int $prueba_continuidad_id
  * @property ?int $evidencia_id
  * @property ?string $nota
  * @property ?int $registrado_por_id
@@ -66,6 +68,7 @@ class CompromisoCumplimiento extends Model
         'auditoria_id',
         'revision_direccion_id',
         'documento_id',
+        'prueba_continuidad_id',
         'evidencia_id',
         'nota',
         'registrado_por_id',
@@ -93,6 +96,12 @@ class CompromisoCumplimiento extends Model
     public function documento(): BelongsTo
     {
         return $this->belongsTo(Documento::class);
+    }
+
+    /** @return BelongsTo<PruebaContinuidad, $this> */
+    public function pruebaContinuidad(): BelongsTo
+    {
+        return $this->belongsTo(PruebaContinuidad::class);
     }
 
     /** @return BelongsTo<Evidencia, $this> */
