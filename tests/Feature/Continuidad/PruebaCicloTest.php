@@ -102,6 +102,21 @@ it('registrar resultado sella fecha, resultado y los tiempos alcanzados por serv
         ->and(PruebaContinuidadTransicion::query()->count())->toBe(2);
 });
 
+it('rechaza registrar resultado con un servicio ajeno a la prueba', function (): void {
+    $prueba = ($this->planificar)(atributosDePrueba($this->plan), [$this->servicio->id], $this->usuario);
+    $ajeno = Activo::factory()->deTipo(TipoActivo::Servicios)->create();
+
+    expect(fn () => ($this->registrarResultado)($prueba, [
+        'fecha_realizacion' => now()->toDateString(),
+        'resultado' => ResultadoPrueba::Superada->value,
+        'servicios' => [$ajeno->id => ['rto_alcanzado_horas' => 5]],
+    ], $this->usuario))->toThrow(TransicionDePruebaNoPermitida::class);
+
+    expect($prueba->fresh()?->estado)->toBe(EstadoPrueba::Planificada)
+        ->and($prueba->servicios()->pluck('activos.id'))->toEqual(collect([$this->servicio->id]))
+        ->and(PruebaContinuidadTransicion::query()->count())->toBe(1);
+});
+
 it('compara el RTO alcanzado con el objetivo del BIA', function (): void {
     BiaServicio::factory()->deActivo($this->servicio)->create(['rto_horas' => 4]);
 

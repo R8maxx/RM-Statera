@@ -36,7 +36,9 @@ final class CancelarPrueba
             throw TransicionDePruebaNoPermitida::entre($actual, EstadoPrueba::Cancelada);
         }
 
-        if (trim($motivo) === '') {
+        $motivo = trim($motivo);
+
+        if ($motivo === '') {
             throw TransicionDePruebaNoPermitida::sinMotivo(EstadoPrueba::Cancelada);
         }
 
