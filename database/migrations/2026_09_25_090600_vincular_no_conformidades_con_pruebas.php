@@ -69,9 +69,22 @@ return new class extends Migration
          * usuario, así que sin contexto RLS dejaría el `update` en cero filas
          * **sin fallar**, que es el mismo fallo silencioso que ya corrigió
          * `2026_09_20_130300_…con_incidente.php`.
+         *
+         * **Y `prueba_continuidad_id` se pone a NULL en el mismo `update`, no
+         * sólo `origen`.** `no_conformidades_prueba_continuidad_origen_check`
+         * —`prueba_continuidad_id IS NULL OR origen = 'prueba_continuidad'`—
+         * sigue activa en este punto del `down()`: reasignar sólo `origen` deja
+         * una fila con la FK puesta y el origen en `propia`, que es exactamente
+         * lo que esa restricción prohíbe, y el `update` entero revienta contra su
+         * propio efecto. No se pierde información al hacerlo: la columna entera
+         * se suelta dos pasos más abajo, así que vaciarla aquí es la misma
+         * reversión, sólo que sin dejar una violación a medio camino.
          */
         app(ContextoOrganizacion::class)->comoMantenimiento(static function (): void {
-            DB::table('no_conformidades')->where('origen', 'prueba_continuidad')->update(['origen' => 'propia']);
+            DB::table('no_conformidades')->where('origen', 'prueba_continuidad')->update([
+                'origen' => 'propia',
+                'prueba_continuidad_id' => null,
+            ]);
         });
 
         DB::statement('ALTER TABLE no_conformidades DROP CONSTRAINT no_conformidades_una_procedencia_check');

@@ -7,10 +7,11 @@ namespace App\Domain\Mejora\Enums;
 /**
  * De dónde sale una oportunidad de mejora.
  *
- * Cinco, y son las cinco puertas por las que la mejora continua entra de verdad
+ * Seis, y son las seis puertas por las que la mejora continua entra de verdad
  * en una organización: la auditoría que la escribe como hallazgo, la revisión por
  * la dirección que la decide, el indicador que se queda corto, **el incidente del
- * que se aprende algo** y la persona a la que se le ocurre.
+ * que se aprende algo**, **la prueba de continuidad que sale parcial o fallida** y
+ * la persona a la que se le ocurre.
  *
  * **`Incidente` llega con el § 4.10 y su migración del `CHECK`.** La lección
  * aprendida de un incidente es la fuente clásica de una mejora —y de las que más
@@ -70,11 +71,11 @@ enum OrigenMejora: string
     }
 
     /**
-     * **Los cinco se ofrecen**, a diferencia de `OrigenTarea`.
+     * **Los seis se ofrecen**, a diferencia de `OrigenTarea`.
      *
      * Allí la lista existe porque una tarea marcada «hallazgo de auditoría» sin
-     * auditoría detrás no es trazable; aquí ninguno de los cuatro promete un
-     * vínculo que no exista —el único que lo tiene es `Auditoria`, y esa sí lleva
+     * auditoría detrás no es trazable; aquí ninguno de los cinco restantes promete
+     * un vínculo que no exista —el único que lo tiene es `Auditoria`, y esa sí lleva
      * su `hallazgo_id`—. Se deja el método para que la pregunta tenga respuesta en
      * el mismo sitio que en los otros enums de origen.
      */
