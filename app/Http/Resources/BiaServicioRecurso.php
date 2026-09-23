@@ -144,8 +144,21 @@ final class BiaServicioRecurso extends Recurso
         ];
     }
 
+    /**
+     * La CLAVE de la columna, `revision`, y no `fecha_revision`.
+     *
+     * `ConsultaRecurso::ordenPorDefecto()` busca esta cadena entre las claves
+     * de `columnas()` para resolver el campo real de ordenación
+     * (`campoOrden()`); con el nombre de la columna en la base en vez de con
+     * su clave, la búsqueda no encuentra nada, la flecha de la cabecera no se
+     * enciende nunca y, en cuanto se pagina o se filtra, spatie descarta el
+     * `sort=fecha_revision` que llega por la URL por no ser un
+     * `allowedSort` declarado —el `ORDER BY` desaparece en silencio—. Mismo
+     * fallo que ya evita el docblock de `ordenPorDefecto()` en
+     * `ConsultaRecurso`.
+     */
     public function ordenPorDefecto(): string
     {
-        return 'fecha_revision';
+        return 'revision';
     }
 }

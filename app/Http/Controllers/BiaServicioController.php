@@ -240,11 +240,20 @@ class BiaServicioController extends Controller
     private function alertas(): array
     {
         return [
+            /*
+             * `en_progreso` (ámbar) y no `caducada` (rojo), a propósito y por
+             * el mismo motivo que `TramosImpacto.vue`: un RTO incoherente con
+             * el umbral tolerable es una contradicción que corregir, no un
+             * plazo ya incumplido — nadie ha dejado de cumplir nada todavía.
+             * El rojo del dominio se reserva a lo vencido o lo incumplido
+             * (DESIGN.md §3), y eso es exactamente `revision_vencida`, aquí
+             * abajo.
+             */
             $this->indicador(
                 'rto_incoherente',
                 'Con un RTO por encima del umbral tolerable',
                 'rtoIncoherente',
-                'caducada',
+                'en_progreso',
                 'El RTO declarado promete más de lo que el propio BIA tolera.',
             ),
             $this->indicador(

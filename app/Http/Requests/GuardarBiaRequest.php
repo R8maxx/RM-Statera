@@ -77,6 +77,7 @@ class GuardarBiaRequest extends FormRequest
             'impacto_1m' => 'impacto a 1 mes',
             'rto_horas' => 'RTO',
             'rpo_horas' => 'RPO',
+            'responsable_id' => 'responsable',
         ];
     }
 

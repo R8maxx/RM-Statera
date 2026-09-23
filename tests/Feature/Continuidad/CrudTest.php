@@ -73,6 +73,21 @@ it('rechaza un activo que no es servicio en el formulario', function (): void {
         ->assertSessionHasErrors('activo_id');
 });
 
+it('ordena por revisión por defecto, con la clave de la columna y no la de la base', function (): void {
+    BiaServicio::factory()->count(2)->create();
+
+    // La regresión concreta: `ordenPorDefecto()` devolviendo `fecha_revision`
+    // -el nombre de la columna en la base- en vez de `revision` -su clave-
+    // hace que `ConsultaRecurso` no encuentre la columna, así que la flecha de
+    // la cabecera nunca se enciende y, en cuanto se pagina o se filtra, spatie
+    // descarta el `sort` que no reconoce y el ORDER BY desaparece en silencio.
+    $this->actingAs($this->usuario)
+        ->get('/continuidad/bia')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->component('continuidad/bia/Index')
+            ->where('meta.orden', 'revision'));
+});
+
 it('edita un BIA sólo con los campos de contenido y lo deja en borrador', function (): void {
     $bia = BiaServicio::factory()->enEstado(EstadoBia::Aprobado)->create();
 
