@@ -18,7 +18,8 @@ use Illuminate\Support\Facades\DB;
  * en el dominio y no sólo en el `FormRequest`: la regla vale igual para un
  * importador. La base no puede imponerla con un `CHECK` —comprobar una
  * columna de otra tabla desde una restricción no es portable—, así que aquí es
- * donde vive.
+ * donde vive. **Y que no tenga ya su BIA**: eso sí lo impone la base, con el
+ * índice único, pero con un `QueryException` que no dice qué pasa.
  *
  * El `refresh()` no es opcional: `estado` lo pone la base con su valor por
  * defecto y la instancia recién creada llega sin él, así que lo primero que
@@ -57,6 +58,12 @@ final class RegistrarBia
 
         if (! $activo instanceof Activo || $activo->tipo !== TipoActivo::Servicios) {
             throw ServicioNoValido::noEsServicio();
+        }
+
+        // Un servicio, un BIA. El índice único `(organizacion_id, activo_id)`
+        // sigue siendo la última línea; esto lo dice antes y con nombre.
+        if (BiaServicio::query()->where('activo_id', $activo->id)->exists()) {
+            throw ServicioNoValido::yaTieneBia();
         }
     }
 }

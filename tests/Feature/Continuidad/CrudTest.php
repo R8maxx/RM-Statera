@@ -112,6 +112,68 @@ it('edita un BIA sólo con los campos de contenido y lo deja en borrador', funct
 });
 
 /*
+ * Dos entradas predecibles que antes subían como un 500 con el nombre de una
+ * restricción: un impacto que baja con el tiempo (`bia_servicios_monotonia_check`)
+ * y un segundo BIA para el mismo servicio (el único `(organizacion_id,
+ * activo_id)`). Las dos tienen que volver al formulario con el error en su campo.
+ */
+it('rechaza en el formulario un impacto que baja con el tiempo, al registrar y al editar', function (): void {
+    $servicio = Activo::factory()->create(['tipo' => 'servicios']);
+
+    $this->actingAs($this->usuario)
+        ->post('/continuidad/bia', BiaServicio::factory()->raw([
+            'activo_id' => $servicio->id,
+            'impacto_4h' => 'alto',
+            'impacto_1d' => 'medio',
+            'impacto_3d' => 'muy_alto',
+            'impacto_1s' => 'muy_alto',
+            'impacto_1m' => 'muy_alto',
+        ]))
+        ->assertSessionHasErrors('impacto_1d');
+
+    expect(BiaServicio::query()->count())->toBe(0);
+
+    $bia = BiaServicio::factory()->create([
+        'impacto_4h' => 'alto', 'impacto_1d' => 'alto', 'impacto_3d' => 'muy_alto',
+        'impacto_1s' => 'muy_alto', 'impacto_1m' => 'muy_alto',
+    ]);
+
+    $this->actingAs($this->usuario)
+        ->put("/continuidad/bia/{$bia->id}", [
+            'impacto_4h' => 'alto',
+            'impacto_1d' => 'alto',
+            'impacto_3d' => 'muy_alto',
+            'impacto_1s' => 'medio',
+            'impacto_1m' => 'muy_alto',
+            'rto_horas' => 24,
+            'rpo_horas' => 4,
+        ])
+        ->assertSessionHasErrors('impacto_1s');
+
+    expect($bia->fresh()->impacto_1s->value)->toBe('muy_alto');
+});
+
+it('rechaza en el formulario un segundo BIA para el mismo servicio y no lo ofrece', function (): void {
+    $bia = BiaServicio::factory()->create();
+    $libre = Activo::factory()->create(['tipo' => 'servicios']);
+
+    $this->actingAs($this->usuario)
+        ->post('/continuidad/bia', BiaServicio::factory()->raw(['activo_id' => $bia->activo_id]))
+        ->assertSessionHasErrors('activo_id');
+
+    expect(BiaServicio::query()->count())->toBe(1);
+
+    $this->actingAs($this->usuario)
+        ->get('/continuidad/bia/crear')
+        ->assertInertia(function (AssertableInertia $pagina) use ($bia, $libre): void {
+            $valores = array_column($pagina->toArray()['props']['servicios'], 'valor');
+
+            expect($valores)->toContain((string) $libre->id)
+                ->and($valores)->not->toContain((string) $bia->activo_id);
+        });
+});
+
+/*
 |--------------------------------------------------------------------------
 | Las pruebas de un plan de continuidad
 |--------------------------------------------------------------------------

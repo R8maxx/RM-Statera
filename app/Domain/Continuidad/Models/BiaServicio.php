@@ -133,9 +133,17 @@ class BiaServicio extends Model
      * `CASE` sobre los mismos tramos: la misma regla en los dos sitios, y cada
      * una con su propio test, porque divergir aquí es justamente el fallo que
      * el módulo no se puede permitir (prioridad 1 de cobertura de tests).
+     *
+     * **Un BIA `obsoleto` nunca es incoherente.** Es el de un servicio que se
+     * dio de baja: su RTO ya no promete nada a nadie, y contarlo dejaba la
+     * alerta ámbar del panel encendida para siempre sin nada que corregir.
      */
     public function rtoIncoherente(): bool
     {
+        if ($this->estado === EstadoBia::Obsoleto) {
+            return false;
+        }
+
         $horas = UmbralTolerable::horas($this);
 
         return $horas !== null && $this->rto_horas > $horas;
@@ -201,11 +209,13 @@ class BiaServicio extends Model
      * queda fuera del `WHERE` — que es exactamente «sin umbral, no hay nada que
      * comparar» de `UmbralTolerable::horas()`.
      *
+     * Y fuera los `obsoleto`, igual que en `rtoIncoherente()`.
+     *
      * @param  Builder<$this>  $query
      */
     public function scopeRtoIncoherente(Builder $query): void
     {
-        $query->whereRaw(<<<'SQL'
+        $query->where('bia_servicios.estado', '!=', EstadoBia::Obsoleto->value)->whereRaw(<<<'SQL'
             bia_servicios.rto_horas > CASE
                 WHEN bia_servicios.impacto_4h = 'muy_alto' THEN 4
                 WHEN bia_servicios.impacto_1d = 'muy_alto' THEN 24

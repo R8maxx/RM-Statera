@@ -41,4 +41,18 @@ final class ServicioNoValido extends DomainException
             .'indicado no es de ese tipo.'
         );
     }
+
+    /**
+     * Un segundo BIA para un servicio que ya tiene el suyo.
+     *
+     * No hay BIA sucesivos: `EditarBia` reescribe el vigente y el pasado vive
+     * en `bia_servicio_transiciones`. El índice único `(organizacion_id,
+     * activo_id)` lo impone igual; esto es para que el motivo llegue con nombre.
+     */
+    public static function yaTieneBia(): self
+    {
+        return new self(
+            'Ese servicio ya tiene su BIA: un servicio, un análisis. Edita el que hay en vez de registrar otro.'
+        );
+    }
 }

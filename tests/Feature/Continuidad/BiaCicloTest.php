@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domain\Continuidad\CambiarEstadoBia;
 use App\Domain\Continuidad\EditarBia;
 use App\Domain\Continuidad\Enums\EstadoBia;
+use App\Domain\Continuidad\Excepciones\ServicioNoValido;
 use App\Domain\Continuidad\Excepciones\TransicionDeBiaNoPermitida;
 use App\Domain\Continuidad\Models\BiaServicio;
 use App\Domain\Continuidad\Models\BiaServicioTransicion;
@@ -44,6 +45,19 @@ it('pasar a obsoleto exige motivo', function (): void {
 
 it('un servicio no tiene dos BIA', function (): void {
     expect(fn () => app(RegistrarBia::class)(['activo_id' => $this->bia->activo_id] + BiaServicio::factory()->raw(), $this->usuario))
+        ->toThrow(ServicioNoValido::class);
+
+    expect(BiaServicio::query()->count())->toBe(1);
+});
+
+/*
+ * Y la base sigue siendo la última línea: quien salte el dominio —un
+ * importador mal escrito, una carrera entre dos altas— choca con el índice
+ * único `(organizacion_id, activo_id)`. Sin consulta después: el error deja la
+ * transacción de Postgres abortada.
+ */
+it('el índice único sujeta un segundo BIA que salte el dominio', function (): void {
+    expect(fn () => BiaServicio::query()->create(['activo_id' => $this->bia->activo_id] + BiaServicio::factory()->raw()))
         ->toThrow(QueryException::class);
 });
 

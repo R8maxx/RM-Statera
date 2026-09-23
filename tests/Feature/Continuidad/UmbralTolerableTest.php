@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domain\Activo\Models\Activo;
+use App\Domain\Continuidad\Enums\EstadoBia;
 use App\Domain\Continuidad\Enums\NivelImpacto;
 use App\Domain\Continuidad\Enums\TramoImpacto;
 use App\Domain\Continuidad\Excepciones\ServicioNoValido;
@@ -50,4 +51,20 @@ it('la base rechaza un BIA sobre un activo que no es un servicio', function (): 
     $hardware = Activo::factory()->create(['tipo' => 'hardware']);
     expect(fn () => app(RegistrarBia::class)(['activo_id' => $hardware->id] + BiaServicio::factory()->raw()))
         ->toThrow(ServicioNoValido::class);
+});
+
+/*
+ * Un BIA obsoleto es el de un servicio dado de baja: su RTO ya no promete nada,
+ * y contarlo dejaba la alerta ámbar del panel encendida para siempre. Las dos
+ * mitades de la regla —PHP y SQL— tienen que dejarlo fuera a la vez.
+ */
+it('un BIA obsoleto no cuenta como RTO incoherente, ni en PHP ni en SQL', function (): void {
+    $bia = BiaServicio::factory()->enEstado(EstadoBia::Obsoleto)->create([
+        'impacto_4h' => NivelImpacto::MuyAlto, 'impacto_1d' => NivelImpacto::MuyAlto,
+        'impacto_3d' => NivelImpacto::MuyAlto, 'impacto_1s' => NivelImpacto::MuyAlto,
+        'impacto_1m' => NivelImpacto::MuyAlto, 'rto_horas' => 8,
+    ]);
+
+    expect($bia->rtoIncoherente())->toBeFalse()
+        ->and(BiaServicio::query()->rtoIncoherente()->count())->toBe(0);
 });

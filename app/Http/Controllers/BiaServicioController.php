@@ -312,8 +312,15 @@ class BiaServicioController extends Controller
     private function opciones(): array
     {
         return [
+            /*
+             * Sin los servicios que ya tienen BIA: un servicio, un análisis.
+             * Ofrecerlos sería dejar elegir algo que el `FormRequest` va a
+             * rechazar. En la edición el desplegable no se pinta, así que
+             * quitar también el propio no le cuesta nada.
+             */
             'servicios' => Activo::query()
                 ->where('tipo', TipoActivo::Servicios->value)
+                ->whereNotIn('id', BiaServicio::query()->select('activo_id'))
                 ->orderBy('codigo')
                 ->get(['id', 'codigo', 'nombre'])
                 ->map(static fn (Activo $activo): array => [
