@@ -154,9 +154,18 @@ class BiaServicioController extends Controller
                     'estadoEtiqueta' => $prueba->estado->etiqueta(),
                     'estadoTono' => $prueba->estado->tono(),
                     'estadoIcono' => $prueba->estado->icono(),
-                    'resultadoEtiqueta' => $prueba->resultado?->etiqueta(),
-                    'resultadoTono' => $prueba->resultado?->tono(),
-                    'resultadoIcono' => $prueba->resultado?->icono(),
+                    /*
+                     * El resultado va entero o no va: las cuatro piezas son
+                     * nulas a la vez mientras la prueba no se ha realizado, y
+                     * mandarlas sueltas obligaba a la ficha a usar la etiqueta
+                     * como valor para poder estrechar el tipo.
+                     */
+                    'resultado' => $prueba->resultado === null ? null : [
+                        'valor' => $prueba->resultado->value,
+                        'etiqueta' => $prueba->resultado->etiqueta(),
+                        'tono' => $prueba->resultado->tono(),
+                        'icono' => $prueba->resultado->icono(),
+                    ],
                     'fecha' => ($prueba->fecha_realizacion ?? $prueba->fecha_prevista)->format('d/m/Y'),
                 ])
                 ->values()

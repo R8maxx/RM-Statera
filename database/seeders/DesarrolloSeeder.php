@@ -43,8 +43,22 @@ use App\Domain\Contexto\RegistrarParteInteresada;
 use App\Domain\Contexto\RetirarDelAnalisis;
 use App\Domain\Contexto\VincularImplantacionARequisito;
 use App\Domain\Contexto\VincularRiesgoACuestion;
+use App\Domain\Continuidad\CambiarEstadoBia;
+use App\Domain\Continuidad\CodigoPrueba;
+use App\Domain\Continuidad\DerivarDePrueba;
+use App\Domain\Continuidad\Enums\EstadoBia;
+use App\Domain\Continuidad\Enums\NivelImpacto;
+use App\Domain\Continuidad\Enums\ResultadoPrueba;
+use App\Domain\Continuidad\Enums\TipoPrueba;
+use App\Domain\Continuidad\Models\BiaServicio;
+use App\Domain\Continuidad\Models\PruebaContinuidad;
+use App\Domain\Continuidad\PlanificarPrueba;
+use App\Domain\Continuidad\RegistrarBia;
+use App\Domain\Continuidad\RegistrarResultadoPrueba;
+use App\Domain\Continuidad\VincularServicioAPlan;
 use App\Domain\Documento\Enums\TipoDocumento;
 use App\Domain\Documento\Models\Documento;
+use App\Domain\Documento\Narrativa\MaterializarSecciones;
 use App\Domain\Evidencia\Enums\PeriodicidadRenovacion;
 use App\Domain\Evidencia\Enums\TipoEvidencia;
 use App\Domain\Evidencia\Models\Evidencia;
@@ -267,6 +281,9 @@ class DesarrolloSeeder extends Seeder
         // ellas como prueba de haberse cumplido.
         $this->obligacionesDeEjemplo($organizacion, $sistema);
         $this->documentoDeEjemplo($sistema);
+        // Detrás de los documentos, porque el plan de continuidad es uno, y del
+        // inventario, porque el BIA se hace sobre sus servicios.
+        $this->continuidadDeEjemplo();
     }
 
     /**
@@ -1865,6 +1882,150 @@ class DesarrolloSeeder extends Seeder
             'Acta de revisión %s lista para generar (php artisan documentos:generar %s --html).',
             $acta->codigo,
             $acta->codigo,
+        ));
+    }
+
+    /**
+     * La continuidad, con las cuatro situaciones que el módulo tiene que separar.
+     *
+     * - **Dos servicios con BIA**: la sede electrónica, aprobado y coherente, y
+     *   una mesa de ayuda nueva, en borrador y con un RTO de 72 h en un servicio
+     *   que el propio BIA deja de tolerar al primer día. Es el ámbar que avisa
+     *   sin bloquear, y el que hay que ver sin fabricarlo a mano.
+     * - **Un plan que cubre los dos**, redactado y sin aprobar, como la política:
+     *   sembrar una versión aprobada fabricaría una firma que nadie ha puesto.
+     * - **Una prueba realizada con resultado parcial** —la sede tardó más de lo
+     *   que promete su RTO— y una tarea derivada de ella, que es la costura que
+     *   convierte el hueco en trabajo.
+     * - **Y una planificada dentro de tres semanas**, para que el calendario y el
+     *   panel tengan algo por delante.
+     *
+     * Todo por las acciones del dominio y no con `create()`: el histórico de
+     * estados del BIA y de la prueba sólo sale si se pasa por ellas, y un seeder
+     * que se lo salte enseñaría fichas sin trazabilidad.
+     */
+    private function continuidadDeEjemplo(): void
+    {
+        if (BiaServicio::query()->exists() || PruebaContinuidad::query()->exists()) {
+            return;
+        }
+
+        $responsable = User::query()->where('email', 'responsable@statera.test')->first();
+        $tecnica = User::query()->where('email', 'tecnico@statera.test')->first();
+
+        $sede = $this->activo('SRV-0001', 'Sede electrónica interna', TipoActivo::Servicios);
+        $mesa = $this->activo('SRV-0002', 'Mesa de ayuda a usuarios', TipoActivo::Servicios, [
+            'subtipo' => 'Servicio de soporte',
+            'valor_d' => NivelDimension::Medio->value,
+            'ubicacion' => 'Nube corporativa',
+            'clasificacion' => Clasificacion::UsoInterno->value,
+        ]);
+
+        $registrarBia = app(RegistrarBia::class);
+
+        // --- Aprobado y coherente: intolerable a la semana, RTO de un día ------
+
+        $biaSede = $registrarBia([
+            'activo_id' => $sede->id,
+            'impacto_4h' => NivelImpacto::Bajo->value,
+            'impacto_1d' => NivelImpacto::Medio->value,
+            'impacto_3d' => NivelImpacto::Alto->value,
+            'impacto_1s' => NivelImpacto::MuyAlto->value,
+            'impacto_1m' => NivelImpacto::MuyAlto->value,
+            'rto_horas' => 24,
+            'rpo_horas' => 4,
+            'justificacion' => 'Los trámites admiten un día de retraso; a partir de la semana se incumplen plazos administrativos con terceros.',
+            'responsable_id' => $tecnica?->id,
+        ], $responsable);
+
+        app(CambiarEstadoBia::class)($biaSede, EstadoBia::Aprobado, $responsable);
+
+        // --- Borrador e incoherente: intolerable al día, RTO de tres días ------
+
+        $registrarBia([
+            'activo_id' => $mesa->id,
+            'impacto_4h' => NivelImpacto::Medio->value,
+            'impacto_1d' => NivelImpacto::MuyAlto->value,
+            'impacto_3d' => NivelImpacto::MuyAlto->value,
+            'impacto_1s' => NivelImpacto::MuyAlto->value,
+            'impacto_1m' => NivelImpacto::MuyAlto->value,
+            'rto_horas' => 72,
+            'rpo_horas' => 24,
+            'justificacion' => 'Sin mesa de ayuda nadie restablece contraseñas ni atiende incidencias. El RTO está copiado del contrato del proveedor y falta contrastarlo.',
+            'responsable_id' => $responsable?->id,
+        ], $responsable);
+
+        // --- El plan, que cubre los dos servicios ------------------------------
+
+        $plan = Documento::query()->firstOrCreate(
+            ['codigo' => 'PLN-CONT-01'],
+            [
+                'sistema_id' => null,
+                'titulo' => 'Plan de continuidad de los servicios internos',
+                'tipo' => TipoDocumento::PlanContinuidad->value,
+                'periodicidad_revision_meses' => 12,
+            ],
+        );
+
+        // Lo mismo que hace `DocumentoController::store()` al crear uno: sin los
+        // huecos materializados, el editor abriría vacío.
+        app(MaterializarSecciones::class)($plan);
+
+        $vincular = app(VincularServicioAPlan::class);
+        $vincular->vincular($plan, $sede);
+        $vincular->vincular($plan, $mesa);
+
+        // --- Una prueba realizada, parcial, con su tarea -----------------------
+
+        $planificar = app(PlanificarPrueba::class);
+        $codigos = app(CodigoPrueba::class);
+
+        $realizada = $planificar([
+            'codigo' => $codigos->siguiente(),
+            'titulo' => 'Restauración de la sede desde la copia nocturna',
+            'documento_id' => $plan->id,
+            'tipo' => TipoPrueba::Tecnica->value,
+            'fecha_prevista' => Carbon::today()->subDays(20)->toDateString(),
+            'responsable_id' => $tecnica?->id,
+        ], [$sede->id, $mesa->id], $responsable);
+
+        $realizada = app(RegistrarResultadoPrueba::class)($realizada, [
+            'fecha_realizacion' => Carbon::today()->subDays(18)->toDateString(),
+            'resultado' => ResultadoPrueba::Parcial,
+            'conclusiones' => 'La copia se restauró completa, pero la sede tardó 30 horas en volver frente a las 24 del RTO: la reinstalación del gestor de expedientes no estaba en el guion. La mesa de ayuda volvió en 20 horas.',
+            'servicios' => [
+                $sede->id => ['rto_alcanzado_horas' => 30, 'rpo_alcanzado_horas' => 4],
+                $mesa->id => ['rto_alcanzado_horas' => 20, 'rpo_alcanzado_horas' => 12],
+            ],
+        ], $tecnica);
+
+        if ($responsable instanceof User) {
+            app(DerivarDePrueba::class)->tarea($realizada, [
+                'titulo' => 'Añadir la reinstalación del gestor de expedientes al guion de recuperación',
+                'descripcion' => 'La prueba de restauración superó el RTO de la sede en seis horas por este paso.',
+                'prioridad' => PrioridadTarea::Alta->value,
+                'fecha_limite' => Carbon::today()->addDays(30),
+                'responsable_id' => $tecnica?->id,
+            ], $responsable);
+        }
+
+        // --- Y la siguiente, dentro de tres semanas ----------------------------
+
+        $planificar([
+            'codigo' => $codigos->siguiente(),
+            'titulo' => 'Ejercicio de sobremesa: caída de la mesa de ayuda',
+            'documento_id' => $plan->id,
+            'tipo' => TipoPrueba::Sobremesa->value,
+            'fecha_prevista' => Carbon::today()->addWeeks(3)->toDateString(),
+            'responsable_id' => $responsable?->id,
+        ], [$mesa->id], $responsable);
+
+        $this->command->info(sprintf(
+            'Continuidad: %d BIA (%d con el RTO incoherente), plan %s y %d pruebas.',
+            BiaServicio::query()->count(),
+            BiaServicio::query()->rtoIncoherente()->count(),
+            $plan->codigo,
+            PruebaContinuidad::query()->count(),
         ));
     }
 

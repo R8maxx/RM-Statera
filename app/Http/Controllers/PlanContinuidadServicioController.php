@@ -22,8 +22,13 @@ use Inertia\Inertia;
  * `Documento` no tiene esa relación, tiene `serviciosCubiertos()`. Resolverlo
  * así respondería 500 con un «Call to undefined method» en vez de acotar nada.
  * Se resuelve `{activo}` por binding implícito normal: el scope global de
- * `Activo` ya lo deja dentro de la organización, y `VincularServicioAPlan`
- * comprueba en el dominio que además es un servicio de este plan concreto.
+ * `Activo` ya lo deja dentro de la organización.
+ *
+ * **Lo que se comprueba es distinto en cada verbo.** Al vincular,
+ * `VincularServicioAPlan` exige en el dominio que el documento sea un plan de
+ * continuidad y el activo un servicio. Al desvincular no hay más guarda que ese
+ * scope: soltar un activo que el plan no cubre es un `detach()` que no
+ * encuentra ninguna fila, y no hay nada que proteger.
  */
 class PlanContinuidadServicioController extends Controller
 {

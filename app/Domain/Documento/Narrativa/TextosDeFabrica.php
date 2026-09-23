@@ -152,6 +152,19 @@ final class TextosDeFabrica
                     Los registros que genera su ejecución son la evidencia de que la actividad se realiza, y se conservan durante el plazo que aquí se indique.
                     MD,
 
+                /*
+                 * Sin él, el plan nacía sin introducción y su esqueleto de
+                 * fábrica salía sin el primer apartado: el `default` vacío de
+                 * abajo lo tragaba en silencio desde que el § 4.11 añadió el
+                 * tipo. Habla de RTO y RPO porque es lo que el plan tiene que
+                 * cumplir, y los dos salen del BIA aprobado de cada servicio.
+                 */
+                TipoDocumento::PlanContinuidad => <<<'MD'
+                    Este plan establece cómo la organización mantiene o recupera los servicios que cubre ante una interrupción grave: qué se activa, quién lo decide, en qué orden se recuperan y en qué plazo.
+
+                    Los plazos son los objetivos de tiempo de recuperación (RTO) y de punto de recuperación (RPO) aprobados en el análisis de impacto de cada servicio. El plan se comprueba con pruebas periódicas cuyo resultado queda registrado, y se revisa cuando una prueba o una interrupción real muestran que algo no funciona como aquí se describe.
+                    MD,
+
                 default => '',
             },
 

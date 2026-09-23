@@ -90,9 +90,7 @@ const props = defineProps<{
         estadoEtiqueta: string;
         estadoTono: string;
         estadoIcono: string;
-        resultadoEtiqueta: string | null;
-        resultadoTono: string | null;
-        resultadoIcono: string | null;
+        resultado: { valor: string; etiqueta: string; tono: string; icono: string } | null;
         fecha: string;
     }[];
     transiciones: Destino[];
@@ -341,13 +339,8 @@ function mover(paso: Destino): void {
                                 </Link>
                                 <div class="flex items-center gap-2">
                                     <CeldaBadge
-                                        v-if="prueba.resultadoEtiqueta"
-                                        :valor="{
-                                            valor: prueba.resultadoEtiqueta,
-                                            etiqueta: prueba.resultadoEtiqueta,
-                                            tono: prueba.resultadoTono,
-                                            icono: prueba.resultadoIcono,
-                                        }"
+                                        v-if="prueba.resultado"
+                                        :valor="prueba.resultado"
                                     />
                                     <CeldaBadge
                                         v-else
