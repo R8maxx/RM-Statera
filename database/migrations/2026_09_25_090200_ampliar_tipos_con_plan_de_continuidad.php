@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\Organizacion\ContextoOrganizacion;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 
@@ -24,6 +25,14 @@ use Illuminate\Support\Facades\DB;
  * ::exigeSistema()` devuelve `false` —un plan de continuidad es de la
  * organización entera y puede cubrir servicios de varios sistemas a la vez—,
  * así que el `CHECK` en negativo sigue valiendo tal cual.
+ *
+ * **Y el `down()` borra por `ContextoOrganizacion::comoMantenimiento()`**, a
+ * diferencia de la migración del acta que ésta calca. Una migración no tiene
+ * petición ni usuario: sin mantenimiento, RLS deniega por defecto y los dos
+ * `DELETE` afectan a cero filas **sin fallar**, y el `ALTER TABLE` siguiente
+ * muere con «is violated by some row» sobre el `PLN-CONT-01` que siembra el
+ * seeder. La primera versión se había verificado sobre una base vacía. Mismo
+ * fallo y mismo arreglo que `…090500`, `…090600`, `…090700` y `…090900`.
  */
 return new class extends Migration
 {
@@ -49,8 +58,10 @@ return new class extends Migration
         // Las filas del tipo nuevo se van antes que el CHECK que vuelve a
         // prohibirlas; si no, el `ALTER TABLE` no valida y la migración se
         // queda a medias.
-        DB::table('documento_plantilla_secciones')->where('tipo', 'plan_continuidad')->delete();
-        DB::table('documentos')->where('tipo', 'plan_continuidad')->delete();
+        app(ContextoOrganizacion::class)->comoMantenimiento(static function (): void {
+            DB::table('documento_plantilla_secciones')->where('tipo', 'plan_continuidad')->delete();
+            DB::table('documentos')->where('tipo', 'plan_continuidad')->delete();
+        });
 
         DB::statement('ALTER TABLE documentos DROP CONSTRAINT documentos_tipo_check');
         DB::statement('ALTER TABLE documentos ADD CONSTRAINT documentos_tipo_check CHECK (tipo IN ('.self::ANTIGUOS.'))');

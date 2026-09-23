@@ -43,7 +43,7 @@ Romper cualquiera de estos obliga a rehacer el modelo más adelante. No son pref
 
 Y dos reglas operativas que se derivan de lo anterior:
 
-- **Prohibido `withoutGlobalScopes()`** fuera de comandos de mantenimiento explícitos. Hay tres capas de aislamiento (`organizacion_id`, global scope de Eloquent, Row Level Security en PostgreSQL) y quitar la del medio filtra datos de un cliente a otro. La única puerta que atraviesa las tres es `ContextoOrganizacion::comoMantenimiento()`, y hoy la usa un solo sitio: el recuento de implantaciones afectadas del importador del catálogo, que por definición cruza organizaciones.
+- **Prohibido `withoutGlobalScopes()`** fuera de comandos de mantenimiento explícitos. Hay tres capas de aislamiento (`organizacion_id`, global scope de Eloquent, Row Level Security en PostgreSQL) y quitar la del medio filtra datos de un cliente a otro. La única puerta que atraviesa las tres es `ContextoOrganizacion::comoMantenimiento()`, y sólo la usa código sin petición ni usuario: los recuentos de afectados del importador del catálogo, que por definición cruzan organizaciones; `documentos:generar` e `implantaciones:generar`, para localizar su fila antes de fijar la organización; y las migraciones que mueven o borran filas de tablas con RLS, casi siempre en su `down()`.
 - **Nada de datos reales de Avanza** en seeds, fixtures, demos ni tests. Solo datos sintéticos. El proyecto es personal de César, no de Avanza; la separación se mantiene explícita.
 
 ## Convenciones de código
