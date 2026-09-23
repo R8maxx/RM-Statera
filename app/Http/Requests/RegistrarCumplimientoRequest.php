@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Domain\Continuidad\Enums\EstadoPrueba;
+use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Http\Requests\Concerns\NormalizaSeleccionVacia;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 /**
@@ -48,7 +51,17 @@ class RegistrarCumplimientoRequest extends FormRequest
             'auditoria_id' => ['nullable', 'integer', 'exists:auditorias,id'],
             'revision_direccion_id' => ['nullable', 'integer', 'exists:revisiones_direccion,id'],
             'documento_id' => ['nullable', 'integer', 'exists:documentos,id'],
-            'prueba_continuidad_id' => ['nullable', 'integer', 'exists:pruebas_continuidad,id'],
+            /*
+             * Sólo una prueba **realizada** de esta organización: una
+             * planificada o cancelada no demuestra nada, y es justo lo que
+             * `Referencia` enlazaría como prueba del cumplimiento.
+             */
+            'prueba_continuidad_id' => [
+                'nullable', 'integer',
+                Rule::exists('pruebas_continuidad', 'id')
+                    ->where('organizacion_id', app(ContextoOrganizacion::class)->idObligatorio())
+                    ->where('estado', EstadoPrueba::Realizada->value),
+            ],
             'evidencia_id' => ['nullable', 'integer', 'exists:evidencias,id'],
             'nota' => ['nullable', 'string', 'max:2000'],
         ];
@@ -61,6 +74,7 @@ class RegistrarCumplimientoRequest extends FormRequest
     {
         return [
             'fecha.before_or_equal' => 'Un cumplimiento es un hecho: no se puede registrar con una fecha que todavía no ha llegado.',
+            'prueba_continuidad_id.exists' => 'Sólo una prueba de continuidad ya realizada demuestra un cumplimiento: una planificada o cancelada no prueba nada.',
             'cubre_hasta.after' => 'La cobertura tiene que ser posterior al cumplimiento, o el compromiso quedaría fuera de plazo el mismo día en que se cumplió.',
         ];
     }

@@ -135,3 +135,37 @@ it('un cumplimiento no puede citar prueba y documento a la vez', function (): vo
         'documento_id' => $documento->id,
     ]))->toThrow(QueryException::class);
 });
+
+/*
+ * Por HTTP, la referencia sólo admite una prueba realizada: una planificada o
+ * cancelada no demuestra nada y `Referencia` la enlazaría igual como prueba.
+ */
+it('el formulario de cumplimiento sólo acepta una prueba realizada', function (): void {
+    $compromiso = Compromiso::factory()->create();
+    $plan = Documento::factory()->planContinuidad()->create();
+
+    foreach ([
+        PruebaContinuidad::factory()->deDocumento($plan)->planificada()->create(),
+        PruebaContinuidad::factory()->deDocumento($plan)->cancelada()->create(),
+    ] as $prueba) {
+        $this->actingAs($this->usuario)
+            ->post("/obligaciones/{$compromiso->id}/cumplimientos", [
+                'fecha' => now()->subDay()->toDateString(),
+                'prueba_continuidad_id' => $prueba->id,
+            ])
+            ->assertSessionHasErrors('prueba_continuidad_id');
+    }
+
+    expect($compromiso->cumplimientos()->count())->toBe(0);
+
+    $realizada = PruebaContinuidad::factory()->deDocumento($plan)->realizada()->create();
+
+    $this->actingAs($this->usuario)
+        ->post("/obligaciones/{$compromiso->id}/cumplimientos", [
+            'fecha' => now()->subDay()->toDateString(),
+            'prueba_continuidad_id' => $realizada->id,
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($compromiso->cumplimientos()->sole()->prueba_continuidad_id)->toBe($realizada->id);
+});

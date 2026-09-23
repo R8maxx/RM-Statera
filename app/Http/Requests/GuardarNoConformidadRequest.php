@@ -66,7 +66,7 @@ class GuardarNoConformidadRequest extends FormRequest
     }
 
     /**
-     * Dos reglas que la base también impone, dichas aquí en castellano.
+     * Reglas que la base también impone, dichas aquí en castellano.
      *
      * Sin ellas el error que sube es el de la restricción —habla de
      * `no_conformidades_hallazgo_origen_check`— y no de lo que la persona estaba
@@ -95,6 +95,32 @@ class GuardarNoConformidadRequest extends FormRequest
                     ));
 
                     return;
+                }
+
+                /*
+                 * En la edición, la procedencia que ya está guardada fija el
+                 * origen: una no conformidad nacida de una prueba de
+                 * continuidad o de un incidente no se reclasifica, porque sus
+                 * `CHECK` (`no_conformidades_prueba_continuidad_origen_check`,
+                 * `incidente_origen_check`) lo rechazarían con un 500 y porque
+                 * cambiarlo reescribiría de dónde salió. El formulario ya no
+                 * ofrece el desplegable en esos casos; esto es para lo que
+                 * llegue sin pasar por él.
+                 */
+                $enEdicion = $this->route('no_conformidad');
+
+                if ($enEdicion instanceof NoConformidad && $origen !== $enEdicion->origen) {
+                    if ($enEdicion->prueba_continuidad_id !== null) {
+                        $validator->errors()->add('origen', 'Una no conformidad que viene de una prueba de continuidad conserva ese origen.');
+
+                        return;
+                    }
+
+                    if ($enEdicion->incidente_id !== null) {
+                        $validator->errors()->add('origen', 'Una no conformidad que viene de un incidente conserva ese origen.');
+
+                        return;
+                    }
                 }
 
                 if ($this->input('hallazgo_id') !== null && $origen !== OrigenNoConformidad::Auditoria) {

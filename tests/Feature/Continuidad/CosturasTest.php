@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domain\Auditoria\Models\Hallazgo;
+use App\Domain\Autorizacion\Enums\Permiso;
 use App\Domain\Autorizacion\Enums\Rol;
 use App\Domain\Continuidad\DerivarDePrueba;
 use App\Domain\Continuidad\Enums\ResultadoPrueba;
@@ -19,6 +20,8 @@ use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Testing\AssertableInertia;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 /*
 |--------------------------------------------------------------------------
@@ -151,6 +154,18 @@ it('borrar la prueba deja la no conformidad con prueba_continuidad_id a null', f
         ->and(NoConformidad::query()->count())->toBe(1);
 });
 
+it('rechaza una segunda no conformidad de la misma prueba con una excepción de dominio', function (): void {
+    $this->derivar->noConformidad($this->fallida, [
+        'codigo' => 'NC-2026-46', 'descripcion' => 'Primera.', 'fecha_deteccion' => Carbon::today(),
+    ], $this->usuario);
+
+    expect(fn () => $this->derivar->noConformidad($this->fallida->fresh(), [
+        'codigo' => 'NC-2026-47', 'descripcion' => 'Segunda.', 'fecha_deteccion' => Carbon::today(),
+    ], $this->usuario))->toThrow(TransicionDePruebaNoPermitida::class);
+
+    expect(NoConformidad::query()->count())->toBe(1);
+});
+
 // --- Por HTTP: las tres rutas y sus permisos -----------------------------
 
 it('abre una tarea desde la ficha de la prueba', function (): void {
@@ -226,6 +241,108 @@ it('el permiso de cada ruta es el del módulo destino, no continuidad.gestionar'
     expect(Tarea::query()->count())->toBe(0)
         ->and(NoConformidad::query()->count())->toBe(0)
         ->and(Mejora::query()->count())->toBe(0);
+});
+
+/*
+ * Dos pestañas o un doble envío: la segunda no conformidad vuelve al
+ * formulario con el error en el campo, no como un `QueryException` crudo.
+ */
+it('una segunda no conformidad por HTTP vuelve con el error en el formulario', function (): void {
+    $datos = fn (string $codigo): array => [
+        'codigo' => $codigo, 'descripcion' => 'El RTO no se cumplió.', 'fecha_deteccion' => Carbon::today()->toDateString(),
+    ];
+
+    $this->actingAs($this->usuario)
+        ->post("/continuidad/pruebas/{$this->fallida->id}/no-conformidades", $datos('NC-2026-48'))
+        ->assertRedirect();
+
+    $this->actingAs($this->usuario)
+        ->post("/continuidad/pruebas/{$this->fallida->id}/no-conformidades", $datos('NC-2026-49'))
+        ->assertSessionHasErrors('codigo');
+
+    expect(NoConformidad::query()->count())->toBe(1);
+});
+
+/*
+ * Derivar parte de la ficha de la prueba: sin `continuidad.ver` no se deriva,
+ * aunque se tenga el permiso del módulo destino. Se le quita al rol y no al
+ * usuario, porque el permiso viene del rol.
+ */
+it('derivar exige también continuidad.ver', function (): void {
+    $rol = Role::query()
+        ->where('name', Rol::ResponsableSeguridad->value)
+        ->where('organizacion_id', $this->organizacion->id)
+        ->firstOrFail();
+
+    // El rol conserva los tres permisos destino: lo único que falta es leer.
+    expect($rol->hasPermissionTo('tareas.gestionar'))->toBeTrue()
+        ->and($rol->hasPermissionTo('no_conformidades.gestionar'))->toBeTrue()
+        ->and($rol->hasPermissionTo('mejoras.gestionar'))->toBeTrue();
+
+    $rol->revokePermissionTo(Permiso::ContinuidadVer->value);
+
+    app()->forgetInstance(PermissionRegistrar::class);
+    app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+    $usuario = $this->usuario->fresh();
+
+    $this->actingAs($usuario)
+        ->post("/continuidad/pruebas/{$this->fallida->id}/tareas", ['titulo' => 'x', 'prioridad' => 'media'])
+        ->assertForbidden();
+
+    $this->actingAs($usuario)
+        ->post("/continuidad/pruebas/{$this->fallida->id}/no-conformidades", [
+            'codigo' => 'NC-2026-50', 'descripcion' => 'x', 'fecha_deteccion' => Carbon::today()->toDateString(),
+        ])
+        ->assertForbidden();
+
+    $this->actingAs($usuario)
+        ->post("/continuidad/pruebas/{$this->fallida->id}/mejoras", [
+            'codigo' => 'OM-2026-50', 'titulo' => 'x', 'fecha_deteccion' => Carbon::today()->toDateString(),
+        ])
+        ->assertForbidden();
+
+    expect(Tarea::query()->count())->toBe(0)
+        ->and(NoConformidad::query()->count())->toBe(0)
+        ->and(Mejora::query()->count())->toBe(0);
+});
+
+/*
+ * Editar una no conformidad nacida de una prueba y cambiarle el origen subía
+ * como un 500 por `no_conformidades_prueba_continuidad_origen_check`. Ahora
+ * vuelve al formulario, que además ya no ofrece el desplegable.
+ */
+it('no deja cambiar el origen de una no conformidad nacida de una prueba', function (): void {
+    $nc = $this->derivar->noConformidad($this->fallida, [
+        'codigo' => 'NC-2026-51', 'descripcion' => 'El RTO no se cumplió.', 'fecha_deteccion' => Carbon::today(),
+    ], $this->usuario);
+
+    $this->actingAs($this->usuario)
+        ->get("/no-conformidades/{$nc->id}/editar")
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina->where('origenFijo', true));
+
+    $this->actingAs($this->usuario)
+        ->put("/no-conformidades/{$nc->id}", [
+            'codigo' => $nc->codigo,
+            'origen' => OrigenNoConformidad::Propia->value,
+            'descripcion' => $nc->descripcion,
+            'fecha_deteccion' => Carbon::today()->toDateString(),
+        ])
+        ->assertSessionHasErrors('origen');
+
+    expect($nc->fresh()?->origen)->toBe(OrigenNoConformidad::PruebaContinuidad);
+
+    // Y con el mismo origen, la edición sigue funcionando.
+    $this->actingAs($this->usuario)
+        ->put("/no-conformidades/{$nc->id}", [
+            'codigo' => $nc->codigo,
+            'origen' => OrigenNoConformidad::PruebaContinuidad->value,
+            'descripcion' => 'Reescrita.',
+            'fecha_deteccion' => Carbon::today()->toDateString(),
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($nc->fresh()?->descripcion)->toBe('Reescrita.');
 });
 
 it('la ficha de la prueba lista lo derivado y sólo ofrece los botones cuando toca', function (): void {

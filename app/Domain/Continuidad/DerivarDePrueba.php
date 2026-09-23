@@ -91,6 +91,17 @@ final class DerivarDePrueba
     {
         $this->comprobar($prueba);
 
+        /*
+         * Una prueba se trata una vez: lo impone el índice único sobre
+         * `no_conformidades.prueba_continuidad_id`, y esto lo dice antes con
+         * un mensaje legible. Sin la guarda, un doble envío o dos pestañas
+         * subían como `QueryException` crudo. El índice sigue siendo la última
+         * línea para la carrera que esta consulta no ve.
+         */
+        if ($prueba->noConformidad()->exists()) {
+            throw TransicionDePruebaNoPermitida::yaTratada();
+        }
+
         return ($this->registrarNoConformidad)([
             ...$atributos,
             'origen' => OrigenNoConformidad::PruebaContinuidad->value,

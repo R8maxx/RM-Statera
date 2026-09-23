@@ -29,6 +29,7 @@ interface NoConformidad {
     id: number;
     codigo: string;
     origen: string;
+    origenEtiqueta: string;
     hallazgo_id: number | null;
     descripcion: string;
     correccion_inmediata: string | null;
@@ -51,6 +52,8 @@ const props = defineProps<{
     sugerencia: Sugerencia | null;
     origenes: Opcion[];
     responsables: Opcion[];
+    /** En la edición, si una prueba de continuidad o un incidente fijan el origen. */
+    origenFijo?: boolean;
 }>();
 
 const edicion = props.noConformidad !== null;
@@ -70,9 +73,11 @@ const valor = computed(() => ({
 /*
  * Con hallazgo detrás el origen no se elige: la base lo impone —sólo el origen
  * `auditoria` admite hallazgo— y ofrecerlo sería dejar elegir algo que se va a
- * rechazar después. Viaja igual, en un campo oculto.
+ * rechazar después. Viaja igual, en un campo oculto. Lo mismo en la edición de
+ * una no conformidad nacida de una prueba de continuidad o de un incidente, que
+ * es lo que dice `origenFijo`.
  */
-const origenFijo = computed(() => props.hallazgo !== null);
+const origenFijo = computed(() => props.hallazgo !== null || props.origenFijo === true);
 </script>
 
 <template>
@@ -121,6 +126,14 @@ const origenFijo = computed(() => props.hallazgo !== null);
                     autofocus
                     ayuda="Único dentro de la organización. Se propone el siguiente del año."
                 />
+
+                <div v-if="origenFijo && !hallazgo" class="space-y-1">
+                    <p class="text-sm font-medium">Origen</p>
+                    <p class="text-sm text-muted-foreground">
+                        {{ noConformidad?.origenEtiqueta }}: lo fija de dónde salió y no se cambia.
+                    </p>
+                    <input type="hidden" name="origen" :value="valor.origen" />
+                </div>
 
                 <CampoSelect
                     v-if="!origenFijo"

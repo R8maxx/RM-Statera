@@ -241,6 +241,14 @@ class NoConformidadController extends Controller
                 ? null
                 : $this->serializarHallazgo($no_conformidad->hallazgo),
             'sugerencia' => null,
+            /*
+             * Con una prueba de continuidad o un incidente detrás, el origen
+             * no se elige: sus `CHECK` sólo admiten el suyo, y
+             * `GuardarNoConformidadRequest` rechaza el cambio. El formulario
+             * lo enseña como texto, igual que con un hallazgo.
+             */
+            'origenFijo' => $no_conformidad->prueba_continuidad_id !== null
+                || $no_conformidad->incidente_id !== null,
             ...$this->opciones(),
         ]);
     }

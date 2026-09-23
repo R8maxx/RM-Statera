@@ -114,6 +114,33 @@ it('exige que el origen case con el incidente', function (): void {
 });
 
 /*
+ * Editar una no conformidad nacida de un incidente y cambiarle el origen subía
+ * como un 500 por `incidente_origen_check`. Ahora vuelve al formulario, y el
+ * formulario ni siquiera ofrece el desplegable.
+ */
+it('no deja cambiar el origen de una no conformidad nacida de un incidente', function (): void {
+    $nc = NoConformidad::factory()->create([
+        'origen' => OrigenNoConformidad::Incidente->value,
+        'incidente_id' => $this->incidente->id,
+    ]);
+
+    $this->actingAs($this->usuario)
+        ->get("/no-conformidades/{$nc->id}/editar")
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina->where('origenFijo', true));
+
+    $this->actingAs($this->usuario)
+        ->put("/no-conformidades/{$nc->id}", [
+            'codigo' => $nc->codigo,
+            'origen' => OrigenNoConformidad::Propia->value,
+            'descripcion' => $nc->descripcion,
+            'fecha_deteccion' => now()->toDateString(),
+        ])
+        ->assertSessionHasErrors('origen');
+
+    expect($nc->fresh()?->origen)->toBe(OrigenNoConformidad::Incidente);
+});
+
+/*
 |--------------------------------------------------------------------------
 | El vínculo con la mejora, que NO lleva clave foránea
 |--------------------------------------------------------------------------

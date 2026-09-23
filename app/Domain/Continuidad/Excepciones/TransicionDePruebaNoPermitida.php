@@ -30,7 +30,8 @@ use DomainException;
  * está `realizada` o cuyo resultado es `superada`. Una prueba superada no dejó
  * nada que corregir —igual que `ResultadoPrueba` no gasta el rojo de `Fallida`,
  * fallar es la prueba funcionando—, y una que sigue `planificada` o `cancelada`
- * no tiene resultado del que derivar nada todavía.
+ * no tiene resultado del que derivar nada todavía. Y su pareja, `yaTratada()`,
+ * cuando la prueba ya tiene su no conformidad: una prueba se trata una vez.
  */
 final class TransicionDePruebaNoPermitida extends DomainException
 {
@@ -67,6 +68,14 @@ final class TransicionDePruebaNoPermitida extends DomainException
         return new self(
             'Sólo se deriva una tarea, una no conformidad o una oportunidad de mejora de una prueba '
             .'ya realizada y con resultado parcial o fallido: una prueba superada no dejó nada que corregir.',
+        );
+    }
+
+    public static function yaTratada(): self
+    {
+        return new self(
+            'Esta prueba ya tiene su no conformidad: una prueba se trata una vez. Lo que quede por '
+            .'corregir se añade como acción correctiva de esa no conformidad.',
         );
     }
 }
