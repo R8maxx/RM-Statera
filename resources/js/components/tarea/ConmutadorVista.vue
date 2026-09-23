@@ -7,7 +7,7 @@ import { computed } from 'vue';
  * Las dos formas de mirar el mismo plan.
  *
  * **Eran tres, y el calendario se fue con el § 4.16.** No es que sobrara un
- * botón: el calendario enseña vencimientos de siete registros de seis módulos y
+ * botón: el calendario enseña vencimientos de registros de muchos módulos y
  * dejó de ser una vista del plan de acción. Dejarlo apuntando a
  * `/calendario?filter[fuente]=tarea` tampoco valía, y por un motivo concreto de
  * este componente: lo activo se marca comparando `pathname` exacto, así que ese

@@ -17,8 +17,8 @@ namespace App\Domain\Aviso;
  * saber si hay que correr.
  *
  * **Un mapa por fuente y no una propiedad por grupo.** Eran seis propiedades
- * fijas —`evidenciasCaducadas`, `tareasVencidas`…— y con siete fuentes serían
- * catorce, con `pasados()` y `total()` sumando a mano una por una. Ése es el
+ * fijas —`evidenciasCaducadas`, `tareasVencidas`…— y cada fuente nueva habría
+ * añadido dos más, con `pasados()` y `total()` sumando a mano una por una. Ése es el
  * fallo caro del módulo y es silencioso: olvidar una fuente en `pasados()` no
  * rompe nada, sólo hace que **el asunto del correo diga «3 pasadas de fecha»
  * habiendo 9**. Con el mapa, sumar es recorrer, y hay un test que siembra un

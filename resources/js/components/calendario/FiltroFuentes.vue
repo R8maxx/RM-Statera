@@ -7,7 +7,7 @@ type Filtro = App.Http.Resources.Definicion.Filtro;
 /**
  * Los chips de fuente del calendario: **filtro y leyenda a la vez**.
  *
- * Como filtro, porque con siete fuentes el control más importante de la pantalla
+ * Como filtro, porque con tantas fuentes el control más importante de la pantalla
  * no puede vivir a dos clics detrás del embudo de `BarraFiltros`: ahí cae por no
  * tener columna bajo la que ponerse, y con tres era tolerable.
  *
@@ -18,7 +18,7 @@ type Filtro = App.Http.Resources.Definicion.Filtro;
  *
  * **No hay familia de color por fuente y no la va a haber.** La rueda de hue está
  * agotada —nueve tipos de activo, cuatro del DAFO, seis de estado— y la peor
- * pareja ya está por debajo del suelo de contraste. Siete tonos más la rompen.
+ * pareja ya está por debajo del suelo de contraste. Un tono por fuente la rompe.
  */
 const props = defineProps<{
     filtro: Filtro;

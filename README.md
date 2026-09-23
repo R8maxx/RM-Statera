@@ -84,7 +84,7 @@ El comando es idempotente y empareja por código, no por id. Los requisitos que 
 
 ## Estado
 
-Veinticuatro puntos del orden de arranque, de la fase 1 a la 3: catálogo e importador, motor de categorización ENS, implantaciones, inventario de activos, riesgos, documentos con Gotenberg, plan de acción, auditorías, no conformidades, indicadores, objetivos, mejoras, revisión por la dirección, personas, incidentes y el calendario de obligaciones. De la fase 3 queda continuidad. El detalle, y qué falta después, en [`CLAUDE.md`](CLAUDE.md) y en [`.ai/rules/orden-de-arranque.md`](.ai/rules/orden-de-arranque.md).
+Veinticinco puntos del orden de arranque, de la fase 1 a la 3: catálogo e importador, motor de categorización ENS, implantaciones, inventario de activos, riesgos, documentos con Gotenberg, plan de acción, auditorías, no conformidades, indicadores, objetivos, mejoras, revisión por la dirección, personas, incidentes, el calendario de obligaciones y continuidad. Las tres fases están cerradas. El detalle, y qué falta después, en [`CLAUDE.md`](CLAUDE.md) y en [`.ai/rules/orden-de-arranque.md`](.ai/rules/orden-de-arranque.md).
 
 ## Licencia
 

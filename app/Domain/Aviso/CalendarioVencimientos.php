@@ -26,9 +26,9 @@ use Illuminate\Support\Carbon;
  * habría obligado a mudarlo, o a tener dos calendarios.
  *
  * **`entre()` recorre `Fuente::cases()` y no una lista de bloques `if`.** Eran
- * tres y ahora son siete; con bloques escritos a mano, añadir el octavo sería
- * acordarse de tocar aquí, y no acordarse no rompe nada: la fuente sencillamente
- * no sale. Lo que cada fuente necesita —de qué tabla, de qué fecha y con qué
+ * tres al principio y no han dejado de crecer; con bloques escritos a mano,
+ * añadir una fuente sería acordarse de tocar aquí, y no acordarse no rompe
+ * nada: la fuente sencillamente no sale. Lo que cada fuente necesita —de qué tabla, de qué fecha y con qué
  * estado— lo declara su propio método, y todos devuelven lo mismo.
  *
  * **Es también el único sitio donde se decide qué es un vencimiento.** El

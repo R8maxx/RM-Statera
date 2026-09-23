@@ -12,7 +12,7 @@ type Vencimiento = App.Domain.Aviso.Vencimiento;
  * Todo lo que cae un día, cuando no cabe en la casilla.
  *
  * **Era un `<p>` muerto** —«y 4 más», sin decir qué son y sin llevar a ninguna
- * parte—, y con siete fuentes salta constantemente. Es el mismo callejón sin
+ * parte—, y con tantas fuentes salta constantemente. Es el mismo callejón sin
  * salida que el panel cerró para sus cifras: un número que no lleva a la lista no
  * se acciona, se mira.
  *

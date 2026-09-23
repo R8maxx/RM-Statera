@@ -92,13 +92,14 @@ export const navegacion: GrupoNavegacion[] = [
              * El calendario y las obligaciones: § 4.16.
              *
              * **Dos entradas y no una con conmutador**, con el mismo precedente
-             * que Personas / Puestos / Formación: la rejilla enseña siete fuentes
-             * de seis módulos y el registro enseña una sola cosa con su
+             * que Personas / Puestos / Formación: la rejilla enseña fuentes de
+             * muchos módulos y el registro enseña una sola cosa con su
              * histórico. Un conmutador entre ellas diría que son dos formas de
              * ver el mismo dato, y no lo son.
              *
              * El calendario dejó de colgar de `/tareas` aquí y en las rutas: con
-             * tres fuentes pasaba por una vista del plan, con siete ya no.
+             * tres fuentes pasaba por una vista del plan; con las que vinieron
+             * después, ya no.
              */
             {
                 titulo: 'Calendario',
@@ -185,11 +186,18 @@ export const navegacion: GrupoNavegacion[] = [
                 alias: ['op.exp.7', 'brecha', 'aepd', 'ccn-cert', 'ransomware', 'phishing', '72 horas'],
             },
             /*
-             * La continuidad de negocio: § 4.11. Una sola entrada para el BIA,
-             * que es lo que hay hoy; las pruebas del § 4.11 llegan con la tarea
-             * que decide entre pestañas y entrada hermana, y hasta entonces el
-             * `href` cuelga de `/continuidad/bia` y no de `/continuidad` a
-             * secas, que no tiene pantalla propia.
+             * La continuidad de negocio: § 4.11. **Una sola entrada para el BIA
+             * y las pruebas**, que se reparten en dos pestañas dentro de la
+             * pantalla y no en dos entradas hermanas: `esSeccionActiva()`
+             * compara con `startsWith`, y dos entradas bajo `/continuidad` se
+             * encenderían a la vez.
+             *
+             * «prueba», «simulacro» y «ejercicio» son lo que se teclea buscando
+             * `op.cont.3`. **«prueba» empata con el «pruebas» de Evidencias**,
+             * porque la paleta busca por subcadena, y es el único empate que se
+             * acepta a sabiendas: la palabra significa de verdad las dos cosas,
+             * y enseñar las dos es la respuesta correcta. «simulacro» y
+             * «ejercicio» sólo llevan aquí.
              *
              * **El `href` de esta entrada es `/continuidad`, y no
              * `/continuidad/bia`.** `PermisosDeLaCuenta::href()` deriva el
@@ -206,7 +214,18 @@ export const navegacion: GrupoNavegacion[] = [
                 titulo: 'Continuidad',
                 href: '/continuidad',
                 icono: LifeBuoyIcon,
-                alias: ['bia', 'análisis de impacto en el negocio', 'rto', 'rpo', 'mtpd', 'op.cont', 'continuidad de negocio'],
+                alias: [
+                    'bia',
+                    'análisis de impacto en el negocio',
+                    'rto',
+                    'rpo',
+                    'mtpd',
+                    'op.cont',
+                    'continuidad de negocio',
+                    'prueba',
+                    'simulacro',
+                    'ejercicio',
+                ],
             },
             {
                 titulo: 'Indicadores',

@@ -12,7 +12,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * De qué es un vencimiento.
  *
  * § 4.16 —el calendario de obligaciones— enumera once cosas periódicas, y aquí
- * hay nueve casos y no once: **las obligaciones que no salen de ningún registro
+ * hay menos casos que eso: **las obligaciones que no salen de ningún registro
  * son UNA fuente**, `Obligacion`, porque son filas de una tabla y no código. El
  * informe INES, la renovación de conformidad y la auditoría de seguimiento son
  * tres filas del catálogo, no tres casos de este enum — y esa es la diferencia
@@ -31,8 +31,8 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  *
  * **Los títulos y los verbos viven aquí y no en el correo.** `VencimientosDelDia`
  * tenía un bloque escrito a mano por fuente y por mitad —lo pasado y lo próximo—:
- * con siete fuentes serían catorce literales, y catorce literales es cómo se
- * olvida uno.
+ * dos literales por fuente, y una lista de literales que crece con cada módulo
+ * es cómo se olvida uno.
  */
 #[TypeScript]
 enum Fuente: string

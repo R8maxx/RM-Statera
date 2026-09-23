@@ -29,8 +29,8 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
   El resumen lleva **una lista por fuente y dos mitades por lista**: una evidencia caducada es una
   prueba que ya no prueba, una tarea vencida es trabajo que no se hizo y una revisión documental vencida
   es un papel que nadie ha vuelto a mirar desde que se firmó. Se arreglan de formas distintas y las
-  lleva gente distinta. Los títulos y los verbos los pone `Fuente`, no el correo: con siete fuentes,
-  catorce literales escritos a mano es cómo se olvida uno.
+  lleva gente distinta. Los títulos y los verbos los pone `Fuente`, no el correo: dos literales escritos
+  a mano por fuente, en una lista que crece con cada módulo, es cómo se olvida uno.
 
   **No hay tabla de avisos y es a propósito.** Una bandeja en la interfaz necesitaría tabla propia con
   `organizacion_id` y RLS; la tabla `notifications` de Laravel no lleva organización, que es
@@ -50,7 +50,8 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
 La especificación enumera **once** cosas periódicas en su § 4.16, y se resuelven de dos formas
 distintas:
 
-**(a) Lo que se deriva de datos que ya existen.** Siete `Fuente`, y ninguna necesitó columna nueva:
+**(a) Lo que se deriva de datos que ya existen.** Una `Fuente` por registro, y ninguna necesitó columna
+nueva:
 
 | Fuente | De dónde sale la fecha |
 |---|---|
@@ -61,6 +62,8 @@ distintas:
 | `Indicador` | el fin del último periodo cerrado sin medición, por `Periodicidad::periodoAnteriorA()` |
 | `Implantacion` | `implantaciones.fecha_objetivo` de una medida pendiente |
 | `Obligacion` | derivada de `compromisos` (ver abajo) |
+| `PruebaContinuidad` | `pruebas_continuidad.fecha_prevista` de una prueba **planificada** (llegó con el § 4.11) |
+| `Bia` | `bia_servicios.fecha_revision` de un BIA **aprobado**: un borrador no tiene revisión comprometida (§ 4.11) |
 
 **(b) Lo que no sale de ningún registro**, y por eso hay tres tablas: el informe INES, la renovación de
 conformidad del ENS —**bienal**, que no coincide con el ciclo de tres años de ISO—, la auditoría de
@@ -70,10 +73,12 @@ no lo resuelve porque no hay nada que consultar.
 
 ### Las obligaciones son UNA fuente, no seis
 
-`Fuente` tiene siete casos y no once, y es deliberado: las obligaciones periódicas son **filas de un
-catálogo**, no casos de un enum (invariante 3). Una organización que quiera añadir «reevaluación de
-proveedores» lo hace sin desplegar, `Fuente::url()` puede seguir siendo un `match`, y el filtro de la
-pantalla se queda en siete opciones en vez de once.
+`Fuente` tiene menos casos que cosas periódicas enumera la especificación, y es deliberado: las
+obligaciones periódicas son **filas de un catálogo**, no casos de un enum (invariante 3). Una
+organización que quiera añadir «reevaluación de proveedores» lo hace sin desplegar, `Fuente::url()`
+puede seguir siendo un `match`, y el filtro de la pantalla no crece con cada fila del catálogo. Un caso
+nuevo de `Fuente` es para un **registro** nuevo del que derivar fechas, como los dos que trajo el
+§ 4.11. **Sin recuentos en esta prosa**: la cifra envejeció dos veces antes de quitarla.
 
 ### Tres tablas, y la de arriba no lleva `organizacion_id`
 
@@ -120,13 +125,14 @@ segundo chocaría con el primero. Y el compromiso propio es justamente el caso e
 legítimos: no hay fila de catálogo que duplicar, que es lo único que ese índice existe para evitar. Lo
 encontró el test de coherencia con el panel al sembrar dos.
 
-### Un cumplimiento apunta a un registro con tres claves foráneas, no con un `morphTo`
+### Un cumplimiento apunta a un registro con claves foráneas explícitas, no con un `morphTo`
 
 El morph mete nombres de clase PHP dentro de la base —el motivo exacto por el que se descartó
 `spatie/laravel-medialibrary`— y renombrar un modelo rompería filas históricas en silencio. Son
-`auditoria_id`, `revision_direccion_id` y `documento_id` con un `CHECK (num_nonnulls(...) <= 1)`, y las
-lee un único value object, `Referencia`, para que el dominio de obligaciones **importe un enum y no
-tres módulos**.
+`auditoria_id`, `revision_direccion_id`, `documento_id` y, desde el § 4.11, `prueba_continuidad_id`,
+con un `CHECK (num_nonnulls(...) <= 1)` —la forma que escala: ampliarlo fue añadir una columna a la
+lista, sin reescribir la condición—, y las lee un único value object, `Referencia`, para que el
+dominio de obligaciones **importe un enum y no un módulo por referencia**.
 
 `evidencia_id` queda **fuera** de ese `CHECK` porque es otro eje: es la **prueba** —el PDF del INES
 presentado, el certificado— y convive con el registro. Precedente literal:
@@ -139,10 +145,19 @@ organización pondría filas en las bases de test de toda la suite, y sobre todo
 organización en su nombre: el invariante 4 dice que la *aplicabilidad* se deriva, y esto es lo otro —una
 decisión, y las decisiones las firma alguien—.
 
-Tres filtros: el marco del sistema, `Organizacion::leAplicaElEns()` y `categoria_minima` contra
-`Sistema::categoria()`, que **se deriva** de las cinco dimensiones. Se compara contra la categoría **más
-alta** de los sistemas: una obligación que muerde a partir de media muerde en cuanto un solo sistema
-llegue ahí.
+Cuatro filtros: el marco del sistema, `Organizacion::leAplicaElEns()`, el requisito y
+`categoria_minima` contra `Sistema::categoria()`, que **se deriva** de las cinco dimensiones. Se compara
+contra la categoría **más alta** de los sistemas: una obligación que muerde a partir de media muerde en
+cuanto un solo sistema llegue ahí.
+
+**El cuarto, `obligaciones.requisito_id`, llegó con el § 4.11**, y es para lo que no depende de la
+categoría. Las pruebas de continuidad no se proponen por ser media o alta: se proponen si `op.cont.3`
+está entre lo exigible de algún sistema, y eso lo decide la **Disponibilidad**, que puede llegar a alto
+en un sistema que en conjunto siga en básica. Filtrar por categoría exigiría de menos, y copiar esa
+regla en el YAML sería la aplicabilidad calculada dos veces (invariante 4). Se compara contra
+`Implantacion::aplicables()`, que es donde el motor ya lo decidió. Nullable y `nullOnDelete`: casi
+ninguna obligación cuelga de un requisito —la revisión por la dirección no tiene uno— y el catálogo
+normativo no se borra, se marca.
 
 ## El calendario
 
@@ -161,8 +176,8 @@ llegue ahí.
   correo dice 12 y la pantalla enseña 9. Lo fija `CoherenciaConElPanelTest`.
 
 - **La guarda por permiso vive en `FiltrosVencimiento`, no en `CalendarioVencimientos`.** Un `Recurso`
-  describe y no autoriza, y esto es lo mismo un nivel más abajo. La rejilla enseña registros de seis
-  módulos, así que `calendario.ver` por sí solo sería una puerta lateral a los seis: `Fuente::permiso()`
+  describe y no autoriza, y esto es lo mismo un nivel más abajo. La rejilla enseña registros de muchos
+  módulos, así que `calendario.ver` por sí solo sería una puerta lateral a todos: `Fuente::permiso()`
   decide qué se consulta y qué opciones se ofrecen.
 
 - **Con un filtro de responsable puesto, la formación se excluye** en vez de quedarse intacta. No tiene
@@ -178,7 +193,7 @@ llegue ahí.
 - **El color dice cómo va y el icono dice qué es.** `Vencimiento` lleva dos pares de campos y no uno:
   `tono` es distancia temporal y lo lee el **correo diario**; `estadoTono`/`estadoEtiqueta` son el estado
   y los lee el calendario. **Lo vencido gana siempre** y es el único rojo de la pantalla; hay un test que
-  recorre las siete fuentes comprobando que ninguna en plazo se lo gasta. Y el estado viaja **también en
+  recorre todos los casos de `Fuente` comprobando que ninguno en plazo se lo gasta. Y el estado viaja **también en
   texto**, porque § 11 no deja que dependa del color.
 
 - **No entra ninguna familia de color `--fuente-*`, y no va a entrar.** `DESIGN.md` § 3 tiene la rueda de
@@ -187,7 +202,7 @@ llegue ahí.
   `lib/navegacion.ts` para que quien lo aprende del sidebar lo reconozca aquí.
 
 - **`FiltroFuentes` es filtro y leyenda a la vez.** Con tres fuentes el filtro podía vivir dentro del
-  desplegable de `BarraFiltros`; con siete, el control más importante de la pantalla no puede estar a dos
+  desplegable de `BarraFiltros`; con las que vinieron después, el control más importante de la pantalla no puede estar a dos
   clics detrás de un embudo. Y como el icono es el único canal que identifica la fuente, esa misma fila
   es su clave — sin ocupar sitio extra, porque ya tenía que estar. Por eso `Opcion` lleva `icono` desde
   este módulo.
@@ -204,7 +219,7 @@ llegue ahí.
 ## El correo diario
 
 - **`Vencimientos` es un mapa por fuente, no una propiedad por grupo.** Eran seis propiedades fijas
-  —`evidenciasCaducadas`, `tareasVencidas`…— y con siete fuentes serían catorce, con `pasados()` y
+  —`evidenciasCaducadas`, `tareasVencidas`…— y cada fuente nueva habría añadido dos, con `pasados()` y
   `total()` sumando a mano. Ése es el fallo caro del módulo y es silencioso: olvidar una fuente no rompe
   nada, sólo hace que **el asunto diga «3 pasadas de fecha» habiendo 9**. Con el mapa, sumar es recorrer,
   y hay un test que siembra un vencido de cada caso de `Fuente` y comprueba que salen todos.
@@ -222,7 +237,7 @@ llegue ahí.
 
 ## La pantalla de obligaciones
 
-- **Dos superficies y no una con conmutador.** `/calendario` enseña siete fuentes de seis módulos;
+- **Dos superficies y no una con conmutador.** `/calendario` enseña fuentes de muchos módulos;
   `/obligaciones` enseña una sola cosa con su histórico. Un conmutador diría que son dos formas de ver el
   mismo dato. Precedente escrito en `lib/navegacion.ts`: Personas, Puestos y Formación van separadas.
 
@@ -306,11 +321,11 @@ tests que descubren cubren los olvidos de forma; para lo demás hace falta mirar
 
 ## Lo que este módulo declara que no hace todavía
 
-- **No recoge la reevaluación de proveedores (§ 4.9) ni las pruebas de continuidad (§ 4.11).** Los dos
-  módulos no existen. La continuidad **sí está en el catálogo**, con `categoria_minima: media`: no se
-  propone hoy y entra sola el día que un sistema alcance esa categoría, sin migración. Proveedores no
-  entra, porque la § 2.2 ya declara `proveedores.fecha_evaluacion` y `proxima_evaluacion` y crear el
-  compromiso ahora obligaría a migrarlo.
+- **No recoge la reevaluación de proveedores (§ 4.9)**, cuyo módulo no existe. No entra en el catálogo
+  todavía, porque la § 2.2 ya declara `proveedores.fecha_evaluacion` y `proxima_evaluacion` y crear el
+  compromiso ahora obligaría a migrarlo. **La continuidad dejó de estar en esta lista con el § 4.11**:
+  las pruebas y la revisión del BIA son dos `Fuente`, y la obligación anual de probar los planes se
+  propone por su requisito, `op.cont.3`, y ya no por `categoria_minima: media` —que exigía de menos—.
 - **De la formación, sólo avisa a quien ya ha recibido alguna.** Quien nunca la ha recibido no tiene
   fecha que pintar, y `fecha_alta + 12` sería inventarle un plazo. Sale donde ya salía: en
   `Persona::sinFormacionReciente()` y en el panel. El calendario es por tanto un **subconjunto** del

@@ -10,6 +10,7 @@ Before planning or editing, find the row whose globs match the file's path and r
 | app/Domain/Auditoria/**, resources/js/pages/auditorias/** | .ai/rules/auditorias.md |
 | app/Domain/Catalogo/**, app/Domain/Categorizacion/**, catalogo/** | .ai/rules/catalogo.md |
 | app/Domain/Contexto/**, resources/js/pages/contexto/**, resources/js/pages/partes-interesadas/**, resources/js/components/contexto/** | .ai/rules/contexto.md |
+| app/Domain/Continuidad/**, resources/js/pages/continuidad/**, resources/js/components/continuidad/** | .ai/rules/continuidad.md |
 | resources/css/**, resources/js/components/ui/** | .ai/rules/diseno.md |
 | resources/views/documentos/**, app/Domain/Documento/Render/**, resources/js/lib/cuerpoDocumento.ts, resources/js/lib/hojaDocumento.ts, resources/js/lib/markdownEditor.ts | .ai/rules/documentos-render.md |
 | app/Domain/Documento/**, resources/js/pages/documentos/**, resources/js/pages/plantillas/**, resources/js/components/documento/** | .ai/rules/documentos.md |

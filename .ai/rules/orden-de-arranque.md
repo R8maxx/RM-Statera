@@ -109,9 +109,9 @@ El orden importa: el catálogo y el motor son la parte más específica del domi
     inmutabilidad y el octavo verbo de supervisión.
 
     Lo que **sigue abierto de la fase 3**: el calendario de obligaciones completo
-    (§ 4.16) —cerrado en el punto 24— y la continuidad (§ 4.11), más los otros dos
-    tercios del flujo de conformidad (§ 4.17), que la especificación no asigna a
-    esta fase.
+    (§ 4.16) —cerrado en el punto 24— y la continuidad (§ 4.11) —cerrada en el
+    punto 25—, más los otros dos tercios del flujo de conformidad (§ 4.17), que la
+    especificación no asigna a esta fase.
 
 18. ✅ Personas (§ 4.8) y la cláusula 5.3. **El primero de los dos módulos que
     muerden hoy**: en categoría básica ya son exigibles `mp.per.2`, `mp.per.3` y
@@ -245,3 +245,37 @@ El orden importa: el catálogo y el motor son la parte más específica del domi
     comentado, así que lo que faltaba no era disciplina sino un test. El segundo,
     que el rótulo del importador de catálogo salía por defecto como «mapeos» para
     cualquier fichero sin marco: el cuarto tipo lo puso en evidencia.
+
+25. ✅ Continuidad (§ 4.11). **Cierra la fase 3.** Era el último módulo del ciclo
+    vivo y el único con requisitos en el catálogo —`op.cont.1` a `op.cont.4`— sin
+    ningún sitio donde escribirse: ni el análisis de impacto, ni el plan, ni la
+    prueba de que el plan funciona. En básica están en `no_aplica`, pero
+    `op.cont.3` lo activa la Disponibilidad en alto, y eso le pasa a un sistema
+    básico en cuanto un servicio no puede caerse un día.
+
+    Lo que lo hace barato son tres decisiones, y las tres son no construir algo.
+    **El plan es un documento**, `TipoDocumento::PlanContinuidad`, y hereda
+    aprobación, versiones, firma, acuse y PDF/A sin una línea de flujo propio.
+    **El MTPD se deriva** de los cinco tramos del BIA y no se guarda, así que no
+    hay copia que desincronizar. Y **la obligación anual sale del requisito y no
+    de la categoría**: `obligaciones.requisito_id` contra lo que el motor ya
+    decidió, porque `categoria_minima: media` —como estaba sembrada desde el
+    § 4.16— exigía de menos y copiar la regla en el YAML era calcular la
+    aplicabilidad dos veces.
+
+    Trae dos `Fuente` más —las pruebas planificadas y la revisión del BIA
+    aprobado—, una cuarta referencia de cumplimiento y tres costuras: tarea, no
+    conformidad y mejora desde una prueba parcial o fallida. Y una limitación
+    impresa que dejó de ser verdad, la del plan de adecuación.
+
+    **La lección se repite, y esta vez con cifra.** La revisión de cada tarea
+    encontró **cinco defectos reales con la suite en verde**: un `down()` de
+    migración que abortaba con datos porque se había verificado sobre una base
+    vacía; el rojo gastado en una incoherencia que no es un plazo vencido; un
+    orden por defecto que declaraba el nombre de la columna en vez de su clave y
+    desaparecía en silencio al paginar; una sincronización de pivote que dejaba
+    colar activos ajenos en una prueba ya hecha, y una edición sin lista blanca
+    que cambiaba el estado sin pasar por el histórico. Ninguno lo habría
+    encontrado un test que descubre. Cuatro llevan ahora el suyo; el `down()` se
+    comprobó a mano —datos por el camino real, `migrate:rollback` y vuelta—,
+    porque la suite no ejecuta rollbacks, y eso sigue siendo un hueco.

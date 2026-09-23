@@ -13,8 +13,8 @@ use Illuminate\Support\Carbon;
  * Lo que acota un calendario de vencimientos.
  *
  * **No son los filtros de tareas, y es deliberado.** El calendario enseña
- * vencimientos de siete fuentes: filtrar por «prioridad: crítica» o dejaría las
- * otras seis intactas —y el filtro estaría mintiendo— o las haría desaparecer
+ * vencimientos de muchas fuentes: filtrar por «prioridad: crítica» o dejaría
+ * las demás intactas —y el filtro estaría mintiendo— o las haría desaparecer
  * sin que nadie entendiera por qué.
  *
  * Los tres que quedan significan lo mismo para todas: de qué es, de quién es, y
