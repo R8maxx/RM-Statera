@@ -68,7 +68,10 @@ export type TipoParteInteresada = 'cliente' | 'empleado' | 'direccion' | 'provee
 namespace Continuidad {
 namespace Enums {
 export type EstadoBia = 'borrador' | 'aprobado' | 'obsoleto';
+export type EstadoPrueba = 'planificada' | 'realizada' | 'cancelada';
 export type NivelImpacto = 'bajo' | 'medio' | 'alto' | 'muy_alto';
+export type ResultadoPrueba = 'superada' | 'parcial' | 'fallida';
+export type TipoPrueba = 'sobremesa' | 'simulacro' | 'tecnica' | 'completa';
 export type TramoImpacto = 'impacto_4h' | 'impacto_1d' | 'impacto_3d' | 'impacto_1s' | 'impacto_1m';
 }
 }
@@ -104,7 +107,7 @@ export type PeligrosidadIncidente = 'baja' | 'media' | 'alta' | 'muy_alta' | 'cr
 namespace Mejora {
 namespace Enums {
 export type EstadoMejora = 'propuesta' | 'en_curso' | 'implantada' | 'descartada';
-export type OrigenMejora = 'auditoria' | 'revision_direccion' | 'indicador' | 'incidente' | 'propia';
+export type OrigenMejora = 'auditoria' | 'revision_direccion' | 'indicador' | 'incidente' | 'prueba_continuidad' | 'propia';
 }
 }
 namespace Metrica {
@@ -120,7 +123,7 @@ export type UnidadIndicador = 'porcentaje' | 'recuento' | 'dias' | 'euros';
 namespace NoConformidad {
 namespace Enums {
 export type EstadoNoConformidad = 'abierta' | 'en_tratamiento' | 'cerrada' | 'verificada' | 'anulada';
-export type OrigenNoConformidad = 'auditoria' | 'incidente' | 'revision_direccion' | 'propia';
+export type OrigenNoConformidad = 'auditoria' | 'incidente' | 'revision_direccion' | 'prueba_continuidad' | 'propia';
 }
 }
 namespace Objetivo {
@@ -172,7 +175,7 @@ export type EstadoSistema = 'borrador' | 'activo' | 'archivado';
 namespace Tarea {
 namespace Enums {
 export type EstadoTarea = 'pendiente' | 'en_curso' | 'bloqueada' | 'hecha' | 'descartada';
-export type OrigenTarea = 'hallazgo' | 'no_conformidad' | 'mejora' | 'riesgo' | 'brecha_implantacion' | 'contexto' | 'objetivo' | 'incidente' | 'revision_direccion' | 'propia';
+export type OrigenTarea = 'hallazgo' | 'no_conformidad' | 'mejora' | 'riesgo' | 'brecha_implantacion' | 'contexto' | 'objetivo' | 'incidente' | 'revision_direccion' | 'continuidad' | 'propia';
 export type PrioridadTarea = 'baja' | 'media' | 'alta' | 'critica';
 }
 }

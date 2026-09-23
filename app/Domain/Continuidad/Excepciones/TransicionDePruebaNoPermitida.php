@@ -24,6 +24,13 @@ use DomainException;
  * `PlanificarPrueba` al planificar; registrar un resultado no es el sitio
  * para ampliarla, así que un id que no esté ya adjunto es un dato que no
  * encaja, no un servicio nuevo que añadir de paso.
+ *
+ * **Y una cuarta, de las costuras del § 4.11 (tareas, no conformidades y
+ * mejoras)**: `noDerivable()`, cuando `DerivarDePrueba` recibe una prueba que no
+ * está `realizada` o cuyo resultado es `superada`. Una prueba superada no dejó
+ * nada que corregir —igual que `ResultadoPrueba` no gasta el rojo de `Fallida`,
+ * fallar es la prueba funcionando—, y una que sigue `planificada` o `cancelada`
+ * no tiene resultado del que derivar nada todavía.
  */
 final class TransicionDePruebaNoPermitida extends DomainException
 {
@@ -53,5 +60,13 @@ final class TransicionDePruebaNoPermitida extends DomainException
             .'no amplía la pivote que fijó la planificación.',
             $activoId,
         ));
+    }
+
+    public static function noDerivable(): self
+    {
+        return new self(
+            'Sólo se deriva una tarea, una no conformidad o una oportunidad de mejora de una prueba '
+            .'ya realizada y con resultado parcial o fallido: una prueba superada no dejó nada que corregir.',
+        );
     }
 }

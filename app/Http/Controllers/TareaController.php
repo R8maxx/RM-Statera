@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Domain\Autorizacion\Enums\Permiso;
+use App\Domain\Continuidad\Models\PruebaContinuidad;
 use App\Domain\Implantacion\Models\Implantacion;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Tarea\CambiarEstadoTarea;
@@ -246,6 +247,7 @@ class TareaController extends Controller
             'responsable',
             'implantaciones.requisito.marco',
             'implantaciones.sistema',
+            'pruebasContinuidad',
             'transiciones.usuario',
             'subtareas',
         ]);
@@ -254,6 +256,17 @@ class TareaController extends Controller
             'tarea' => $this->serializar($tarea),
             'vinculos' => $tarea->implantaciones
                 ->map(fn (Implantacion $implantacion): array => $this->requisito($implantacion))
+                ->all(),
+            /*
+             * De qué prueba de continuidad sale, cuando sale de una. La pivote
+             * es N:M por si acaso, pero `DerivarDePrueba::tarea()` sólo ata una.
+             */
+            'pruebasContinuidad' => $tarea->pruebasContinuidad
+                ->map(static fn (PruebaContinuidad $prueba): array => [
+                    'id' => $prueba->id,
+                    'codigo' => $prueba->codigo,
+                ])
+                ->values()
                 ->all(),
             'historico' => $tarea->transiciones
                 ->map(fn (TareaTransicion $transicion): array => [

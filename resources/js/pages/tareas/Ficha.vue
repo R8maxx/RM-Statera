@@ -34,6 +34,11 @@ interface Transicion {
     nota: string | null;
 }
 
+interface PruebaContinuidad {
+    id: number;
+    codigo: string;
+}
+
 const props = defineProps<{
     tarea: {
         id: number;
@@ -55,6 +60,7 @@ const props = defineProps<{
         notas: string | null;
     };
     vinculos: Vinculo[];
+    pruebasContinuidad: PruebaContinuidad[];
     historico: Transicion[];
     transiciones: { valor: string; etiqueta: string; tono: string; icono: string }[];
     subtareas: Subtarea[];
@@ -339,6 +345,20 @@ function mover(estado: string): void {
                         <div class="flex items-baseline justify-between gap-3">
                             <span class="text-muted-foreground">Origen</span>
                             <span class="text-right">{{ tarea.origenEtiqueta }}</span>
+                        </div>
+
+                        <div
+                            v-for="prueba in pruebasContinuidad"
+                            :key="prueba.id"
+                            class="flex items-baseline justify-between gap-3"
+                        >
+                            <span class="text-muted-foreground">Procede de</span>
+                            <Link
+                                :href="`/continuidad/pruebas/${prueba.id}`"
+                                class="cifra text-right underline-offset-4 hover:underline"
+                            >
+                                {{ prueba.codigo }}
+                            </Link>
                         </div>
 
                         <div class="flex items-baseline justify-between gap-3">

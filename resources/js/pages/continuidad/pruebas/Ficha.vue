@@ -4,19 +4,39 @@ import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import ComparativaRecuperacion, { type ServicioComparado } from '@/components/continuidad/ComparativaRecuperacion.vue';
+import EstadoVacio from '@/components/EstadoVacio.vue';
 import HistoricoTransiciones, { type Transicion } from '@/components/implantacion/HistoricoTransiciones.vue';
 import CeldaBadge from '@/components/tabla/celdas/CeldaBadge.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { conOpcionVacia, SIN_VALOR } from '@/lib/formularios';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { Link, router } from '@inertiajs/vue3';
+import { Link, router, useForm } from '@inertiajs/vue3';
 import { computed, reactive, ref } from 'vue';
 
 interface Opcion {
     valor: string;
     etiqueta: string;
+}
+
+interface TareaDerivada {
+    id: number;
+    titulo: string;
+    estado: string;
+    estadoEtiqueta: string;
+    estadoTono: string;
+    responsable: string | null;
+}
+
+interface NoConformidadDerivada {
+    id: number;
+    codigo: string;
+    estado: string;
+    estadoEtiqueta: string;
+    estadoTono: string;
+    estadoIcono: string;
 }
 
 interface Prueba {
@@ -68,7 +88,17 @@ const props = defineProps<{
     historial: Transicion[];
     evidencias: Opcion[];
     resultados: Opcion[];
+    tareasDerivadas: TareaDerivada[];
+    noConformidadDerivada: NoConformidadDerivada | null;
+    sugerenciaCodigoNoConformidad: string;
+    sugerenciaCodigoMejora: string;
+    prioridades: Opcion[];
+    responsables: Opcion[];
     puedeGestionar: boolean;
+    puedeDerivar: boolean;
+    puedeAbrirTarea: boolean;
+    puedeTratar: boolean;
+    puedeMejorar: boolean;
 }>();
 
 const planificada = computed(() => props.prueba.estado === 'planificada');
@@ -149,6 +179,82 @@ function cancelar(): void {
             onFinish: () => (enviandoCancelacion.value = false),
         },
     );
+}
+
+/*
+ * --- Las tres costuras: tareas, no conformidades y mejoras ---
+ *
+ * Mismo patrón que «Abrir acción correctiva» en la ficha de una no
+ * conformidad: un diálogo por destino, porque cada uno pide datos distintos.
+ * El origen no se pregunta —lo pone `DerivarDePrueba`—, así que ninguno de
+ * los tres formularios lleva un campo para elegirlo.
+ */
+
+const abriendoTarea = ref(false);
+
+const tareaForm = useForm({
+    titulo: '',
+    descripcion: '',
+    prioridad: 'media',
+    responsable_id: '',
+    fecha_limite: '',
+    coste_estimado: '',
+});
+
+function abrirTarea(): void {
+    tareaForm.reset();
+    tareaForm.clearErrors();
+    abriendoTarea.value = true;
+}
+
+function crearTarea(): void {
+    tareaForm.post(`/continuidad/pruebas/${props.prueba.id}/tareas`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            abriendoTarea.value = false;
+            tareaForm.reset();
+        },
+    });
+}
+
+const abriendoNoConformidad = ref(false);
+
+const ncForm = useForm({
+    codigo: props.sugerenciaCodigoNoConformidad,
+    descripcion: '',
+    correccion_inmediata: '',
+    analisis_causa_raiz: '',
+    responsable_id: '',
+    fecha_deteccion: props.prueba.fecha_realizacion ?? new Date().toISOString().slice(0, 10),
+    fecha_prevista: '',
+});
+
+function abrirNoConformidad(): void {
+    abriendoNoConformidad.value = true;
+}
+
+function crearNoConformidad(): void {
+    ncForm.post(`/continuidad/pruebas/${props.prueba.id}/no-conformidades`, { preserveScroll: true });
+}
+
+const abriendoMejora = ref(false);
+
+const mejoraForm = useForm({
+    codigo: props.sugerenciaCodigoMejora,
+    titulo: '',
+    descripcion: '',
+    beneficio_esperado: '',
+    responsable_id: '',
+    fecha_deteccion: props.prueba.fecha_realizacion ?? new Date().toISOString().slice(0, 10),
+    fecha_prevista: '',
+});
+
+function abrirMejora(): void {
+    abriendoMejora.value = true;
+}
+
+function crearMejora(): void {
+    mejoraForm.post(`/continuidad/pruebas/${props.prueba.id}/mejoras`, { preserveScroll: true });
 }
 </script>
 
@@ -355,6 +461,84 @@ function cancelar(): void {
                     </CardContent>
                 </Card>
 
+                <Card v-if="prueba.estado === 'realizada'">
+                    <CardHeader>
+                        <CardTitle>Lo que dejó esta prueba</CardTitle>
+                        <CardDescription>
+                            Una prueba parcial o fallida es la que de verdad tiene algo que corregir:
+                            op.cont.3 pregunta si se probó, no si salió bien.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent class="space-y-4">
+                        <EstadoVacio
+                            v-if="tareasDerivadas.length === 0 && !noConformidadDerivada"
+                            titulo="Nada derivado todavía"
+                            :descripcion="
+                                puedeDerivar
+                                    ? 'Esta prueba puede abrir una tarea, una no conformidad o una oportunidad de mejora.'
+                                    : 'Esta prueba se superó: no dejó nada que corregir.'
+                            "
+                        />
+
+                        <ul v-if="tareasDerivadas.length > 0" class="divide-y divide-border">
+                            <li
+                                v-for="tarea in tareasDerivadas"
+                                :key="tarea.id"
+                                class="flex items-center justify-between gap-4 py-2"
+                            >
+                                <Link
+                                    :href="`/tareas/${tarea.id}`"
+                                    class="text-sm font-medium underline-offset-4 hover:underline"
+                                >
+                                    {{ tarea.titulo }}
+                                </Link>
+                                <CeldaBadge
+                                    :valor="{
+                                        valor: tarea.estado,
+                                        etiqueta: tarea.estadoEtiqueta,
+                                        tono: tarea.estadoTono,
+                                        icono: null,
+                                    }"
+                                />
+                            </li>
+                        </ul>
+
+                        <div v-if="noConformidadDerivada" class="flex items-center justify-between gap-4 border-t pt-4">
+                            <Link
+                                :href="`/no-conformidades/${noConformidadDerivada.id}`"
+                                class="cifra text-sm font-medium underline-offset-4 hover:underline"
+                            >
+                                {{ noConformidadDerivada.codigo }}
+                            </Link>
+                            <CeldaBadge
+                                :valor="{
+                                    valor: noConformidadDerivada.estado,
+                                    etiqueta: noConformidadDerivada.estadoEtiqueta,
+                                    tono: noConformidadDerivada.estadoTono,
+                                    icono: noConformidadDerivada.estadoIcono,
+                                }"
+                            />
+                        </div>
+
+                        <div v-if="puedeDerivar" class="flex flex-wrap gap-2 border-t pt-4">
+                            <Button v-if="puedeAbrirTarea" variant="outline" size="sm" @click="abrirTarea">
+                                Abrir tarea
+                            </Button>
+                            <Button
+                                v-if="puedeTratar && !noConformidadDerivada"
+                                variant="outline"
+                                size="sm"
+                                @click="abrirNoConformidad"
+                            >
+                                Abrir no conformidad
+                            </Button>
+                            <Button v-if="puedeMejorar" variant="outline" size="sm" @click="abrirMejora">
+                                Registrar mejora
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+
                 <Card>
                     <CardHeader>
                         <CardTitle>Histórico</CardTitle>
@@ -403,5 +587,153 @@ function cancelar(): void {
                 </Card>
             </div>
         </div>
+
+        <Dialog v-model:open="abriendoTarea">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Abrir tarea</DialogTitle>
+                    <DialogDescription>
+                        Nace en el plan de acción con el origen ya puesto: prueba de continuidad.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div class="space-y-4">
+                    <CampoTexto
+                        nombre="titulo"
+                        etiqueta="Título"
+                        :error="tareaForm.errors.titulo"
+                        requerido
+                        @input="tareaForm.titulo = ($event.target as HTMLInputElement).value"
+                    />
+                    <CampoSelect
+                        nombre="prioridad"
+                        etiqueta="Prioridad"
+                        :opciones="prioridades"
+                        :valor-inicial="tareaForm.prioridad"
+                        :error="tareaForm.errors.prioridad"
+                        requerido
+                        @update:model-value="(valor?: string) => (tareaForm.prioridad = valor ?? 'media')"
+                    />
+                    <CampoSelect
+                        nombre="responsable_id"
+                        etiqueta="Responsable"
+                        :opciones="responsables"
+                        :error="tareaForm.errors.responsable_id"
+                        @update:model-value="(valor?: string) => (tareaForm.responsable_id = valor ?? '')"
+                    />
+                    <CampoTexto
+                        nombre="fecha_limite"
+                        etiqueta="Fecha límite"
+                        tipo="date"
+                        :error="tareaForm.errors.fecha_limite"
+                        @input="tareaForm.fecha_limite = ($event.target as HTMLInputElement).value"
+                    />
+                </div>
+
+                <DialogFooter>
+                    <Button variant="outline" @click="abriendoTarea = false">Cancelar</Button>
+                    <Button :disabled="tareaForm.processing" @click="crearTarea">Abrir</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog v-model:open="abriendoNoConformidad">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Abrir no conformidad</DialogTitle>
+                    <DialogDescription>
+                        Con el origen y la prueba ya puestos: la cláusula 10.2 pide causa raíz y
+                        verificación de eficacia, y eso se lleva desde la propia ficha.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div class="space-y-4">
+                    <CampoTexto
+                        v-model="ncForm.codigo"
+                        nombre="codigo"
+                        etiqueta="Código"
+                        :error="ncForm.errors.codigo"
+                        requerido
+                    />
+                    <CampoTextarea
+                        v-model="ncForm.descripcion"
+                        nombre="descripcion"
+                        etiqueta="Descripción"
+                        :filas="3"
+                        :error="ncForm.errors.descripcion"
+                        requerido
+                    />
+                    <CampoSelect
+                        nombre="responsable_id"
+                        etiqueta="Responsable"
+                        :opciones="responsables"
+                        :error="ncForm.errors.responsable_id"
+                        @update:model-value="(valor?: string) => (ncForm.responsable_id = valor ?? '')"
+                    />
+                    <CampoTexto
+                        v-model="ncForm.fecha_deteccion"
+                        nombre="fecha_deteccion"
+                        etiqueta="Fecha de detección"
+                        tipo="date"
+                        :error="ncForm.errors.fecha_deteccion"
+                        requerido
+                    />
+                </div>
+
+                <DialogFooter>
+                    <Button variant="outline" @click="abriendoNoConformidad = false">Cancelar</Button>
+                    <Button :disabled="ncForm.processing" @click="crearNoConformidad">Abrir</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog v-model:open="abriendoMejora">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Registrar oportunidad de mejora</DialogTitle>
+                    <DialogDescription>
+                        Con el origen ya puesto: la lección aprendida de esta prueba, sin volver a
+                        escribirla en otro sitio.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div class="space-y-4">
+                    <CampoTexto
+                        v-model="mejoraForm.codigo"
+                        nombre="codigo"
+                        etiqueta="Código"
+                        :error="mejoraForm.errors.codigo"
+                        requerido
+                    />
+                    <CampoTexto
+                        v-model="mejoraForm.titulo"
+                        nombre="titulo"
+                        etiqueta="Título"
+                        :error="mejoraForm.errors.titulo"
+                        requerido
+                    />
+                    <CampoSelect
+                        nombre="responsable_id"
+                        etiqueta="Responsable"
+                        :opciones="responsables"
+                        :error="mejoraForm.errors.responsable_id"
+                        @update:model-value="(valor?: string) => (mejoraForm.responsable_id = valor ?? '')"
+                    />
+                    <CampoTexto
+                        v-model="mejoraForm.fecha_deteccion"
+                        nombre="fecha_deteccion"
+                        etiqueta="Fecha de detección"
+                        tipo="date"
+                        :error="mejoraForm.errors.fecha_deteccion"
+                        requerido
+                    />
+                </div>
+
+                <DialogFooter>
+                    <Button variant="outline" @click="abriendoMejora = false">Cancelar</Button>
+                    <Button :disabled="mejoraForm.processing" @click="crearMejora">Registrar</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </AppLayout>
 </template>

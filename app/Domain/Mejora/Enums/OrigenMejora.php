@@ -29,6 +29,12 @@ namespace App\Domain\Mejora\Enums;
  * revisión— así que es una etiqueta honesta y no una trazabilidad fingida. Cuando
  * llegue el § 4.15, las salidas de la revisión crearán mejoras por su camino y
  * esta etiqueta seguirá significando lo mismo.
+ *
+ * **`PruebaContinuidad` es el sexto, y llega con el § 4.11.** Igual que
+ * `Incidente`, **no lleva clave foránea**: la lección aprendida de una prueba que
+ * salió parcial o fallida no «trata» la prueba —ésa ya quedó registrada con su
+ * resultado—, así que atarla sería fingir una trazabilidad que no hay. Lo que se
+ * hereda es el título, no un vínculo.
  */
 enum OrigenMejora: string
 {
@@ -36,6 +42,7 @@ enum OrigenMejora: string
     case RevisionDireccion = 'revision_direccion';
     case Indicador = 'indicador';
     case Incidente = 'incidente';
+    case PruebaContinuidad = 'prueba_continuidad';
     case Propia = 'propia';
 
     public function etiqueta(): string
@@ -45,6 +52,7 @@ enum OrigenMejora: string
             self::RevisionDireccion => 'Revisión por la dirección',
             self::Indicador => 'Indicador fuera de objetivo',
             self::Incidente => 'Lección aprendida de un incidente',
+            self::PruebaContinuidad => 'Lección aprendida de una prueba de continuidad',
             self::Propia => 'Iniciativa propia',
         };
     }
@@ -56,6 +64,7 @@ enum OrigenMejora: string
             self::RevisionDireccion => 'Users',
             self::Indicador => 'Equal',
             self::Incidente => 'CloudLightning',
+            self::PruebaContinuidad => 'Repeat',
             self::Propia => 'Lightbulb',
         };
     }
@@ -88,7 +97,7 @@ enum OrigenMejora: string
     public function tono(): string
     {
         return match ($this) {
-            self::Auditoria, self::Indicador, self::Incidente => 'en_progreso',
+            self::Auditoria, self::Indicador, self::Incidente, self::PruebaContinuidad => 'en_progreso',
             self::RevisionDireccion => 'planificado',
             self::Propia => 'no_iniciado',
         };

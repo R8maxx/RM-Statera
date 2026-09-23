@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\NoConformidad\Models;
 
 use App\Domain\Auditoria\Models\Hallazgo;
+use App\Domain\Continuidad\Models\PruebaContinuidad;
 use App\Domain\Incidente\Models\Incidente;
 use App\Domain\NoConformidad\Enums\EstadoNoConformidad;
 use App\Domain\NoConformidad\Enums\OrigenNoConformidad;
@@ -39,6 +40,8 @@ use Illuminate\Support\Carbon;
  * @property string $codigo
  * @property OrigenNoConformidad $origen
  * @property ?int $hallazgo_id
+ * @property ?int $incidente_id
+ * @property ?int $prueba_continuidad_id
  * @property string $descripcion
  * @property ?string $correccion_inmediata
  * @property ?string $analisis_causa_raiz
@@ -67,6 +70,7 @@ class NoConformidad extends Model
         'origen',
         'hallazgo_id',
         'incidente_id',
+        'prueba_continuidad_id',
         'descripcion',
         'correccion_inmediata',
         'analisis_causa_raiz',
@@ -97,6 +101,20 @@ class NoConformidad extends Model
     public function incidente(): BelongsTo
     {
         return $this->belongsTo(Incidente::class);
+    }
+
+    /**
+     * La prueba de continuidad de la que salió, si salió de una.
+     *
+     * Espejo exacto de `incidente()`: único, `nullOnDelete`, y con un `CHECK`
+     * —`num_nonnulls(hallazgo_id, incidente_id, prueba_continuidad_id) <= 1`—
+     * que impide que vengan de más de una procedencia a la vez.
+     *
+     * @return BelongsTo<PruebaContinuidad, $this>
+     */
+    public function pruebaContinuidad(): BelongsTo
+    {
+        return $this->belongsTo(PruebaContinuidad::class);
     }
 
     /** @return BelongsTo<User, $this> */

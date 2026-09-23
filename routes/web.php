@@ -1269,6 +1269,35 @@ Route::middleware('auth')->group(function (): void {
 
     /*
     |--------------------------------------------------------------------------
+    | Las costuras de una prueba: tareas, no conformidades y mejoras (§ 4.11)
+    |--------------------------------------------------------------------------
+    |
+    | Tres rutas y tres permisos distintos, cada uno el de escritura del módulo
+    | destino y no `continuidad.gestionar`: quien puede planificar una prueba
+    | no tiene por qué poder abrir no conformidades o tocar el plan de acción.
+    | La regla de estado —`realizada` y resultado distinto de `superada`— la
+    | impone `DerivarDePrueba` igual para las tres; esto sólo decide quién
+    | puede intentarlo.
+    |
+    */
+
+    Route::middleware(['can:tareas.gestionar', ExigirDosFactores::class])->group(function (): void {
+        Route::post('/continuidad/pruebas/{prueba}/tareas', [PruebaContinuidadController::class, 'derivarTarea'])
+            ->name('continuidad.pruebas.tareas.store');
+    });
+
+    Route::middleware(['can:no_conformidades.gestionar', ExigirDosFactores::class])->group(function (): void {
+        Route::post('/continuidad/pruebas/{prueba}/no-conformidades', [PruebaContinuidadController::class, 'derivarNoConformidad'])
+            ->name('continuidad.pruebas.no-conformidades.store');
+    });
+
+    Route::middleware(['can:mejoras.gestionar', ExigirDosFactores::class])->group(function (): void {
+        Route::post('/continuidad/pruebas/{prueba}/mejoras', [PruebaContinuidadController::class, 'derivarMejora'])
+            ->name('continuidad.pruebas.mejoras.store');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
     | Personas y formación (§ 4.8, cláusula 5.3 y mp.per.*)
     |--------------------------------------------------------------------------
     |

@@ -30,12 +30,22 @@ namespace App\Domain\NoConformidad\Enums;
  * una sola dirección: una auditoría que no está registrada en Statera —la del
  * cliente que la trae en papel— también produce no conformidades de origen
  * auditoría. Y un tercer `CHECK` impide que vengan de las dos cosas a la vez.
+ *
+ * **`PruebaContinuidad` es el quinto, y llega con el § 4.11.** Lleva
+ * `prueba_continuidad_id` detrás, espejo exacto de `incidente_id`: una prueba de
+ * un plan de continuidad que sale parcial o fallida puede destapar que la
+ * organización no cumplía lo que su propio plan prometía —`op.cont.3`—, y eso se
+ * trata aquí igual que cualquier otro incumplimiento. `num_nonnulls()` sustituye
+ * al `CHECK` de dos columnas que bastaba con `hallazgo_id` e `incidente_id`: con
+ * tres procedencias posibles, «como mucho una» ya no se escribe con un `OR IS
+ * NULL`.
  */
 enum OrigenNoConformidad: string
 {
     case Auditoria = 'auditoria';
     case Incidente = 'incidente';
     case RevisionDireccion = 'revision_direccion';
+    case PruebaContinuidad = 'prueba_continuidad';
     case Propia = 'propia';
 
     public function etiqueta(): string
@@ -44,6 +54,7 @@ enum OrigenNoConformidad: string
             self::Auditoria => 'Auditoría',
             self::Incidente => 'Incidente',
             self::RevisionDireccion => 'Revisión por la dirección',
+            self::PruebaContinuidad => 'Prueba de continuidad',
             self::Propia => 'Detección propia',
         };
     }
@@ -52,13 +63,14 @@ enum OrigenNoConformidad: string
      * Si hoy se puede registrar una no conformidad con este origen.
      *
      * `match` exhaustivo y no un `return true`, por lo mismo que en `OrigenTarea`:
-     * hoy están los cuatro, y el día que entre un quinto cuyo módulo no exista,
+     * hoy están los cinco, y el día que entre uno más cuyo módulo no exista,
      * olvidarse de él aquí no lo señalaría nadie.
      */
     public function disponible(): bool
     {
         return match ($this) {
-            self::Auditoria, self::Incidente, self::RevisionDireccion, self::Propia => true,
+            self::Auditoria, self::Incidente, self::RevisionDireccion,
+            self::PruebaContinuidad, self::Propia => true,
         };
     }
 

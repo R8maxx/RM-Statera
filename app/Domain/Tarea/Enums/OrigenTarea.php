@@ -54,6 +54,14 @@ namespace App\Domain\Tarea\Enums;
  * Sin un valor para eso, quien apunta una tarea a mano elige el que menos mal le
  * suena y el campo deja de significar nada, que es justo lo contrario de por qué
  * existe.
+ *
+ * **`Continuidad` es el quinto que no está en § 4.7, y llega con el § 4.11.** Una
+ * prueba de un plan de continuidad que sale parcial o fallida deja trabajo
+ * correctivo directo —«revisar el guion de failover»—, y no espera a ninguna no
+ * conformidad, exactamente igual que `Incidente`: puede que la prueba no llegue a
+ * abrir ninguna. A diferencia de `Incidente`, aquí sí hay un vínculo de verdad
+ * —la pivote `prueba_continuidad_tarea`—, porque `op.cont.3` necesita poder
+ * contar cuánto trabajo dejó cada prueba y no sólo la etiqueta.
  */
 enum OrigenTarea: string
 {
@@ -66,6 +74,7 @@ enum OrigenTarea: string
     case Objetivo = 'objetivo';
     case Incidente = 'incidente';
     case RevisionDireccion = 'revision_direccion';
+    case Continuidad = 'continuidad';
     case Propia = 'propia';
 
     public function etiqueta(): string
@@ -80,6 +89,7 @@ enum OrigenTarea: string
             self::Objetivo => 'Objetivo de seguridad',
             self::Incidente => 'Incidente',
             self::RevisionDireccion => 'Revisión por la dirección',
+            self::Continuidad => 'Prueba de continuidad',
             self::Propia => 'Iniciativa propia',
         };
     }
@@ -94,7 +104,7 @@ enum OrigenTarea: string
     public function disponible(): bool
     {
         return match ($this) {
-            self::BrechaImplantacion, self::Contexto, self::Incidente, self::Mejora,
+            self::BrechaImplantacion, self::Continuidad, self::Contexto, self::Incidente, self::Mejora,
             self::NoConformidad, self::Objetivo, self::Propia, self::RevisionDireccion,
             self::Riesgo => true,
             /*
@@ -152,7 +162,7 @@ enum OrigenTarea: string
     public function tono(): string
     {
         return match ($this) {
-            self::Hallazgo, self::NoConformidad, self::Incidente => 'en_progreso',
+            self::Hallazgo, self::NoConformidad, self::Incidente, self::Continuidad => 'en_progreso',
             self::BrechaImplantacion, self::Riesgo, self::Contexto, self::Objetivo, self::Mejora, self::RevisionDireccion => 'planificado',
             self::Propia => 'no_iniciado',
         };

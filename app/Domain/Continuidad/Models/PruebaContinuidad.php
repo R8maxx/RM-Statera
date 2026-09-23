@@ -10,7 +10,9 @@ use App\Domain\Continuidad\Enums\ResultadoPrueba;
 use App\Domain\Continuidad\Enums\TipoPrueba;
 use App\Domain\Documento\Models\Documento;
 use App\Domain\Evidencia\Models\Evidencia;
+use App\Domain\NoConformidad\Models\NoConformidad;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
+use App\Domain\Tarea\Models\Tarea;
 use App\Domain\Traza\Concerns\RegistraTraza;
 use App\Models\User;
 use Database\Factories\Continuidad\PruebaContinuidadFactory;
@@ -20,6 +22,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -115,6 +118,31 @@ class PruebaContinuidad extends Model
     public function transiciones(): HasMany
     {
         return $this->hasMany(PruebaContinuidadTransicion::class)->orderBy('created_at');
+    }
+
+    /**
+     * El trabajo correctivo que dejó esta prueba: § 4.11, costuras.
+     *
+     * @return BelongsToMany<Tarea, $this>
+     */
+    public function tareas(): BelongsToMany
+    {
+        return $this->belongsToMany(Tarea::class, 'prueba_continuidad_tarea')
+            ->withPivot(['vinculada_por_id', 'created_at']);
+    }
+
+    /**
+     * La no conformidad que trata lo que esta prueba destapó, si la hay.
+     *
+     * **`HasOne` y no `HasMany`**, por el índice único sobre
+     * `no_conformidades.prueba_continuidad_id`: una prueba se trata una vez.
+     * Espejo exacto de `Incidente::noConformidad()`.
+     *
+     * @return HasOne<NoConformidad, $this>
+     */
+    public function noConformidad(): HasOne
+    {
+        return $this->hasOne(NoConformidad::class);
     }
 
     /**

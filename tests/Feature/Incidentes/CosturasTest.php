@@ -44,7 +44,8 @@ it('ofrece incidente como origen de una tarea', function (): void {
 it('ofrece incidente y revisión por la dirección como origen de una no conformidad', function (): void {
     expect(OrigenNoConformidad::Incidente->disponible())->toBeTrue()
         ->and(OrigenNoConformidad::RevisionDireccion->disponible())->toBeTrue()
-        ->and(OrigenNoConformidad::disponibles())->toHaveCount(4);
+        // Cinco desde el § 4.11: se le sumó `PruebaContinuidad`.
+        ->and(OrigenNoConformidad::disponibles())->toHaveCount(5);
 });
 
 it('ofrece incidente como origen de una mejora', function (): void {

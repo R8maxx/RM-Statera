@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Tarea\Models;
 
+use App\Domain\Continuidad\Models\PruebaContinuidad;
 use App\Domain\Implantacion\Models\Implantacion;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
 use App\Domain\Tarea\Enums\EstadoTarea;
@@ -79,6 +80,21 @@ class Tarea extends Model
     public function implantaciones(): BelongsToMany
     {
         return $this->belongsToMany(Implantacion::class, 'implantacion_tarea')
+            ->withPivot(['vinculada_por_id', 'created_at']);
+    }
+
+    /**
+     * Las pruebas de continuidad de las que esta tarea es el trabajo correctivo.
+     *
+     * N:M por lo mismo que `implantaciones()`: una tarea que sale de una prueba
+     * fallida podría en teoría atacar más de una, aunque el camino normal
+     * —`DerivarDePrueba::tarea()`— sólo ata una.
+     *
+     * @return BelongsToMany<PruebaContinuidad, $this>
+     */
+    public function pruebasContinuidad(): BelongsToMany
+    {
+        return $this->belongsToMany(PruebaContinuidad::class, 'prueba_continuidad_tarea')
             ->withPivot(['vinculada_por_id', 'created_at']);
     }
 

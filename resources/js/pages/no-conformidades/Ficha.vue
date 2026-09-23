@@ -46,6 +46,11 @@ interface Hallazgo {
     medida: string | null;
 }
 
+interface PruebaContinuidad {
+    id: number;
+    codigo: string;
+}
+
 interface Accion {
     id: number;
     titulo: string;
@@ -104,6 +109,7 @@ interface NoConformidad {
 const props = defineProps<{
     noConformidad: NoConformidad;
     hallazgo: Hallazgo | null;
+    pruebaContinuidad: PruebaContinuidad | null;
     acciones: Accion[];
     coste: { total: string; sinEstimar: number };
     transiciones: Destino[];
@@ -276,6 +282,16 @@ const abiertas = computed(
                             </div>
                             <p class="text-muted-foreground">{{ hallazgo.descripcion }}</p>
                         </div>
+
+                        <p v-if="pruebaContinuidad" class="text-sm text-muted-foreground">
+                            Procede de la prueba de continuidad
+                            <Link
+                                :href="`/continuidad/pruebas/${pruebaContinuidad.id}`"
+                                class="cifra underline-offset-4 hover:underline"
+                            >
+                                {{ pruebaContinuidad.codigo }}
+                            </Link>
+                        </p>
 
                         <p>{{ noConformidad.descripcion }}</p>
 

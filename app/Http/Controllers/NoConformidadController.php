@@ -159,12 +159,17 @@ class NoConformidadController extends Controller
             'verificadaPor',
             'hallazgo.auditoria',
             'hallazgo.punto.implantacion.requisito',
+            'pruebaContinuidad',
             'tareas.responsable',
             'transiciones.usuario',
         ]);
 
         return Inertia::render('no-conformidades/Ficha', [
             'noConformidad' => $this->serializar($no_conformidad),
+            'pruebaContinuidad' => $no_conformidad->pruebaContinuidad === null ? null : [
+                'id' => $no_conformidad->pruebaContinuidad->id,
+                'codigo' => $no_conformidad->pruebaContinuidad->codigo,
+            ],
             'hallazgo' => $no_conformidad->hallazgo === null
                 ? null
                 : $this->serializarHallazgo($no_conformidad->hallazgo),

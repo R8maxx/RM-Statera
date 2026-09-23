@@ -9,6 +9,7 @@ use App\Domain\Activo\Models\Activo;
 use App\Domain\Autorizacion\Enums\Permiso;
 use App\Domain\Continuidad\CancelarPrueba;
 use App\Domain\Continuidad\CodigoPrueba;
+use App\Domain\Continuidad\DerivarDePrueba;
 use App\Domain\Continuidad\EditarPrueba;
 use App\Domain\Continuidad\Enums\EstadoPrueba;
 use App\Domain\Continuidad\Enums\ResultadoPrueba;
@@ -23,8 +24,15 @@ use App\Domain\Continuidad\RegistrarResultadoPrueba;
 use App\Domain\Documento\Enums\TipoDocumento;
 use App\Domain\Documento\Models\Documento;
 use App\Domain\Evidencia\Models\Evidencia;
+use App\Domain\Mejora\CodigoMejora;
+use App\Domain\NoConformidad\CodigoNoConformidad;
 use App\Domain\Organizacion\ContextoOrganizacion;
+use App\Domain\Tarea\Enums\PrioridadTarea;
+use App\Domain\Tarea\Models\Tarea;
 use App\Http\Requests\CancelarPruebaRequest;
+use App\Http\Requests\DerivarMejoraDePruebaRequest;
+use App\Http\Requests\DerivarNoConformidadDePruebaRequest;
+use App\Http\Requests\DerivarTareaDePruebaRequest;
 use App\Http\Requests\GuardarPruebaRequest;
 use App\Http\Requests\RegistrarResultadoPruebaRequest;
 use App\Http\Resources\Concerns\RespondeConRecurso;
@@ -53,6 +61,15 @@ use Inertia\Response;
  * **Sin `destroy()`.** Una prueba cancelada o fallida sigue siendo la prueba
  * de que se probó: borrarla perdería justamente lo que `op.cont.3` exige
  * conservar, igual que un BIA no se borra.
+ *
+ * **Las costuras: `derivarTarea()`, `derivarNoConformidad()` y
+ * `derivarMejora()`.** Cada una valida con el `FormRequest` del módulo destino
+ * —recortado, sin `origen`— y delega en `DerivarDePrueba`, que es quien sabe de
+ * tareas, no conformidades y mejoras y quien comprueba que la prueba está
+ * `realizada` con resultado distinto de `superada`. El permiso de cada ruta es
+ * el de escritura del módulo destino —`tareas.gestionar`, `no_conformidades.
+ * gestionar`, `mejoras.gestionar`— y no `continuidad.gestionar`: quien puede
+ * planificar una prueba no tiene por qué poder abrir no conformidades.
  */
 class PruebaContinuidadController extends Controller
 {
@@ -97,7 +114,13 @@ class PruebaContinuidadController extends Controller
 
     public function show(PruebaContinuidad $prueba): Response
     {
-        $prueba->load(['plan', 'responsable', 'evidencia', 'servicios', 'transiciones.usuario']);
+        $prueba->load([
+            'plan', 'responsable', 'evidencia', 'servicios', 'transiciones.usuario',
+            'tareas.responsable', 'noConformidad',
+        ]);
+
+        $puedeDerivar = $prueba->estado === EstadoPrueba::Realizada
+            && $prueba->resultado !== ResultadoPrueba::Superada;
 
         // Los BIA de los servicios de esta prueba, en una consulta y no una
         // por servicio: ver el docblock de `PruebaContinuidad::excedeRto()`.
@@ -147,7 +170,60 @@ class PruebaContinuidadController extends Controller
                 ],
                 ResultadoPrueba::cases(),
             ),
+            /*
+             * Lo derivado: el trabajo correctivo (por la pivote) y la no
+             * conformidad (por `prueba_continuidad_id`). La mejora no aparece
+             * aquí —no lleva clave foránea, como la que sale de un incidente—:
+             * el botón la manda a su propio registro con el origen ya puesto.
+             */
+            'tareasDerivadas' => $prueba->tareas
+                ->map(static fn (Tarea $tarea): array => [
+                    'id' => $tarea->id,
+                    'titulo' => $tarea->titulo,
+                    'estado' => $tarea->estado->value,
+                    'estadoEtiqueta' => $tarea->estado->etiqueta(),
+                    'estadoTono' => $tarea->estado->tono(),
+                    'responsable' => $tarea->responsable?->name,
+                ])
+                ->values()
+                ->all(),
+            'noConformidadDerivada' => $prueba->noConformidad === null ? null : [
+                'id' => $prueba->noConformidad->id,
+                'codigo' => $prueba->noConformidad->codigo,
+                'estado' => $prueba->noConformidad->estado->value,
+                'estadoEtiqueta' => $prueba->noConformidad->estado->etiqueta(),
+                'estadoTono' => $prueba->noConformidad->estado->tono(),
+                'estadoIcono' => $prueba->noConformidad->estado->icono(),
+            ],
+            /*
+             * Sugerencias de código para los dos formularios que lo piden: las
+             * tareas no tienen código propio. Propone y no impone, como en el
+             * resto del producto — se manda editable en el formulario.
+             */
+            'sugerenciaCodigoNoConformidad' => app(CodigoNoConformidad::class)->siguiente(),
+            'sugerenciaCodigoMejora' => app(CodigoMejora::class)->siguiente(),
+            'prioridades' => array_map(
+                static fn (PrioridadTarea $prioridad): array => [
+                    'valor' => $prioridad->value,
+                    'etiqueta' => $prioridad->etiqueta(),
+                ],
+                PrioridadTarea::cases(),
+            ),
+            // Acotado a la organización a mano: `User` no lleva el scope.
+            'responsables' => User::query()
+                ->where('organizacion_id', app(ContextoOrganizacion::class)->idObligatorio())
+                ->orderBy('name')
+                ->get()
+                ->map(static fn (User $usuario): array => [
+                    'valor' => (string) $usuario->id,
+                    'etiqueta' => $usuario->name,
+                ])
+                ->all(),
             'puedeGestionar' => $this->puede(Permiso::ContinuidadGestionar),
+            'puedeDerivar' => $puedeDerivar,
+            'puedeAbrirTarea' => $puedeDerivar && $this->puede(Permiso::TareasGestionar),
+            'puedeTratar' => $puedeDerivar && $this->puede(Permiso::NoConformidadesGestionar),
+            'puedeMejorar' => $puedeDerivar && $this->puede(Permiso::MejorasGestionar),
         ]);
     }
 
@@ -222,6 +298,56 @@ class PruebaContinuidadController extends Controller
         Inertia::flash('exito', 'Prueba cancelada.');
 
         return to_route('continuidad.pruebas.show', $prueba);
+    }
+
+    // --- Las costuras: tareas, no conformidades y mejoras -------------------
+
+    public function derivarTarea(
+        DerivarTareaDePruebaRequest $request,
+        PruebaContinuidad $prueba,
+        DerivarDePrueba $derivar,
+    ): RedirectResponse {
+        try {
+            $tarea = $derivar->tarea($prueba, $request->validated(), $request->user());
+        } catch (TransicionDePruebaNoPermitida $error) {
+            return back()->withErrors(['titulo' => $error->getMessage()]);
+        }
+
+        Inertia::flash('exito', "Tarea «{$tarea->titulo}» abierta.");
+
+        return back();
+    }
+
+    public function derivarNoConformidad(
+        DerivarNoConformidadDePruebaRequest $request,
+        PruebaContinuidad $prueba,
+        DerivarDePrueba $derivar,
+    ): RedirectResponse {
+        try {
+            $noConformidad = $derivar->noConformidad($prueba, $request->validated(), $request->user());
+        } catch (TransicionDePruebaNoPermitida $error) {
+            return back()->withErrors(['codigo' => $error->getMessage()]);
+        }
+
+        Inertia::flash('exito', "No conformidad {$noConformidad->codigo} registrada.");
+
+        return to_route('no-conformidades.show', $noConformidad);
+    }
+
+    public function derivarMejora(
+        DerivarMejoraDePruebaRequest $request,
+        PruebaContinuidad $prueba,
+        DerivarDePrueba $derivar,
+    ): RedirectResponse {
+        try {
+            $mejora = $derivar->mejora($prueba, $request->validated(), $request->user());
+        } catch (TransicionDePruebaNoPermitida $error) {
+            return back()->withErrors(['codigo' => $error->getMessage()]);
+        }
+
+        Inertia::flash('exito', "Oportunidad de mejora {$mejora->codigo} registrada.");
+
+        return to_route('mejoras.show', $mejora);
     }
 
     /**
