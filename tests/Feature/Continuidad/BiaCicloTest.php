@@ -46,3 +46,17 @@ it('un servicio no tiene dos BIA', function (): void {
     expect(fn () => app(RegistrarBia::class)(['activo_id' => $this->bia->activo_id] + BiaServicio::factory()->raw(), $this->usuario))
         ->toThrow(QueryException::class);
 });
+
+/**
+ * `EditarBia` no es una puerta trasera hacia el estado. `estado` está en
+ * `BiaServicio::$fillable` porque lo necesita `CambiarEstadoBia`, y aquí tiene
+ * que rechazarse: dejarlo pasar cambiaría el estado sin fila en el histórico
+ * (invariante 7) y sin el motivo que exige pasar a `obsoleto`.
+ */
+it('editar no deja colar un cambio de estado', function (): void {
+    expect(fn () => app(EditarBia::class)($this->bia, ['estado' => 'obsoleto'], $this->usuario))
+        ->toThrow(InvalidArgumentException::class);
+
+    expect($this->bia->fresh()?->estado)->toBe(EstadoBia::Borrador)
+        ->and(BiaServicioTransicion::query()->count())->toBe(1);
+});
