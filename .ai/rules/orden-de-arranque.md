@@ -249,9 +249,9 @@ El orden importa: el catálogo y el motor son la parte más específica del domi
 25. ✅ Continuidad (§ 4.11). **Cierra la fase 3.** Era el último módulo del ciclo
     vivo y el único con requisitos en el catálogo —`op.cont.1` a `op.cont.4`— sin
     ningún sitio donde escribirse: ni el análisis de impacto, ni el plan, ni la
-    prueba de que el plan funciona. En básica están en `no_aplica`, pero
-    `op.cont.3` lo activa la Disponibilidad en alto, y eso le pasa a un sistema
-    básico en cuanto un servicio no puede caerse un día.
+    prueba de que el plan funciona. En básica están en `no_aplica`; `op.cont.3`
+    lo activa la Disponibilidad en alto, que por ser la categoría el máximo de
+    las cinco dimensiones deja al sistema en categoría alta.
 
     Lo que lo hace barato son tres decisiones, y las tres son no construir algo.
     **El plan es un documento**, `TipoDocumento::PlanContinuidad`, y hereda
@@ -260,8 +260,10 @@ El orden importa: el catálogo y el motor son la parte más específica del domi
     hay copia que desincronizar. Y **la obligación anual sale del requisito y no
     de la categoría**: `obligaciones.requisito_id` contra lo que el motor ya
     decidió, porque `categoria_minima: media` —como estaba sembrada desde el
-    § 4.16— exigía de menos y copiar la regla en el YAML era calcular la
-    aplicabilidad dos veces.
+    § 4.16— exigía de más: la proponía a sistemas media y alta cuya
+    Disponibilidad no llega a alto. El requisito la propone exactamente donde el
+    motor hace exigible `op.cont.3`, y copiar la regla en el YAML era calcular
+    la aplicabilidad dos veces.
 
     Trae dos `Fuente` más —las pruebas planificadas y la revisión del BIA
     aprobado—, una cuarta referencia de cumplimiento y tres costuras: tarea, no

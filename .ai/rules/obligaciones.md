@@ -134,6 +134,10 @@ con un `CHECK (num_nonnulls(...) <= 1)` —la forma que escala: ampliarlo fue a�
 lista, sin reescribir la condición—, y las lee un único value object, `Referencia`, para que el
 dominio de obligaciones **importe un enum y no un módulo por referencia**.
 
+La prueba de continuidad es la única referencia que el `FormRequest` estrecha más allá de existir:
+**sólo una `realizada` de la organización**. Una planificada o cancelada no demuestra nada, y
+`Referencia` la enlazaría igual como prueba del cumplimiento.
+
 `evidencia_id` queda **fuera** de ese `CHECK` porque es otro eje: es la **prueba** —el PDF del INES
 presentado, el certificado— y convive con el registro. Precedente literal:
 `acciones_formativas.evidencia_id`.
@@ -152,9 +156,11 @@ cuanto un solo sistema llegue ahí.
 
 **El cuarto, `obligaciones.requisito_id`, llegó con el § 4.11**, y es para lo que no depende de la
 categoría. Las pruebas de continuidad no se proponen por ser media o alta: se proponen si `op.cont.3`
-está entre lo exigible de algún sistema, y eso lo decide la **Disponibilidad**, que puede llegar a alto
-en un sistema que en conjunto siga en básica. Filtrar por categoría exigiría de menos, y copiar esa
-regla en el YAML sería la aplicabilidad calculada dos veces (invariante 4). Se compara contra
+está entre lo exigible de algún sistema, y eso lo decide la **Disponibilidad** en alto. `categoria_minima:
+media` exigía de más: la proponía a sistemas media y alta cuya Disponibilidad no llega a alto —nunca de
+menos, porque la categoría es el máximo de las dimensiones y D en alto ya deja el sistema en alta—. El
+requisito la propone exactamente donde el motor hace exigible `op.cont.3`, y copiar esa regla en el YAML
+sería la aplicabilidad calculada dos veces (invariante 4). Se compara contra
 `Implantacion::aplicables()`, que es donde el motor ya lo decidió. Nullable y `nullOnDelete`: casi
 ninguna obligación cuelga de un requisito —la revisión por la dirección no tiene uno— y el catálogo
 normativo no se borra, se marca.
@@ -325,7 +331,8 @@ tests que descubren cubren los olvidos de forma; para lo demás hace falta mirar
   todavía, porque la § 2.2 ya declara `proveedores.fecha_evaluacion` y `proxima_evaluacion` y crear el
   compromiso ahora obligaría a migrarlo. **La continuidad dejó de estar en esta lista con el § 4.11**:
   las pruebas y la revisión del BIA son dos `Fuente`, y la obligación anual de probar los planes se
-  propone por su requisito, `op.cont.3`, y ya no por `categoria_minima: media` —que exigía de menos—.
+  propone por su requisito, `op.cont.3`, y ya no por `categoria_minima: media` —que exigía de más: la
+  proponía a sistemas media y alta cuya Disponibilidad no llega a alto—.
 - **De la formación, sólo avisa a quien ya ha recibido alguna.** Quien nunca la ha recibido no tiene
   fecha que pintar, y `fecha_alta + 12` sería inventarle un plazo. Sale donde ya salía: en
   `Persona::sinFormacionReciente()` y en el panel. El calendario es por tanto un **subconjunto** del

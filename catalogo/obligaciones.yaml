@@ -140,7 +140,8 @@ obligaciones:
     descripcion: >-
       Probar los planes y registrar el resultado. Se propone cuando algún sistema
       tiene op.cont.3 entre sus medidas exigibles, que en el Anexo II depende de
-      la disponibilidad.
+      la disponibilidad: sólo donde llega a alto, no en todo sistema de
+      categoría media o alta.
     base_legal: 'Real Decreto 311/2022, Anexo II, op.cont'
     marco: ENS-RD311-2022
     requisito: op.cont.3

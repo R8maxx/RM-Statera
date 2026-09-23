@@ -23,6 +23,12 @@ grafo de dependencias del inventario. Que el activo sea un servicio lo comprueba
 `RegistrarBia` **en el dominio**, porque la base no puede mirar una columna de
 otra tabla desde un `CHECK` y la regla vale igual para un importador.
 
+**Que no tenga ya uno también se dice antes que la base.** El índice único es la
+última línea, pero su error es un `QueryException`: `GuardarBiaRequest` lleva un
+`Rule::unique` acotado a la organización, `RegistrarBia` lanza
+`ServicioNoValido::yaTieneBia()` y el desplegable del alta ya no ofrece los
+servicios con BIA. La primera versión respondía un 500.
+
 **No hay BIA sucesivos como en `AnalisisContexto`.** `EditarBia` reescribe la
 fila vigente; lo que queda del pasado vive en `bia_servicio_transiciones`, no en
 filas nuevas.
@@ -38,7 +44,11 @@ valoración efectiva de un activo.
 **La monotonía la impone un `CHECK`** (`bia_servicios_monotonia_check`): el
 impacto no puede bajar con el tiempo. Es lo que permite quedarse con el primer
 `muy_alto` sin mirar los siguientes. Los literales del `CHECK` van escritos a
-mano (`migraciones.md`).
+mano (`migraciones.md`). **Y `GuardarBiaRequest` la repite en su `after()`**,
+con el error en el primer tramo que baja: sin ella, un formulario rellenado de
+forma perfectamente predecible subía como un 500. En la edición compara lo que
+llega sobre lo guardado, y el orden y el peso salen de `TramoImpacto::cases()` y
+`NivelImpacto::peso()`, no de una lista copiada.
 
 ### Un RTO incoherente avisa y no bloquea
 
@@ -52,7 +62,9 @@ corregir, no un plazo incumplido; la primera versión lo pintaba `caducada` y la
 revisión lo tumbó. La regla está escrita dos veces —`rtoIncoherente()` en PHP y
 `scopeRtoIncoherente()` en SQL, con un `CASE` sobre los mismos tramos— y **cada
 una tiene su test**: divergir aquí es justo el fallo que el filtro de la tabla y
-la cifra del panel no se pueden permitir.
+la cifra del panel no se pueden permitir. **Las dos dejan fuera los `obsoleto`**:
+un servicio dado de baja no promete nada, y contarlo dejaba la alerta ámbar del
+panel encendida para siempre.
 
 ### Editar lo aprobado lo devuelve a borrador
 
@@ -123,16 +135,27 @@ pregunta, y sólo desde una prueba `realizada` cuyo resultado no sea `superada`.
   de ahí sale cuánto trabajo dejó una prueba.
 - **No conformidad** por `no_conformidades.prueba_continuidad_id`, espejo exacto
   de `incidente_id`: nullable, único y `nullOnDelete`. **Una sola por prueba**,
-  porque una prueba se trata una vez.
+  porque una prueba se trata una vez: la segunda lanza
+  `TransicionDePruebaNoPermitida::yaTratada()` antes de llegar al índice, que era
+  un `QueryException` con dos pestañas o un doble envío. **Y su origen queda
+  fijo**: `GuardarNoConformidadRequest` rechaza cambiarlo en la edición, y el
+  formulario no ofrece el desplegable (`origenFijo`); lo mismo con `incidente_id`.
 - **Mejoras, varias y sin clave foránea**, como `OrigenMejora::Incidente`: la
   mejora no trata la prueba, así que atarla fingiría una trazabilidad que no hay.
+
+Las tres rutas piden el permiso del módulo destino **y `continuidad.ver`**:
+derivar parte de la ficha de la prueba, y quien no puede leerla no escribe a
+partir de ella.
 
 El `down()` de `…090600` reasigna a `propia` las no conformidades nacidas de una
 prueba —y suelta `prueba_continuidad_id` **en el mismo `update`**, porque el
 `CHECK` que acopla los dos sigue vivo en ese punto— antes de estrechar el de
 origen, con `comoMantenimiento()` para que RLS no lo deje en cero filas sin
 fallar. La primera versión se había verificado sobre una base vacía y abortaba
-con datos.
+con datos. **Y el `down()` de `…090200` tenía el mismo fallo**: borraba los
+documentos `plan_continuidad` sin mantenimiento, cero filas sin error, y el
+`ALTER TABLE` moría con el `PLN-CONT-01` sembrado. Todo `down()` que toque
+filas de una tabla con RLS va por `comoMantenimiento()`.
 
 ### Navegación: una entrada y dos pestañas
 
@@ -156,11 +179,17 @@ la tabla y la alerta del panel usan los mismos scopes.
 misma clave: pulsar la cifra enseña esa cifra.
 
 **La obligación anual de probar los planes sale de `op.cont.3`, no de la
-categoría.** `op.cont.3` lo activa la Disponibilidad en alto, que puede darse en
-un sistema que en conjunto siga en básica; `categoria_minima: media` exigía de
-menos. Es `obligaciones.requisito_id`, contra `Implantacion::aplicables()`. Y
+categoría.** `op.cont.3` sólo se exige cuando la Disponibilidad llega a alto, y
+como la categoría es el máximo de las cinco dimensiones, eso siempre cae en un
+sistema de categoría alta. `categoria_minima: media` exigía **de más**: la
+proponía a todo sistema de categoría media, y a los de alta cuya Disponibilidad
+no llega a alto. Nunca exigía de menos. El requisito la propone exactamente
+donde el motor hace exigible `op.cont.3`, sin copiar su regla en el YAML. Es
+`obligaciones.requisito_id`, contra `Implantacion::aplicables()`. Y
 **una prueba puede citarse como cumplimiento**: `compromiso_cumplimientos` gana
-`prueba_continuidad_id`. Detalle en `obligaciones.md`.
+`prueba_continuidad_id`, **sólo una `realizada` de la organización**
+(`RegistrarCumplimientoRequest`): una planificada o cancelada no demuestra nada.
+Detalle en `obligaciones.md`.
 
 ### Lo que este módulo declara que no hace todavía
 

@@ -37,10 +37,11 @@ use Illuminate\Support\Collection;
  * 4. **El requisito.** Una obligación como las pruebas de continuidad no depende
  *    de la categoría del sistema sino de si su requisito —`op.cont.3`— está entre
  *    lo exigible de algún sistema. `op.cont.3` sólo aplica cuando la dimensión de
- *    Disponibilidad llega a alto, y eso puede pasar en un sistema que en conjunto
- *    siga en básica: filtrar por categoría exigiría de menos, y copiar la
- *    categoría en el catálogo de obligaciones sería la misma aplicabilidad
- *    calculada dos veces y a punto de desincronizarse. Se comprueba contra
+ *    Disponibilidad llega a alto. `categoria_minima: media` exigía de más: la
+ *    proponía a sistemas media y alta cuya Disponibilidad no llega a alto. El
+ *    requisito la propone exactamente donde el motor hace exigible `op.cont.3`,
+ *    y copiar la categoría en el catálogo de obligaciones sería la misma
+ *    aplicabilidad calculada dos veces y a punto de desincronizarse. Se comprueba contra
  *    `Implantacion::aplicables()`, que es donde el motor ya lo decidió.
  */
 final readonly class ObligacionesAplicables

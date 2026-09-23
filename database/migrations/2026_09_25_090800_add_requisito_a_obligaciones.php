@@ -15,8 +15,9 @@ use Illuminate\Support\Facades\Schema;
  * sistema: `op.cont.3` sólo aplica cuando la dimensión de Disponibilidad llega
  * a alto, y eso ya lo decide el motor de categorización sobre `implantaciones`.
  * Duplicarlo como `categoria_minima: media` en el catálogo de obligaciones era
- * exigir de más o de menos según el sistema, que es justo lo que el invariante 4
- * prohíbe: la aplicabilidad se deriva, no se copia.
+ * exigir de más —a sistemas media y alta cuya Disponibilidad no llega a alto—,
+ * y copiar la regla es justo lo que el invariante 4 prohíbe: la aplicabilidad
+ * se deriva, no se copia.
  *
  * **Global contra global, sin `organizacion_id` en ninguno de los dos lados**:
  * `obligaciones` y `requisitos` son las dos catálogo (invariante 2), así que
