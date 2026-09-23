@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\ActivoController;
 use App\Http\Controllers\AuditoriaController;
+use App\Http\Controllers\BiaServicioController;
 use App\Http\Controllers\CalendarioController;
 use App\Http\Controllers\ContextoController;
 use App\Http\Controllers\CuestionContextoController;
@@ -59,6 +60,16 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::redirect('/', '/panel');
+
+/*
+ * `/continuidad` no es una pantalla: es el `href` que
+ * `PermisosDeLaCuenta::href()` deriva del prefijo `continuidad.*`, sin
+ * conocer que hoy sólo hay BIA detrás. Fuera de cualquier `can:`, como
+ * `/` → `/panel`, para que a nadie con `continuidad.ver` le falte el permiso
+ * de una redirección que no es su pantalla — el fallo que ya se evitó con
+ * `/tareas/calendario`.
+ */
+Route::redirect('/continuidad', '/continuidad/bia');
 
 Route::middleware('auth')->group(function (): void {
     /*
@@ -1144,6 +1155,49 @@ Route::middleware('auth')->group(function (): void {
 
             Route::post('/incidentes/{incidente}/notificaciones', [IncidenteController::class, 'notificar'])
                 ->name('incidentes.notificar');
+        });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Continuidad: el BIA de cada servicio (§ 4.11)
+    |--------------------------------------------------------------------------
+    |
+    | **Tres permisos, y el tercero de supervisión.** Aceptar un RTO es aceptar
+    | un riesgo: `continuidad.aprobar` es aparte de `continuidad.gestionar` por
+    | el mismo motivo que `riesgos.aceptar` va aparte de `riesgos.gestionar`, y
+    | el controlador lo exige además cuando el destino de la transición es
+    | `aprobado` — la ficha se limita a ocultar el botón.
+    |
+    | Nombradas bajo `continuidad.bia.*`, y no `continuidad.*`, porque la
+    | continuidad va a tener un segundo registro —las pruebas del § 4.11— con
+    | sus propias rutas bajo `/continuidad/pruebas`.
+    |
+    */
+
+    Route::middleware('can:continuidad.ver')->group(function (): void {
+        Route::get('/continuidad/bia', [BiaServicioController::class, 'index'])
+            ->name('continuidad.bia.index');
+
+        // Antes que `{bia}`, para que `crear` no se lea como un id.
+        Route::get('/continuidad/bia/crear', [BiaServicioController::class, 'create'])
+            ->middleware(['can:continuidad.gestionar', ExigirDosFactores::class])
+            ->name('continuidad.bia.create');
+
+        Route::get('/continuidad/bia/{bia}', [BiaServicioController::class, 'show'])
+            ->name('continuidad.bia.show');
+    });
+
+    Route::middleware(['can:continuidad.gestionar', ExigirDosFactores::class])
+        ->group(function (): void {
+            Route::post('/continuidad/bia', [BiaServicioController::class, 'store'])
+                ->name('continuidad.bia.store');
+            Route::get('/continuidad/bia/{bia}/editar', [BiaServicioController::class, 'edit'])
+                ->name('continuidad.bia.edit');
+            Route::put('/continuidad/bia/{bia}', [BiaServicioController::class, 'update'])
+                ->name('continuidad.bia.update');
+
+            Route::post('/continuidad/bia/{bia}/estado', [BiaServicioController::class, 'transicion'])
+                ->name('continuidad.bia.transicion');
         });
 
     /*

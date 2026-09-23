@@ -186,6 +186,20 @@ enum Permiso: string
     case IncidentesVer = 'incidentes.ver';
     case IncidentesGestionar = 'incidentes.gestionar';
 
+    /**
+     * La continuidad de negocio: § 4.11. **Tres verbos, y el tercero es de
+     * supervisión.** Registrar un BIA, calcular su umbral tolerable y declarar
+     * un RTO es trabajo técnico; aprobarlo es otra cosa, y por eso lleva su
+     * propio verbo y no entra en `continuidad.gestionar`: **aceptar un RTO es
+     * aceptar un riesgo**, exactamente lo que ya separa `riesgos.aceptar` de
+     * `riesgos.gestionar` y `sistemas.valorar` de `sistemas.gestionar`. Quien
+     * mide y sabe qué salvaguardas hay puestas no es necesariamente quien debe
+     * comprometer a la organización con ese plazo de recuperación.
+     */
+    case ContinuidadVer = 'continuidad.ver';
+    case ContinuidadGestionar = 'continuidad.gestionar';
+    case ContinuidadAprobar = 'continuidad.aprobar';
+
     case RevisionDireccionVer = 'revision_direccion.ver';
     case RevisionDireccionGestionar = 'revision_direccion.gestionar';
     case RevisionDireccionAprobar = 'revision_direccion.aprobar';
@@ -270,6 +284,9 @@ enum Permiso: string
             self::PersonasDesignar => 'Designar y revocar los roles ENS de un sistema',
             self::IncidentesVer => 'Ver el registro de incidentes',
             self::IncidentesGestionar => 'Registrar incidentes, tratarlos y anotar su notificación',
+            self::ContinuidadVer => 'Ver el análisis de impacto en el negocio de los servicios',
+            self::ContinuidadGestionar => 'Registrar y editar el BIA de un servicio, y mover su ciclo salvo la aprobación',
+            self::ContinuidadAprobar => 'Aprobar el BIA de un servicio y el RTO que declara',
             self::RevisionDireccionVer => 'Ver las revisiones por la dirección y sus actas',
             self::RevisionDireccionGestionar => 'Convocar revisiones, recoger las entradas y registrar las decisiones',
             self::RevisionDireccionAprobar => 'Aprobar el acta de una revisión por la dirección',

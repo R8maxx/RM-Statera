@@ -18,7 +18,7 @@ export type TipoHallazgo = 'nc_mayor' | 'nc_menor' | 'observacion' | 'oportunida
 }
 namespace Autorizacion {
 namespace Enums {
-export type Permiso = 'panel.ver' | 'contexto.ver' | 'contexto.gestionar' | 'contexto.aprobar' | 'sistemas.ver' | 'sistemas.gestionar' | 'sistemas.valorar' | 'implantaciones.ver' | 'implantaciones.gestionar' | 'evidencias.ver' | 'evidencias.gestionar' | 'activos.ver' | 'activos.gestionar' | 'riesgos.ver' | 'riesgos.gestionar' | 'riesgos.aceptar' | 'tareas.ver' | 'tareas.gestionar' | 'auditorias.ver' | 'auditorias.gestionar' | 'no_conformidades.ver' | 'no_conformidades.gestionar' | 'no_conformidades.verificar' | 'mejoras.ver' | 'mejoras.gestionar' | 'indicadores.ver' | 'indicadores.gestionar' | 'objetivos.ver' | 'objetivos.gestionar' | 'objetivos.aprobar' | 'personas.ver' | 'personas.gestionar' | 'personas.designar' | 'incidentes.ver' | 'incidentes.gestionar' | 'revision_direccion.ver' | 'revision_direccion.gestionar' | 'revision_direccion.aprobar' | 'documentos.ver' | 'documentos.generar' | 'documentos.aprobar' | 'documentos.redactar' | 'documentos.plantillas' | 'organizacion.gestionar' | 'calendario.ver' | 'obligaciones.ver' | 'obligaciones.gestionar';
+export type Permiso = 'panel.ver' | 'contexto.ver' | 'contexto.gestionar' | 'contexto.aprobar' | 'sistemas.ver' | 'sistemas.gestionar' | 'sistemas.valorar' | 'implantaciones.ver' | 'implantaciones.gestionar' | 'evidencias.ver' | 'evidencias.gestionar' | 'activos.ver' | 'activos.gestionar' | 'riesgos.ver' | 'riesgos.gestionar' | 'riesgos.aceptar' | 'tareas.ver' | 'tareas.gestionar' | 'auditorias.ver' | 'auditorias.gestionar' | 'no_conformidades.ver' | 'no_conformidades.gestionar' | 'no_conformidades.verificar' | 'mejoras.ver' | 'mejoras.gestionar' | 'indicadores.ver' | 'indicadores.gestionar' | 'objetivos.ver' | 'objetivos.gestionar' | 'objetivos.aprobar' | 'personas.ver' | 'personas.gestionar' | 'personas.designar' | 'incidentes.ver' | 'incidentes.gestionar' | 'continuidad.ver' | 'continuidad.gestionar' | 'continuidad.aprobar' | 'revision_direccion.ver' | 'revision_direccion.gestionar' | 'revision_direccion.aprobar' | 'documentos.ver' | 'documentos.generar' | 'documentos.aprobar' | 'documentos.redactar' | 'documentos.plantillas' | 'organizacion.gestionar' | 'calendario.ver' | 'obligaciones.ver' | 'obligaciones.gestionar';
 export type Rol = 'responsable_seguridad' | 'tecnico' | 'auditor';
 }
 }
@@ -63,6 +63,13 @@ export type NaturalezaRequisito = 'legal' | 'contractual' | 'expectativa';
 export type Signo = 'favorable' | 'adverso';
 export type TipoCuestion = 'fortaleza' | 'debilidad' | 'oportunidad' | 'amenaza';
 export type TipoParteInteresada = 'cliente' | 'empleado' | 'direccion' | 'proveedor' | 'regulador' | 'socio' | 'sociedad' | 'accionista';
+}
+}
+namespace Continuidad {
+namespace Enums {
+export type EstadoBia = 'borrador' | 'aprobado' | 'obsoleto';
+export type NivelImpacto = 'bajo' | 'medio' | 'alto' | 'muy_alto';
+export type TramoImpacto = 'impacto_4h' | 'impacto_1d' | 'impacto_3d' | 'impacto_1s' | 'impacto_1m';
 }
 }
 namespace Documento {

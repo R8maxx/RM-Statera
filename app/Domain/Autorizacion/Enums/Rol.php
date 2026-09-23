@@ -169,6 +169,15 @@ enum Rol: string
                  */
                 Permiso::IncidentesVer,
                 Permiso::IncidentesGestionar,
+                /*
+                 * El BIA de un servicio: lo registra, lo edita y planifica y
+                 * ejecuta sus pruebas —Permiso::ContinuidadGestionar—, pero
+                 * **no aprueba el RTO**: aceptar un RTO es aceptar un riesgo,
+                 * y ésa es una decisión de dirección, no de quien lo mide.
+                 * Misma línea que separa valorar un riesgo de aceptarlo.
+                 */
+                Permiso::ContinuidadVer,
+                Permiso::ContinuidadGestionar,
                 Permiso::RevisionDireccionVer,
                 Permiso::RevisionDireccionGestionar,
                 Permiso::DocumentosVer,
@@ -208,6 +217,7 @@ enum Rol: string
                 Permiso::ObjetivosVer,
                 Permiso::PersonasVer,
                 Permiso::IncidentesVer,
+                Permiso::ContinuidadVer,
                 Permiso::RevisionDireccionVer,
                 Permiso::DocumentosVer,
                 /*

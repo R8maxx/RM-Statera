@@ -12,6 +12,7 @@ import {
     HandshakeIcon,
     LayoutDashboardIcon,
     LayoutTemplateIcon,
+    LifeBuoyIcon,
     LightbulbIcon,
     ListTodoIcon,
     NetworkIcon,
@@ -182,6 +183,30 @@ export const navegacion: GrupoNavegacion[] = [
                  * «revisión».
                  */
                 alias: ['op.exp.7', 'brecha', 'aepd', 'ccn-cert', 'ransomware', 'phishing', '72 horas'],
+            },
+            /*
+             * La continuidad de negocio: § 4.11. Una sola entrada para el BIA,
+             * que es lo que hay hoy; las pruebas del § 4.11 llegan con la tarea
+             * que decide entre pestañas y entrada hermana, y hasta entonces el
+             * `href` cuelga de `/continuidad/bia` y no de `/continuidad` a
+             * secas, que no tiene pantalla propia.
+             *
+             * **El `href` de esta entrada es `/continuidad`, y no
+             * `/continuidad/bia`.** `PermisosDeLaCuenta::href()` deriva el
+             * nombre de un módulo del prefijo del permiso —`continuidad.ver` →
+             * `/continuidad`— sin conocer la ruta real de su pantalla; es lo
+             * mismo que ya hace con cualquier otro módulo. Por eso
+             * `/continuidad` es también una ruta de verdad y no un cabo suelto:
+             * redirige a `/continuidad/bia`, fuera de cualquier `can:` —mismo
+             * sitio y mismo motivo que `/` → `/panel`—, así que a nadie con
+             * `continuidad.ver` le puede faltar el permiso de una redirección
+             * que no es su pantalla.
+             */
+            {
+                titulo: 'Continuidad',
+                href: '/continuidad',
+                icono: LifeBuoyIcon,
+                alias: ['bia', 'análisis de impacto en el negocio', 'rto', 'rpo', 'mtpd', 'op.cont', 'continuidad de negocio'],
             },
             {
                 titulo: 'Indicadores',
