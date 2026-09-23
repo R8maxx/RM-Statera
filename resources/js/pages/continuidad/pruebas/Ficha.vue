@@ -194,7 +194,7 @@ const abriendoTarea = ref(false);
 
 const tareaForm = useForm({
     titulo: '',
-    descripcion: '',
+    descripcion: props.prueba.conclusiones ?? '',
     prioridad: 'media',
     responsable_id: '',
     fecha_limite: '',
@@ -219,9 +219,14 @@ function crearTarea(): void {
 
 const abriendoNoConformidad = ref(false);
 
+/*
+ * La descripción arranca con las conclusiones de la prueba, igual que la no
+ * conformidad abierta desde un incidente arranca con su descripción: es el
+ * mismo hecho y pedirlo otra vez es cómo se acaba con dos versiones de él.
+ */
 const ncForm = useForm({
     codigo: props.sugerenciaCodigoNoConformidad,
-    descripcion: '',
+    descripcion: props.prueba.conclusiones ?? '',
     correccion_inmediata: '',
     analisis_causa_raiz: '',
     responsable_id: '',
@@ -242,7 +247,7 @@ const abriendoMejora = ref(false);
 const mejoraForm = useForm({
     codigo: props.sugerenciaCodigoMejora,
     titulo: '',
-    descripcion: '',
+    descripcion: props.prueba.conclusiones ?? '',
     beneficio_esperado: '',
     responsable_id: '',
     fecha_deteccion: props.prueba.fecha_realizacion ?? new Date().toISOString().slice(0, 10),

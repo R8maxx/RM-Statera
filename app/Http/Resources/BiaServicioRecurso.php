@@ -70,15 +70,15 @@ final class BiaServicioRecurso extends Recurso
                 ->anclada()
                 ->formato(fn (BiaServicio $fila): ?string => $fila->activo?->nombre),
 
-            Columna::numero('rto', 'RTO')
+            Columna::numero('rto', 'RTO (h)')
                 ->ancho('7rem')
                 ->ayuda('El tiempo de recuperación objetivo que se ha declarado, en horas.')
-                ->formato(fn (BiaServicio $fila): string => "{$fila->rto_horas} h"),
+                ->formato(fn (BiaServicio $fila): int => $fila->rto_horas),
 
-            Columna::numero('rpo', 'RPO')
+            Columna::numero('rpo', 'RPO (h)')
                 ->ancho('7rem')
                 ->ayuda('La pérdida de datos objetivo, en horas.')
-                ->formato(fn (BiaServicio $fila): string => "{$fila->rpo_horas} h"),
+                ->formato(fn (BiaServicio $fila): int => $fila->rpo_horas),
 
             Columna::texto('umbral', 'Umbral tolerable')
                 ->ancho('10rem')

@@ -335,3 +335,17 @@ it('el auditor ve pero no gestiona una prueba', function (): void {
         ->post("/continuidad/pruebas/{$prueba->id}/cancelar", ['motivo' => 'x'])
         ->assertForbidden();
 });
+
+/*
+ * RTO y RPO son columnas numéricas, y la celda numérica hace `Number(valor)`:
+ * con el formato «72 h» la tabla pintaba «NaN». La unidad va en la cabecera.
+ */
+it('manda el RTO y el RPO como números para la celda numérica', function (): void {
+    BiaServicio::factory()->create(['rto_horas' => 72, 'rpo_horas' => 24]);
+
+    $this->actingAs($this->usuario)
+        ->get('/continuidad/bia')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->where('filas.0.rto', 72)
+            ->where('filas.0.rpo', 24));
+});

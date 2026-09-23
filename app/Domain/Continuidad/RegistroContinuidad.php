@@ -84,7 +84,7 @@ final readonly class RegistroContinuidad
         return [
             new Indicador(
                 clave: 'borrador',
-                etiqueta: 'En borrador',
+                etiqueta: 'la aprobación',
                 valor: BiaServicio::query()->where('estado', EstadoBia::Borrador->value)->count(),
                 tono: 'no_iniciado',
                 filtro: 'filter[estado]=borrador',
@@ -120,7 +120,7 @@ final readonly class RegistroContinuidad
         return [
             new Indicador(
                 clave: 'planificadas',
-                etiqueta: 'Planificadas',
+                etiqueta: 'el resultado',
                 valor: PruebaContinuidad::query()->where('estado', EstadoPrueba::Planificada->value)->count(),
                 tono: 'planificado',
                 filtro: 'filter[estado]=planificada',
