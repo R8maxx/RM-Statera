@@ -203,13 +203,19 @@ class PruebaContinuidad extends Model
     }
 
     /**
-     * Las previstas entre dos fechas, ambas incluidas, sin filtrar por estado.
+     * Las planificadas previstas entre dos fechas, ambas incluidas.
+     *
+     * **Sólo las `planificada`**, igual que `scopeVencidas()` y
+     * `scopePorVencer()`: una realizada o una cancelada son terminales
+     * (`EstadoPrueba::esTerminal()`) y no tienen nada pendiente que el
+     * calendario deba anunciar.
      *
      * @param  Builder<$this>  $query
      */
     public function scopePrevistaEntre(Builder $query, Carbon $desde, Carbon $hasta): void
     {
-        $query->whereDate('pruebas_continuidad.fecha_prevista', '>=', $desde->toDateString())
+        $query->where('pruebas_continuidad.estado', EstadoPrueba::Planificada->value)
+            ->whereDate('pruebas_continuidad.fecha_prevista', '>=', $desde->toDateString())
             ->whereDate('pruebas_continuidad.fecha_prevista', '<=', $hasta->toDateString());
     }
 

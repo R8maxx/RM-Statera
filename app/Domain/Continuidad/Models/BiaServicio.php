@@ -144,28 +144,40 @@ class BiaServicio extends Model
     /**
      * Los que ya deberían haberse revisado.
      *
+     * **Sólo los `aprobado`.** Un BIA que vuelve a borrador conserva su
+     * `fecha_revision` a propósito —ver la cabecera de `CambiarEstadoBia`—,
+     * pero esa fecha deja de ser una revisión pendiente de verdad: es el
+     * recordatorio de que hay que volver a aprobarlo, no una promesa vigente
+     * que se pueda incumplir. Sin este filtro, un borrador con una revisión
+     * vieja saldría en el calendario como «Vigente hasta…» de algo que ni
+     * siquiera está aprobado.
+     *
      * @param  Builder<$this>  $query
      */
     public function scopeRevisionVencida(Builder $query): void
     {
-        $query->whereNotNull('bia_servicios.fecha_revision')
+        $query->where('bia_servicios.estado', EstadoBia::Aprobado->value)
+            ->whereNotNull('bia_servicios.fecha_revision')
             ->whereDate('bia_servicios.fecha_revision', '<', Carbon::today());
     }
 
     /**
-     * Los que se revisaron entre dos fechas, ambas incluidas.
+     * Los que se revisarán entre dos fechas, ambas incluidas. Sólo los
+     * `aprobado`, por el mismo motivo que `scopeRevisionVencida()`.
      *
      * @param  Builder<$this>  $query
      */
     public function scopeRevisionEntre(Builder $query, Carbon $desde, Carbon $hasta): void
     {
-        $query->whereNotNull('bia_servicios.fecha_revision')
+        $query->where('bia_servicios.estado', EstadoBia::Aprobado->value)
+            ->whereNotNull('bia_servicios.fecha_revision')
             ->whereDate('bia_servicios.fecha_revision', '>=', $desde->toDateString())
             ->whereDate('bia_servicios.fecha_revision', '<=', $hasta->toDateString());
     }
 
     /**
      * Los que vencen dentro de los próximos `$dias`, sin contar los ya vencidos.
+     * Sólo los `aprobado`, por el mismo motivo que `scopeRevisionVencida()`.
      *
      * Misma forma que `Tarea::scopePorVencer()`, por el mismo motivo: el aviso
      * diario junta vencidos y por vencer, y una ventana que se contara distinto
@@ -175,7 +187,8 @@ class BiaServicio extends Model
      */
     public function scopeRevisionPorVencer(Builder $query, int $dias = 30): void
     {
-        $query->whereNotNull('bia_servicios.fecha_revision')
+        $query->where('bia_servicios.estado', EstadoBia::Aprobado->value)
+            ->whereNotNull('bia_servicios.fecha_revision')
             ->whereDate('bia_servicios.fecha_revision', '>=', Carbon::today())
             ->whereDate('bia_servicios.fecha_revision', '<=', Carbon::today()->addDays($dias));
     }

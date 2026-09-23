@@ -12,11 +12,16 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * De qué es un vencimiento.
  *
  * § 4.16 —el calendario de obligaciones— enumera once cosas periódicas, y aquí
- * hay siete casos y no once: **las obligaciones que no salen de ningún registro
+ * hay nueve casos y no once: **las obligaciones que no salen de ningún registro
  * son UNA fuente**, `Obligacion`, porque son filas de una tabla y no código. El
  * informe INES, la renovación de conformidad y la auditoría de seguimiento son
  * tres filas del catálogo, no tres casos de este enum — y esa es la diferencia
  * que permite que una organización declare la suya sin un despliegue.
+ *
+ * **`PruebaContinuidad` y `Bia` llegaron con § 4.11**, y no antes: la
+ * continuidad estaba en el catálogo con `categoria_minima: media` pero el
+ * módulo mismo no existía, así que no había nada que este enum pudiera
+ * consultar todavía.
  *
  * **Sin recuento en la cabecera, a propósito.** Decía «hoy son dos» y pasó a ser
  * falso el día que el § 4.5 añadió `Fuente::Documento`, sin que nadie lo notara
@@ -77,9 +82,28 @@ enum Fuente: string
     case Obligacion = 'obligacion';
 
     /**
+     * Una prueba de continuidad planificada: § 4.11 y `op.cont.3`.
+     *
+     * Sólo las `planificada`: `PruebaContinuidad::scopePrevistaEntre()` las
+     * filtra, igual que `scopeVencidas()` y `scopePorVencer()`. Una realizada o
+     * una cancelada son terminales y no tienen nada pendiente que anunciar.
+     */
+    case PruebaContinuidad = 'prueba_continuidad';
+
+    /**
+     * La revisión de un BIA aprobado: § 4.11.
+     *
+     * Igual que con los documentos, lo que vence no es el BIA sino su
+     * revisión: un BIA aprobado sigue vigente hasta que se vuelva a aprobar o
+     * se dé por obsoleto. Sólo los `aprobado`: uno en borrador no tiene
+     * revisión que anunciar, aunque conserve la fecha de cuando lo estuvo.
+     */
+    case Bia = 'bia';
+
+    /**
      * Las fuentes que esta cuenta puede ver.
      *
-     * **La rejilla enseña siete registros con una sola llave**, así que el
+     * **La rejilla enseña nueve registros con una sola llave**, así que el
      * permiso de la pantalla no basta: quien no tenga `indicadores.ver` no puede
      * enterarse por el calendario de qué indicadores hay. Es la misma regla que
      * `AlertasDelPanel` aplica a cada tarjeta, y el mismo motivo por el que no se
@@ -106,6 +130,7 @@ enum Fuente: string
             self::Indicador => Permiso::IndicadoresVer,
             self::Implantacion => Permiso::ImplantacionesVer,
             self::Obligacion => Permiso::ObligacionesVer,
+            self::PruebaContinuidad, self::Bia => Permiso::ContinuidadVer,
         };
     }
 
@@ -119,6 +144,8 @@ enum Fuente: string
             self::Indicador => 'Indicador',
             self::Implantacion => 'Medida del plan',
             self::Obligacion => 'Obligación',
+            self::PruebaContinuidad => 'Prueba de continuidad',
+            self::Bia => 'BIA',
         };
     }
 
@@ -129,7 +156,7 @@ enum Fuente: string
      * color dice cómo va, no qué es—, y la fila de chips que hace de clave sólo
      * existe en `/calendario`: en el popover de un día, en la agenda de móvil y
      * en el correo el icono va solo. Así que lo que manda aquí no es parecerse al
-     * sidebar: es **que las siete siluetas se separen a 14 px**.
+     * sidebar: es **que las nueve siluetas se separen a 14 px**.
      *
      * Cinco coinciden con el icono de su módulo en `lib/navegacion.ts`, que es lo
      * cómodo cuando además se distinguen. Dos no, y las dos tienen motivo:
@@ -150,6 +177,17 @@ enum Fuente: string
      * calendario un `Target` sólo puede ser una medida, porque los objetivos están
      * declarados fuera de él —tienen tareas detrás y sus plazos ya pintan chip—.
      *
+     * `PruebaContinuidad` y `Bia` tampoco coinciden con su módulo: el sidebar
+     * lleva **una sola** entrada, «Continuidad», con `LifeBuoyIcon`, porque BIA
+     * y pruebas comparten pantalla de arranque —lo mismo que ya pasa con
+     * Personas / Puestos / Formación—, así que aquí no hay icono de módulo que
+     * tomar prestado y hacía falta uno nuevo para cada fuente. `FlaskConical`
+     * es el ensayo —ni `Target` (ya es Implantación) ni `ClipboardCheck` (ya
+     * era la misma palomita descartada arriba)—; `Timer` es la cuenta atrás
+     * del BIA, y no `Gauge` (ya es Indicador) ni `CalendarClock` (icono de
+     * respaldo del tono `planificado` en `lib/tonos.ts`: lo prohíbe
+     * `FuentesConIconoDistintoTest`).
+     *
      * Lo fija `FuentesConIconoDistintoTest`, que es la comprobación que faltaba:
      * `IconosTest` sólo mira colisiones dentro de un mismo enum y por tono.
      */
@@ -163,6 +201,8 @@ enum Fuente: string
             self::Indicador => 'Gauge',
             self::Implantacion => 'Target',
             self::Obligacion => 'Repeat',
+            self::PruebaContinuidad => 'FlaskConical',
+            self::Bia => 'Timer',
         };
     }
 
@@ -176,6 +216,8 @@ enum Fuente: string
             self::Indicador => "/indicadores/{$id}",
             self::Implantacion => "/implantaciones/{$id}",
             self::Obligacion => "/obligaciones/{$id}",
+            self::PruebaContinuidad => "/continuidad/pruebas/{$id}",
+            self::Bia => "/continuidad/bia/{$id}",
         };
     }
 
@@ -193,6 +235,8 @@ enum Fuente: string
             self::Indicador => 'Periodos sin medir',
             self::Implantacion => 'Medidas fuera de su fecha objetivo',
             self::Obligacion => 'Obligaciones fuera de plazo',
+            self::PruebaContinuidad => 'Pruebas de continuidad sin realizar',
+            self::Bia => 'BIA sin revisar a tiempo',
         };
     }
 
@@ -207,6 +251,8 @@ enum Fuente: string
             self::Indicador => 'Periodos que cierran',
             self::Implantacion => 'Medidas que llegan a su fecha objetivo',
             self::Obligacion => 'Obligaciones que tocan',
+            self::PruebaContinuidad => 'Pruebas de continuidad previstas',
+            self::Bia => 'BIA por revisar',
         };
     }
 
@@ -216,7 +262,7 @@ enum Fuente: string
         return match ($this) {
             self::Evidencia, self::Formacion => 'caduca',
             self::Documento => 'toca revisarlo',
-            self::Indicador, self::Obligacion => 'toca',
+            self::Indicador, self::Obligacion, self::PruebaContinuidad, self::Bia => 'toca',
             self::Tarea, self::Implantacion => 'vence',
         };
     }
@@ -226,7 +272,7 @@ enum Fuente: string
         return match ($this) {
             self::Evidencia, self::Formacion => 'caducó',
             self::Documento => 'tocaba revisarlo',
-            self::Indicador, self::Obligacion => 'tocaba',
+            self::Indicador, self::Obligacion, self::PruebaContinuidad, self::Bia => 'tocaba',
             self::Tarea, self::Implantacion => 'venció',
         };
     }

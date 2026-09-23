@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Aviso;
 
+use App\Domain\Continuidad\Models\BiaServicio;
+use App\Domain\Continuidad\Models\PruebaContinuidad;
 use App\Domain\Documento\Models\Documento;
 use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Implantacion\Models\Implantacion;
@@ -121,6 +123,16 @@ final readonly class CalendarioVencimientos
             Fuente::Obligacion => $this->deObligaciones($filtros->acotarCalculado(
                 Compromiso::query()->proximaEntre($desde, $hasta),
                 Compromiso::expresionProxima(),
+            )),
+
+            Fuente::PruebaContinuidad => $this->dePruebas($filtros->acotar(
+                PruebaContinuidad::query()->previstaEntre($desde, $hasta),
+                'fecha_prevista',
+            )),
+
+            Fuente::Bia => $this->deBias($filtros->acotar(
+                BiaServicio::query()->revisionEntre($desde, $hasta),
+                'fecha_revision',
             )),
         };
     }
@@ -385,6 +397,94 @@ final readonly class CalendarioVencimientos
                     tono: $this->tono($dias),
                     estadoTono: $dias < 0 ? 'caducada' : 'implantado',
                     estadoEtiqueta: $dias < 0 ? 'Fuera de plazo' : 'Al día',
+                );
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Las pruebas de continuidad planificadas que vencen: § 4.11 y `op.cont.3`.
+     *
+     * **Sólo las `planificada` llegan aquí**, porque `previstaEntre()` ya las
+     * filtra: una realizada o una cancelada son terminales
+     * (`EstadoPrueba::esTerminal()`) y no tienen nada pendiente que anunciar.
+     *
+     * @param  Builder<PruebaContinuidad>  $consulta
+     * @return list<Vencimiento>
+     */
+    public function dePruebas(Builder $consulta): array
+    {
+        $hoy = Carbon::today();
+
+        return $consulta
+            ->with('responsable:id,name')
+            ->orderBy('pruebas_continuidad.fecha_prevista')
+            ->get()
+            ->map(function (PruebaContinuidad $prueba) use ($hoy): Vencimiento {
+                /** @var Carbon $fecha */
+                $fecha = $prueba->fecha_prevista;
+                $dias = (int) $hoy->diffInDays($fecha, false);
+
+                return new Vencimiento(
+                    id: $prueba->id,
+                    fuente: Fuente::PruebaContinuidad,
+                    // Con el código delante, como los documentos y las medidas:
+                    // en una lista de quince, el título solo no dice cuál es.
+                    titulo: "{$prueba->codigo} — {$prueba->titulo}",
+                    dia: $fecha->toDateString(),
+                    fecha: $fecha->format('d/m/Y'),
+                    dias: $dias,
+                    responsable: $prueba->responsable?->name,
+                    tono: $this->tono($dias),
+                    estadoTono: $dias < 0 ? 'caducada' : $prueba->estado->tono(),
+                    estadoEtiqueta: $dias < 0 ? 'Sin realizar' : $prueba->estado->etiqueta(),
+                );
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Los BIA aprobados cuya revisión toca, o ya tocaba: § 4.11.
+     *
+     * **Sólo los `aprobado` llegan aquí**, porque `revisionEntre()` ya los
+     * filtra: un BIA en borrador conserva su `fecha_revision` a propósito —ver
+     * `CambiarEstadoBia`— pero esa fecha no es una revisión vigente que se
+     * pueda incumplir mientras no vuelva a estar aprobado.
+     *
+     * @param  Builder<BiaServicio>  $consulta
+     * @return list<Vencimiento>
+     */
+    public function deBias(Builder $consulta): array
+    {
+        $hoy = Carbon::today();
+
+        return $consulta
+            ->with(['activo:id,nombre', 'responsable:id,name'])
+            ->orderBy('bia_servicios.fecha_revision')
+            ->get()
+            ->map(function (BiaServicio $bia) use ($hoy): Vencimiento {
+                /** @var Carbon $fecha */
+                $fecha = $bia->fecha_revision;
+                $dias = (int) $hoy->diffInDays($fecha, false);
+
+                return new Vencimiento(
+                    id: $bia->id,
+                    fuente: Fuente::Bia,
+                    titulo: "BIA — {$bia->activo?->nombre}",
+                    dia: $fecha->toDateString(),
+                    fecha: $fecha->format('d/m/Y'),
+                    dias: $dias,
+                    responsable: $bia->responsable?->name,
+                    tono: $this->tono($dias),
+                    /*
+                     * Un BIA aprobado cuya revisión se pasó sigue aprobado: lo
+                     * que está vencido es la revisión, no el análisis. Mismo
+                     * criterio que `deDocumentos()`.
+                     */
+                    estadoTono: $dias < 0 ? 'caducada' : 'implantado',
+                    estadoEtiqueta: $dias < 0 ? 'Revisión vencida' : 'Vigente',
                 );
             })
             ->values()

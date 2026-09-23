@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Aviso;
 
+use App\Domain\Continuidad\Models\BiaServicio;
+use App\Domain\Continuidad\Models\PruebaContinuidad;
 use App\Domain\Documento\Models\Documento;
 use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Implantacion\Models\Implantacion;
@@ -91,6 +93,8 @@ final readonly class ResumenVencimientos
             ),
             Fuente::Implantacion => $this->calendario->deImplantaciones(Implantacion::query()->objetivoVencido()),
             Fuente::Obligacion => $this->calendario->deObligaciones(Compromiso::query()->vencidos()),
+            Fuente::PruebaContinuidad => $this->calendario->dePruebas(PruebaContinuidad::query()->vencidas()),
+            Fuente::Bia => $this->calendario->deBias(BiaServicio::query()->revisionVencida()),
         };
     }
 
@@ -117,6 +121,8 @@ final readonly class ResumenVencimientos
             Fuente::Indicador => [],
             Fuente::Implantacion => $this->calendario->deImplantaciones(Implantacion::query()->objetivoPorVencer($dias)),
             Fuente::Obligacion => $this->calendario->deObligaciones(Compromiso::query()->proximaEntre($hoy, $hasta)),
+            Fuente::PruebaContinuidad => $this->calendario->dePruebas(PruebaContinuidad::query()->porVencer($dias)),
+            Fuente::Bia => $this->calendario->deBias(BiaServicio::query()->revisionPorVencer($dias)),
         };
     }
 }

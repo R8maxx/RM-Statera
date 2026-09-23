@@ -7,6 +7,9 @@ use App\Domain\Autorizacion\Enums\Rol;
 use App\Domain\Aviso\CalendarioVencimientos;
 use App\Domain\Aviso\FiltrosVencimiento;
 use App\Domain\Aviso\Fuente;
+use App\Domain\Continuidad\Enums\EstadoBia;
+use App\Domain\Continuidad\Models\BiaServicio;
+use App\Domain\Continuidad\Models\PruebaContinuidad;
 use App\Domain\Documento\Models\Documento;
 use App\Domain\Documento\Models\DocumentoVersion;
 use App\Domain\Evidencia\Models\Evidencia;
@@ -355,6 +358,14 @@ function sembrarVencimiento(Fuente $fuente, bool $pasado): void
         Fuente::Obligacion => Compromiso::factory()
             ->cada(12)
             ->create(['computa_desde' => $fecha->copy()->subYear()]),
+
+        Fuente::PruebaContinuidad => PruebaContinuidad::factory()
+            ->planificada()
+            ->create(['fecha_prevista' => $fecha]),
+
+        Fuente::Bia => BiaServicio::factory()
+            ->enEstado(EstadoBia::Aprobado)
+            ->create(['fecha_revision' => $fecha]),
     };
 }
 

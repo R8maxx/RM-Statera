@@ -23,7 +23,7 @@ export type Rol = 'responsable_seguridad' | 'tecnico' | 'auditor';
 }
 }
 namespace Aviso {
-export type Fuente = 'tarea' | 'evidencia' | 'documento' | 'formacion' | 'indicador' | 'implantacion' | 'obligacion';
+export type Fuente = 'tarea' | 'evidencia' | 'documento' | 'formacion' | 'indicador' | 'implantacion' | 'obligacion' | 'prueba_continuidad' | 'bia';
 export type Vencimiento = {
 readonly url: string,
 readonly icono: string,
