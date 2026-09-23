@@ -6,13 +6,11 @@ import TiraIndicadores from '@/components/TiraIndicadores.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 
 /**
- * El BIA de cada servicio: § 4.11.
+ * Las pruebas de un plan de continuidad: § 4.11 y `op.cont.3`.
  *
- * **Dos alertas, y ninguna es un incumplimiento consumado.** Un RTO
- * incoherente con el umbral tolerable es una contradicción que corregir, y una
- * revisión vencida es un dato que envejece — las dos gastan `caducada` porque
- * las dos piden atención ahora, pero ninguna es lo mismo que el rojo de un
- * plazo legal ya incumplido, como el de la AEPD en incidentes.
+ * **La única alerta es «Vencidas», y gasta `caducada` de verdad**: una
+ * planificada cuya fecha ya pasó sin resultado es un plazo incumplido, no una
+ * contradicción a corregir como el RTO incoherente del BIA.
  */
 const props = defineProps<{
     recurso: App.Http.Resources.Definicion.DefinicionRecurso;
@@ -37,7 +35,7 @@ const props = defineProps<{
             :alertas="alertas"
             :pendientes="pendientes"
             :denominador="total"
-            denominador-etiqueta="BIA registrados"
+            denominador-etiqueta="pruebas registradas"
             :filtros="props.meta.filtros"
         />
 

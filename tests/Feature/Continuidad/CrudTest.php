@@ -5,7 +5,11 @@ declare(strict_types=1);
 use App\Domain\Activo\Models\Activo;
 use App\Domain\Autorizacion\Enums\Rol;
 use App\Domain\Continuidad\Enums\EstadoBia;
+use App\Domain\Continuidad\Enums\EstadoPrueba;
+use App\Domain\Continuidad\Enums\ResultadoPrueba;
 use App\Domain\Continuidad\Models\BiaServicio;
+use App\Domain\Continuidad\Models\PruebaContinuidad;
+use App\Domain\Documento\Models\Documento;
 use Inertia\Testing\AssertableInertia;
 
 /*
@@ -105,4 +109,167 @@ it('edita un BIA sólo con los campos de contenido y lo deja en borrador', funct
 
     expect($bia->fresh()->estado)->toBe(EstadoBia::Borrador)
         ->and($bia->fresh()->rto_horas)->toBe(48);
+});
+
+/*
+|--------------------------------------------------------------------------
+| Las pruebas de un plan de continuidad
+|--------------------------------------------------------------------------
+|
+| **Dos verbos y ninguno de supervisión.** `continuidad.ver` lee y
+| `continuidad.gestionar` planifica, edita, registra el resultado y cancela:
+| aquí no hay nada que aceptar como riesgo, hay algo que comprobar.
+|
+*/
+
+it('planifica una prueba y la enseña', function (): void {
+    $plan = Documento::factory()->planContinuidad()->create();
+    $servicio = Activo::factory()->create(['tipo' => 'servicios']);
+
+    $this->actingAs($this->usuario)
+        ->post('/continuidad/pruebas', [
+            'codigo' => 'PC-2026-01',
+            'titulo' => 'Simulacro de caída del CPD',
+            'documento_id' => $plan->id,
+            'tipo' => 'simulacro',
+            'fecha_prevista' => now()->addDays(15)->toDateString(),
+            'servicios' => [$servicio->id],
+        ])
+        ->assertRedirect();
+
+    $prueba = PruebaContinuidad::query()->sole();
+
+    expect($prueba->servicios()->pluck('activos.id'))->toEqual(collect([$servicio->id]));
+
+    $this->actingAs($this->usuario)
+        ->get('/continuidad/pruebas')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina->component('continuidad/pruebas/Index'));
+
+    $this->actingAs($this->usuario)
+        ->get("/continuidad/pruebas/{$prueba->id}")
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->component('continuidad/pruebas/Ficha')
+            ->has('servicios')
+            ->has('historial'));
+});
+
+it('edita una prueba planificada', function (): void {
+    $servicio = Activo::factory()->create(['tipo' => 'servicios']);
+    $prueba = PruebaContinuidad::factory()->planificada()->create();
+    $prueba->servicios()->attach($servicio->id, ['organizacion_id' => $prueba->organizacion_id]);
+
+    $this->actingAs($this->usuario)
+        ->put("/continuidad/pruebas/{$prueba->id}", [
+            'codigo' => $prueba->codigo,
+            'titulo' => 'Título revisado',
+            'tipo' => $prueba->tipo->value,
+            'fecha_prevista' => $prueba->fecha_prevista->toDateString(),
+            'servicios' => [$servicio->id],
+        ])
+        ->assertRedirect();
+
+    expect($prueba->fresh()->titulo)->toBe('Título revisado');
+});
+
+it('no edita una prueba que ya no está planificada', function (): void {
+    $servicio = Activo::factory()->create(['tipo' => 'servicios']);
+    $prueba = PruebaContinuidad::factory()->realizada()->create();
+
+    $this->actingAs($this->usuario)
+        ->put("/continuidad/pruebas/{$prueba->id}", [
+            'codigo' => $prueba->codigo,
+            'titulo' => 'Otro título',
+            'tipo' => $prueba->tipo->value,
+            'fecha_prevista' => $prueba->fecha_prevista->toDateString(),
+            'servicios' => [$servicio->id],
+        ])
+        ->assertRedirect("/continuidad/pruebas/{$prueba->id}");
+
+    expect($prueba->fresh()->titulo)->not->toBe('Otro título');
+});
+
+it('registra el resultado de una prueba planificada', function (): void {
+    $servicio = Activo::factory()->create(['tipo' => 'servicios']);
+    $prueba = PruebaContinuidad::factory()->planificada()->create();
+    $prueba->servicios()->attach($servicio->id, ['organizacion_id' => $prueba->organizacion_id]);
+
+    $this->actingAs($this->usuario)
+        ->post("/continuidad/pruebas/{$prueba->id}/resultado", [
+            'fecha_realizacion' => now()->toDateString(),
+            'resultado' => 'superada',
+            'conclusiones' => 'Todo salió según lo previsto.',
+            'servicios' => [
+                $servicio->id => ['rto_alcanzado_horas' => 4, 'rpo_alcanzado_horas' => 1],
+            ],
+        ])
+        ->assertRedirect();
+
+    $prueba->refresh();
+
+    expect($prueba->estado)->toBe(EstadoPrueba::Realizada)
+        ->and($prueba->resultado)->toBe(ResultadoPrueba::Superada)
+        ->and((int) $prueba->servicios()->first()->pivot->rto_alcanzado_horas)->toBe(4);
+});
+
+it('cancela una prueba planificada', function (): void {
+    $prueba = PruebaContinuidad::factory()->planificada()->create();
+
+    $this->actingAs($this->usuario)
+        ->post("/continuidad/pruebas/{$prueba->id}/cancelar", [
+            'motivo' => 'Se pospone por indisponibilidad del proveedor del centro alternativo.',
+        ])
+        ->assertRedirect();
+
+    expect($prueba->fresh()->estado)->toBe(EstadoPrueba::Cancelada);
+});
+
+it('el técnico planifica y gestiona una prueba', function (): void {
+    $tecnico = usuarioCon(Rol::Tecnico);
+    $plan = Documento::factory()->planContinuidad()->create();
+    $servicio = Activo::factory()->create(['tipo' => 'servicios']);
+
+    $this->actingAs($tecnico)
+        ->post('/continuidad/pruebas', [
+            'codigo' => 'PC-2026-02',
+            'titulo' => 'Prueba técnica de restauración',
+            'documento_id' => $plan->id,
+            'tipo' => 'tecnica',
+            'fecha_prevista' => now()->addDays(10)->toDateString(),
+            'servicios' => [$servicio->id],
+        ])
+        ->assertRedirect();
+
+    $prueba = PruebaContinuidad::query()->sole();
+
+    $this->actingAs($tecnico)
+        ->post("/continuidad/pruebas/{$prueba->id}/cancelar", ['motivo' => 'Se reprograma.'])
+        ->assertRedirect();
+
+    expect($prueba->fresh()->estado)->toBe(EstadoPrueba::Cancelada);
+});
+
+it('ordena las pruebas por fecha prevista por defecto y pinta la fecha en la tabla', function (): void {
+    $prueba = PruebaContinuidad::factory()->create();
+
+    // La regresión concreta: la columna `prevista` sin `->formato()` intenta
+    // leer `$fila->prevista`, que no es ninguna columna de la base, y la celda
+    // sale en blanco aunque `ordenPorDefecto()` ya apunte a la clave correcta.
+    $this->actingAs($this->usuario)
+        ->get('/continuidad/pruebas')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->component('continuidad/pruebas/Index')
+            ->where('meta.orden', 'prevista')
+            ->where('filas.0.prevista', $prueba->fecha_prevista->toDateString()));
+});
+
+it('el auditor ve pero no gestiona una prueba', function (): void {
+    $auditor = usuarioCon(Rol::Auditor);
+    $prueba = PruebaContinuidad::factory()->create();
+
+    $this->actingAs($auditor)->get('/continuidad/pruebas')->assertOk();
+    $this->actingAs($auditor)->get("/continuidad/pruebas/{$prueba->id}")->assertOk();
+    $this->actingAs($auditor)->get('/continuidad/pruebas/crear')->assertForbidden();
+    $this->actingAs($auditor)
+        ->post("/continuidad/pruebas/{$prueba->id}/cancelar", ['motivo' => 'x'])
+        ->assertForbidden();
 });

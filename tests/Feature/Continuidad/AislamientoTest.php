@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Domain\Continuidad\Models\BiaServicio;
+use App\Domain\Continuidad\Models\PruebaContinuidad;
+use App\Domain\Documento\Models\Documento;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Organizacion\Models\Organizacion;
 use App\Models\User;
@@ -61,4 +63,41 @@ it('el desplegable de responsables no muestra usuarios de otra organización', f
     $props = $this->actingAs($this->usuario)->get('/continuidad/bia/crear')->viewData('page')['props'];
 
     expect(collect($props['responsables'])->pluck('valor'))->not->toContain((string) $ajeno->id);
+});
+
+it('una prueba de otra organización devuelve 404', function (): void {
+    $ajena = ($this->enLaAjena)(fn (): PruebaContinuidad => PruebaContinuidad::factory()->create());
+
+    app(ContextoOrganizacion::class)->establecer($this->propia);
+
+    $this->actingAs($this->usuario)->get("/continuidad/pruebas/{$ajena->id}")->assertNotFound();
+    $this->actingAs($this->usuario)->get("/continuidad/pruebas/{$ajena->id}/editar")->assertNotFound();
+    $this->actingAs($this->usuario)
+        ->put("/continuidad/pruebas/{$ajena->id}", ['titulo' => 'x'])
+        ->assertNotFound();
+    $this->actingAs($this->usuario)
+        ->post("/continuidad/pruebas/{$ajena->id}/resultado", ['fecha_realizacion' => now()->toDateString(), 'resultado' => 'superada'])
+        ->assertNotFound();
+    $this->actingAs($this->usuario)
+        ->post("/continuidad/pruebas/{$ajena->id}/cancelar", ['motivo' => 'x'])
+        ->assertNotFound();
+});
+
+it('rechaza planificar una prueba sobre el plan de otra organización', function (): void {
+    $planAjeno = ($this->enLaAjena)(fn (): Documento => Documento::factory()->planContinuidad()->create());
+
+    app(ContextoOrganizacion::class)->establecer($this->propia);
+
+    $this->actingAs($this->usuario)
+        ->post('/continuidad/pruebas', [
+            'codigo' => 'PC-2026-99',
+            'titulo' => 'Prueba sobre un plan ajeno',
+            'documento_id' => $planAjeno->id,
+            'tipo' => 'sobremesa',
+            'fecha_prevista' => now()->addDays(15)->toDateString(),
+            'servicios' => [],
+        ])
+        ->assertSessionHasErrors('documento_id');
+
+    expect(PruebaContinuidad::query()->count())->toBe(0);
 });

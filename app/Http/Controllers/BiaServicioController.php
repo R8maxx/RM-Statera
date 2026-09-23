@@ -17,6 +17,7 @@ use App\Domain\Continuidad\Excepciones\ServicioNoValido;
 use App\Domain\Continuidad\Excepciones\TransicionDeBiaNoPermitida;
 use App\Domain\Continuidad\Models\BiaServicio;
 use App\Domain\Continuidad\Models\BiaServicioTransicion;
+use App\Domain\Continuidad\Models\PruebaContinuidad;
 use App\Domain\Continuidad\RegistrarBia;
 use App\Domain\Continuidad\UmbralTolerable;
 use App\Domain\Documento\Models\Documento;
@@ -27,6 +28,7 @@ use App\Http\Resources\BiaServicioRecurso;
 use App\Http\Resources\Concerns\RespondeConRecurso;
 use App\Http\Resources\Panel\Indicador;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -133,10 +135,32 @@ class BiaServicioController extends Controller
                     'aprobado' => $plan->versionAprobada !== null,
                 ])
                 ->all(),
-            // Pruebas: llega con la tarea 5. Vacío aquí y no ausente, para
-            // que la ficha ya sepa pintar su estado vacío antes de que
-            // exista el dato.
-            'pruebas' => [],
+            /*
+             * Las últimas cinco pruebas que cubrieron este servicio, con lo
+             * mínimo que la tarjeta necesita para no reabrir la consulta
+             * larga de `PruebaContinuidadRecurso`. Por fecha prevista
+             * descendente: lo último que se planificó o probó primero.
+             */
+            'pruebas' => PruebaContinuidad::query()
+                ->whereHas('servicios', fn (Builder $query) => $query->where('activos.id', $bia->activo_id))
+                ->orderByDesc('fecha_prevista')
+                ->limit(5)
+                ->get()
+                ->map(static fn (PruebaContinuidad $prueba): array => [
+                    'id' => $prueba->id,
+                    'codigo' => $prueba->codigo,
+                    'titulo' => $prueba->titulo,
+                    'estado' => $prueba->estado->value,
+                    'estadoEtiqueta' => $prueba->estado->etiqueta(),
+                    'estadoTono' => $prueba->estado->tono(),
+                    'estadoIcono' => $prueba->estado->icono(),
+                    'resultadoEtiqueta' => $prueba->resultado?->etiqueta(),
+                    'resultadoTono' => $prueba->resultado?->tono(),
+                    'resultadoIcono' => $prueba->resultado?->icono(),
+                    'fecha' => ($prueba->fecha_realizacion ?? $prueba->fecha_prevista)->format('d/m/Y'),
+                ])
+                ->values()
+                ->all(),
             'transiciones' => array_map(
                 fn (EstadoBia $destino): array => [
                     'valor' => $destino->value,

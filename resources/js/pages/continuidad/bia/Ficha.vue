@@ -82,7 +82,19 @@ const props = defineProps<{
     tramos: Tramo[];
     dependencias: Dependencia[];
     planes: { id: number; codigo: string; titulo: string; aprobado: boolean }[];
-    pruebas: { id: number; codigo: string; fecha: string }[];
+    pruebas: {
+        id: number;
+        codigo: string;
+        titulo: string;
+        estado: string;
+        estadoEtiqueta: string;
+        estadoTono: string;
+        estadoIcono: string;
+        resultadoEtiqueta: string | null;
+        resultadoTono: string | null;
+        resultadoIcono: string | null;
+        fecha: string;
+    }[];
     transiciones: Destino[];
     historial: Transicion[];
     puedeGestionar: boolean;
@@ -319,8 +331,35 @@ function mover(paso: Destino): void {
                             descripcion="Un RTO sin probar es una promesa, no un dato."
                         />
                         <ul v-else class="divide-y divide-border">
-                            <li v-for="prueba in pruebas" :key="prueba.id" class="py-2 text-sm">
-                                {{ prueba.codigo }} · {{ prueba.fecha }}
+                            <li
+                                v-for="prueba in pruebas"
+                                :key="prueba.id"
+                                class="flex flex-wrap items-center justify-between gap-2 py-2 text-sm"
+                            >
+                                <Link :href="`/continuidad/pruebas/${prueba.id}`" class="underline-offset-4 hover:underline">
+                                    <span class="cifra">{{ prueba.codigo }}</span> · {{ prueba.titulo }}
+                                </Link>
+                                <div class="flex items-center gap-2">
+                                    <CeldaBadge
+                                        v-if="prueba.resultadoEtiqueta"
+                                        :valor="{
+                                            valor: prueba.resultadoEtiqueta,
+                                            etiqueta: prueba.resultadoEtiqueta,
+                                            tono: prueba.resultadoTono,
+                                            icono: prueba.resultadoIcono,
+                                        }"
+                                    />
+                                    <CeldaBadge
+                                        v-else
+                                        :valor="{
+                                            valor: prueba.estado,
+                                            etiqueta: prueba.estadoEtiqueta,
+                                            tono: prueba.estadoTono,
+                                            icono: prueba.estadoIcono,
+                                        }"
+                                    />
+                                    <span class="text-xs text-muted-foreground">{{ prueba.fecha }}</span>
+                                </div>
                             </li>
                         </ul>
                     </CardContent>

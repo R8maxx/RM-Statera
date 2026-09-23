@@ -29,6 +29,7 @@ use App\Http\Controllers\PerfilFotoController;
 use App\Http\Controllers\PersonaController;
 use App\Http\Controllers\PlanContinuidadServicioController;
 use App\Http\Controllers\PlantillaDocumentoController;
+use App\Http\Controllers\PruebaContinuidadController;
 use App\Http\Controllers\PuestoController;
 use App\Http\Controllers\RevisionDireccionController;
 use App\Http\Controllers\RevisionInventarioController;
@@ -1191,8 +1192,9 @@ Route::middleware('auth')->group(function (): void {
     | `aprobado` — la ficha se limita a ocultar el botón.
     |
     | Nombradas bajo `continuidad.bia.*`, y no `continuidad.*`, porque la
-    | continuidad va a tener un segundo registro —las pruebas del § 4.11— con
-    | sus propias rutas bajo `/continuidad/pruebas`.
+    | continuidad tiene un segundo registro —las pruebas de § 4.11, justo
+    | debajo— con sus propias rutas bajo `/continuidad/pruebas` y sus propios
+    | nombres `continuidad.pruebas.*`.
     |
     */
 
@@ -1220,6 +1222,49 @@ Route::middleware('auth')->group(function (): void {
 
             Route::post('/continuidad/bia/{bia}/estado', [BiaServicioController::class, 'transicion'])
                 ->name('continuidad.bia.transicion');
+        });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Continuidad: las pruebas de un plan (§ 4.11, op.cont.3)
+    |--------------------------------------------------------------------------
+    |
+    | **Dos permisos, y ninguno de supervisión.** A diferencia del BIA, aquí no
+    | hay nada que aceptar como riesgo: `continuidad.gestionar` cubre planificar,
+    | editar, registrar el resultado y cancelar. `continuidad.aprobar` es del
+    | BIA y no entra en este bloque.
+    |
+    | **Sin `destroy()` ni ruta que lo pida**: una prueba —realizada, cancelada o
+    | planificada— no se borra, es la evidencia de que se comprobó el plan.
+    |
+    */
+
+    Route::middleware('can:continuidad.ver')->group(function (): void {
+        Route::get('/continuidad/pruebas', [PruebaContinuidadController::class, 'index'])
+            ->name('continuidad.pruebas.index');
+
+        // Antes que `{prueba}`, para que `crear` no se lea como un id.
+        Route::get('/continuidad/pruebas/crear', [PruebaContinuidadController::class, 'create'])
+            ->middleware(['can:continuidad.gestionar', ExigirDosFactores::class])
+            ->name('continuidad.pruebas.create');
+
+        Route::get('/continuidad/pruebas/{prueba}', [PruebaContinuidadController::class, 'show'])
+            ->name('continuidad.pruebas.show');
+    });
+
+    Route::middleware(['can:continuidad.gestionar', ExigirDosFactores::class])
+        ->group(function (): void {
+            Route::post('/continuidad/pruebas', [PruebaContinuidadController::class, 'store'])
+                ->name('continuidad.pruebas.store');
+            Route::get('/continuidad/pruebas/{prueba}/editar', [PruebaContinuidadController::class, 'edit'])
+                ->name('continuidad.pruebas.edit');
+            Route::put('/continuidad/pruebas/{prueba}', [PruebaContinuidadController::class, 'update'])
+                ->name('continuidad.pruebas.update');
+
+            Route::post('/continuidad/pruebas/{prueba}/resultado', [PruebaContinuidadController::class, 'resultado'])
+                ->name('continuidad.pruebas.resultado');
+            Route::post('/continuidad/pruebas/{prueba}/cancelar', [PruebaContinuidadController::class, 'cancelar'])
+                ->name('continuidad.pruebas.cancelar');
         });
 
     /*

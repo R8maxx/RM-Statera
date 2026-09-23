@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domain\Activo\Enums\TipoActivo;
 use App\Domain\Activo\Models\Activo;
 use App\Domain\Continuidad\Models\BiaServicio;
+use App\Domain\Continuidad\Models\PruebaContinuidad;
 use App\Domain\Documento\Enums\TipoDocumento;
 use App\Domain\Documento\Models\Documento;
 
@@ -104,4 +105,27 @@ it('la ficha del BIA lista el plan que cubre su servicio', function (): void {
         ->and($props['planes'][0]['id'])->toBe($plan->id)
         ->and($props['planes'][0]['codigo'])->toBe($plan->codigo)
         ->and($props['planes'][0]['aprobado'])->toBeFalse();
+});
+
+/*
+|--------------------------------------------------------------------------
+| El plan no se borra con pruebas encima
+|--------------------------------------------------------------------------
+|
+| `pruebas_continuidad.documento_id` lleva `restrictOnDelete`: sin este
+| guardián en `DocumentoController::destroy()`, borrar un plan probado
+| respondería con un `QueryException` crudo en vez de explicar que la prueba
+| es la evidencia de `op.cont.3`.
+|
+*/
+
+it('no borra un plan de continuidad con pruebas registradas', function (): void {
+    $plan = Documento::factory()->planContinuidad()->create();
+    PruebaContinuidad::factory()->deDocumento($plan)->create();
+
+    $this->actingAs($this->usuario)
+        ->delete("/documentos/{$plan->id}")
+        ->assertRedirect("/documentos/{$plan->id}");
+
+    expect(Documento::query()->find($plan->id))->not->toBeNull();
 });

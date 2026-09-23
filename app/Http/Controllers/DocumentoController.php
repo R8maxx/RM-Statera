@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Domain\Activo\Enums\TipoActivo;
 use App\Domain\Activo\Models\Activo;
 use App\Domain\Autorizacion\Enums\Permiso;
+use App\Domain\Continuidad\Models\PruebaContinuidad;
 use App\Domain\Documento\AcusarLectura;
 use App\Domain\Documento\AprobarVersion;
 use App\Domain\Documento\CoberturaAcuse;
@@ -197,6 +198,20 @@ class DocumentoController extends Controller
     {
         if ($documento->versiones()->whereNotNull('numero')->exists()) {
             Inertia::flash('error', "{$documento->codigo} tiene versiones emitidas y no se puede borrar: son la prueba de lo que se entregó.");
+
+            return to_route('documentos.show', $documento);
+        }
+
+        /*
+         * § 4.11: `pruebas_continuidad.documento_id` lleva `restrictOnDelete`
+         * en la migración, así que sin este guardián un plan de continuidad
+         * probado respondería con un `QueryException` crudo en vez de un
+         * error que explique por qué. Una prueba registrada es la evidencia
+         * de `op.cont.3`: borrar el plan la dejaría sin el documento que
+         * demuestra.
+         */
+        if (PruebaContinuidad::query()->where('documento_id', $documento->id)->exists()) {
+            Inertia::flash('error', "{$documento->codigo} tiene pruebas de continuidad registradas y no se puede borrar: son la evidencia de op.cont.3.");
 
             return to_route('documentos.show', $documento);
         }
