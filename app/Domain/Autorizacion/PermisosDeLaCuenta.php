@@ -18,10 +18,15 @@ use Illuminate\Support\Str;
  * también lo que NO se tiene. Una lista de sólo lo concedido no contesta esa
  * pregunta, y es la única pregunta que alguien le hace a esta pantalla.
  *
- * Lo que no se hace es enumerar los cuarenta y tres permisos en cuarenta y tres
- * filas con su palomita: eso es la fila de ceros del inventario otra vez, se lee
- * una vez y nunca más. Se agrupan por módulo —quince filas— y **los módulos que
- * no se ven enteros se resumen aparte**, en una frase.
+ * Lo que no se hace es enumerar los permisos uno a uno con su palomita: eso es la
+ * fila de ceros del inventario otra vez, se lee una vez y nunca más. Se agrupan
+ * por módulo y **los módulos que no se ven enteros se resumen aparte**, en una
+ * frase.
+ *
+ * **Sin cifras en este docblock, a propósito.** Decía «cuarenta y tres permisos» y
+ * «quince filas», y las dos eran falsas mucho antes de que alguien lo mirara:
+ * `porModulo()` agrupa por prefijo y se entera solo, y un recuento escrito aquí
+ * envejece cada vez que entra un módulo.
  *
  * **El título y el icono de un módulo no se escriben aquí.** Viaja el `href` y
  * el cliente lo resuelve contra `lib/navegacion.ts`, que es el mapa único de la

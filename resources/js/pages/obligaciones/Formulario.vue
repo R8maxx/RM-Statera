@@ -4,14 +4,10 @@ import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
 import FormularioRecurso from '@/components/formulario/FormularioRecurso.vue';
 import SeccionFormulario from '@/components/formulario/SeccionFormulario.vue';
+import { conOpcionVacia, type Opcion } from '@/lib/formularios';
 import CatalogoObligaciones from '@/components/obligacion/CatalogoObligaciones.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { computed } from 'vue';
-
-interface Opcion {
-    valor: string;
-    etiqueta: string;
-}
 
 interface OpcionNumerica {
     valor: number;
@@ -150,7 +146,7 @@ const responsables = computed(() => comoOpciones(props.responsables));
                 <CampoSelect
                     nombre="responsable_id"
                     etiqueta="Responsable"
-                    :opciones="responsables"
+                    :opciones="conOpcionVacia(responsables, 'Sin responsable')"
                     :valor-inicial="compromiso?.responsable_id ? String(compromiso.responsable_id) : undefined"
                     :error="errors.responsable_id"
                     ayuda="Quién responde de que esto se haga a tiempo."
@@ -159,7 +155,7 @@ const responsables = computed(() => comoOpciones(props.responsables));
                 <CampoSelect
                     nombre="sistema_id"
                     etiqueta="Sistema"
-                    :opciones="sistemas"
+                    :opciones="conOpcionVacia(sistemas, 'La organización entera')"
                     :valor-inicial="compromiso?.sistema_id ? String(compromiso.sistema_id) : undefined"
                     :error="errors.sistema_id"
                     ayuda="Se deja en blanco si la obligación es de la organización entera, como el informe INES. La renovación de conformidad sí es de un sistema concreto."

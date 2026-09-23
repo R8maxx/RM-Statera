@@ -16,17 +16,22 @@ tres.
 | Vista | Qué contesta | Qué lleva |
 |---|---|---|
 | `/panel` | ¿Cómo vamos con lo exigible? | anillo, reparto por estado, pruebas, por marco, sistemas |
-| `/panel/ciclo` | ¿Qué está pasando y mejoramos? | plan, no conformidades, incidentes, desempeño, objetivos |
+| `/panel/ciclo` | ¿Qué está pasando y mejoramos? | plan, obligaciones, no conformidades, incidentes, desempeño, objetivos |
 | `/panel/organizacion` | ¿De qué estamos hablando? | contexto, personas, inventario |
 
-**Son rutas y no estado de cliente**, que es la decisión ya tomada para las tres
+**Son rutas y no estado de cliente**, que es la decisión ya tomada para las
 pantallas del plan de acción: «un conmutador que recuerda la última vista hace
 que el enlace que alguien pega en un correo abra otra pantalla». `ConmutadorPanel`
 está calcado de `ConmutadorVista`.
 
-**Y no entran en `lib/navegacion.ts`**, igual que `/tareas/tablero` y
-`/tareas/calendario`: aquel fichero es el mapa de **módulos**, y añadir ahí tres
-entradas pondría tres «Panel» en el sidebar. El sidebar lleva a `/panel`, que es
+**Y no entran en `lib/navegacion.ts`**, igual que `/tareas/tablero`: aquel fichero
+es el mapa de **módulos**, y añadir ahí tres entradas pondría tres «Panel» en el
+sidebar.
+
+> El ejemplo era `/tareas/calendario` y se volvió del revés con el § 4.16: el
+> calendario **sí** entró en el mapa, precisamente porque dejó de ser una vista de
+> otra cosa y pasó a ser módulo. La regla no cambia —el mapa lista módulos— pero el
+> ejemplo ya no vale. El sidebar lleva a `/panel`, que es
 la vista por defecto, y `esSeccionActiva` ya marca las tres porque cuelgan de
 ella.
 
@@ -34,7 +39,7 @@ ella.
 aunque nadie mirara doce.
 
 **Las tres tienen estado vacío.** Una pestaña en blanco no se lee como «no hay
-nada», se lee como rota — y con los cinco registros del ciclo a cero, que es el
+nada», se lee como rota — y con los seis registros del ciclo a cero, que es el
 estado de quien acaba de empezar, esa vista no diría literalmente nada. En
 primer arranque el conmutador tampoco se pinta: ahí la pantalla no resume,
 orienta.
@@ -43,7 +48,7 @@ orienta.
 
 Partir el panel tiene **un solo riesgo**, y es el que hay que sujetar: una
 pestaña puede esconder un incumplimiento detrás de un clic que nadie da.
-`AlertasDelPanel` cruza los once registros, cuenta **lo rojo que no está a
+`AlertasDelPanel` cruza los doce registros, cuenta **lo rojo que no está a
 cero**, y cada pestaña sale con su recuento en `VistaPanel::$alertas`.
 
 **Se filtra por tono y no por una lista de claves.** `alertas()` de cada registro

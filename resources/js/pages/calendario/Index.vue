@@ -40,6 +40,8 @@ const props = defineProps<{
     vencimientos: Vencimiento[];
     filtros: Filtro[];
     filtrosAplicados: Record<string, string | string[]>;
+    /** Lo que el filtro de responsable deja fuera por no tener uno. */
+    excluidasPorResponsable: string[];
 }>();
 
 /** Cuántos caben en una casilla antes de resumir el resto. */
@@ -78,6 +80,13 @@ const filtroFuente = computed<Filtro | null>(
 const sueltos = computed(() =>
     props.filtros.filter((filtro) => filtro.tipo !== 'busqueda' && filtro.clave !== 'fuente'),
 );
+
+/*
+ * **Y la misma lista va a `todos`.** Sólo se excluía de `sueltos`, así que
+ * `chipsDe()` —que recorre `todos`— seguía pintando «Qué: Tarea» como chip
+ * descartable al lado de los chips de `FiltroFuentes`: el mismo control dos veces
+ * en la misma pantalla, que es justo lo que el comentario de arriba dice evitar.
+ */
 
 /** Lo que el servidor aplicó de verdad, que es lo que marcan los chips. */
 const fuentesActivas = computed<string[]>(() => {
@@ -203,6 +212,20 @@ const desdeLaDerecha = ladoDeEntrada(props.rejilla.mes, mesVisitado);
 
 mesVisitado = props.rejilla.mes;
 
+/*
+ * Lo que el filtro de responsable esconde, dicho.
+ *
+ * Filtrar por responsable **excluye** la formación en vez de dejarla intacta:
+ * dejarla sería el filtro mintiendo, porque lo que vence ahí es que a una persona
+ * le toca renovar y esa persona es la fila, no su jefe. Excluirla se puede
+ * explicar; desaparecer sin más, no.
+ */
+const avisoDeExcluidas = computed(() =>
+    props.excluidasPorResponsable.length === 0
+        ? ''
+        : ` Filtrando por responsable no se ve ${props.excluidasPorResponsable.join(', ').toLowerCase()}: no tiene uno.`,
+);
+
 const { reducido } = useMovimientoReducido();
 
 const entradaRejilla = computed(() => {
@@ -250,7 +273,7 @@ const entradaRejilla = computed(() => {
                 class="sm:ml-auto"
                 :busqueda="busqueda"
                 :sueltos="sueltos"
-                :todos="filtros"
+                :todos="sueltos"
                 :valores="valores"
                 :hay-filtros-activos="hayFiltrosActivos"
                 @aplicar="aplicarFiltro"
@@ -275,7 +298,7 @@ const entradaRejilla = computed(() => {
             titulo="No vence nada este mes"
             :descripcion="
                 hayFiltrosActivos
-                    ? 'Ningún vencimiento cumple estos filtros. Prueba a quitar alguno o cambia de mes.'
+                    ? `Ningún vencimiento cumple estos filtros. Prueba a quitar alguno o cambia de mes.${avisoDeExcluidas}`
                     : 'Nada con fecha este mes. Cambia de mes para ver otros.'
             "
         />
@@ -414,6 +437,10 @@ const entradaRejilla = computed(() => {
             la fila de chips, que se genera del enum: un recuento dentro de un
             texto envejece cada vez que el producto crece.
         -->
+        <p v-if="avisoDeExcluidas && vencimientos.length > 0" class="mt-4 text-xs text-muted-foreground">
+            {{ avisoDeExcluidas.trim() }}
+        </p>
+
         <p class="mt-4 text-xs text-muted-foreground">
             Lo periódico que no sale de ningún registro —el informe INES, la renovación de conformidad, las
             auditorías— se declara en

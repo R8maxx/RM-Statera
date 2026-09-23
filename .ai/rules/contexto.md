@@ -163,10 +163,15 @@ la medida vinculada lo satisfaga; no contrasta los alcances de los sistemas entr
 pantalla de diff** entre dos instantáneas —la comparativa dice qué entró y qué salió, no qué cambió
 por dentro de una cuestión que sigue en las dos—.
 
-**Y no entra una cuarta `Fuente` en el calendario.** Lo que vence no es el análisis sino la revisión
+**Y no entra una `Fuente` propia en el calendario.** Lo que vence no es el análisis sino la revisión
 de su documento aprobado, que `Fuente::Documento` ya recoge desde el § 4.5; una `Fuente` propia
-pintaría dos chips el mismo día para un solo compromiso. Es el argumento exacto por el que la
-`fecha_objetivo` del plan de adecuación se quedó fuera.
+pintaría dos chips el mismo día para un solo compromiso. Es el argumento exacto por el que se quedó
+fuera la `fecha_prevista` de una no conformidad, que vence el mismo día que sus acciones correctivas.
+
+> **Sin ordinal.** Decía «una cuarta `Fuente`» y con el § 4.16 son siete, así que habría envejecido
+> igual que las otras dos veces que este repositorio ha pagado lo mismo. Y el ejemplo que remataba la
+> frase —la `fecha_objetivo` del plan de adecuación— **sí entró**, como `Fuente::Implantacion`: una
+> medida pendiente no tiene por qué tener tarea detrás, así que ahí no había chip que duplicar.
 
 **Ninguna limitación existente pasó a ser falsa con este módulo dentro** —comprobado: ni «contexto»,
 ni «partes interesadas», ni «4.1» aparecían en ninguna—. Es la primera vez en cinco módulos. La única

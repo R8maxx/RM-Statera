@@ -11,9 +11,11 @@
 # QUÉ HAY AQUÍ Y QUÉ NO
 #
 # Va lo periódico que la especificación enumera en su § 4.16 y que ningún módulo
-# produce por su cuenta. NO van las otras cinco cosas de esa lista, porque el
-# calendario ya las recoge sin que nadie las declare, y declararlas aquí pintaría
-# dos chips para un solo compromiso.
+# produce por su cuenta. NO va lo que el calendario ya recoge sin que nadie lo
+# declare —tareas, evidencias, revisión documental, formación, indicadores y las
+# fechas objetivo del plan—, porque declararlo aquí pintaría dos chips para un solo
+# compromiso. Sin recuento en esta frase, a propósito: el de `Fuente` ya envejeció
+# una vez por llevarlo.
 #
 # Tampoco va la **reevaluación de proveedores**, que la § 4.16 sí lista: el § 4.9
 # no existe, la § 2.2 ya declara `proveedores.fecha_evaluacion` y

@@ -229,6 +229,15 @@ El orden importa: el catálogo y el motor son la parte más específica del domi
     y no casos de un enum. Añadir la reevaluación de proveedores el día que llegue
     el § 4.9 es una línea de YAML.
 
+    **Y entró con once fallos de comportamiento dentro**, con la suite verde y
+    Larastan limpio. Están enumerados en `obligaciones.md`; dos perdían datos o
+    reventaban la petición. La lección va aquí porque es de la bitácora y no del
+    módulo: **la suite verde dice que nada de lo que se comprueba está roto, no que
+    el comportamiento sea el correcto.** Los nueve tests que descubren cubren los
+    olvidos de forma —una fuente sin icono, una factory con `organizacion_id`, un
+    permiso sin rol—; que retirar no borre las notas del usuario no lo descubre
+    ningún glob.
+
     Y trae dos hallazgos que no eran del módulo. El primero, **doce `User::query()`
     sin acotar por organización** en seis módulos —controlador y `Recurso` de cada
     uno—, que listaban a los usuarios de todos los clientes en el desplegable de

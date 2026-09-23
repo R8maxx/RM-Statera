@@ -43,6 +43,7 @@ use Illuminate\Support\Carbon;
  * @property ?int $responsable_id
  * @property bool $activo
  * @property ?string $notas
+ * @property ?string $motivo_retirada
  */
 class Compromiso extends Model
 {
@@ -84,6 +85,7 @@ class Compromiso extends Model
         'responsable_id',
         'activo',
         'notas',
+        'motivo_retirada',
     ];
 
     /** @return BelongsTo<Obligacion, $this> */
@@ -186,13 +188,24 @@ class Compromiso extends Model
     /**
      * La próxima vez que toca, en PHP.
      *
-     * Misma regla que `PROXIMA`, y por eso lee `cumplimientos` en vez de
-     * recalcular: si las dos divergieran, la tabla y el calendario dirían cosas
-     * distintas del mismo compromiso.
+     * Misma regla que `PROXIMA`: si las dos divergieran, la tabla y el calendario
+     * dirían cosas distintas del mismo compromiso.
+     *
+     * **Lee la relación cuando está cargada y sólo consulta si no lo está.** Era
+     * siempre un `max()` contra la base, y eso convertía la tabla en N+1 del peor
+     * tipo: `ObligacionRecurso` la llama desde la columna del vencimiento y otra
+     * vez desde el estado —vía `vencido()`—, así que una página de veinticinco
+     * filas lanzaba cincuenta consultas con la relación ya cargada al lado.
+     *
+     * Quien pinte muchas filas debería además traer la fecha por SQL
+     * —`expresionProxima()` como columna añadida—, que es lo que hace el recurso;
+     * esto es el camino de una fila suelta.
      */
     public function proximaFecha(): Carbon
     {
-        $ultimo = $this->cumplimientos()->max('cubre_hasta');
+        $ultimo = $this->relationLoaded('cumplimientos')
+            ? $this->cumplimientos->max('cubre_hasta')
+            : $this->cumplimientos()->max('cubre_hasta');
 
         return $ultimo === null
             ? $this->cadencia()->despuesDe($this->computa_desde)

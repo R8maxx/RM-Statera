@@ -11,32 +11,6 @@ paths:
 
 Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y por qué, para que nadie lo "arregle" sin contexto.
 
-- **Los avisos son un resumen diario por organización, y de momento sólo por correo.** `avisos:enviar`
-  recorre las organizaciones con `ContextoOrganizacion::paraOrganizacion()`, una cada vez: un comando
-  programado no tiene petición ni usuario, así que sin contexto el scope no devuelve nada y RLS
-  deniega por defecto — **no falla, no ve nada**, y un aviso que no salta es indistinguible de no
-  tener nada que avisar. Nada de `withoutGlobalScopes()` ni de `comoMantenimiento()`: esto no cruza
-  organizaciones. La notificación lleva **escalares y ningún modelo**, por lo mismo que los jobs.
-
-  **Un resumen, no una alerta por evidencia**: dice cómo está la cosa hoy, así que repetirlo mañana no
-  es spam y no hace falta una tabla de «ya avisado» para evitar duplicados. Si no hay nada que decir no
-  se envía: un correo diario que casi siempre dice «todo en orden» se filtra a una carpeta en dos
-  semanas y deja de verse el día que importa.
-
-  El resumen lleva **evidencias y tareas en listas separadas**: una evidencia caducada es una prueba que
-  ya no prueba y una tarea vencida es trabajo que no se hizo; se arreglan de formas distintas y las lleva
-  gente distinta.
-
-  **No hay tabla de avisos y es a propósito.** Una bandeja en la interfaz necesitaría tabla propia con
-  `organizacion_id` y RLS; la tabla `notifications` de Laravel no lleva organización, que es
-  exactamente el motivo por el que se retiró `spatie/laravel-medialibrary`. Y `ResumenVencimientos` usa
-  **los mismos scopes que cuenta el panel** (`Evidencia::caducadas()`, `porCaducar()`): con la
-  condición escrita dos veces, el día que cambie una el correo dirá 12 y la pantalla enseñará 9.
-
-- **`lang/es.json` existe por el correo.** Las cadenas de la plantilla de notificaciones de Laravel
-  —«If you're having trouble clicking…», «All rights reserved.»— van por `__()` y salían en inglés en
-  el primer correo que manda el producto, con todo lo demás en español.
-
 - **`OrigenTarea::Propia` no está en la especificación y se añadió a conciencia.** § 4.7 enumera cinco
   orígenes —hallazgo, riesgo, brecha de implantación, incidente, revisión por la dirección— y los cinco
   dan por supuesto que toda tarea nace de otro registro. Muchas no: «pedir presupuesto del antivirus» no

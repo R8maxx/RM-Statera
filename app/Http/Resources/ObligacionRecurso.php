@@ -60,10 +60,28 @@ final class ObligacionRecurso extends Recurso
         );
     }
 
-    /** @return Builder<Compromiso> */
+    /**
+     * @return Builder<Compromiso>
+     */
     public function consulta(): Builder
     {
-        return Compromiso::query()->with(['responsable', 'obligacion', 'sistema', 'cumplimientos']);
+        return Compromiso::query()
+            ->with(['responsable', 'obligacion', 'sistema', 'cumplimientos'])
+            /*
+             * La próxima fecha **viene por SQL**, no por fila.
+             *
+             * `proximaFecha()` sabe resolverse sola, pero la pintan dos columnas
+             * —el vencimiento y el estado— y con veinticinco filas eso eran
+             * cincuenta consultas. `expresionProxima()` es la misma regla que
+             * usan los scopes, así que la tabla, el calendario y el panel siguen
+             * contando lo mismo.
+             *
+             * El alias es además lo que hace ordenable la columna que la pantalla
+             * declara principal: PostgreSQL admite `ORDER BY` sobre un alias del
+             * `SELECT`.
+             */
+            ->select('compromisos.*')
+            ->selectRaw(Compromiso::expresionProxima().' as proxima_fecha');
     }
 
     /** @return list<Columna> */
@@ -78,10 +96,11 @@ final class ObligacionRecurso extends Recurso
              * cada fila, y con quince filas nadie lo hace.
              */
             Columna::badge('proximo_vencimiento', 'Próximo vencimiento')
+                ->ordenable('proxima_fecha')
                 ->ancho('13rem')
                 ->ayuda('Sale del último cumplimiento registrado más la cadencia. Sin cumplimientos, de la fecha desde la que corre el reloj.')
                 ->formato(function (Compromiso $fila): ValorEtiquetado {
-                    $fecha = $fila->proximaFecha();
+                    $fecha = $this->proxima($fila);
                     $dias = (int) Carbon::today()->diffInDays($fecha, false);
 
                     return new ValorEtiquetado(
@@ -103,7 +122,7 @@ final class ObligacionRecurso extends Recurso
                         return new ValorEtiquetado('nunca', 'Nunca cumplida', 'no_iniciado', 'Circle');
                     }
 
-                    return $fila->vencido()
+                    return $this->proxima($fila)->lt(Carbon::today())
                         ? new ValorEtiquetado('vencida', 'Fuera de plazo', 'caducada', 'TriangleAlert')
                         : new ValorEtiquetado('al_dia', 'Al día', 'implantado', 'CircleCheck');
                 }),
@@ -207,9 +226,26 @@ final class ObligacionRecurso extends Recurso
         ];
     }
 
+    /** Lo que antes vence, primero: es la pregunta que trae a esta pantalla. */
     public function ordenPorDefecto(): string
     {
-        return 'titulo';
+        return 'proximo_vencimiento';
+    }
+
+    /**
+     * La próxima fecha de una fila, leída del alias que trae `consulta()`.
+     *
+     * Se cae a `proximaFecha()` si alguien monta el recurso sin ese alias —un
+     * test, una llamada suelta—: el resultado es el mismo, sólo cuesta una
+     * consulta.
+     */
+    private function proxima(Compromiso $fila): Carbon
+    {
+        $alias = $fila->getAttribute('proxima_fecha');
+
+        return $alias === null
+            ? $fila->proximaFecha()
+            : Carbon::parse((string) $alias)->startOfDay();
     }
 
     /** «vence en 12 días» / «venció hace 4 días», que es lo que se lee de un vistazo. */

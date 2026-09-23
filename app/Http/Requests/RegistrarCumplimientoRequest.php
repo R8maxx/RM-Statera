@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\NormalizaSeleccionVacia;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
@@ -22,6 +23,19 @@ use Illuminate\Validation\Validator;
  */
 class RegistrarCumplimientoRequest extends FormRequest
 {
+    use NormalizaSeleccionVacia;
+
+    /**
+     * Las cuatro referencias son opcionales y las cuatro se pueden dejar en
+     * blanco, así que las cuatro mandan centinela.
+     *
+     * @return list<string>
+     */
+    protected function seleccionesOpcionales(): array
+    {
+        return ['auditoria_id', 'revision_direccion_id', 'documento_id', 'evidencia_id'];
+    }
+
     /**
      * @return array<string, mixed>
      */

@@ -6,7 +6,8 @@ import TiraIndicadores from '@/components/TiraIndicadores.vue';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Link, useForm } from '@inertiajs/vue3';
-import { CalendarCheckIcon } from '@lucide/vue';
+import { RepeatIcon } from '@lucide/vue';
+import { computed } from 'vue';
 
 type Proponible = {
     id: number;
@@ -39,9 +40,18 @@ const props = defineProps<{
     pendientes: App.Http.Resources.Panel.Indicador[];
     total: number;
     sinAsumir: Proponible[];
+    puedeGestionar: boolean;
 }>();
 
 const formulario = useForm({});
+
+/*
+ * **El vacío es el de la tabla, no el de los vigentes.**
+ *
+ * Era `total === 0`, y `total` cuenta sólo los activos: con todos los compromisos
+ * retirados, la pantalla escondía filas que existen y decía que no había ninguna.
+ */
+const vacio = computed(() => props.meta.total === 0 && props.sinAsumir.length > 0);
 
 function asumirTodas(): void {
     formulario.post('/obligaciones/predefinidas', { preserveScroll: true });
@@ -76,18 +86,30 @@ function asumirTodas(): void {
             ENS y por la categoría derivada de sus sistemas—, no las siete que
             hay cargadas.
         -->
+        <!--
+            Los dos botones van **tras el permiso**, como la acción general que el
+            `DataTable` deja de pintar cuando la tabla está vacía. Sin la guarda,
+            quien sólo tiene `obligaciones.ver` los veía y se llevaba un 403: el
+            servidor decide, y la pantalla no puede ofrecer una puerta cerrada.
+        -->
         <EstadoVacio
-            v-if="total === 0 && sinAsumir.length > 0"
-            :icono="CalendarCheckIcon"
+            v-if="vacio"
+            :icono="RepeatIcon"
             titulo="Todavía no hay ninguna obligación asumida"
-            :descripcion="`El catálogo propone ${sinAsumir.length} para esta organización. Se pueden asumir de una vez y ajustar después desde cuándo corre el reloj en cada una.`"
+            :descripcion="
+                puedeGestionar
+                    ? `El catálogo propone ${sinAsumir.length} para esta organización. Se pueden asumir de una vez y ajustar después desde cuándo corre el reloj en cada una.`
+                    : `El catálogo propone ${sinAsumir.length} para esta organización, y todavía no las ha asumido nadie. Quien las declara es el responsable de seguridad.`
+            "
         >
-            <Button :disabled="formulario.processing" @click="asumirTodas">
-                Asumir las {{ sinAsumir.length }} del catálogo
-            </Button>
-            <Link href="/obligaciones/crear">
-                <Button variant="outline">Declarar una propia</Button>
-            </Link>
+            <template v-if="puedeGestionar">
+                <Button :disabled="formulario.processing" @click="asumirTodas">
+                    Asumir las {{ sinAsumir.length }} del catálogo
+                </Button>
+                <Button as-child variant="outline">
+                    <Link href="/obligaciones/crear">Declarar una propia</Link>
+                </Button>
+            </template>
         </EstadoVacio>
 
         <DataTable v-else :recurso="recurso" :filas="filas" :meta="meta" />
@@ -97,9 +119,13 @@ function asumirTodas(): void {
             en una tarjeta: es un recordatorio, no la acción principal de la
             pantalla.
         -->
-        <p v-if="total > 0 && sinAsumir.length > 0" class="mt-4 text-xs text-muted-foreground">
-            El catálogo propone {{ sinAsumir.length }} obligación(es) más para esta organización.
-            <Link href="/obligaciones/crear" class="underline underline-offset-2">Revisarlas</Link>.
+        <p v-if="!vacio && sinAsumir.length > 0" class="mt-4 text-xs text-muted-foreground">
+            El catálogo propone
+            {{ sinAsumir.length === 1 ? 'una obligación más' : `${sinAsumir.length} obligaciones más` }}
+            para esta organización.
+            <Link v-if="puedeGestionar" href="/obligaciones/crear" class="underline underline-offset-2">
+                Revisarlas
+            </Link>
         </p>
     </AppLayout>
 </template>

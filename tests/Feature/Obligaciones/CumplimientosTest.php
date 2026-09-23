@@ -127,7 +127,7 @@ it('borrar el cumplimiento devuelve la próxima fecha a la que había', function
     expect($compromiso->fresh()?->proximaFecha()->toDateString())->toBe('2027-01-01');
 });
 
-it('un cumplimiento no cruza la frontera de organización desde otra obligación', function (): void {
+it('el cumplimiento de un compromiso no se resuelve desde otro', function (): void {
     $suyo = Compromiso::factory()->create();
     $ajeno = Compromiso::factory()->create();
 

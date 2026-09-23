@@ -1,6 +1,5 @@
 import {
     BoxesIcon,
-    CalendarCheckIcon,
     CalendarDaysIcon,
     ClipboardCheckIcon,
     ClipboardListIcon,
@@ -17,6 +16,7 @@ import {
     ListTodoIcon,
     NetworkIcon,
     PaperclipIcon,
+    RepeatIcon,
     SearchCheckIcon,
     ServerIcon,
     ShieldAlertIcon,
@@ -112,7 +112,11 @@ export const navegacion: GrupoNavegacion[] = [
             {
                 titulo: 'Obligaciones',
                 href: '/obligaciones',
-                icono: CalendarCheckIcon,
+                // `Repeat` y no un segundo calendario: `CalendarCheck` compartía
+                // marco con el `CalendarDays` de la entrada de encima, y son dos
+                // filas seguidas. Es además el mismo icono con el que la fuente
+                // se pinta en la rejilla, así que se aprende una vez.
+                icono: RepeatIcon,
                 /*
                  * Sin «auditoría interna» —título de `/auditorias`—, sin «ens»
                  * —ya es de Sistemas— y sin «formación» ni «revisión», que son

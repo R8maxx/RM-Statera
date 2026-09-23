@@ -143,7 +143,7 @@ registro de vulnerabilidades del invariante 8.
 Vive en `catalogo/*.yaml`, versionado en el repositorio, y se carga con un comando idempotente:
 
 ```sh
-php artisan catalogo:importar                    # importa los cuatro ficheros
+php artisan catalogo:importar                    # importa los cinco ficheros
 php artisan catalogo:importar --dry-run          # muestra el diff sin escribir
 php artisan catalogo:importar catalogo/ens-rd311-2022.yaml
 ```
@@ -221,7 +221,7 @@ sobre el directorio pilla lo que un encaje de ruta se deja.
 | `migraciones.md` | `database/migrations/**` | `CREATE OR REPLACE FUNCTION`; el `CHECK` construido desde un enum que `migrate:fresh` no prueba |
 | `diseno.md` | `resources/css/**`, `components/ui/**` | La paleta: hue 196, `--acento` frente a `--accent`, los cuatro sitios del violeta, radios, contraste y protanopía |
 | `interfaz.md` | `resources/js/**` | `lib/tonos.ts` y `lib/navegacion.ts` como mapas únicos; los tres canales de un estado; qué librería entró, cuál no y por qué |
-| `tests.md` | `tests/**` | Los seis tests que descubren en vez de enumerar |
+| `tests.md` | `tests/**` | Los nueve tests que descubren en vez de enumerar |
 | `infraestructura.md` | `docker-compose.yml`, `docker/**`, `.env.example` | Los dos endpoints de MinIO, `quay.io`, el `ARG UID`, `predis` |
 | `orden-de-arranque.md` | este fichero, `README.md`, `PRODUCT.md` | La bitácora de los 24 puntos, con el razonamiento del orden |
 

@@ -123,13 +123,35 @@ enum Fuente: string
     }
 
     /**
-     * El icono con el que se distingue de un vistazo en el calendario.
+     * El icono con el que se distingue de un vistazo.
      *
-     * **Es el de su módulo en `lib/navegacion.ts`**, y eso no es casualidad: en
-     * la rejilla el icono es el único canal que identifica la fuente —el color
-     * dice cómo va, no qué es— y quien lo aprende lo aprende del sidebar. Dos
-     * excepciones, las dos anteriores a este módulo: `Documento` usa `FileCheck`
-     * y no `FileText` porque lo que vence es la revisión de lo firmado.
+     * En la rejilla el icono es **el único canal que identifica la fuente** —el
+     * color dice cómo va, no qué es—, y la fila de chips que hace de clave sólo
+     * existe en `/calendario`: en el popover de un día, en la agenda de móvil y
+     * en el correo el icono va solo. Así que lo que manda aquí no es parecerse al
+     * sidebar: es **que las siete siluetas se separen a 14 px**.
+     *
+     * Cinco coinciden con el icono de su módulo en `lib/navegacion.ts`, que es lo
+     * cómodo cuando además se distinguen. Dos no, y las dos tienen motivo:
+     *
+     * - `Documento` usa `FileCheck` y no `FileText`, porque lo que vence es la
+     *   revisión de lo firmado. Es anterior a este módulo.
+     * - `Implantacion` usa `Target` y no `ClipboardCheck`. Junto con `FileCheck` y
+     *   el `CalendarCheck` que llevaba `Obligacion`, eran **la misma palomita en la
+     *   misma posición** —`m9 14 2 2 4-4` y `m9 15 2 2 4-4`— sobre tres
+     *   cuadriláteros de 18×18: a 14 px lo que los separaba medía un píxel.
+     *   Círculos concéntricos no se parecen a nada de eso.
+     *
+     * `Obligacion` sí coincide con el suyo, porque **el sidebar se movió a `Repeat`
+     * con este arreglo**: `CalendarCheck` compartía marco con el `CalendarDays` de
+     * Calendario, que es la entrada de encima.
+     *
+     * `Target` es además el icono de Objetivos en el sidebar, y se asume: en el
+     * calendario un `Target` sólo puede ser una medida, porque los objetivos están
+     * declarados fuera de él —tienen tareas detrás y sus plazos ya pintan chip—.
+     *
+     * Lo fija `FuentesConIconoDistintoTest`, que es la comprobación que faltaba:
+     * `IconosTest` sólo mira colisiones dentro de un mismo enum y por tono.
      */
     public function icono(): string
     {
@@ -139,8 +161,8 @@ enum Fuente: string
             self::Documento => 'FileCheck',
             self::Formacion => 'GraduationCap',
             self::Indicador => 'Gauge',
-            self::Implantacion => 'ClipboardCheck',
-            self::Obligacion => 'CalendarCheck',
+            self::Implantacion => 'Target',
+            self::Obligacion => 'Repeat',
         };
     }
 

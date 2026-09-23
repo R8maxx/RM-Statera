@@ -110,15 +110,31 @@ final readonly class FiltrosVencimiento
      * un `responsable_id` en `personas` sería inventar un capataz por cada
      * empleado.
      */
-    public function tieneResponsable(Fuente $fuente): bool
+    private function tieneResponsable(Fuente $fuente): bool
     {
         return $fuente !== Fuente::Formacion;
     }
 
-    /** Las fuentes que este filtro deja fuera por no tener responsable. */
-    public function excluidasPorResponsable(): bool
+    /**
+     * Qué fuentes quedan fuera **por no tener responsable**, no por no pedirse.
+     *
+     * Lo lee la pantalla para decirlo: excluir la formación al filtrar por
+     * responsable es defendible sólo si se explica, y el docblock de `quiere()`
+     * prometía esa explicación desde el primer día sin que existiera en ningún
+     * sitio. Ahora sale en el estado vacío y al pie de la rejilla.
+     *
+     * @return list<Fuente>
+     */
+    public function excluidasPorResponsable(): array
     {
-        return $this->responsableId !== null;
+        if ($this->responsableId === null) {
+            return [];
+        }
+
+        return array_values(array_filter(
+            Fuente::cases(),
+            fn (Fuente $fuente): bool => ! $this->tieneResponsable($fuente),
+        ));
     }
 
     /**

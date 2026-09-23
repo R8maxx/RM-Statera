@@ -115,10 +115,13 @@ decisión que le da forma: **una lista de sólo lo concedido no la contesta**, a
 que cada módulo enseña sus verbos con los que faltan tachados y con su icono
 —§11 no deja que la diferencia dependa del color—.
 
-Lo que no se hace es enumerar los cuarenta y tres permisos en cuarenta y tres
-filas con su palomita: **eso es la fila de ceros del inventario otra vez**. Se
-agrupan por módulo, diecisiete filas, y los módulos que no se ven enteros se
-resumen en una frase.
+Lo que no se hace es enumerar los permisos uno a uno con su palomita —hoy son
+cuarenta y siete—: **eso es la fila de ceros del inventario otra vez**. Se agrupan
+por módulo, y los módulos que no se ven enteros se resumen en una frase.
+
+> Sin cifra de filas a propósito. Decía «diecisiete» y el § 4.16 la dejó en veinte
+> sin que nadie lo notara, que es lo que pasa con todo recuento escrito en prosa:
+> `PermisosDeLaCuenta::porModulo()` agrupa por prefijo y se entera solo.
 
 **El título y el icono no se escriben en PHP.** Viaja el `href` y el cliente lo
 resuelve contra `lib/navegacion.ts`, que pasa a tener un **quinto lector** en vez
@@ -136,8 +139,8 @@ escritura y sin lectura tiene que salir en la lista larga y no escondido en el
 resumen.
 
 > **Y de aquí salió un hallazgo: `sinAcceso` hoy no se pinta nunca.** Los tres
-> roles del § 4.19 llevan el `.ver` de los diecisiete módulos, así que nadie
-> tiene un módulo oculto. Es la **tercera** vez que este mismo hecho aparece en
+> roles del § 4.19 llevan el `.ver` de todos los módulos que tienen uno, así que
+> nadie tiene un módulo oculto. Es la **tercera** vez que este mismo hecho aparece en
 > este documento: ya estaba anotado en la guarda del bloque de riesgos de la
 > ficha de un activo —«la guarda no la ejerce nadie»— y en la de las fuentes del
 > panel —«no la hace innecesaria: la hace **no ejercida**»—. Aquí igual: la rama

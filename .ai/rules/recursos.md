@@ -61,9 +61,10 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
   para una pantalla que no pagina — `useTablaServidor` lo leería y se lo devolvería al servidor.
 
 - **`RespondeConRecurso::filtros()` no usa `Inertia::once()`, a diferencia de `tabla()`.** La clave de
-  `tabla()` es `recurso:{clave}` y la comparten las tres pantallas del mismo recurso: si el tablero
-  emitiera ahí su lista recortada, ganaría la primera pantalla visitada y la otra vería filtros que no
-  le sirven. La lista pesa poco y, como no va en el `only` de las recargas parciales, se queda en el
+  `tabla()` es `recurso:{clave}` y la comparten las dos pantallas del mismo recurso —la tabla y el
+  tablero—: si el tablero emitiera ahí su lista recortada, ganaría la primera pantalla visitada y la
+  otra vería filtros que no le sirven. Eran tres hasta que el § 4.16 se llevó el calendario, que ya no
+  usa `TareaRecurso`: declara sus filtros a mano, porque enseña siete fuentes y no tareas. La lista pesa poco y, como no va en el `only` de las recargas parciales, se queda en el
   cliente igual.
 
 - **`CampoTexto` gana `etiquetaOculta`.** `CampoBase` ya lo tenía y `CampoTexto` no lo reenviaba. Lo

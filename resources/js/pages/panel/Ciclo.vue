@@ -16,9 +16,9 @@ import { computed } from 'vue';
 /**
  * «¿Qué está pasando y estamos mejorando?» — la segunda vista del panel.
  *
- * Las cinco piezas del ciclo vivo, en el orden en que se recorren: lo que hay
- * abierto, lo que se rompió, lo que pasó, lo que se mide y a qué nos
- * comprometimos. Antes estaban desperdigadas entre las trece tarjetas de una
+ * Las piezas del ciclo vivo, en el orden en que se recorren: lo que hay abierto,
+ * lo que toca cada tanto, lo que se rompió, lo que pasó, lo que se mide y a qué
+ * nos comprometimos. Antes estaban desperdigadas entre las trece tarjetas de una
  * sola pantalla, cada una con su rojo dentro.
  *
  * **Aquí no hay ningún rojo**, y es deliberado: todos subieron a la tira de la
@@ -45,7 +45,7 @@ const escalonado = variantesEscalonado(0.05);
 
 /*
  * Una pestaña que no pinta nada es peor que una pestaña larga: parece rota.
- * Con los cinco registros vacíos —que es el estado de una organización que
+ * Con los seis registros vacíos —que es el estado de una organización que
  * acaba de empezar— esta vista diría literalmente nada, así que dice por dónde
  * se empieza.
  */

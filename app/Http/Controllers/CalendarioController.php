@@ -55,6 +55,17 @@ class CalendarioController extends Controller
             ),
             'filtros' => $this->filtros($request),
             'filtrosAplicados' => $this->aplicados($request),
+            /*
+             * Lo que el filtro de responsable deja fuera **por no tener uno**.
+             *
+             * Excluirlas es lo correcto —dejarlas intactas sería el filtro
+             * mintiendo—, pero desaparecer sin explicación es lo que convierte un
+             * filtro en algo que nadie vuelve a usar. La pantalla lo dice.
+             */
+            'excluidasPorResponsable' => array_map(
+                static fn (Fuente $fuente): string => $fuente->etiqueta(),
+                $filtros->excluidasPorResponsable(),
+            ),
         ]);
     }
 

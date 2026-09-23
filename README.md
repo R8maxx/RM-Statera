@@ -71,7 +71,7 @@ docker compose run --rm --entrypoint sh minio-init -c 'mc alias set s http://min
 
 ## El catálogo normativo
 
-El catálogo (marcos, requisitos, refuerzos, matriz de aplicabilidad y mapeos ISO ↔ ENS) es global y compartido, y vive como datos versionados en `catalogo/*.yaml`. No es código: no hay enums ni constantes con los controles dentro.
+El catálogo (marcos, requisitos, refuerzos, matriz de aplicabilidad, mapeos ISO ↔ ENS, amenazas de MAGERIT y obligaciones periódicas) es global y compartido, y vive como datos versionados en `catalogo/*.yaml`. No es código: no hay enums ni constantes con los controles dentro.
 
 ```sh
 docker compose exec app php artisan catalogo:importar --dry-run  # el diff, sin escribir nada

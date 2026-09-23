@@ -17,6 +17,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { conOpcionVacia } from '@/lib/formularios';
 import { Link, useForm } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
@@ -33,6 +34,7 @@ interface Compromiso {
     titulo: string;
     descripcion: string | null;
     notas: string | null;
+    motivoRetirada: string | null;
     cadencia: string;
     periodicidadMeses: number;
     computaDesde: string;
@@ -107,6 +109,18 @@ const formulario = useForm({
     nota: '',
 });
 
+/*
+ * Retirar abre su confirmación y pide el motivo.
+ *
+ * Se ejecutaba de un clic, mientras que borrar un cumplimiento —que es
+ * reversible registrándolo otra vez— sí preguntaba. Y el `motivo` estaba
+ * declarado y no lo rellenaba nadie, así que la columna nacía siempre vacía.
+ *
+ * Retirar saca el compromiso del calendario y del panel de golpe: § 1 de
+ * DESIGN.md pide confirmación explícita para eso, y el auditor pregunta por qué
+ * se dejó de hacer tanto como por si se hacía.
+ */
+const retirando = ref(false);
 const retirada = useForm({ motivo: '' });
 
 const estado = computed(() => {
@@ -157,7 +171,13 @@ function borrarCumplimiento(): void {
 }
 
 function retirar(): void {
-    retirada.post(`/obligaciones/${props.compromiso.id}/retirada`, { preserveScroll: true });
+    retirada.post(`/obligaciones/${props.compromiso.id}/retirada`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            retirando.value = false;
+            retirada.reset();
+        },
+    });
 }
 </script>
 
@@ -171,7 +191,7 @@ function retirar(): void {
                 <Button v-if="puedeGestionar" as-child variant="outline">
                     <Link :href="`/obligaciones/${compromiso.id}/editar`">Editar</Link>
                 </Button>
-                <Button v-if="puedeGestionar && compromiso.activo" variant="ghost" @click="retirar">
+                <Button v-if="puedeGestionar && compromiso.activo" variant="ghost" @click="retirando = true">
                     Retirar
                 </Button>
             </template>
@@ -305,10 +325,40 @@ function retirar(): void {
                             <dt class="text-xs text-muted-foreground">Notas</dt>
                             <dd>{{ compromiso.notas }}</dd>
                         </div>
+                        <div v-if="compromiso.motivoRetirada">
+                            <dt class="text-xs text-muted-foreground">Por qué se retiró</dt>
+                            <dd>{{ compromiso.motivoRetirada }}</dd>
+                        </div>
                     </dl>
                 </CardContent>
             </Card>
         </div>
+
+        <Dialog v-model:open="retirando">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>¿Retirar la obligación?</DialogTitle>
+                    <DialogDescription>
+                        Deja de contar en el calendario y en el panel, y su histórico de cumplimiento
+                        se conserva entero: es la prueba de que se cumplió mientras aplicaba.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <CampoTextarea
+                    v-model="retirada.motivo"
+                    nombre="motivo"
+                    etiqueta="Por qué deja de aplicar"
+                    :filas="3"
+                    :error="retirada.errors.motivo"
+                    ayuda="Se guarda aparte de las notas y se enseña en la ficha. «Dejasteis de presentarlo, ¿por qué?» es una pregunta de auditoría."
+                />
+
+                <DialogFooter>
+                    <Button variant="outline" @click="retirando = false">Cancelar</Button>
+                    <Button :disabled="retirada.processing" @click="retirar">Retirar</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
 
         <Dialog :open="borrando !== null" @update:open="(v: boolean) => !v && (borrando = null)">
             <DialogContent>
@@ -369,7 +419,7 @@ function retirar(): void {
                         v-model="formulario.auditoria_id"
                         nombre="auditoria_id"
                         etiqueta="Auditoría que lo demuestra"
-                        :opciones="comoOpciones(auditorias)"
+                        :opciones="conOpcionVacia(comoOpciones(auditorias), 'Ninguna')"
                         :error="formulario.errors.auditoria_id"
                     />
 
@@ -377,7 +427,7 @@ function retirar(): void {
                         v-model="formulario.revision_direccion_id"
                         nombre="revision_direccion_id"
                         etiqueta="Acta de revisión"
-                        :opciones="comoOpciones(revisiones)"
+                        :opciones="conOpcionVacia(comoOpciones(revisiones), 'Ninguna')"
                         :error="formulario.errors.revision_direccion_id"
                     />
 
@@ -385,7 +435,7 @@ function retirar(): void {
                         v-model="formulario.documento_id"
                         nombre="documento_id"
                         etiqueta="Documento"
-                        :opciones="comoOpciones(documentos)"
+                        :opciones="conOpcionVacia(comoOpciones(documentos), 'Ninguno')"
                         :error="formulario.errors.documento_id"
                     />
 
@@ -393,7 +443,7 @@ function retirar(): void {
                         v-model="formulario.evidencia_id"
                         nombre="evidencia_id"
                         etiqueta="Evidencia"
-                        :opciones="comoOpciones(evidencias)"
+                        :opciones="conOpcionVacia(comoOpciones(evidencias), 'Ninguna')"
                         :error="formulario.errors.evidencia_id"
                         ayuda="Qué lo prueba. Sin prueba, un cumplimiento es una afirmación."
                     />

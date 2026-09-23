@@ -13,7 +13,7 @@ que sus reglas viven donde muerden:
 
 - **Caducidad y periodicidad de renovación**, y los scopes `caducadas()` y
   `porCaducar()` que comparten el panel, el filtro de la tabla y el correo diario:
-  `.ai/rules/tareas.md`, que es donde vive `Domain\Aviso`.
+  `.ai/rules/obligaciones.md`, que es donde vive `Domain\Aviso` desde el § 4.16.
 - **`Evidencia\PeriodicidadRenovacion` no es `Metrica\Periodicidad`**, y por qué no se
   comparten: `.ai/rules/metricas.md`.
 - **Un adjunto no es una evidencia**, y dónde está la frontera: `.ai/rules/adjuntos.md`.

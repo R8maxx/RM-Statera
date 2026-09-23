@@ -456,6 +456,24 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/calendario', [CalendarioController::class, 'index'])->name('calendario.index');
     });
 
+    /*
+     * La ruta vieja del calendario, que se mudó aquí con el § 4.16.
+     *
+     * Existe porque la URL del mes se guarda y se comparte, y un 404 en una
+     * dirección que alguien pegó en un correo es el mismo fallo que ya cerró «un
+     * mes que no se entiende es el de hoy». **302 y no 301**: un 301 lo cachea el
+     * navegador para siempre y el día que esto tenga que cambiar no hay forma de
+     * purgarlo en las máquinas de la gente.
+     *
+     * **Y sin `can:`, fuera del grupo del plan de acción.** Nació dentro de
+     * `can:tareas.ver` por estar donde estaba la ruta original, y eso le daba un
+     * 403 a quien tuviera `calendario.ver` sin `tareas.ver` — exactamente el fallo
+     * que este respaldo existe para evitar. Una redirección no enseña nada: quien
+     * decide es el destino, que sí lleva su permiso.
+     */
+    Route::get('/tareas/calendario', static fn (Request $peticion): RedirectResponse => redirect()->route('calendario.index', $peticion->query(), 302))
+        ->name('tareas.calendario');
+
     Route::middleware('can:obligaciones.ver')->group(function (): void {
         Route::get('/obligaciones', [ObligacionController::class, 'index'])->name('obligaciones.index');
 
@@ -533,18 +551,6 @@ Route::middleware('auth')->group(function (): void {
          * Van antes que `{tarea}` para que no se lean como identificadores.
          */
         Route::get('/tareas/tablero', [TareaController::class, 'tablero'])->name('tareas.tablero');
-
-        /*
-         * El calendario se mudó a `/calendario` con el § 4.16: enseña siete
-         * fuentes de seis módulos y ya no es una vista del plan de acción.
-         *
-         * Esta línea existe porque la URL del mes se guarda y se comparte, y un
-         * 404 en una dirección que alguien pegó en un correo es el mismo fallo
-         * que ya cerró «un mes que no se entiende es el de hoy». **302 y no
-         * 301**: un 301 lo cachea el navegador para siempre y el día que esto
-         * tenga que cambiar no hay forma de purgarlo en las máquinas de la gente.
-         */
-        Route::get('/tareas/calendario', static fn (Request $peticion): RedirectResponse => redirect()->route('calendario.index', $peticion->query(), 302));
 
         // Antes que `{tarea}`, para que `crear` no se lea como un id.
         Route::get('/tareas/crear', [TareaController::class, 'create'])

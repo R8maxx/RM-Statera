@@ -9,6 +9,7 @@ use App\Domain\Autorizacion\Enums\Permiso;
 use App\Domain\Documento\Models\Documento;
 use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Obligacion\AsumirObligacion;
+use App\Domain\Obligacion\Cadencia;
 use App\Domain\Obligacion\CodigoCompromiso;
 use App\Domain\Obligacion\Excepciones\CumplimientoInvalido;
 use App\Domain\Obligacion\Models\Compromiso;
@@ -61,6 +62,7 @@ class ObligacionController extends Controller
             // Lo que el catálogo propone y todavía nadie ha asumido. Es lo que
             // evita que el registro se quede vacío para siempre.
             'sinAsumir' => $this->proponibles($aplicables),
+            'puedeGestionar' => $this->puedeGestionar(),
         ]);
     }
 
@@ -73,7 +75,7 @@ class ObligacionController extends Controller
                 'computa_desde' => Carbon::today()->toDateString(),
             ],
             'sinAsumir' => $this->proponibles($aplicables),
-            ...$this->opciones(),
+            ...$this->opcionesDeCompromiso(),
         ]);
     }
 
@@ -95,10 +97,29 @@ class ObligacionController extends Controller
      */
     public function asumir(Request $request, Obligacion $obligacion, AsumirObligacion $asumir): RedirectResponse
     {
+        /*
+         * Una obligación que el importador retiró **no se asume**. `ObligacionesAplicables`
+         * ya filtra por `vigentes()`, pero eso sólo gobierna lo que la pantalla
+         * propone: un POST directo a esta ruta la asumiría igual, y el importador
+         * la marca precisamente porque dejó de exigirse.
+         *
+         * 404 y no 403, como el resto del producto: decir «existe pero no vale» ya
+         * sería contar algo del catálogo.
+         */
+        abort_unless($obligacion->vigente, 404);
+
         $datos = $request->validate([
             'computa_desde' => ['nullable', 'date', 'before_or_equal:today'],
             'sistema_id' => ['nullable', 'integer', 'exists:sistemas,id'],
             'responsable_id' => ['nullable', 'integer', 'exists:users,id'],
+            /*
+             * La cadencia del catálogo es **la sugerida**, y quien asume puede ser
+             * más estricto. `AsumirObligacion` lo admitía desde el principio y
+             * nadie se lo pasaba, así que la frase de su docblock era falsa: o se
+             * expone o se quita, y exponerlo es lo que hace útil la palabra
+             * «sugerida» de la columna del catálogo.
+             */
+            'periodicidad_meses' => ['nullable', 'integer', 'between:'.Cadencia::MINIMO_MESES.','.Cadencia::MAXIMO_MESES],
         ]);
 
         $compromiso = $asumir(
@@ -106,6 +127,7 @@ class ObligacionController extends Controller
             isset($datos['computa_desde']) ? Carbon::parse($datos['computa_desde']) : null,
             $datos['sistema_id'] ?? null,
             $datos['responsable_id'] ?? null,
+            $datos['periodicidad_meses'] ?? null,
         );
 
         Inertia::flash('exito', "«{$compromiso->titulo}» asumida.");
@@ -161,6 +183,7 @@ class ObligacionController extends Controller
                 'titulo' => $compromiso->titulo,
                 'descripcion' => $compromiso->descripcion,
                 'notas' => $compromiso->notas,
+                'motivoRetirada' => $compromiso->motivo_retirada,
                 'cadencia' => $compromiso->cadencia()->etiqueta(),
                 'periodicidadMeses' => $compromiso->periodicidad_meses,
                 'computaDesde' => $compromiso->computa_desde->toDateString(),
@@ -196,8 +219,8 @@ class ObligacionController extends Controller
                     'titulo' => $cumplimiento->evidencia->titulo,
                 ],
             ])->all(),
-            'puedeGestionar' => request()->user()?->can(Permiso::ObligacionesGestionar->value) ?? false,
-            ...$this->opciones(),
+            'puedeGestionar' => $this->puedeGestionar(),
+            ...$this->opcionesDeCumplimiento(),
         ]);
     }
 
@@ -217,7 +240,7 @@ class ObligacionController extends Controller
             ],
             'sugerencia' => null,
             'sinAsumir' => [],
-            ...$this->opciones(),
+            ...$this->opcionesDeCompromiso(),
         ]);
     }
 
@@ -305,13 +328,24 @@ class ObligacionController extends Controller
         return Organizacion::query()->findOrFail(app(ContextoOrganizacion::class)->idObligatorio());
     }
 
+    private function puedeGestionar(): bool
+    {
+        return request()->user()?->can(Permiso::ObligacionesGestionar->value) ?? false;
+    }
+
     /**
+     * Lo que necesita el formulario del compromiso, y nada más.
+     *
+     * **Estaba partido en un solo método que devolvía las seis listas**, y las tres
+     * pantallas recibían las seis. Costaba dos cosas: cuatro consultas por carga
+     * que nadie usaba, y un aviso de Vue en cada una —`AppLayout` tiene raíz de
+     * fragmento, así que los props que el componente no declara caen en `$attrs` y
+     * no se pueden heredar—.
+     *
      * @return array<string, mixed>
      */
-    private function opciones(): array
+    private function opcionesDeCompromiso(): array
     {
-        $organizacionId = app(ContextoOrganizacion::class)->idObligatorio();
-
         return [
             'sistemas' => Sistema::query()
                 ->orderBy('nombre')
@@ -325,14 +359,29 @@ class ObligacionController extends Controller
              * clientes. Lo comprueba `ConsultasDeUsuarioAcotadasTest`.
              */
             'responsables' => User::query()
-                ->where('organizacion_id', $organizacionId)
+                ->where('organizacion_id', app(ContextoOrganizacion::class)->idObligatorio())
                 ->orderBy('name')
                 ->get()
                 ->map(fn (User $usuario): array => ['valor' => $usuario->id, 'etiqueta' => $usuario->name])
                 ->all(),
+        ];
+    }
 
-            // Los tres registros con los que se puede demostrar un cumplimiento,
-            // y la evidencia, que es la prueba y va aparte.
+    /**
+     * Con qué se puede demostrar un cumplimiento: sólo lo pide la ficha.
+     *
+     * Los tres registros son excluyentes entre sí —lo impone la base— y la
+     * evidencia va aparte porque es otra cosa: es la prueba, y convive con el
+     * registro que la originó.
+     *
+     * **Las cuatro llevan tope.** `Documento` no lo llevaba y se traía el registro
+     * documental entero para un desplegable.
+     *
+     * @return array<string, mixed>
+     */
+    private function opcionesDeCumplimiento(): array
+    {
+        return [
             'auditorias' => Auditoria::query()
                 ->orderByDesc('fecha')
                 ->limit(50)
@@ -355,6 +404,7 @@ class ObligacionController extends Controller
 
             'documentos' => Documento::query()
                 ->orderBy('codigo')
+                ->limit(100)
                 ->get()
                 ->map(fn (Documento $documento): array => ['valor' => $documento->id, 'etiqueta' => "{$documento->codigo} — {$documento->titulo}"])
                 ->all(),

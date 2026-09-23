@@ -18,7 +18,30 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
   recorre las organizaciones con `ContextoOrganizacion::paraOrganizacion()`, una cada vez: un comando
   programado no tiene petición ni usuario, así que sin contexto el scope no devuelve nada y RLS
   deniega por defecto — **no falla, no ve nada**, y un aviso que no salta es indistinguible de no
-  tener nada que avisar. La notificación lleva **escalares y ningún modelo**, por lo mismo que los jobs.
+  tener nada que avisar. Nada de `withoutGlobalScopes()` ni de `comoMantenimiento()`: esto no cruza
+  organizaciones. La notificación lleva **escalares y ningún modelo**, por lo mismo que los jobs.
+
+  **Un resumen, no una alerta por evidencia**: dice cómo está la cosa hoy, así que repetirlo mañana no
+  es spam y no hace falta una tabla de «ya avisado» para evitar duplicados. Si no hay nada que decir no
+  se envía: un correo diario que casi siempre dice «todo en orden» se filtra a una carpeta en dos
+  semanas y deja de verse el día que importa.
+
+  El resumen lleva **una lista por fuente y dos mitades por lista**: una evidencia caducada es una
+  prueba que ya no prueba, una tarea vencida es trabajo que no se hizo y una revisión documental vencida
+  es un papel que nadie ha vuelto a mirar desde que se firmó. Se arreglan de formas distintas y las
+  lleva gente distinta. Los títulos y los verbos los pone `Fuente`, no el correo: con siete fuentes,
+  catorce literales escritos a mano es cómo se olvida uno.
+
+  **No hay tabla de avisos y es a propósito.** Una bandeja en la interfaz necesitaría tabla propia con
+  `organizacion_id` y RLS; la tabla `notifications` de Laravel no lleva organización, que es
+  exactamente el motivo por el que se retiró `spatie/laravel-medialibrary`. Y `ResumenVencimientos` usa
+  **los mismos scopes que cuenta el panel** —`Evidencia::caducadas()`, `Tarea::vencidas()`,
+  `Persona::formacionCaducada()`, `Compromiso::vencidos()`—: con la condición escrita dos veces, el día
+  que cambie una el correo dirá 12 y la pantalla enseñará 9.
+
+- **`lang/es.json` existe por el correo.** Las cadenas de la plantilla de notificaciones de Laravel
+  —«If you're having trouble clicking…», «All rights reserved.»— van por `__()` y salían en inglés en
+  el primer correo que manda el producto, con todo lo demás en español.
 
 ## Lo que hay que saber antes de tocarlo
 
@@ -238,6 +261,49 @@ llegue ahí.
   pluraliza en inglés y aquí coincide con el español. Que la ruta de al lado funcione no dice nada de
   ésta, así que lo fija un test de aislamiento y no la lectura de la ruta.
 
+## Lo que salió mal en la primera versión
+
+El módulo entró con la suite verde —1786 tests, Larastan nivel 6, Pint, `vue-tsc`—
+y con **once fallos de comportamiento dentro**. Se anotan porque ninguno era
+exótico y todos vuelven a ser posibles:
+
+- **El motivo de retirada se escribía en `notas`**, que es un campo del usuario:
+  retirar borraba lo que hubiera escrito. Ahora hay `motivo_retirada`, y retirar
+  pide confirmación en vez de ejecutarse de un clic.
+- **`proximaFecha()` consultaba aunque la relación estuviera cargada**, y la pintan
+  dos columnas: veinticinco filas eran cincuenta consultas. La tabla trae la fecha
+  por SQL con `expresionProxima()`; el método lee la colección cuando está cargada.
+- **`codigo` era `nullable` en el request y `NOT NULL` en la base**, así que vaciarlo
+  al editar daba un `QueryException`. Lo rellena `prepareForValidation()`, que es
+  donde el alta y la edición comparten regla.
+- **La redirección de `/tareas/calendario` vivía dentro de `can:tareas.ver`**, y le
+  daba un 403 a quien tuviera `calendario.ver` sin él — el fallo exacto que ese
+  respaldo existe para evitar. Una redirección no enseña nada: decide el destino.
+- **El estado vacío de `/obligaciones` enseñaba dos botones de escritura sin mirar
+  el permiso**, porque la acción que sí lo miraba vivía en el `DataTable` que ese
+  estado sustituye.
+- **`opciones()` se mandaba entero a las tres pantallas**: cuatro consultas de más
+  por carga, una de ellas sin `limit`, y un aviso de Vue en cada una —`AppLayout`
+  tiene raíz de fragmento, así que un prop no declarado no se puede heredar—.
+- **El filtro de fuente se pintaba dos veces**: sólo se excluía de `sueltos`, y
+  `chipsDe()` recorre `todos`.
+- **No se podía desasignar responsable ni sistema.** Faltaban `conOpcionVacia()` y
+  `NormalizaSeleccionVacia`, que son las dos mitades del mismo mecanismo: Reka
+  prohíbe el `SelectItem` vacío, así que hace falta un centinela y alguien que lo
+  traduzca.
+- **El formulario del catálogo no pintaba ni un error**: iba con `<input>` y
+  `<select>` en crudo, así que asumir con una fecha futura no hacía nada visible.
+- **Se podía asumir una obligación que el importador había retirado.**
+- **`ordenPorDefecto()` era `titulo`** mientras el propio recurso declaraba que la
+  columna que se mira es el próximo vencimiento, que además no era ordenable.
+
+Y **los tres iconos eran el mismo a 14 px**, que era lo único que quedó declarado
+como pendiente de mirar y resultó cierto. Ver `Fuente::icono()`.
+
+La lección que vale para el módulo siguiente: la suite verde dice que nada de lo
+que se comprueba está roto, no que el comportamiento sea el correcto. Los nueve
+tests que descubren cubren los olvidos de forma; para lo demás hace falta mirar.
+
 ## Lo que este módulo declara que no hace todavía
 
 - **No recoge la reevaluación de proveedores (§ 4.9) ni las pruebas de continuidad (§ 4.11).** Los dos
@@ -263,3 +329,32 @@ llegue ahí.
   planificar alcance, criterios y método, y eso sigue sin hacerse. Va declarado en la DdA.
 - **No comprueba que lo asumido cubra lo exigible.** Se puede tener el catálogo entero sin asumir y el
   módulo no lo señala: lo que hay es la cuenta de lo que queda por asumir, en una línea.
+
+## Deuda declarada, y por qué no entró en el arreglo
+
+Se anota porque descubrirla cuesta una tarde y porque afirmarla es más barato que
+negarla. Nada de esto rompe nada hoy:
+
+- **`Link` envolviendo `Button`** en el calendario y en `/obligaciones`: produce
+  `<a><button>`, dos paradas de tabulación por control y un ancla sin nombre
+  accesible. El patrón bueno —`<Button as-child><Link>`— está en 32 ficheros y aquí
+  sólo se aplicó en la ficha.
+- **`text-muted-foreground/60`** en las iniciales de los días y en los números
+  fuera del mes: **2,4:1**, por debajo del 4,5:1 de § 11. Viene del fichero que se
+  mudó, y `PaletaTest` no lo caza porque mira tokens y no clases de plantilla.
+- **Objetivos táctiles de 32 px** en la navegación de mes (`size="icon-sm"`), que
+  también se ve por debajo de `md`. `FiltroFuentes` y `ConmutadorVista` sí resuelven
+  esto con `min-h-11 sm:min-h-8`.
+- **La curva `[0.16, 1, 0.3, 1]` escrita a mano** en la entrada de la rejilla,
+  pudiendo usar `lib/motion.ts`, cuya cabecera dice que ningún componente escribe
+  esos números. Hay cinco reincidencias más en el repositorio.
+- **`EstadoVacio` dentro de una tarjeta** en la ficha: su balanza de 22 rem está
+  calibrada para un vacío a ancho de pantalla, no para un hueco de 400 px.
+- **La ficha puede desbordar a 375 px**: tres botones en la cabecera y
+  `CabeceraPagina` no envuelve el hueco de acciones.
+- **El diálogo de cumplimiento no dice, hasta enviar, que sólo vale una
+  referencia.** La base lo impone y el `FormRequest` lo valida, pero los tres
+  desplegables se presentan como independientes y el error sale colgado del primero.
+- **`DIAS_POR_VENCER` está en tres sitios** —la constante del recurso, el valor por
+  defecto del scope y un literal en la etiqueta del panel— pese a que su propio
+  docblock dice que una cifra escrita dos veces se desincroniza.

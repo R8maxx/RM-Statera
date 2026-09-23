@@ -16,6 +16,11 @@ use App\Domain\Obligacion\Models\Compromiso;
  *
  * Deja de contar en el calendario y en el panel, porque los tres scopes que los
  * alimentan arrancan por `activos()`.
+ *
+ * **El motivo va a `motivo_retirada` y no a `notas`.** Escribía en `notas`, que es
+ * un campo del formulario, editable y buscable: retirar con motivo borraba lo que
+ * hubiera escrito quien mantiene el compromiso. Son dos textos con dos dueños y dos
+ * momentos, y ahora tienen dos columnas.
  */
 final class RetirarCompromiso
 {
@@ -23,7 +28,7 @@ final class RetirarCompromiso
     {
         $compromiso->update([
             'activo' => false,
-            'notas' => $motivo ?? $compromiso->notas,
+            'motivo_retirada' => $motivo,
         ]);
 
         return $compromiso->refresh();

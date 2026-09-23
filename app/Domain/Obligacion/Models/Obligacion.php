@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 /**
  * Una obligación periódica del catálogo: algo que hay que hacer cada tanto y que
@@ -42,6 +43,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $orden
  * @property ?string $huella
  * @property bool $vigente
+ * @property ?Carbon $retirado_en
  */
 class Obligacion extends Model
 {
