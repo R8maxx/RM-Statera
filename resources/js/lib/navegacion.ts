@@ -36,8 +36,8 @@ import {
  * mantener cuatro listas sincronizadas a mano es lo que termina dejando un
  * módulo fuera del buscador sin que nadie lo note.
  *
- * Los grupos existen desde ya, con tres entradas, porque la especificación
- * define diecinueve módulos y una lista plana de diecinueve no se recorre.
+ * Los grupos existen porque una lista plana de veintiséis módulos no se
+ * recorre.
  */
 export interface EntradaNavegacion {
     titulo: string;
@@ -45,6 +45,13 @@ export interface EntradaNavegacion {
     icono: LucideIcon;
     /** Sinónimos para la paleta: lo que alguien teclea sin saber cómo se llama. */
     alias?: string[];
+    /**
+     * El permiso sin el que la entrada no se pinta. Sólo para las pantallas que
+     * no ven todos los roles: sin esto, un enlace de un solo rol se le pintaba
+     * a los tres y dos se llevaban un 403. Pintar no es autorizar: la ruta
+     * sigue con su `can:` y es la que decide.
+     */
+    permiso?: string;
 }
 
 export interface GrupoNavegacion {
@@ -53,8 +60,14 @@ export interface GrupoNavegacion {
 }
 
 export const navegacion: GrupoNavegacion[] = [
+    /*
+     * «Cumplimiento» eran diecisiete entradas seguidas, y una lista de diecisiete
+     * no se recorre de un vistazo: se busca. Se parte en cuatro por la pregunta
+     * que contesta cada módulo —cómo va, qué hay que hacer, qué ha pasado, cómo
+     * se mide—, en el orden en que se recorre el ciclo. No cambia ninguna ruta.
+     */
     {
-        titulo: 'Cumplimiento',
+        titulo: 'Estado',
         entradas: [
             {
                 titulo: 'Panel',
@@ -74,6 +87,35 @@ export const navegacion: GrupoNavegacion[] = [
                 icono: PaperclipIcon,
                 alias: ['pruebas', 'adjuntos', 'capturas', 'soporte'],
             },
+            {
+                titulo: 'Documentos',
+                href: '/documentos',
+                icono: FileTextIcon,
+                // `soa` y `dda` no son opcionales: es lo que la gente teclea en
+                // la paleta cuando busca la Declaración de Aplicabilidad.
+                alias: ['soa', 'dda', 'declaración de aplicabilidad', 'pdf', 'informes', 'documentación', 'entregables'],
+            },
+            /*
+             * La conformidad con el ENS: § 4.17. Va detrás de Documentos porque
+             * es lo que se hace con uno de ellos —la Declaración de
+             * Conformidad— una vez firmado.
+             *
+             * **Sin «conformidad» a secas**: es el título, y además subcadena de
+             * «No conformidades» y de «renovación de conformidad»; la paleta ya
+             * la encuentra por el título. «ddc» es lo que se teclea sabiendo de
+             * qué va, y «distintivo» lo que se busca sin acordarse del nombre.
+             */
+            {
+                titulo: 'Conformidad ENS',
+                href: '/conformidad',
+                icono: BadgeCheckIcon,
+                alias: ['ddc', 'declaración de conformidad', 'distintivo', 'ccn-stic 809', 'certificación'],
+            },
+        ],
+    },
+    {
+        titulo: 'Plan',
+        entradas: [
             {
                 titulo: 'Riesgos',
                 href: '/riesgos',
@@ -132,6 +174,11 @@ export const navegacion: GrupoNavegacion[] = [
                  */
                 alias: ['periódicas', 'cadencia', 'ines', 'informe del estado de seguridad', 'renovación de conformidad', 'seguimiento', 'compromisos'],
             },
+        ],
+    },
+    {
+        titulo: 'Ciclo',
+        entradas: [
             {
                 titulo: 'Auditorías',
                 href: '/auditorias',
@@ -231,6 +278,11 @@ export const navegacion: GrupoNavegacion[] = [
                     'ejercicio',
                 ],
             },
+        ],
+    },
+    {
+        titulo: 'Medida',
+        entradas: [
             {
                 titulo: 'Indicadores',
                 href: '/indicadores',
@@ -275,30 +327,6 @@ export const navegacion: GrupoNavegacion[] = [
                  * separó «objetivos» de «indicadores».
                  */
                 alias: ['9.3', 'acta', 'dirección', 'comité', 'revisión por la dirección'],
-            },
-            {
-                titulo: 'Documentos',
-                href: '/documentos',
-                icono: FileTextIcon,
-                // `soa` y `dda` no son opcionales: es lo que la gente teclea en
-                // la paleta cuando busca la Declaración de Aplicabilidad.
-                alias: ['soa', 'dda', 'declaración de aplicabilidad', 'pdf', 'informes', 'documentación', 'entregables'],
-            },
-            /*
-             * La conformidad con el ENS: § 4.17. Va detrás de Documentos porque
-             * es lo que se hace con uno de ellos —la Declaración de
-             * Conformidad— una vez firmado.
-             *
-             * **Sin «conformidad» a secas**: es el título, y además subcadena de
-             * «No conformidades» y de «renovación de conformidad»; la paleta ya
-             * la encuentra por el título. «ddc» es lo que se teclea sabiendo de
-             * qué va, y «distintivo» lo que se busca sin acordarse del nombre.
-             */
-            {
-                titulo: 'Conformidad ENS',
-                href: '/conformidad',
-                icono: BadgeCheckIcon,
-                alias: ['ddc', 'declaración de conformidad', 'distintivo', 'ccn-stic 809', 'certificación'],
             },
         ],
     },
@@ -405,11 +433,28 @@ export const navegacion: GrupoNavegacion[] = [
                 titulo: 'Plantillas de documento',
                 href: '/plantillas-documento',
                 icono: LayoutTemplateIcon,
+                permiso: 'documentos.plantillas',
                 alias: ['textos', 'plantilla', 'narrativa', 'introducción', 'metodología', 'modelo', 'base'],
             },
         ],
     },
 ];
+
+/**
+ * Los grupos que puede ver quien tiene estos permisos, sin grupos vacíos.
+ *
+ * La usan el sidebar, el panel de móvil y la paleta. `entradas` y `entradaDe`
+ * siguen trabajando sobre el mapa completo: las migas de una pantalla se
+ * resuelven igual la vea quien la vea.
+ */
+export function navegacionPara(permisos: readonly string[]): GrupoNavegacion[] {
+    return navegacion
+        .map((grupo) => ({
+            ...grupo,
+            entradas: grupo.entradas.filter((entrada) => !entrada.permiso || permisos.includes(entrada.permiso)),
+        }))
+        .filter((grupo) => grupo.entradas.length > 0);
+}
 
 /** Todas las entradas en plano, para buscar y para resolver la ruta activa. */
 export const entradas: EntradaNavegacion[] = navegacion.flatMap((grupo) => grupo.entradas);

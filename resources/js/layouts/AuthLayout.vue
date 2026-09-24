@@ -100,7 +100,7 @@ const marcos = [
                     </motion.div>
 
                     <motion.div :variants="variantesEntrada" class="mt-10">
-                        <h1 class="text-2xl font-semibold tracking-tight text-balance">{{ titulo }}</h1>
+                        <h1 class="text-2xl leading-[1.875rem] font-semibold tracking-[-0.02em] text-balance">{{ titulo }}</h1>
                         <p v-if="descripcion" class="mt-2 text-sm text-muted-foreground text-pretty">
                             {{ descripcion }}
                         </p>
@@ -173,7 +173,7 @@ const marcos = [
                     -->
                     <span class="mb-7 block h-[3px] w-10 bg-violeta-400" aria-hidden="true" />
 
-                    <p class="max-w-md text-3xl leading-[1.15] font-semibold tracking-tight text-marca-50 text-balance">
+                    <p class="max-w-md text-3xl leading-[2.125rem] font-semibold tracking-[-0.02em] text-marca-50 text-balance">
                         El ciclo completo de dos marcos, registrado una sola vez.
                     </p>
 

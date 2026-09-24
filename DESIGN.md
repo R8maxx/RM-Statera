@@ -468,7 +468,7 @@ Un solo primario por vista. El texto nombra la acción concreta: «Guardar cambi
 
 El tono que viaja del servidor es **un nombre de estado del dominio, no un color** (`ValorEtiquetado`), y la traducción a clases vive en un solo sitio, `CeldaBadge.vue`.
 
-**Navegación.** Lateral de 240 px (68 px plegada) sobre `bg-superficie` con `border-r` — clara, no oscura: el chrome se separa del lienzo por tono, no por inversión. Ítem activo: `bg-accent text-accent-foreground` más una barra de 2 px en `bg-primary` pegada al borde izquierdo. El mapa de la navegación es `lib/navegacion.ts` y lo leen los cuatro sitios que lo pintan.
+**Navegación.** Lateral de 240 px (68 px plegada) sobre `bg-superficie` con `border-r` — clara, no oscura: el chrome se separa del lienzo por tono, no por inversión. Ítem activo: `bg-accent text-accent-foreground` más una barra de 2 px en `bg-primary` pegada al borde izquierdo. El mapa de la navegación es `lib/navegacion.ts` y lo leen los cuatro sitios que lo pintan. Seis grupos —Estado, Plan, Ciclo, Medida, Alcance y Organización— con el título en capitalización de frase a 12/500, no en versalitas. **Cada grupo se pliega desde su título** y la preferencia se guarda en el navegador; el de la pantalla activa no se pliega nunca, y con el recorrido guiado en marcha se abren todos, porque sus pasos señalan entradas del sidebar. Una entrada puede declarar `permiso`, y `navegacionPara()` la quita del sidebar y de la paleta a quien no lo tiene: pintar no es autorizar, pero un enlace a un 403 enseña que el menú miente.
 
 **Gráficas.** Pocas, y cada una con un trabajo concreto.
 

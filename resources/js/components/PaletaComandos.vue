@@ -11,10 +11,11 @@ import {
 } from '@/components/ui/command';
 import { usePaletaComandos } from '@/composables/usePaletaComandos';
 import { useTema, type PreferenciaTema } from '@/composables/useTema';
-import { navegacion } from '@/lib/navegacion';
-import { router } from '@inertiajs/vue3';
+import { navegacionPara } from '@/lib/navegacion';
+import { router, usePage } from '@inertiajs/vue3';
 import { MonitorIcon, MoonIcon, PlusIcon, SunIcon } from '@lucide/vue';
 import { onKeyStroke, useMagicKeys, whenever } from '@vueuse/core';
+import { computed } from 'vue';
 
 /**
  * La paleta de comandos, con `⌘K`.
@@ -30,6 +31,10 @@ import { onKeyStroke, useMagicKeys, whenever } from '@vueuse/core';
  * extremo de servidor que todavía no existe; cuando entre el inventario de
  * activos se añade aquí un grupo más.
  */
+/* Los mismos módulos que el sidebar: lo que la sesión no puede abrir no se ofrece. */
+const pagina = usePage();
+const grupos = computed(() => navegacionPara(pagina.props.auth.permisos));
+
 const { abierta, abrir } = usePaletaComandos();
 const { fijar } = useTema();
 
@@ -95,7 +100,7 @@ const temas: { valor: PreferenciaTema; etiqueta: string; icono: typeof SunIcon }
         <CommandList class="max-h-[22rem]">
             <CommandEmpty>Nada coincide con eso.</CommandEmpty>
 
-            <CommandGroup v-for="grupo in navegacion" :key="grupo.titulo" :heading="grupo.titulo">
+            <CommandGroup v-for="grupo in grupos" :key="grupo.titulo" :heading="grupo.titulo">
                 <CommandItem
                     v-for="entrada in grupo.entradas"
                     :key="entrada.href"

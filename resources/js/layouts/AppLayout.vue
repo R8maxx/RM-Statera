@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AvatarUsuario from '@/components/AvatarUsuario.vue';
+import GrupoSidebar from '@/components/GrupoSidebar.vue';
 import Logotipo from '@/components/Logotipo.vue';
 import PaletaComandos from '@/components/PaletaComandos.vue';
 import RecorridoGuiado from '@/components/RecorridoGuiado.vue';
@@ -20,7 +21,7 @@ import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
 import { usePaletaComandos } from '@/composables/usePaletaComandos';
 import { useRecorrido } from '@/composables/useRecorrido';
 import { useTema } from '@/composables/useTema';
-import { entradaDe, esSeccionActiva, navegacion } from '@/lib/navegacion';
+import { entradaDe, esSeccionActiva, navegacionPara, type GrupoNavegacion } from '@/lib/navegacion';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import {
     BuildingIcon,
@@ -66,11 +67,38 @@ const seccion = computed(() => entradaDe(rutaActual.value));
 
 /* La preferencia de sidebar es del navegador, como la del tema. */
 const plegado = useStorage('statera.sidebar.plegado', false);
+
+/* Sólo lo que la sesión puede abrir: un enlace a un 403 no se pinta. */
+const grupos = computed(() => navegacionPara(pagina.props.auth.permisos));
+
+/*
+ * Los grupos plegados, por título, también del navegador. Se guarda lo que se
+ * plegó y no lo que se abrió: un grupo nuevo que llegue con un módulo nuevo
+ * sale abierto, que es lo que tiene que pasar con algo que nadie ha visto.
+ */
+const gruposPlegados = useStorage<string[]>('statera.sidebar.grupos-plegados', []);
+
+const contieneLaRuta = (grupo: GrupoNavegacion): boolean =>
+    grupo.entradas.some((entrada) => esSeccionActiva(entrada.href, rutaActual.value));
+
+/*
+ * Con el recorrido guiado en marcha se abren todos: sus pasos señalan entradas
+ * del sidebar (`nav-sistemas`, `nav-documentos`…), y un foco sobre algo plegado
+ * no señala nada.
+ */
+const grupoAbierto = (grupo: GrupoNavegacion): boolean =>
+    recorridoAbierto.value || contieneLaRuta(grupo) || !gruposPlegados.value.includes(grupo.titulo);
+
+function alternarGrupo(grupo: GrupoNavegacion): void {
+    gruposPlegados.value = gruposPlegados.value.includes(grupo.titulo)
+        ? gruposPlegados.value.filter((titulo) => titulo !== grupo.titulo)
+        : [...gruposPlegados.value, grupo.titulo];
+}
 const menuMovil = ref(false);
 
 const { preferencia, esOscuro, fijar } = useTema();
 const { abrir: abrirPaleta } = usePaletaComandos();
-const { abrir: abrirRecorrido } = useRecorrido();
+const { abierto: recorridoAbierto, abrir: abrirRecorrido } = useRecorrido();
 
 /**
  * El ancla que el recorrido guiado busca para cada módulo.
@@ -173,14 +201,14 @@ const salir = (): void => router.post('/logout');
                     </div>
 
                     <nav class="flex-1 space-y-6 overflow-y-auto p-3">
-                        <div v-for="grupo in navegacion" :key="grupo.titulo" class="space-y-1">
-                            <p
-                                v-if="!plegado"
-                                class="px-3 pb-1 text-xs font-medium text-muted-foreground"
-                            >
-                                {{ grupo.titulo }}
-                            </p>
-
+                        <GrupoSidebar
+                            v-for="grupo in grupos"
+                            :key="grupo.titulo"
+                            :titulo="grupo.titulo"
+                            :abierto="grupoAbierto(grupo)"
+                            :compacto="plegado"
+                            @alternar="alternarGrupo(grupo)"
+                        >
                             <Tooltip v-for="entrada in grupo.entradas" :key="entrada.href">
                                 <TooltipTrigger as-child>
                                     <Link
@@ -208,7 +236,7 @@ const salir = (): void => router.post('/logout');
                                     {{ entrada.titulo }}
                                 </TooltipContent>
                             </Tooltip>
-                        </div>
+                        </GrupoSidebar>
                     </nav>
 
                     <div class="border-t p-3">
@@ -328,7 +356,7 @@ const salir = (): void => router.post('/logout');
                                         </div>
 
                                         <nav class="flex-1 space-y-6 overflow-y-auto p-3">
-                                            <div v-for="grupo in navegacion" :key="grupo.titulo" class="space-y-1">
+                                            <div v-for="grupo in grupos" :key="grupo.titulo" class="space-y-1">
                                                 <p class="px-3 pb-1 text-xs font-medium text-muted-foreground">
                                                     {{ grupo.titulo }}
                                                 </p>
