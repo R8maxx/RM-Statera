@@ -194,7 +194,7 @@ const climaTexto = computed(() => {
 </script>
 
 <template>
-    <AppLayout titulo="Contexto de la organización">
+    <AppLayout ancho="completo" titulo="Contexto de la organización">
         <CabeceraPagina
             titulo="Contexto de la organización"
             descripcion="Lo que la organización tiene a favor y en contra, quién le exige qué y hasta dónde llega el SGSI. Cláusulas 4.1 a 4.3 de ISO 27001."

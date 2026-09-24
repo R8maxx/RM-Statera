@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FilaCampos from '@/components/formulario/FilaCampos.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
@@ -90,23 +91,25 @@ const responsables = computed(() => comoOpciones(props.responsables));
             #default="{ errors }"
         >
             <SeccionFormulario titulo="Qué hay que hacer">
-                <CampoTexto
-                    nombre="codigo"
-                    etiqueta="Código"
-                    :valor-inicial="compromiso?.codigo ?? sugerencia?.codigo ?? ''"
-                    :error="errors.codigo"
-                    autofocus
-                    ayuda="Se propone el siguiente del año. Se puede cambiar: una organización que ya llevaba esto en una hoja llega con su numeración."
-                />
+                <FilaCampos codigo>
+                    <CampoTexto
+                        nombre="codigo"
+                        etiqueta="Código"
+                        :valor-inicial="compromiso?.codigo ?? sugerencia?.codigo ?? ''"
+                        :error="errors.codigo"
+                        autofocus
+                        ayuda="Se propone el siguiente del año. Se puede cambiar: una organización que ya llevaba esto en una hoja llega con su numeración."
+                    />
 
-                <CampoTexto
-                    nombre="titulo"
-                    etiqueta="Obligación"
-                    :valor-inicial="compromiso?.titulo ?? ''"
-                    :error="errors.titulo"
-                    requerido
-                    ayuda="Qué hay que hacer, en una línea."
-                />
+                    <CampoTexto
+                        nombre="titulo"
+                        etiqueta="Obligación"
+                        :valor-inicial="compromiso?.titulo ?? ''"
+                        :error="errors.titulo"
+                        requerido
+                        ayuda="Qué hay que hacer, en una línea."
+                    />
+                </FilaCampos>
 
                 <CampoTextarea
                     nombre="descripcion"
@@ -119,47 +122,51 @@ const responsables = computed(() => comoOpciones(props.responsables));
             </SeccionFormulario>
 
             <SeccionFormulario titulo="Cada cuánto">
-                <CampoTexto
-                    nombre="periodicidad_meses"
-                    etiqueta="Cadencia (meses)"
-                    tipo="number"
-                    :valor-inicial="compromiso?.periodicidad_meses ?? 12"
-                    :error="errors.periodicidad_meses"
-                    requerido
-                    min="1"
-                    max="120"
-                    ayuda="En meses: 12 es anual y 24 bienal, que es la cadencia con la que se renueva la conformidad del ENS."
-                />
+                <FilaCampos>
+                    <CampoTexto
+                        nombre="periodicidad_meses"
+                        etiqueta="Cadencia (meses)"
+                        tipo="number"
+                        :valor-inicial="compromiso?.periodicidad_meses ?? 12"
+                        :error="errors.periodicidad_meses"
+                        requerido
+                        min="1"
+                        max="120"
+                        ayuda="En meses: 12 es anual y 24 bienal, que es la cadencia con la que se renueva la conformidad del ENS."
+                    />
 
-                <CampoTexto
-                    nombre="computa_desde"
-                    etiqueta="Desde cuándo se cuenta"
-                    tipo="date"
-                    :valor-inicial="compromiso?.computa_desde ?? sugerencia?.computa_desde ?? ''"
-                    :error="errors.computa_desde"
-                    requerido
-                    ayuda="La última vez que esto se hizo, si se hizo antes de tener Statera. Si no, el día en que se asume el compromiso."
-                />
+                    <CampoTexto
+                        nombre="computa_desde"
+                        etiqueta="Desde cuándo se cuenta"
+                        tipo="date"
+                        :valor-inicial="compromiso?.computa_desde ?? sugerencia?.computa_desde ?? ''"
+                        :error="errors.computa_desde"
+                        requerido
+                        ayuda="La última vez que esto se hizo, si se hizo antes de tener Statera. Si no, el día en que se asume el compromiso."
+                    />
+                </FilaCampos>
             </SeccionFormulario>
 
             <SeccionFormulario titulo="De quién y de qué">
-                <CampoSelect
-                    nombre="responsable_id"
-                    etiqueta="Responsable"
-                    :opciones="conOpcionVacia(responsables, 'Sin responsable')"
-                    :valor-inicial="compromiso?.responsable_id ? String(compromiso.responsable_id) : undefined"
-                    :error="errors.responsable_id"
-                    ayuda="Quién responde de que esto se haga a tiempo."
-                />
+                <FilaCampos>
+                    <CampoSelect
+                        nombre="responsable_id"
+                        etiqueta="Responsable"
+                        :opciones="conOpcionVacia(responsables, 'Sin responsable')"
+                        :valor-inicial="compromiso?.responsable_id ? String(compromiso.responsable_id) : undefined"
+                        :error="errors.responsable_id"
+                        ayuda="Quién responde de que esto se haga a tiempo."
+                    />
 
-                <CampoSelect
-                    nombre="sistema_id"
-                    etiqueta="Sistema"
-                    :opciones="conOpcionVacia(sistemas, 'La organización entera')"
-                    :valor-inicial="compromiso?.sistema_id ? String(compromiso.sistema_id) : undefined"
-                    :error="errors.sistema_id"
-                    ayuda="Se deja en blanco si la obligación es de la organización entera, como el informe INES. La renovación de conformidad sí es de un sistema concreto."
-                />
+                    <CampoSelect
+                        nombre="sistema_id"
+                        etiqueta="Sistema"
+                        :opciones="conOpcionVacia(sistemas, 'La organización entera')"
+                        :valor-inicial="compromiso?.sistema_id ? String(compromiso.sistema_id) : undefined"
+                        :error="errors.sistema_id"
+                        ayuda="Se deja en blanco si la obligación es de la organización entera, como el informe INES. La renovación de conformidad sí es de un sistema concreto."
+                    />
+                </FilaCampos>
 
                 <CampoTextarea
                     nombre="notas"

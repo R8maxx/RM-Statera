@@ -182,7 +182,7 @@ const cuando = (valor: string | null): string =>
             :variants="variantesEntrada"
             initial="oculto"
             animate="visible"
-            class="w-full max-w-4xl space-y-6"
+            class="mx-auto w-full max-w-6xl space-y-6"
         >
             <!--
                 Lo único que va mal de verdad en esta pantalla sube arriba, en

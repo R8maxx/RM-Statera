@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FilaCampos from '@/components/formulario/FilaCampos.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import CampoSwitch from '@/components/formulario/CampoSwitch.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
@@ -116,24 +117,26 @@ const admiteMarco = computed(() => esCalculado.value && (calculoElegido.value?.a
             #default="{ errors }"
         >
             <SeccionFormulario titulo="Qué se mide">
-                <CampoTexto
-                    nombre="codigo"
-                    etiqueta="Código"
-                    :valor-inicial="indicador?.codigo ?? sugerencia?.codigo ?? ''"
-                    :error="errors.codigo"
-                    requerido
-                    autofocus
-                    ayuda="Único dentro de la organización. Se cita en las actas, así que conviene que sea corto."
-                />
+                <FilaCampos codigo>
+                    <CampoTexto
+                        nombre="codigo"
+                        etiqueta="Código"
+                        :valor-inicial="indicador?.codigo ?? sugerencia?.codigo ?? ''"
+                        :error="errors.codigo"
+                        requerido
+                        autofocus
+                        ayuda="Único dentro de la organización. Se cita en las actas, así que conviene que sea corto."
+                    />
 
-                <CampoTexto
-                    nombre="nombre"
-                    etiqueta="Nombre"
-                    :valor-inicial="indicador?.nombre ?? ''"
-                    :error="errors.nombre"
-                    requerido
-                    ayuda="Qué mide, en una línea."
-                />
+                    <CampoTexto
+                        nombre="nombre"
+                        etiqueta="Nombre"
+                        :valor-inicial="indicador?.nombre ?? ''"
+                        :error="errors.nombre"
+                        requerido
+                        ayuda="Qué mide, en una línea."
+                    />
+                </FilaCampos>
 
                 <CampoTextarea
                     nombre="descripcion"
@@ -146,26 +149,28 @@ const admiteMarco = computed(() => esCalculado.value && (calculoElegido.value?.a
             </SeccionFormulario>
 
             <SeccionFormulario titulo="De dónde sale la cifra">
-                <CampoSelect
-                    v-model="origen"
-                    nombre="origen"
-                    etiqueta="Origen"
-                    :opciones="origenes"
-                    :error="errors.origen"
-                    requerido
-                    ayuda="Statera calcula unos cuantos leyendo sus propias tablas. El resto se registran a mano."
-                />
+                <FilaCampos>
+                    <CampoSelect
+                        v-model="origen"
+                        nombre="origen"
+                        etiqueta="Origen"
+                        :opciones="origenes"
+                        :error="errors.origen"
+                        requerido
+                        ayuda="Statera calcula unos cuantos leyendo sus propias tablas. El resto se registran a mano."
+                    />
 
-                <CampoSelect
-                    v-if="esCalculado"
-                    v-model="calculo"
-                    nombre="calculo"
-                    etiqueta="Cálculo"
-                    :opciones="opcionesCalculo"
-                    :error="errors.calculo"
-                    requerido
-                    ayuda="Catálogo cerrado: cada cálculo usa la misma consulta que el panel, para que las dos cifras no puedan discrepar."
-                />
+                    <CampoSelect
+                        v-if="esCalculado"
+                        v-model="calculo"
+                        nombre="calculo"
+                        etiqueta="Cálculo"
+                        :opciones="opcionesCalculo"
+                        :error="errors.calculo"
+                        requerido
+                        ayuda="Catálogo cerrado: cada cálculo usa la misma consulta que el panel, para que las dos cifras no puedan discrepar."
+                    />
+                </FilaCampos>
 
                 <p
                     v-if="esCalculado && calculoElegido"
@@ -197,62 +202,66 @@ const admiteMarco = computed(() => esCalculado.value && (calculoElegido.value?.a
             </SeccionFormulario>
 
             <SeccionFormulario titulo="Contra qué se juzga">
-                <CampoSelect
-                    v-model="unidad"
-                    nombre="unidad"
-                    etiqueta="Unidad"
-                    :opciones="unidades"
-                    :error="errors.unidad"
-                    requerido
-                />
+                <FilaCampos :columnas="3">
+                    <CampoSelect
+                        v-model="unidad"
+                        nombre="unidad"
+                        etiqueta="Unidad"
+                        :opciones="unidades"
+                        :error="errors.unidad"
+                        requerido
+                    />
 
-                <CampoSelect
-                    v-model="sentido"
-                    nombre="sentido"
-                    etiqueta="Sentido"
-                    :opciones="sentidos"
-                    :error="errors.sentido"
-                    requerido
-                    ayuda="Hacia dónde mejora. Sin esto, el veredicto sale invertido en la mitad de los indicadores."
-                />
+                    <CampoSelect
+                        v-model="sentido"
+                        nombre="sentido"
+                        etiqueta="Sentido"
+                        :opciones="sentidos"
+                        :error="errors.sentido"
+                        requerido
+                        ayuda="Hacia dónde mejora. Sin esto, el veredicto sale invertido en la mitad de los indicadores."
+                    />
 
-                <CampoTexto
-                    nombre="objetivo"
-                    etiqueta="Objetivo"
-                    tipo="number"
-                    step="0.01"
-                    :valor-inicial="indicador?.objetivo !== null && indicador?.objetivo !== undefined ? String(indicador.objetivo) : undefined"
-                    :error="errors.objetivo"
-                    ayuda="Opcional. Sin objetivo el indicador no está «fuera de objetivo»: está sin objetivo, que es una respuesta distinta y legítima."
-                />
+                    <CampoTexto
+                        nombre="objetivo"
+                        etiqueta="Objetivo"
+                        tipo="number"
+                        step="0.01"
+                        :valor-inicial="indicador?.objetivo !== null && indicador?.objetivo !== undefined ? String(indicador.objetivo) : undefined"
+                        :error="errors.objetivo"
+                        ayuda="Opcional. Sin objetivo el indicador no está «fuera de objetivo»: está sin objetivo, que es una respuesta distinta y legítima."
+                    />
+                </FilaCampos>
 
-                <CampoSelect
-                    nombre="periodicidad"
-                    etiqueta="Cadencia"
-                    :opciones="periodicidades"
-                    :valor-inicial="indicador?.periodicidad ?? 'trimestral'"
-                    :error="errors.periodicidad"
-                    requerido
-                    ayuda="Cada cuánto se mide. Un periodo que cierre sin medición sale en rojo: es la 9.1 sin hacer."
-                />
+                <FilaCampos :columnas="3">
+                    <CampoSelect
+                        nombre="periodicidad"
+                        etiqueta="Cadencia"
+                        :opciones="periodicidades"
+                        :valor-inicial="indicador?.periodicidad ?? 'trimestral'"
+                        :error="errors.periodicidad"
+                        requerido
+                        ayuda="Cada cuánto se mide. Un periodo que cierre sin medición sale en rojo: es la 9.1 sin hacer."
+                    />
 
-                <CampoSelect
-                    nombre="responsable_id"
-                    etiqueta="Responsable"
-                    :opciones="responsablesComoOpciones"
-                    :valor-inicial="indicador?.responsable_id ? String(indicador.responsable_id) : undefined"
-                    :error="errors.responsable_id"
-                    ayuda="Quién responde de que la cifra esté tomada a tiempo."
-                />
+                    <CampoSelect
+                        nombre="responsable_id"
+                        etiqueta="Responsable"
+                        :opciones="responsablesComoOpciones"
+                        :valor-inicial="indicador?.responsable_id ? String(indicador.responsable_id) : undefined"
+                        :error="errors.responsable_id"
+                        ayuda="Quién responde de que la cifra esté tomada a tiempo."
+                    />
 
-                <CampoSwitch
-                    v-if="edicion"
-                    nombre="activo"
-                    etiqueta="En seguimiento"
-                    :valor-inicial="indicador?.activo ?? true"
-                    :error="errors.activo"
-                    ayuda="Retirarlo deja de pedir mediciones y conserva toda la serie: es esa serie la que explica por qué se dejó de medir."
-                />
+                    <CampoSwitch
+                        v-if="edicion"
+                        nombre="activo"
+                        etiqueta="En seguimiento"
+                        :valor-inicial="indicador?.activo ?? true"
+                        :error="errors.activo"
+                        ayuda="Retirarlo deja de pedir mediciones y conserva toda la serie: es esa serie la que explica por qué se dejó de medir."
+                    />
+                </FilaCampos>
             </SeccionFormulario>
         </FormularioRecurso>
     </AppLayout>

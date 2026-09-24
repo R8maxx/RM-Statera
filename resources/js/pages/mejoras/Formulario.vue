@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FilaCampos from '@/components/formulario/FilaCampos.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
@@ -107,26 +108,28 @@ const origenFijo = computed(() => props.hallazgo !== null);
                     <input type="hidden" name="origen" :value="valor.origen" />
                 </div>
 
-                <CampoTexto
-                    nombre="codigo"
-                    etiqueta="Código"
-                    :valor-inicial="valor.codigo"
-                    :error="errors.codigo"
-                    requerido
-                    autofocus
-                    ayuda="Único dentro de la organización. Se propone el siguiente del año."
-                />
+                <FilaCampos>
+                    <CampoTexto
+                        nombre="codigo"
+                        etiqueta="Código"
+                        :valor-inicial="valor.codigo"
+                        :error="errors.codigo"
+                        requerido
+                        autofocus
+                        ayuda="Único dentro de la organización. Se propone el siguiente del año."
+                    />
 
-                <CampoSelect
-                    v-if="!origenFijo"
-                    nombre="origen"
-                    etiqueta="Origen"
-                    :opciones="origenes"
-                    :valor-inicial="valor.origen"
-                    :error="errors.origen"
-                    requerido
-                    ayuda="De dónde sale. Un indicador que se queda corto no es una no conformidad, y aquí sí tiene sitio."
-                />
+                    <CampoSelect
+                        v-if="!origenFijo"
+                        nombre="origen"
+                        etiqueta="Origen"
+                        :opciones="origenes"
+                        :valor-inicial="valor.origen"
+                        :error="errors.origen"
+                        requerido
+                        ayuda="De dónde sale. Un indicador que se queda corto no es una no conformidad, y aquí sí tiene sitio."
+                    />
+                </FilaCampos>
 
                 <CampoTexto
                     nombre="titulo"
@@ -167,23 +170,25 @@ const origenFijo = computed(() => props.hallazgo !== null);
                     ayuda="No es un objetivo de seguridad: aquello es un compromiso firmado con plazo y recursos. Si esta mejora acaba siéndolo, el objetivo se registra aparte."
                 />
 
-                <CampoSelect
-                    nombre="responsable_id"
-                    etiqueta="Responsable"
-                    :opciones="responsables"
-                    :valor-inicial="mejora?.responsable_id ? String(mejora.responsable_id) : undefined"
-                    :error="errors.responsable_id"
-                    ayuda="Quién la lleva, si ya se sabe."
-                />
+                <FilaCampos>
+                    <CampoSelect
+                        nombre="responsable_id"
+                        etiqueta="Responsable"
+                        :opciones="responsables"
+                        :valor-inicial="mejora?.responsable_id ? String(mejora.responsable_id) : undefined"
+                        :error="errors.responsable_id"
+                        ayuda="Quién la lleva, si ya se sabe."
+                    />
 
-                <CampoTexto
-                    nombre="fecha_prevista"
-                    etiqueta="Fecha prevista"
-                    tipo="date"
-                    :valor-inicial="mejora?.fecha_prevista ?? undefined"
-                    :error="errors.fecha_prevista"
-                    ayuda="Opcional siempre. Nadie se compromete a una mejora: si la fecha pasa, se señala en gris y no en rojo."
-                />
+                    <CampoTexto
+                        nombre="fecha_prevista"
+                        etiqueta="Fecha prevista"
+                        tipo="date"
+                        :valor-inicial="mejora?.fecha_prevista ?? undefined"
+                        :error="errors.fecha_prevista"
+                        ayuda="Opcional siempre. Nadie se compromete a una mejora: si la fecha pasa, se señala en gris y no en rojo."
+                    />
+                </FilaCampos>
             </SeccionFormulario>
         </FormularioRecurso>
     </AppLayout>

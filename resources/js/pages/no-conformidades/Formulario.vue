@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FilaCampos from '@/components/formulario/FilaCampos.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
@@ -230,23 +231,25 @@ const origenFijo = computed(
                     ayuda="Por qué pasó. Sin esto, la corrección trata el síntoma y vuelve el año que viene."
                 />
 
-                <CampoSelect
-                    nombre="responsable_id"
-                    etiqueta="Responsable"
-                    :opciones="responsables"
-                    :valor-inicial="noConformidad?.responsable_id ? String(noConformidad.responsable_id) : undefined"
-                    :error="errors.responsable_id"
-                    ayuda="Quién responde del tratamiento."
-                />
+                <FilaCampos>
+                    <CampoSelect
+                        nombre="responsable_id"
+                        etiqueta="Responsable"
+                        :opciones="responsables"
+                        :valor-inicial="noConformidad?.responsable_id ? String(noConformidad.responsable_id) : undefined"
+                        :error="errors.responsable_id"
+                        ayuda="Quién responde del tratamiento."
+                    />
 
-                <CampoTexto
-                    nombre="fecha_prevista"
-                    etiqueta="Fecha prevista"
-                    tipo="date"
-                    :valor-inicial="noConformidad?.fecha_prevista ?? undefined"
-                    :error="errors.fecha_prevista"
-                    ayuda="Para cuándo se espera tenerla tratada. Sin fecha no vence ni sale en ningún aviso."
-                />
+                    <CampoTexto
+                        nombre="fecha_prevista"
+                        etiqueta="Fecha prevista"
+                        tipo="date"
+                        :valor-inicial="noConformidad?.fecha_prevista ?? undefined"
+                        :error="errors.fecha_prevista"
+                        ayuda="Para cuándo se espera tenerla tratada. Sin fecha no vence ni sale en ningún aviso."
+                    />
+                </FilaCampos>
             </SeccionFormulario>
         </FormularioRecurso>
     </AppLayout>

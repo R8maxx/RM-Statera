@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FilaCampos from '@/components/formulario/FilaCampos.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
@@ -58,24 +59,26 @@ const plazoObligatorio = computed(() => props.objetivo?.esComprometido ?? false)
             #default="{ errors }"
         >
             <SeccionFormulario titulo="A qué se compromete la organización">
-                <CampoTexto
-                    nombre="codigo"
-                    etiqueta="Código"
-                    :valor-inicial="valor.codigo"
-                    :error="errors.codigo"
-                    requerido
-                    autofocus
-                    ayuda="Único dentro de la organización. Se propone el siguiente del año."
-                />
+                <FilaCampos codigo>
+                    <CampoTexto
+                        nombre="codigo"
+                        etiqueta="Código"
+                        :valor-inicial="valor.codigo"
+                        :error="errors.codigo"
+                        requerido
+                        autofocus
+                        ayuda="Único dentro de la organización. Se propone el siguiente del año."
+                    />
 
-                <CampoTexto
-                    nombre="titulo"
-                    etiqueta="Objetivo"
-                    :valor-inicial="valor.titulo"
-                    :error="errors.titulo"
-                    requerido
-                    ayuda="Enunciado en una línea, y medible: «reducir a 15 días la aplicación de parches críticos»."
-                />
+                    <CampoTexto
+                        nombre="titulo"
+                        etiqueta="Objetivo"
+                        :valor-inicial="valor.titulo"
+                        :error="errors.titulo"
+                        requerido
+                        ayuda="Enunciado en una línea, y medible: «reducir a 15 días la aplicación de parches críticos»."
+                    />
+                </FilaCampos>
 
                 <CampoTextarea
                     nombre="descripcion"
@@ -97,28 +100,30 @@ const plazoObligatorio = computed(() => props.objetivo?.esComprometido ?? false)
                     ayuda="Qué hace falta y de dónde sale. No es el coste de las actuaciones: hay objetivos que se cumplen con horas de gente que ya está."
                 />
 
-                <CampoSelect
-                    nombre="responsable_id"
-                    etiqueta="Responsable"
-                    :opciones="responsables"
-                    :valor-inicial="objetivo?.responsable_id ? String(objetivo.responsable_id) : undefined"
-                    :error="errors.responsable_id"
-                    ayuda="Quién responde de conseguirlo."
-                />
+                <FilaCampos>
+                    <CampoSelect
+                        nombre="responsable_id"
+                        etiqueta="Responsable"
+                        :opciones="responsables"
+                        :valor-inicial="objetivo?.responsable_id ? String(objetivo.responsable_id) : undefined"
+                        :error="errors.responsable_id"
+                        ayuda="Quién responde de conseguirlo."
+                    />
 
-                <CampoTexto
-                    nombre="fecha_objetivo"
-                    etiqueta="Fecha objetivo"
-                    tipo="date"
-                    :valor-inicial="objetivo?.fecha_objetivo ?? undefined"
-                    :error="errors.fecha_objetivo"
-                    :requerido="plazoObligatorio"
-                    :ayuda="
-                        plazoObligatorio
-                            ? 'Obligatoria: este objetivo ya está aprobado, y un compromiso sin plazo no es un compromiso.'
-                            : 'Para cuándo. Se puede dejar vacía mientras el objetivo esté propuesto; aprobarlo exige ponerla.'
-                    "
-                />
+                    <CampoTexto
+                        nombre="fecha_objetivo"
+                        etiqueta="Fecha objetivo"
+                        tipo="date"
+                        :valor-inicial="objetivo?.fecha_objetivo ?? undefined"
+                        :error="errors.fecha_objetivo"
+                        :requerido="plazoObligatorio"
+                        :ayuda="
+                            plazoObligatorio
+                                ? 'Obligatoria: este objetivo ya está aprobado, y un compromiso sin plazo no es un compromiso.'
+                                : 'Para cuándo. Se puede dejar vacía mientras el objetivo esté propuesto; aprobarlo exige ponerla.'
+                        "
+                    />
+                </FilaCampos>
             </SeccionFormulario>
 
             <SeccionFormulario

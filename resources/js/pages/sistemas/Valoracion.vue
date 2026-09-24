@@ -114,7 +114,7 @@ function aplicar(): void {
 
 <template>
     <AppLayout :titulo="`Valorar ${sistema.codigo}`">
-        <div class="w-full max-w-4xl">
+        <div class="mx-auto w-full max-w-6xl">
             <CabeceraPagina
                 :titulo="`Valoración de ${sistema.codigo}`"
                 descripcion="Las cinco dimensiones del Anexo I son la única entrada del motor. La categoría no se elige: es la más alta de las cinco, y de ella sale todo lo que se le exige al sistema."

@@ -61,7 +61,7 @@ function marcarConformes(_accion: App.Http.Resources.Definicion.Accion, ids: (nu
 </script>
 
 <template>
-    <AppLayout :titulo="`Checklist · ${auditoria.codigo}`">
+    <AppLayout ancho="completo" :titulo="`Checklist · ${auditoria.codigo}`">
         <CabeceraPagina
             :titulo="`Checklist de ${auditoria.codigo}`"
             :descripcion="recurso.etiquetas.descripcion"

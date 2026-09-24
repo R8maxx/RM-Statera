@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FilaCampos from '@/components/formulario/FilaCampos.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
@@ -71,44 +72,48 @@ watch(tipo, (nuevo) => {
             #default="{ errors }"
         >
             <SeccionFormulario titulo="Quién es">
-                <CampoTexto
-                    nombre="codigo"
-                    etiqueta="Código"
-                    :valor-inicial="parte?.codigo ?? sugerencia?.codigo ?? ''"
-                    :error="errors.codigo"
-                    requerido
-                    autofocus
-                    ayuda="Único dentro de la organización. Se propone el siguiente de la serie."
-                />
+                <FilaCampos codigo>
+                    <CampoTexto
+                        nombre="codigo"
+                        etiqueta="Código"
+                        :valor-inicial="parte?.codigo ?? sugerencia?.codigo ?? ''"
+                        :error="errors.codigo"
+                        requerido
+                        autofocus
+                        ayuda="Único dentro de la organización. Se propone el siguiente de la serie."
+                    />
 
-                <CampoTexto
-                    nombre="nombre"
-                    etiqueta="Nombre"
-                    :valor-inicial="parte?.nombre ?? undefined"
-                    :error="errors.nombre"
-                    requerido
-                    ayuda="Cómo se la llama en las actas: «Agencia Tributaria», «clientes del sector público», «comité de dirección»."
-                />
+                    <CampoTexto
+                        nombre="nombre"
+                        etiqueta="Nombre"
+                        :valor-inicial="parte?.nombre ?? undefined"
+                        :error="errors.nombre"
+                        requerido
+                        ayuda="Cómo se la llama en las actas: «Agencia Tributaria», «clientes del sector público», «comité de dirección»."
+                    />
+                </FilaCampos>
 
-                <CampoSelect
-                    v-model="tipo"
-                    nombre="tipo"
-                    etiqueta="Tipo"
-                    :opciones="tipos"
-                    :error="errors.tipo"
-                    requerido
-                    ayuda="«Sociedad y usuarios» es el público que no tiene contrato con la organización y al que le pasan cosas igual."
-                />
+                <FilaCampos>
+                    <CampoSelect
+                        v-model="tipo"
+                        nombre="tipo"
+                        etiqueta="Tipo"
+                        :opciones="tipos"
+                        :error="errors.tipo"
+                        requerido
+                        ayuda="«Sociedad y usuarios» es el público que no tiene contrato con la organización y al que le pasan cosas igual."
+                    />
 
-                <CampoSelect
-                    v-model="ambito"
-                    nombre="ambito"
-                    etiqueta="Ámbito"
-                    :opciones="ambitos"
-                    :error="errors.ambito"
-                    requerido
-                    ayuda="Se propone según el tipo y se puede cambiar: un socio o un accionista son internos o externos según cómo esté montada la organización."
-                />
+                    <CampoSelect
+                        v-model="ambito"
+                        nombre="ambito"
+                        etiqueta="Ámbito"
+                        :opciones="ambitos"
+                        :error="errors.ambito"
+                        requerido
+                        ayuda="Se propone según el tipo y se puede cambiar: un socio o un accionista son internos o externos según cómo esté montada la organización."
+                    />
+                </FilaCampos>
 
                 <CampoTextarea
                     nombre="descripcion"

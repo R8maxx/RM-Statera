@@ -73,7 +73,7 @@ onNodesInitialized(() => {
 </script>
 
 <template>
-    <AppLayout titulo="Organigrama">
+    <AppLayout ancho="completo" titulo="Organigrama">
         <CabeceraPagina
             titulo="Organigrama"
             :descripcion="

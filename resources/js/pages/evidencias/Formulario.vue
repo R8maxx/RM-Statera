@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FilaCampos from '@/components/formulario/FilaCampos.vue';
 import CampoFichero from '@/components/formulario/CampoFichero.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
@@ -132,7 +133,7 @@ const periodicidad = ref(props.evidencia?.periodicidad_renovacion ?? SIN_VALOR);
                 ayuda="Una prueba de hace tres años no prueba lo de hoy. Si eliges una periodicidad y dejas la caducidad en blanco, la fecha se calcula sola."
                 plegable
             >
-                <div class="grid gap-5 sm:grid-cols-2">
+                <FilaCampos>
                     <CampoTexto
                         nombre="fecha_obtencion"
                         etiqueta="Fecha de obtención"
@@ -149,23 +150,25 @@ const periodicidad = ref(props.evidencia?.periodicidad_renovacion ?? SIN_VALOR);
                         :valor-inicial="evidencia?.fecha_caducidad ?? ''"
                         :error="errors.fecha_caducidad"
                     />
-                </div>
+                </FilaCampos>
 
-                <CampoSelect
-                    v-model="periodicidad"
-                    nombre="periodicidad_renovacion"
-                    etiqueta="Periodicidad de renovación"
-                    :opciones="periodicidades"
-                    :error="errors.periodicidad_renovacion"
-                />
+                <FilaCampos>
+                    <CampoSelect
+                        v-model="periodicidad"
+                        nombre="periodicidad_renovacion"
+                        etiqueta="Periodicidad de renovación"
+                        :opciones="periodicidades"
+                        :error="errors.periodicidad_renovacion"
+                    />
 
-                <CampoSelect
-                    v-model="responsable"
-                    nombre="responsable_id"
-                    etiqueta="Responsable de renovarla"
-                    :opciones="responsables"
-                    :error="errors.responsable_id"
-                />
+                    <CampoSelect
+                        v-model="responsable"
+                        nombre="responsable_id"
+                        etiqueta="Responsable de renovarla"
+                        :opciones="responsables"
+                        :error="errors.responsable_id"
+                    />
+                </FilaCampos>
             </SeccionFormulario>
         </FormularioRecurso>
     </AppLayout>

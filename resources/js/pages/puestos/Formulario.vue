@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FilaCampos from '@/components/formulario/FilaCampos.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
@@ -48,23 +49,25 @@ const opcionesSuperior = computed(() => conOpcionVacia(props.superiores, 'No dep
             #default="{ errors }"
         >
             <SeccionFormulario titulo="Qué puesto es">
-                <CampoTexto
-                    nombre="codigo"
-                    etiqueta="Código"
-                    :valor-inicial="codigo"
-                    :error="errors.codigo"
-                    requerido
-                    autofocus
-                    ayuda="Único dentro de la organización. Se propone el siguiente, pero si ya hay una nomenclatura propia, es la que vale."
-                />
+                <FilaCampos codigo>
+                    <CampoTexto
+                        nombre="codigo"
+                        etiqueta="Código"
+                        :valor-inicial="codigo"
+                        :error="errors.codigo"
+                        requerido
+                        autofocus
+                        ayuda="Único dentro de la organización. Se propone el siguiente, pero si ya hay una nomenclatura propia, es la que vale."
+                    />
 
-                <CampoTexto
-                    nombre="titulo"
-                    etiqueta="Puesto"
-                    :valor-inicial="puesto?.titulo ?? undefined"
-                    :error="errors.titulo"
-                    requerido
-                />
+                    <CampoTexto
+                        nombre="titulo"
+                        etiqueta="Puesto"
+                        :valor-inicial="puesto?.titulo ?? undefined"
+                        :error="errors.titulo"
+                        requerido
+                    />
+                </FilaCampos>
 
                 <CampoSelect
                     nombre="reporta_a_id"

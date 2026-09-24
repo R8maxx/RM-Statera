@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FilaCampos from '@/components/formulario/FilaCampos.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import CampoSwitch from '@/components/formulario/CampoSwitch.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
@@ -111,29 +112,31 @@ const acuse = ref(props.documento?.exige_acuse ?? false);
                 ayuda="Hay dos familias y no se parecen: las declaraciones de aplicabilidad se calculan desde las implantaciones y sólo caben en un sistema de su marco; una política, una norma o un procedimiento los escribe la organización."
                 plegable
             >
-                <CampoSelect
-                    v-model="tipo"
-                    nombre="tipo"
-                    etiqueta="Tipo de documento"
-                    :opciones="tipos"
-                    :error="errors.tipo"
-                    requerido
-                />
+                <FilaCampos>
+                    <CampoSelect
+                        v-model="tipo"
+                        nombre="tipo"
+                        etiqueta="Tipo de documento"
+                        :opciones="tipos"
+                        :error="errors.tipo"
+                        requerido
+                    />
 
-                <CampoSelect
-                    v-if="!deLaOrganizacion"
-                    v-model="sistema"
-                    nombre="sistema_id"
-                    etiqueta="Sistema"
-                    :opciones="exigeSistema ? sistemas : conOpcionVacia(sistemas, 'Toda la organización')"
-                    :error="errors.sistema_id ?? avisoMarco ?? undefined"
-                    :requerido="exigeSistema"
-                    :ayuda="
-                        !exigeSistema
-                            ? 'Opcional: una política de seguridad suele ser de la organización entera y no colgar de ningún sistema.'
-                            : 'De él salen el alcance declarado, la categoría y el conjunto de requisitos exigibles.'
-                    "
-                />
+                    <CampoSelect
+                        v-if="!deLaOrganizacion"
+                        v-model="sistema"
+                        nombre="sistema_id"
+                        etiqueta="Sistema"
+                        :opciones="exigeSistema ? sistemas : conOpcionVacia(sistemas, 'Toda la organización')"
+                        :error="errors.sistema_id ?? avisoMarco ?? undefined"
+                        :requerido="exigeSistema"
+                        :ayuda="
+                            !exigeSistema
+                                ? 'Opcional: una política de seguridad suele ser de la organización entera y no colgar de ningún sistema.'
+                                : 'De él salen el alcance declarado, la categoría y el conjunto de requisitos exigibles.'
+                        "
+                    />
+                </FilaCampos>
             </SeccionFormulario>
 
             <SeccionFormulario
@@ -141,23 +144,25 @@ const acuse = ref(props.documento?.exige_acuse ?? false);
                 ayuda="Un documento del SGSI no basta con publicarlo: hay que revisarlo cada cierto tiempo y poder demostrar que quien tiene que conocerlo lo conoce."
                 plegable
             >
-                <CampoTexto
-                    nombre="periodicidad_revision_meses"
-                    etiqueta="Se revisa cada (meses)"
-                    tipo="number"
-                    :valor-inicial="documento?.periodicidad_revision_meses ?? undefined"
-                    :error="errors.periodicidad_revision_meses"
-                    placeholder="12"
-                    ayuda="En blanco es «no se revisa por calendario», que es lo normal en una Declaración de Aplicabilidad: se rehace cuando cambia el alcance. Al aprobar, la fecha de la próxima revisión se calcula desde aquí y salta en el calendario."
-                />
+                <FilaCampos>
+                    <CampoTexto
+                        nombre="periodicidad_revision_meses"
+                        etiqueta="Se revisa cada (meses)"
+                        tipo="number"
+                        :valor-inicial="documento?.periodicidad_revision_meses ?? undefined"
+                        :error="errors.periodicidad_revision_meses"
+                        placeholder="12"
+                        ayuda="En blanco es «no se revisa por calendario», que es lo normal en una Declaración de Aplicabilidad: se rehace cuando cambia el alcance. Al aprobar, la fecha de la próxima revisión se calcula desde aquí y salta en el calendario."
+                    />
 
-                <CampoSwitch
-                    v-model="acuse"
-                    nombre="exige_acuse"
-                    etiqueta="Exigir acuse de lectura"
-                    :error="errors.exige_acuse"
-                    ayuda="Para políticas y normas: la cláusula 7.3 de ISO y org.2 del ENS piden poder demostrar que se conocen, no sólo que están publicadas. Nadie acusa recibo de una Declaración de Aplicabilidad."
-                />
+                    <CampoSwitch
+                        v-model="acuse"
+                        nombre="exige_acuse"
+                        etiqueta="Exigir acuse de lectura"
+                        :error="errors.exige_acuse"
+                        ayuda="Para políticas y normas: la cláusula 7.3 de ISO y org.2 del ENS piden poder demostrar que se conocen, no sólo que están publicadas. Nadie acusa recibo de una Declaración de Aplicabilidad."
+                    />
+                </FilaCampos>
             </SeccionFormulario>
 
             <SeccionFormulario
@@ -165,23 +170,25 @@ const acuse = ref(props.documento?.exige_acuse ?? false);
                 ayuda="El código va impreso en la cabecera de cada página y es por el que el auditor cita el documento. Una etiqueta impresa dura años: conviene que sea estable."
                 plegable
             >
-                <CampoTexto
-                    nombre="codigo"
-                    etiqueta="Código"
-                    :valor-inicial="documento?.codigo"
-                    :error="errors.codigo"
-                    placeholder="SOA-SGSI-01"
-                    requerido
-                    autofocus
-                />
+                <FilaCampos codigo>
+                    <CampoTexto
+                        nombre="codigo"
+                        etiqueta="Código"
+                        :valor-inicial="documento?.codigo"
+                        :error="errors.codigo"
+                        placeholder="SOA-SGSI-01"
+                        requerido
+                        autofocus
+                    />
 
-                <CampoTexto
-                    nombre="titulo"
-                    etiqueta="Título"
-                    :valor-inicial="documento?.titulo ?? 'Declaración de Aplicabilidad'"
-                    :error="errors.titulo"
-                    requerido
-                />
+                    <CampoTexto
+                        nombre="titulo"
+                        etiqueta="Título"
+                        :valor-inicial="documento?.titulo ?? 'Declaración de Aplicabilidad'"
+                        :error="errors.titulo"
+                        requerido
+                    />
+                </FilaCampos>
             </SeccionFormulario>
 
             <SeccionFormulario
@@ -189,22 +196,24 @@ const acuse = ref(props.documento?.exige_acuse ?? false);
                 ayuda="La clasificación se estampa en el pie de cada página, que es lo que pide mp.info.2. Un documento sin marca acaba reenviado a quien no debe."
                 plegable
             >
-                <CampoSelect
-                    v-model="clasificacion"
-                    nombre="clasificacion"
-                    etiqueta="Clasificación"
-                    :opciones="clasificaciones"
-                    :error="errors.clasificacion"
-                    requerido
-                />
+                <FilaCampos>
+                    <CampoSelect
+                        v-model="clasificacion"
+                        nombre="clasificacion"
+                        etiqueta="Clasificación"
+                        :opciones="clasificaciones"
+                        :error="errors.clasificacion"
+                        requerido
+                    />
 
-                <CampoSelect
-                    v-model="responsable"
-                    nombre="responsable_id"
-                    etiqueta="Responsable"
-                    :opciones="responsables"
-                    :error="errors.responsable_id"
-                />
+                    <CampoSelect
+                        v-model="responsable"
+                        nombre="responsable_id"
+                        etiqueta="Responsable"
+                        :opciones="responsables"
+                        :error="errors.responsable_id"
+                    />
+                </FilaCampos>
 
                 <CampoTextarea
                     nombre="notas"

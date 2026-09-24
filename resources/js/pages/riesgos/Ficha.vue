@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FilaCampos from '@/components/formulario/FilaCampos.vue';
 import Aviso from '@/components/Aviso.vue';
 import BarraSegmentada, { type Segmento } from '@/components/BarraSegmentada.vue';
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
@@ -420,7 +421,7 @@ const dimensiones: Record<string, string> = {
                             />
 
                             <div v-else class="space-y-5">
-                                <div class="grid gap-5 sm:grid-cols-2">
+                                <FilaCampos>
                                     <div>
                                         <p class="text-xs text-muted-foreground">Riesgo intrínseco</p>
                                         <p class="mt-1 flex items-baseline gap-2">
@@ -454,7 +455,7 @@ const dimensiones: Record<string, string> = {
                                             {{ valoracion.impacto_residual }}
                                         </p>
                                     </div>
-                                </div>
+                                </FilaCampos>
 
                                 <p v-if="valoracion.justificacion_residual" class="text-sm">
                                     {{ valoracion.justificacion_residual }}
@@ -785,7 +786,7 @@ const dimensiones: Record<string, string> = {
 
                     <Separator />
 
-                    <div class="grid gap-5 sm:grid-cols-2">
+                    <FilaCampos>
                         <CampoSelect
                             v-model="valorar.probabilidad_residual"
                             nombre="probabilidad_residual"
@@ -800,7 +801,7 @@ const dimensiones: Record<string, string> = {
                             :opciones="impactosResiduales"
                             :error="valorar.errors.impacto_residual"
                         />
-                    </div>
+                    </FilaCampos>
 
                     <CampoTextarea
                         v-model="valorar.justificacion_residual"

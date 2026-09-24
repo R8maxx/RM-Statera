@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FilaCampos from '@/components/formulario/FilaCampos.vue';
 import EtiquetaQr from '@/components/activo/EtiquetaQr.vue';
 import CampoCasillas from '@/components/formulario/CampoCasillas.vue';
 import CampoOpciones from '@/components/formulario/CampoOpciones.vue';
@@ -215,7 +216,7 @@ const variantesBaja = computed(() =>
                     ayuda="Qué hace y para quién. Lo que haría falta saber para decidir si se puede apagar."
                 />
 
-                <div class="grid gap-5 sm:grid-cols-2">
+                <FilaCampos>
                     <CampoTexto
                         nombre="subtipo"
                         etiqueta="Subtipo"
@@ -232,7 +233,7 @@ const variantesBaja = computed(() =>
                         :error="errors.identificador"
                         ayuda="Nº de serie, ARN, hostname o IP. Es lo que no cambia."
                     />
-                </div>
+                </FilaCampos>
 
                 <CampoTexto
                     nombre="ubicacion"
@@ -255,7 +256,7 @@ const variantesBaja = computed(() =>
                 plegable
                 :plegada-por-defecto="!conFichaTecnica"
             >
-                <div class="grid gap-5 sm:grid-cols-2">
+                <FilaCampos>
                     <CampoTexto
                         nombre="marca_modelo"
                         etiqueta="Marca y modelo"
@@ -270,7 +271,7 @@ const variantesBaja = computed(() =>
                         :valor-inicial="activo?.fin_garantia ?? ''"
                         :error="errors.fin_garantia"
                     />
-                </div>
+                </FilaCampos>
 
                 <CampoTextarea
                     nombre="especificaciones"
@@ -281,7 +282,7 @@ const variantesBaja = computed(() =>
                     ayuda="CPU, memoria y almacenamiento, o lo que haga falta para decidir si aguanta otro año."
                 />
 
-                <div class="grid gap-5 sm:grid-cols-2">
+                <FilaCampos>
                     <CampoSelect
                         v-model="sistemaOperativo"
                         nombre="sistema_operativo"
@@ -298,7 +299,7 @@ const variantesBaja = computed(() =>
                         :error="errors.fin_soporte_so"
                         ayuda="Editable: se puede tener soporte extendido contratado."
                     />
-                </div>
+                </FilaCampos>
             </SeccionFormulario>
 
             <SeccionFormulario
@@ -316,7 +317,7 @@ const variantesBaja = computed(() =>
                     requerido
                 />
 
-                <div class="grid gap-5 sm:grid-cols-2">
+                <FilaCampos>
                     <CampoSelect
                         v-model="cifrado"
                         nombre="cifrado"
@@ -334,7 +335,7 @@ const variantesBaja = computed(() =>
                         :error="errors.copia_seguridad"
                         requerido
                     />
-                </div>
+                </FilaCampos>
             </SeccionFormulario>
 
             <SeccionFormulario
@@ -342,7 +343,7 @@ const variantesBaja = computed(() =>
                 ayuda="El propietario responde del activo; el custodio lo usa. Cuando un portátil cambia de manos sólo cambia el custodio: el activo conserva su código y la etiqueta pegada en la carcasa sigue valiendo."
                 plegable
             >
-                <div class="grid gap-5 sm:grid-cols-2">
+                <FilaCampos>
                     <CampoSelect
                         v-model="propietario"
                         nombre="propietario_id"
@@ -358,7 +359,7 @@ const variantesBaja = computed(() =>
                         :opciones="custodios"
                         :error="errors.custodio_id"
                     />
-                </div>
+                </FilaCampos>
 
                 <CampoTexto
                     nombre="departamento"
@@ -406,36 +407,38 @@ const variantesBaja = computed(() =>
                 ayuda="Retirado es que ya no presta servicio. Dado de baja es que además hay constancia de que se borró o destruyó lo que contenía, que es lo que exige mp.si.5. Un disco retirado que sigue en un cajón con los datos dentro es un hallazgo, no un activo cerrado."
                 plegable
             >
-                <CampoSelect
-                    v-model="estado"
-                    nombre="estado_ciclo_vida"
-                    etiqueta="Estado"
-                    :opciones="estados"
-                    :error="errors.estado_ciclo_vida"
-                    requerido
-                />
+                <FilaCampos :columnas="3">
+                    <CampoSelect
+                        v-model="estado"
+                        nombre="estado_ciclo_vida"
+                        etiqueta="Estado"
+                        :opciones="estados"
+                        :error="errors.estado_ciclo_vida"
+                        requerido
+                    />
 
-                <!--
-                    La fecha de baja no comparte rejilla con la de alta: con el
-                    activo vigente desaparece y el `sm:grid-cols-2` dejaba media
-                    fila en blanco.
-                -->
-                <CampoTexto
-                    nombre="fecha_alta"
-                    etiqueta="Fecha de alta"
-                    tipo="date"
-                    :valor-inicial="activo?.fecha_alta ?? ''"
-                    :error="errors.fecha_alta"
-                />
+                    <!--
+                        La fecha de baja no comparte rejilla con la de alta: con el
+                        activo vigente desaparece y el `sm:grid-cols-2` dejaba media
+                        fila en blanco.
+                    -->
+                    <CampoTexto
+                        nombre="fecha_alta"
+                        etiqueta="Fecha de alta"
+                        tipo="date"
+                        :valor-inicial="activo?.fecha_alta ?? ''"
+                        :error="errors.fecha_alta"
+                    />
 
-                <CampoTexto
-                    nombre="ultima_revision"
-                    etiqueta="Última revisión"
-                    tipo="date"
-                    :valor-inicial="activo?.ultima_revision ?? ''"
-                    :error="errors.ultima_revision"
-                    ayuda="Cuándo se comprobó por última vez que esta ficha se corresponde con la realidad. También se pone en lote desde la tabla."
-                />
+                    <CampoTexto
+                        nombre="ultima_revision"
+                        etiqueta="Última revisión"
+                        tipo="date"
+                        :valor-inicial="activo?.ultima_revision ?? ''"
+                        :error="errors.ultima_revision"
+                        ayuda="Cuándo se comprobó por última vez que esta ficha se corresponde con la realidad. También se pone en lote desde la tabla."
+                    />
+                </FilaCampos>
 
                 <CampoTextarea
                     nombre="observaciones"

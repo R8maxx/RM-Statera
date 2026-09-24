@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FilaCampos from '@/components/formulario/FilaCampos.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
@@ -122,7 +123,7 @@ const responsable = ref(props.tarea?.responsable_id ? String(props.tarea.respons
                 ayuda="Una tarea sin responsable no la hace nadie, y una sin plazo no vence nunca: las dos cosas se pueden dejar en blanco, pero entonces nada avisará de ellas."
                 plegable
             >
-                <div class="grid gap-5 sm:grid-cols-2">
+                <FilaCampos>
                     <CampoSelect
                         v-model="responsable"
                         nombre="responsable_id"
@@ -139,9 +140,9 @@ const responsable = ref(props.tarea?.responsable_id ? String(props.tarea.respons
                         :error="errors.prioridad"
                         requerido
                     />
-                </div>
+                </FilaCampos>
 
-                <div class="grid gap-5 sm:grid-cols-2">
+                <FilaCampos>
                     <CampoTexto
                         nombre="fecha_limite"
                         etiqueta="Fecha límite"
@@ -159,7 +160,7 @@ const responsable = ref(props.tarea?.responsable_id ? String(props.tarea.respons
                         :error="errors.coste_estimado"
                         ayuda="Para el plan de adecuación: una tarea sin coste no se puede presupuestar."
                     />
-                </div>
+                </FilaCampos>
 
                 <CampoTextarea
                     nombre="notas"

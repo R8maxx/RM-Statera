@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FilaCampos from '@/components/formulario/FilaCampos.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
@@ -88,53 +89,57 @@ const opcionesSistema = computed(() => props.sistemas.map((s) => ({ valor: s.val
                     El sistema es obligatorio: el SGSI es un sistema, y sin él no
                     hay checklist que generar, que es la mitad del módulo.
                 -->
-                <CampoSelect
-                    nombre="sistema_id"
-                    etiqueta="Sistema"
-                    :opciones="opcionesSistema"
-                    :valor-inicial="auditoria?.sistema_id ? String(auditoria.sistema_id) : undefined"
-                    :error="errors.sistema_id"
-                    requerido
-                    ayuda="De él sale la checklist: una línea por medida exigible."
-                />
+                <FilaCampos :columnas="3">
+                    <CampoSelect
+                        nombre="sistema_id"
+                        etiqueta="Sistema"
+                        :opciones="opcionesSistema"
+                        :valor-inicial="auditoria?.sistema_id ? String(auditoria.sistema_id) : undefined"
+                        :error="errors.sistema_id"
+                        requerido
+                        ayuda="De él sale la checklist: una línea por medida exigible."
+                    />
 
-                <CampoSelect
-                    nombre="tipo"
-                    etiqueta="Tipo"
-                    :opciones="opcionesTipo"
-                    :valor-inicial="tipo"
-                    :error="errors.tipo"
-                    requerido
-                    :ayuda="ayudaTipo"
-                    @update:model-value="(valor?: string) => (tipo = valor ?? tipo)"
-                />
+                    <CampoSelect
+                        nombre="tipo"
+                        etiqueta="Tipo"
+                        :opciones="opcionesTipo"
+                        :valor-inicial="tipo"
+                        :error="errors.tipo"
+                        requerido
+                        :ayuda="ayudaTipo"
+                        @update:model-value="(valor?: string) => (tipo = valor ?? tipo)"
+                    />
 
-                <CampoTexto
-                    nombre="fecha"
-                    etiqueta="Fecha"
-                    tipo="date"
-                    :valor-inicial="auditoria?.fecha"
-                    :error="errors.fecha"
-                    requerido
-                />
+                    <CampoTexto
+                        nombre="fecha"
+                        etiqueta="Fecha"
+                        tipo="date"
+                        :valor-inicial="auditoria?.fecha"
+                        :error="errors.fecha"
+                        requerido
+                    />
+                </FilaCampos>
             </SeccionFormulario>
 
             <SeccionFormulario titulo="Quién la hace" plegable>
-                <CampoTexto
-                    nombre="auditor"
-                    etiqueta="Auditor"
-                    :valor-inicial="auditoria?.auditor ?? undefined"
-                    :error="errors.auditor"
-                    ayuda="Texto libre: el auditor externo no tiene cuenta en Statera, y el interno puede no tenerla."
-                />
+                <FilaCampos>
+                    <CampoTexto
+                        nombre="auditor"
+                        etiqueta="Auditor"
+                        :valor-inicial="auditoria?.auditor ?? undefined"
+                        :error="errors.auditor"
+                        ayuda="Texto libre: el auditor externo no tiene cuenta en Statera, y el interno puede no tenerla."
+                    />
 
-                <CampoTexto
-                    nombre="equipo"
-                    etiqueta="Equipo auditor"
-                    :valor-inicial="auditoria?.equipo ?? undefined"
-                    :error="errors.equipo"
-                    ayuda="El resto de personas que auditan, si las hay. El auditor es quien firma y responde."
-                />
+                    <CampoTexto
+                        nombre="equipo"
+                        etiqueta="Equipo auditor"
+                        :valor-inicial="auditoria?.equipo ?? undefined"
+                        :error="errors.equipo"
+                        ayuda="El resto de personas que auditan, si las hay. El auditor es quien firma y responde."
+                    />
+                </FilaCampos>
 
                 <CampoTexto
                     v-if="admiteEntidad"

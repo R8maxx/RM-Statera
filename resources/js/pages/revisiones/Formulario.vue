@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FilaCampos from '@/components/formulario/FilaCampos.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
@@ -48,7 +49,7 @@ const hoy = new Date().toISOString().slice(0, 10);
                 ayuda="Una revisión parcial es perfectamente válida —el parque de puestos, la cuenta de la nube—, pero tiene que decir qué miró. Una que no lo dice no demuestra nada."
                 plegable
             >
-                <div class="grid gap-5 sm:grid-cols-2">
+                <FilaCampos>
                     <CampoTexto
                         nombre="fecha"
                         etiqueta="Fecha"
@@ -66,7 +67,7 @@ const hoy = new Date().toISOString().slice(0, 10);
                         :opciones="responsables"
                         :error="errors.responsable_id"
                     />
-                </div>
+                </FilaCampos>
 
                 <CampoTexto
                     nombre="alcance"
@@ -77,7 +78,7 @@ const hoy = new Date().toISOString().slice(0, 10);
                     requerido
                 />
 
-                <div class="grid gap-5 sm:grid-cols-2">
+                <FilaCampos>
                     <CampoTexto
                         nombre="altas"
                         etiqueta="Altas"
@@ -101,7 +102,7 @@ const hoy = new Date().toISOString().slice(0, 10);
                         :error="errors.bajas"
                         requerido
                     />
-                </div>
+                </FilaCampos>
             </SeccionFormulario>
 
             <SeccionFormulario

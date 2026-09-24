@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FilaCampos from '@/components/formulario/FilaCampos.vue';
 import Aviso from '@/components/Aviso.vue';
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
 import CampoSwitch from '@/components/formulario/CampoSwitch.vue';
@@ -141,7 +142,7 @@ const fecha = (valor: string | null): string => (valor ? formatoFecha.format(new
                 #default="{ errors }"
             >
                 <SeccionFormulario titulo="Identificación">
-                    <div class="grid gap-5 sm:grid-cols-2">
+                    <FilaCampos>
                         <CampoTexto
                             nombre="nombre"
                             etiqueta="Nombre"
@@ -157,7 +158,7 @@ const fecha = (valor: string | null): string => (valor ? formatoFecha.format(new
                             placeholder="MAGERIT v3, ISO/IEC 27005:2022"
                             ayuda="En qué se basa. El auditor lo pregunta y es más corto contestarlo aquí."
                         />
-                    </div>
+                    </FilaCampos>
                 </SeccionFormulario>
 
                 <SeccionFormulario

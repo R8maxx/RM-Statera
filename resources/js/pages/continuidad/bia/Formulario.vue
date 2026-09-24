@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FilaCampos from '@/components/formulario/FilaCampos.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
@@ -75,67 +76,71 @@ const edicion = props.bia !== null;
                 titulo="Los cinco tramos del MTPD"
                 ayuda="Cómo de grave es no tener el servicio disponible, a cada horizonte. El primer tramo que llegue a «muy alto» fija el umbral tolerable."
             >
-                <CampoSelect
-                    nombre="impacto_4h"
-                    etiqueta="A las 4 horas"
-                    :opciones="nivelesImpacto"
-                    :valor-inicial="bia?.impacto_4h ?? 'bajo'"
-                    :error="errors.impacto_4h"
-                    requerido
-                />
-                <CampoSelect
-                    nombre="impacto_1d"
-                    etiqueta="A 1 día"
-                    :opciones="nivelesImpacto"
-                    :valor-inicial="bia?.impacto_1d ?? 'bajo'"
-                    :error="errors.impacto_1d"
-                    requerido
-                />
-                <CampoSelect
-                    nombre="impacto_3d"
-                    etiqueta="A 3 días"
-                    :opciones="nivelesImpacto"
-                    :valor-inicial="bia?.impacto_3d ?? 'bajo'"
-                    :error="errors.impacto_3d"
-                    requerido
-                />
-                <CampoSelect
-                    nombre="impacto_1s"
-                    etiqueta="A 1 semana"
-                    :opciones="nivelesImpacto"
-                    :valor-inicial="bia?.impacto_1s ?? 'bajo'"
-                    :error="errors.impacto_1s"
-                    requerido
-                />
-                <CampoSelect
-                    nombre="impacto_1m"
-                    etiqueta="A 1 mes"
-                    :opciones="nivelesImpacto"
-                    :valor-inicial="bia?.impacto_1m ?? 'bajo'"
-                    :error="errors.impacto_1m"
-                    requerido
-                />
+                <FilaCampos :columnas="3">
+                    <CampoSelect
+                        nombre="impacto_4h"
+                        etiqueta="A las 4 horas"
+                        :opciones="nivelesImpacto"
+                        :valor-inicial="bia?.impacto_4h ?? 'bajo'"
+                        :error="errors.impacto_4h"
+                        requerido
+                    />
+                    <CampoSelect
+                        nombre="impacto_1d"
+                        etiqueta="A 1 día"
+                        :opciones="nivelesImpacto"
+                        :valor-inicial="bia?.impacto_1d ?? 'bajo'"
+                        :error="errors.impacto_1d"
+                        requerido
+                    />
+                    <CampoSelect
+                        nombre="impacto_3d"
+                        etiqueta="A 3 días"
+                        :opciones="nivelesImpacto"
+                        :valor-inicial="bia?.impacto_3d ?? 'bajo'"
+                        :error="errors.impacto_3d"
+                        requerido
+                    />
+                    <CampoSelect
+                        nombre="impacto_1s"
+                        etiqueta="A 1 semana"
+                        :opciones="nivelesImpacto"
+                        :valor-inicial="bia?.impacto_1s ?? 'bajo'"
+                        :error="errors.impacto_1s"
+                        requerido
+                    />
+                    <CampoSelect
+                        nombre="impacto_1m"
+                        etiqueta="A 1 mes"
+                        :opciones="nivelesImpacto"
+                        :valor-inicial="bia?.impacto_1m ?? 'bajo'"
+                        :error="errors.impacto_1m"
+                        requerido
+                    />
+                </FilaCampos>
             </SeccionFormulario>
 
             <SeccionFormulario titulo="RTO y RPO">
-                <CampoTexto
-                    nombre="rto_horas"
-                    etiqueta="RTO"
-                    tipo="number"
-                    :valor-inicial="bia?.rto_horas ?? undefined"
-                    :error="errors.rto_horas"
-                    requerido
-                    ayuda="El tiempo de recuperación objetivo, en horas. Se compara con el umbral tolerable que derivan los cinco tramos de arriba."
-                />
-                <CampoTexto
-                    nombre="rpo_horas"
-                    etiqueta="RPO"
-                    tipo="number"
-                    :valor-inicial="bia?.rpo_horas ?? undefined"
-                    :error="errors.rpo_horas"
-                    requerido
-                    ayuda="Cuántos datos se puede permitir perder la organización, en horas desde la última copia."
-                />
+                <FilaCampos>
+                    <CampoTexto
+                        nombre="rto_horas"
+                        etiqueta="RTO"
+                        tipo="number"
+                        :valor-inicial="bia?.rto_horas ?? undefined"
+                        :error="errors.rto_horas"
+                        requerido
+                        ayuda="El tiempo de recuperación objetivo, en horas. Se compara con el umbral tolerable que derivan los cinco tramos de arriba."
+                    />
+                    <CampoTexto
+                        nombre="rpo_horas"
+                        etiqueta="RPO"
+                        tipo="number"
+                        :valor-inicial="bia?.rpo_horas ?? undefined"
+                        :error="errors.rpo_horas"
+                        requerido
+                        ayuda="Cuántos datos se puede permitir perder la organización, en horas desde la última copia."
+                    />
+                </FilaCampos>
                 <CampoTextarea
                     nombre="justificacion"
                     etiqueta="Justificación"

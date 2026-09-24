@@ -64,7 +64,7 @@ const textoPendientes = computed(() =>
 
 <template>
     <section
-        class="grid gap-x-8 gap-y-4 border-t pt-6 first:border-t-0 first:pt-0 lg:grid-cols-[15rem_1fr]"
+        class="grid gap-x-8 gap-y-4 border-t pt-6 first:border-t-0 first:pt-0 lg:grid-cols-[16rem_1fr]"
         :data-plegable="plegable ? '' : undefined"
     >
         <div class="lg:pt-0.5">

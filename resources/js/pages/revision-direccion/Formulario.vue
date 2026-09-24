@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FilaCampos from '@/components/formulario/FilaCampos.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
 import FormularioRecurso from '@/components/formulario/FormularioRecurso.vue';
@@ -49,25 +50,27 @@ const valor = computed(() => ({
             #default="{ errors }"
         >
             <SeccionFormulario titulo="La reunión">
-                <CampoTexto
-                    nombre="codigo"
-                    etiqueta="Código"
-                    :valor-inicial="valor.codigo"
-                    :error="errors.codigo"
-                    requerido
-                    autofocus
-                    ayuda="Único dentro de la organización. Se propone el siguiente del año."
-                />
+                <FilaCampos>
+                    <CampoTexto
+                        nombre="codigo"
+                        etiqueta="Código"
+                        :valor-inicial="valor.codigo"
+                        :error="errors.codigo"
+                        requerido
+                        autofocus
+                        ayuda="Único dentro de la organización. Se propone el siguiente del año."
+                    />
 
-                <CampoTexto
-                    nombre="fecha"
-                    etiqueta="Fecha de celebración"
-                    tipo="date"
-                    :valor-inicial="valor.fecha"
-                    :error="errors.fecha"
-                    requerido
-                    ayuda="Cuándo se celebra. No es lo mismo que el periodo revisado: una revisión del ejercicio pasado suele celebrarse en el siguiente."
-                />
+                    <CampoTexto
+                        nombre="fecha"
+                        etiqueta="Fecha de celebración"
+                        tipo="date"
+                        :valor-inicial="valor.fecha"
+                        :error="errors.fecha"
+                        requerido
+                        ayuda="Cuándo se celebra. No es lo mismo que el periodo revisado: una revisión del ejercicio pasado suele celebrarse en el siguiente."
+                    />
+                </FilaCampos>
 
                 <CampoTextarea
                     nombre="asistentes"
@@ -80,25 +83,27 @@ const valor = computed(() => ({
             </SeccionFormulario>
 
             <SeccionFormulario titulo="Periodo revisado">
-                <CampoTexto
-                    nombre="periodo_desde"
-                    etiqueta="Desde"
-                    tipo="date"
-                    :valor-inicial="valor.desde"
-                    :error="errors.periodo_desde"
-                    requerido
-                    ayuda="Se propone el día siguiente al fin de la última revisión aprobada: dos actas seguidas no deberían dejar un hueco sin revisar."
-                />
+                <FilaCampos>
+                    <CampoTexto
+                        nombre="periodo_desde"
+                        etiqueta="Desde"
+                        tipo="date"
+                        :valor-inicial="valor.desde"
+                        :error="errors.periodo_desde"
+                        requerido
+                        ayuda="Se propone el día siguiente al fin de la última revisión aprobada: dos actas seguidas no deberían dejar un hueco sin revisar."
+                    />
 
-                <CampoTexto
-                    nombre="periodo_hasta"
-                    etiqueta="Hasta"
-                    tipo="date"
-                    :valor-inicial="valor.hasta"
-                    :error="errors.periodo_hasta"
-                    requerido
-                    ayuda="De qué habla el acta. Las auditorías se recogen acotadas a este periodo."
-                />
+                    <CampoTexto
+                        nombre="periodo_hasta"
+                        etiqueta="Hasta"
+                        tipo="date"
+                        :valor-inicial="valor.hasta"
+                        :error="errors.periodo_hasta"
+                        requerido
+                        ayuda="De qué habla el acta. Las auditorías se recogen acotadas a este periodo."
+                    />
+                </FilaCampos>
             </SeccionFormulario>
 
             <SeccionFormulario titulo="Conclusiones" plegable>

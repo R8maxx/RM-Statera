@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FilaCampos from '@/components/formulario/FilaCampos.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
@@ -52,7 +53,7 @@ const estado = ref(props.sistema?.estado ?? 'borrador');
                 ayuda="El código es el que aparecerá en la declaración de aplicabilidad y en las evidencias, así que conviene que no cambie."
                 plegable
             >
-                <div class="grid gap-5 sm:grid-cols-2">
+                <FilaCampos>
                     <CampoTexto
                         nombre="codigo"
                         etiqueta="Código"
@@ -71,7 +72,7 @@ const estado = ref(props.sistema?.estado ?? 'borrador');
                         :error="errors.estado"
                         requerido
                     />
-                </div>
+                </FilaCampos>
 
                 <CampoTexto
                     nombre="nombre"

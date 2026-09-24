@@ -115,3 +115,14 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
   `destructive`— y **nunca de relleno**: un solo primario por vista, y dos botones de color lleno hacen
   que no mande ninguno. En implantaciones el cambio de estado es un formulario con desplegable y nota,
   no cuatro botones, así que ahí se queda como está.
+
+- **El ancho es por tipo de pantalla, no uno para todas.** `AppLayout` tiene `ancho`: `contenido`
+  (por defecto, 1440 px centrados) para panel, fichas y formularios, y `completo` para toda página
+  con `DataTable` y para tablero, calendario, grafos, organigrama y DAFO. Un tope único de 1440
+  pegado a la izquierda se probó en la primera tanda de rediseño y dejaba las tablas estrechas con
+  un hueco a la derecha. **Una página nueva con tabla tiene que pasar `ancho="completo"`**: no hay
+  test que lo cace.
+
+- **Los campos cortos van en `FilaCampos`**, no en un `grid sm:grid-cols-2` escrito a mano. Selects,
+  fechas y números, de dos o tres en fila; `codigo` para la pareja código-nombre. Textareas,
+  casillas, títulos y escalas, a lo ancho.

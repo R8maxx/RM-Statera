@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FilaCampos from '@/components/formulario/FilaCampos.vue';
 import CampoCasillas from '@/components/formulario/CampoCasillas.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
@@ -94,38 +95,42 @@ const ayudaTipo = computed(
             </SeccionFormulario>
 
             <SeccionFormulario titulo="La prueba">
-                <CampoTexto
-                    nombre="codigo"
-                    etiqueta="Código"
-                    :valor-inicial="prueba?.codigo ?? sugerencia?.codigo"
-                    :error="errors.codigo"
-                    requerido
-                    ayuda="Se propone solo; se puede escribir encima."
-                />
-                <CampoTexto
-                    nombre="titulo"
-                    etiqueta="Título"
-                    :valor-inicial="prueba?.titulo"
-                    :error="errors.titulo"
-                    requerido
-                />
-                <CampoSelect
-                    v-model="tipoSeleccionado"
-                    nombre="tipo"
-                    etiqueta="Tipo"
-                    :opciones="tipos"
-                    :error="errors.tipo"
-                    requerido
-                    :ayuda="ayudaTipo"
-                />
-                <CampoTexto
-                    nombre="fecha_prevista"
-                    etiqueta="Fecha prevista"
-                    tipo="date"
-                    :valor-inicial="prueba?.fecha_prevista"
-                    :error="errors.fecha_prevista"
-                    requerido
-                />
+                <FilaCampos codigo>
+                    <CampoTexto
+                        nombre="codigo"
+                        etiqueta="Código"
+                        :valor-inicial="prueba?.codigo ?? sugerencia?.codigo"
+                        :error="errors.codigo"
+                        requerido
+                        ayuda="Se propone solo; se puede escribir encima."
+                    />
+                    <CampoTexto
+                        nombre="titulo"
+                        etiqueta="Título"
+                        :valor-inicial="prueba?.titulo"
+                        :error="errors.titulo"
+                        requerido
+                    />
+                </FilaCampos>
+                <FilaCampos>
+                    <CampoSelect
+                        v-model="tipoSeleccionado"
+                        nombre="tipo"
+                        etiqueta="Tipo"
+                        :opciones="tipos"
+                        :error="errors.tipo"
+                        requerido
+                        :ayuda="ayudaTipo"
+                    />
+                    <CampoTexto
+                        nombre="fecha_prevista"
+                        etiqueta="Fecha prevista"
+                        tipo="date"
+                        :valor-inicial="prueba?.fecha_prevista"
+                        :error="errors.fecha_prevista"
+                        requerido
+                    />
+                </FilaCampos>
             </SeccionFormulario>
 
             <SeccionFormulario

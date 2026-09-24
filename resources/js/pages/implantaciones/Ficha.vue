@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FilaCampos from '@/components/formulario/FilaCampos.vue';
 import { ArrowLeftIcon } from '@lucide/vue';
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
@@ -229,7 +230,7 @@ function cambiarEstado(): void {
                             <MensajeError class="mt-2" :mensaje="gestion.errors.aplica" />
                         </div>
 
-                        <div class="grid gap-5 sm:grid-cols-2">
+                        <FilaCampos>
                             <CampoSelect
                                 v-model="gestion.responsable_id"
                                 nombre="responsable_id"
@@ -245,7 +246,7 @@ function cambiarEstado(): void {
                                 tipo="date"
                                 :error="gestion.errors.fecha_objetivo"
                             />
-                        </div>
+                        </FilaCampos>
 
                         <CampoSelect
                             v-model="gestion.nivel_madurez"

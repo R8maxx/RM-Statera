@@ -11,7 +11,7 @@ defineProps<{
 </script>
 
 <template>
-    <AppLayout :titulo="recurso.etiquetas.plural">
+    <AppLayout ancho="completo" :titulo="recurso.etiquetas.plural">
         <CabeceraPagina
             :titulo="recurso.etiquetas.plural"
             :descripcion="recurso.etiquetas.descripcion"

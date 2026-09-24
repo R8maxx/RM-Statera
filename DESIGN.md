@@ -322,7 +322,11 @@ Instrument Sans es estrecha y de altura de x generosa: aguanta una tabla de cont
 Base de 4 px. Escala: 4, 8, 12, 16, 24, 32, 48, 64, 96, 128.
 
 - Web pública: contenedor de 1200 px, secciones de 96–128 px de alto interior.
-- Aplicación: contenedor de 1440 px, márgenes laterales 32 / 24 / 16 px según tamaño. Lo pone `AppLayout` en el `<main>`, pegado al sidebar y no centrado. Los formularios van dentro a `max-w-4xl` (o `max-w-6xl` los anchos), **también alineados a la izquierda**, con su `BarraAcciones` pegajosa dentro de ellos y no fija a la ventana.
+- Aplicación: **el ancho lo decide el tipo de pantalla**, con la prop `ancho` de `AppLayout`, y los márgenes laterales son siempre 32 / 24 / 16 px según tamaño.
+  - **Lo que se recorre** —tablas, tablero, calendario, grafos, organigrama, la matriz DAFO— usa todo el ancho (`ancho="completo"`). Cada columna que cabe es una que no hay que desplazar.
+  - **Lo que se lee** —panel y fichas— se queda en 1440 px, **centrado** en el hueco que deja el sidebar. Es el valor por defecto.
+  - **Formularios**: `max-w-6xl`, centrados (`max-w-7xl` con `ancho`), con la explicación de cada sección en una columna de 16 rem y los campos cortos de dos o tres en fila con `FilaCampos`.
+  - La cabecera superior va siempre de lado a lado, con los mismos márgenes: sus extremos coinciden con los de una tabla.
 - Contenido de lectura: 720 px.
 - Retícula de 12 columnas, canal de 24 px.
 - Ritmo vertical en producto: 64 px entre secciones, 32 px entre bloques, 16 px dentro del bloque, 8 px entre etiqueta y campo.

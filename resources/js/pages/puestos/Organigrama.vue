@@ -68,7 +68,7 @@ const escalonado = variantesEscalonado(0.04);
 </script>
 
 <template>
-    <AppLayout titulo="Organigrama">
+    <AppLayout ancho="completo" titulo="Organigrama">
         <CabeceraPagina
             titulo="Organigrama"
             descripcion="Quién depende de quién, por puesto y con quien lo ocupa al lado. La jerarquía vive en el puesto, así que no se mueve porque alguien entre o se vaya."

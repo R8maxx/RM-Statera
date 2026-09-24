@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FilaCampos from '@/components/formulario/FilaCampos.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
@@ -51,51 +52,55 @@ const opcionesTipo = computed(() =>
             #default="{ errors }"
         >
             <SeccionFormulario titulo="Qué se impartió">
-                <CampoTexto
-                    nombre="codigo"
-                    etiqueta="Código"
-                    :valor-inicial="valor.codigo"
-                    :error="errors.codigo"
-                    requerido
-                    autofocus
-                />
+                <FilaCampos codigo>
+                    <CampoTexto
+                        nombre="codigo"
+                        etiqueta="Código"
+                        :valor-inicial="valor.codigo"
+                        :error="errors.codigo"
+                        requerido
+                        autofocus
+                    />
 
-                <CampoTexto
-                    nombre="titulo"
-                    etiqueta="Título"
-                    :valor-inicial="accion?.titulo ?? undefined"
-                    :error="errors.titulo"
-                    requerido
-                />
+                    <CampoTexto
+                        nombre="titulo"
+                        etiqueta="Título"
+                        :valor-inicial="accion?.titulo ?? undefined"
+                        :error="errors.titulo"
+                        requerido
+                    />
+                </FilaCampos>
 
-                <CampoSelect
-                    nombre="tipo"
-                    etiqueta="Tipo"
-                    :opciones="opcionesTipo"
-                    :valor-inicial="valor.tipo"
-                    :error="errors.tipo"
-                    requerido
-                    ayuda="El ENS las separa: concienciar es recordar lo que todo el mundo tiene que saber; formar es enseñar a hacer algo a quien lo tiene que hacer."
-                />
+                <FilaCampos :columnas="3">
+                    <CampoSelect
+                        nombre="tipo"
+                        etiqueta="Tipo"
+                        :opciones="opcionesTipo"
+                        :valor-inicial="valor.tipo"
+                        :error="errors.tipo"
+                        requerido
+                        ayuda="El ENS las separa: concienciar es recordar lo que todo el mundo tiene que saber; formar es enseñar a hacer algo a quien lo tiene que hacer."
+                    />
 
-                <CampoTexto
-                    nombre="fecha"
-                    etiqueta="Fecha"
-                    tipo="date"
-                    :valor-inicial="valor.fecha"
-                    :error="errors.fecha"
-                    requerido
-                    ayuda="Cuándo se impartió. Una asistencia sólo cuenta como formación reciente durante doce meses."
-                />
+                    <CampoTexto
+                        nombre="fecha"
+                        etiqueta="Fecha"
+                        tipo="date"
+                        :valor-inicial="valor.fecha"
+                        :error="errors.fecha"
+                        requerido
+                        ayuda="Cuándo se impartió. Una asistencia sólo cuenta como formación reciente durante doce meses."
+                    />
 
-                <CampoTexto
-                    nombre="duracion_horas"
-                    etiqueta="Duración (horas)"
-                    tipo="number"
-                    step="0.25"
-                    :valor-inicial="accion?.duracion_horas ?? undefined"
-                    :error="errors.duracion_horas"
-                />
+                    <CampoTexto
+                        nombre="duracion_horas"
+                        etiqueta="Duración (horas)"
+                        tipo="number"
+                        step="0.25"
+                        :valor-inicial="accion?.duracion_horas ?? undefined"
+                        :error="errors.duracion_horas"
+                    />
+                </FilaCampos>
 
                 <CampoTextarea
                     nombre="contenido"

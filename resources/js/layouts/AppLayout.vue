@@ -43,7 +43,22 @@ import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
 import { toast } from 'vue-sonner';
 import 'vue-sonner/style.css';
 
-defineProps<{ titulo: string }>();
+withDefaults(
+    defineProps<{
+        titulo: string;
+        /**
+         * Cuánto ancho usa la pantalla (DESIGN.md §5).
+         *
+         * `contenido` —panel, fichas, formularios— se queda en 1440 px y centrado
+         * en el hueco que deja el sidebar: son pantallas que se leen, y a 1920 una
+         * ficha estirada separa la etiqueta de su dato. `completo` —tablas,
+         * tablero, calendario, grafos— usa todo el ancho, porque ahí cada
+         * columna que cabe es una columna que no hay que desplazar.
+         */
+        ancho?: 'contenido' | 'completo';
+    }>(),
+    { ancho: 'contenido' },
+);
 
 const pagina = usePage();
 
@@ -327,14 +342,12 @@ const salir = (): void => router.post('/logout');
                     <header
                         class="sticky top-0 z-(--z-cabecera) h-16 border-b bg-background/85 backdrop-blur-sm"
                     >
-                        <!-- El mismo contenedor y los mismos márgenes que el
-                             `<main>`: con la cabecera a todo el ancho, a 1920 el
-                             usuario y el buscador quedaban lejos del contenido
-                             que acompañan. El borde y el velo sí van de lado a
-                             lado, que es lo que separa la cabecera del lienzo. -->
-                        <div
-                            class="flex h-full w-full max-w-[90rem] items-center justify-between gap-3 px-4 sm:px-6 lg:px-8"
-                        >
+                        <!-- A todo el ancho y con los márgenes del `<main>`: el
+                             contenido cambia de ancho según la pantalla, y una
+                             cabecera que siguiera a uno de los dos quedaría
+                             desalineada con el otro. Sus extremos coinciden con
+                             los de una tabla, que es lo más ancho del producto. -->
+                        <div class="flex h-full w-full items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
                             <div class="flex min-w-0 items-center gap-2">
                                 <!-- La navegación en móvil no existía: por debajo de
                                      768px el sidebar sencillamente desaparecía y no
@@ -507,10 +520,11 @@ const salir = (): void => router.post('/logout');
                         foco donde estaba, y el siguiente tabulador vuelve al
                         principio de la navegación.
 
-                        El contenedor es de 1440 px (DESIGN.md §5) y va pegado a
-                        la izquierda, junto al sidebar: a 1920 las tablas y las
-                        fichas se estiraban hasta 1600 y una fila de doce
-                        columnas ya no se leía de un vistazo.
+                        El ancho lo decide la pantalla con `ancho` (DESIGN.md
+                        §5): 1440 px centrados para lo que se lee, todo el ancho
+                        para lo que se recorre. Con un tope único pegado a la
+                        izquierda las tablas se quedaban estrechas y sobraba un
+                        hueco a la derecha.
 
                         `space-y-8` es el RITMO VERTICAL de la página —32 px
                         entre bloques, el de §5—, y vive
@@ -533,7 +547,8 @@ const salir = (): void => router.post('/logout');
                         :variants="variantesEntrada"
                         initial="oculto"
                         animate="visible"
-                        class="w-full max-w-[90rem] min-w-0 flex-1 space-y-8 px-4 pt-6 pb-10 outline-none sm:px-6 lg:px-8"
+                        class="w-full min-w-0 flex-1 space-y-8 px-4 pt-6 pb-10 outline-none sm:px-6 lg:px-8"
+                        :class="ancho === 'contenido' && 'mx-auto max-w-[90rem]'"
                     >
                         <slot />
                     </motion.main>

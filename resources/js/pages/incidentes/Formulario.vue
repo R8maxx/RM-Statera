@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FilaCampos from '@/components/formulario/FilaCampos.vue';
 import CampoCasillas from '@/components/formulario/CampoCasillas.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
@@ -139,23 +140,25 @@ const ayudaClasificacion = computed(
             #default="{ errors }"
         >
             <SeccionFormulario titulo="Qué ha pasado">
-                <CampoTexto
-                    nombre="codigo"
-                    etiqueta="Código"
-                    :valor-inicial="valor.codigo"
-                    :error="errors.codigo"
-                    requerido
-                    autofocus
-                />
+                <FilaCampos codigo>
+                    <CampoTexto
+                        nombre="codigo"
+                        etiqueta="Código"
+                        :valor-inicial="valor.codigo"
+                        :error="errors.codigo"
+                        requerido
+                        autofocus
+                    />
 
-                <CampoTexto
-                    nombre="titulo"
-                    etiqueta="Título"
-                    :valor-inicial="incidente?.titulo ?? undefined"
-                    :error="errors.titulo"
-                    requerido
-                    ayuda="En una línea: «correo fraudulento suplantando a la dirección»."
-                />
+                    <CampoTexto
+                        nombre="titulo"
+                        etiqueta="Título"
+                        :valor-inicial="incidente?.titulo ?? undefined"
+                        :error="errors.titulo"
+                        requerido
+                        ayuda="En una línea: «correo fraudulento suplantando a la dirección»."
+                    />
+                </FilaCampos>
 
                 <CampoTextarea
                     nombre="descripcion"
@@ -166,46 +169,50 @@ const ayudaClasificacion = computed(
                     requerido
                 />
 
-                <CampoTexto
-                    nombre="fecha_deteccion"
-                    etiqueta="Detectado"
-                    tipo="datetime-local"
-                    :valor-inicial="valor.fechaDeteccion"
-                    :error="errors.fecha_deteccion"
-                    requerido
-                    ayuda="Cuándo se tuvo constancia. Es desde aquí desde donde corren las 72 h de la AEPD, si hay datos personales de por medio."
-                />
+                <FilaCampos>
+                    <CampoTexto
+                        nombre="fecha_deteccion"
+                        etiqueta="Detectado"
+                        tipo="datetime-local"
+                        :valor-inicial="valor.fechaDeteccion"
+                        :error="errors.fecha_deteccion"
+                        requerido
+                        ayuda="Cuándo se tuvo constancia. Es desde aquí desde donde corren las 72 h de la AEPD, si hay datos personales de por medio."
+                    />
 
-                <CampoTexto
-                    nombre="fecha_inicio"
-                    etiqueta="Empezó"
-                    tipo="datetime-local"
-                    :valor-inicial="incidente?.fecha_inicio ?? undefined"
-                    :error="errors.fecha_inicio"
-                    ayuda="En blanco mientras no se sepa, que es lo normal al principio. La diferencia con la detección es la primera cifra de cualquier informe de incidente."
-                />
+                    <CampoTexto
+                        nombre="fecha_inicio"
+                        etiqueta="Empezó"
+                        tipo="datetime-local"
+                        :valor-inicial="incidente?.fecha_inicio ?? undefined"
+                        :error="errors.fecha_inicio"
+                        ayuda="En blanco mientras no se sepa, que es lo normal al principio. La diferencia con la detección es la primera cifra de cualquier informe de incidente."
+                    />
+                </FilaCampos>
             </SeccionFormulario>
 
             <SeccionFormulario titulo="Cómo se clasifica">
-                <CampoSelect
-                    v-model="clasificacion"
-                    nombre="clasificacion"
-                    etiqueta="Clasificación"
-                    :opciones="opcionesClasificacion"
-                    :error="errors.clasificacion"
-                    requerido
-                    :ayuda="ayudaClasificacion"
-                />
+                <FilaCampos>
+                    <CampoSelect
+                        v-model="clasificacion"
+                        nombre="clasificacion"
+                        etiqueta="Clasificación"
+                        :opciones="opcionesClasificacion"
+                        :error="errors.clasificacion"
+                        requerido
+                        :ayuda="ayudaClasificacion"
+                    />
 
-                <CampoSelect
-                    nombre="peligrosidad"
-                    etiqueta="Peligrosidad"
-                    :opciones="peligrosidades"
-                    :valor-inicial="valor.peligrosidad"
-                    :error="errors.peligrosidad"
-                    requerido
-                    ayuda="La declara quien registra el incidente. Statera no la deduce de las dimensiones afectadas: la guía no publica ninguna función que lo haga, y el mismo compromiso es crítico en un sistema y bajo en otro."
-                />
+                    <CampoSelect
+                        nombre="peligrosidad"
+                        etiqueta="Peligrosidad"
+                        :opciones="peligrosidades"
+                        :valor-inicial="valor.peligrosidad"
+                        :error="errors.peligrosidad"
+                        requerido
+                        ayuda="La declara quien registra el incidente. Statera no la deduce de las dimensiones afectadas: la guía no publica ninguna función que lo haga, y el mismo compromiso es crítico en un sistema y bajo en otro."
+                    />
+                </FilaCampos>
 
                 <CampoCasillas
                     v-model="dimensiones"
@@ -223,24 +230,26 @@ const ayudaClasificacion = computed(
                     ella, una vez elegido el sistema no había forma de quitarlo
                     —Reka prohíbe el valor vacío en un `SelectItem`—.
                 -->
-                <CampoSelect
-                    nombre="sistema_id"
-                    etiqueta="Sistema"
-                    :opciones="conOpcionVacia(sistemas, 'Ninguno en concreto')"
-                    :valor-inicial="incidente?.sistema_id ? String(incidente.sistema_id) : undefined"
-                    :error="errors.sistema_id"
-                    ayuda="Opcional: un correo fraudulento a toda la organización no es de ningún sistema."
-                />
+                <FilaCampos>
+                    <CampoSelect
+                        nombre="sistema_id"
+                        etiqueta="Sistema"
+                        :opciones="conOpcionVacia(sistemas, 'Ninguno en concreto')"
+                        :valor-inicial="incidente?.sistema_id ? String(incidente.sistema_id) : undefined"
+                        :error="errors.sistema_id"
+                        ayuda="Opcional: un correo fraudulento a toda la organización no es de ningún sistema."
+                    />
 
-                <CampoSelect
-                    nombre="responsable_id"
-                    etiqueta="Responsable"
-                    :opciones="conOpcionVacia(responsables, 'Sin responsable')"
-                    :valor-inicial="
-                        incidente?.responsable_id ? String(incidente.responsable_id) : undefined
-                    "
-                    :error="errors.responsable_id"
-                />
+                    <CampoSelect
+                        nombre="responsable_id"
+                        etiqueta="Responsable"
+                        :opciones="conOpcionVacia(responsables, 'Sin responsable')"
+                        :valor-inicial="
+                            incidente?.responsable_id ? String(incidente.responsable_id) : undefined
+                        "
+                        :error="errors.responsable_id"
+                    />
+                </FilaCampos>
 
                 <!--
                     El centinela de «ninguno» lo pone `CampoCasillas` y lo

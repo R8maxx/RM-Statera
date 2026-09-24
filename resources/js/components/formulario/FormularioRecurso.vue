@@ -32,7 +32,7 @@ withDefaults(
         /**
          * Una columna más ancha, para los formularios que además del campo
          * llevan algo al lado —hoy sólo el índice de la plantilla de un
-         * documento—. `SeccionFormulario` ya gasta 15rem en su explicación; con
+         * documento—. `SeccionFormulario` ya gasta 16rem en su explicación; con
          * un índice delante, la caja de texto se queda sin sitio para escribir.
          */
         ancho?: boolean;
@@ -115,8 +115,8 @@ function irAlCampo(nombre: string): void {
         :action="action"
         :method="method"
         #default="{ errors, processing, hasErrors }"
-        class="w-full"
-        :class="ancho ? 'max-w-6xl' : 'max-w-4xl'"
+        class="mx-auto w-full"
+        :class="ancho ? 'max-w-7xl' : 'max-w-6xl'"
     >
         <div ref="ancla" class="contents" />
 

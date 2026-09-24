@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FilaCampos from '@/components/formulario/FilaCampos.vue';
 import CampoCasillas from '@/components/formulario/CampoCasillas.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
@@ -162,7 +163,7 @@ const alcance = ref<string[]>(props.riesgo?.activos.map((activo) => String(activ
                 ayuda="ISO 27001 exige que el propietario del riesgo apruebe lo que queda después de tratarlo. Sin propietario, el riesgo se puede medir pero no se puede aceptar."
                 plegable
             >
-                <div class="grid gap-5 sm:grid-cols-2">
+                <FilaCampos>
                     <CampoSelect
                         v-model="propietario"
                         nombre="propietario_id"
@@ -180,7 +181,7 @@ const alcance = ref<string[]>(props.riesgo?.activos.map((activo) => String(activ
                         :error="errors.fecha_revision"
                         ayuda="Sin fecha no es que no corra prisa: es que nadie ha dicho cuándo toca volver a mirarlo."
                     />
-                </div>
+                </FilaCampos>
 
                 <CampoTextarea
                     nombre="notas"

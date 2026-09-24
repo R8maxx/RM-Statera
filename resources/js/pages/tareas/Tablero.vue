@@ -150,7 +150,7 @@ function confirmarDescarte(): void {
 </script>
 
 <template>
-    <AppLayout titulo="Tablero">
+    <AppLayout ancho="completo" titulo="Tablero">
         <CabeceraPagina
             titulo="Plan de acción"
             descripcion="En qué punto está cada cosa. Arrastra una tarjeta a otra columna, o muévela desde su menú."

@@ -241,7 +241,7 @@ const entradaRejilla = computed(() => {
 </script>
 
 <template>
-    <AppLayout titulo="Calendario">
+    <AppLayout ancho="completo" titulo="Calendario">
         <!--
             Sin conmutador de vistas: esto dejó de ser una de las tres formas de
             mirar el plan de acción. Enseña vencimientos de siete registros

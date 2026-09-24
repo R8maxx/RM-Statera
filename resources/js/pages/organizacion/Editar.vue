@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FilaCampos from '@/components/formulario/FilaCampos.vue';
 import Aviso from '@/components/Aviso.vue';
 import PiezaDeMarca from '@/components/organizacion/PiezaDeMarca.vue';
 import CampoSwitch from '@/components/formulario/CampoSwitch.vue';
@@ -78,7 +79,7 @@ const cambioLaBase = computed(
                 titulo="Identificación"
                 ayuda="El nombre comercial es el que ves en la aplicación; la razón social es la que firma. Un documento entregable lo firma una persona jurídica, así que es la razón social la que se imprime en la portada."
             >
-                <div class="grid gap-5 sm:grid-cols-2">
+                <FilaCampos>
                     <CampoTexto
                         nombre="nombre"
                         etiqueta="Nombre comercial"
@@ -113,7 +114,7 @@ const cambioLaBase = computed(
                         :error="errors.sector"
                         placeholder="Servicios digitales"
                     />
-                </div>
+                </FilaCampos>
             </SeccionFormulario>
 
             <SeccionFormulario
@@ -129,28 +130,30 @@ const cambioLaBase = computed(
                 />
 
                 <div class="grid gap-5 sm:grid-cols-[8rem_1fr_1fr]">
-                    <CampoTexto
-                        nombre="codigo_postal"
-                        etiqueta="Código postal"
-                        :valor-inicial="organizacion.codigo_postal ?? ''"
-                        :error="errors.codigo_postal"
-                        inputmode="numeric"
-                        class="cifra"
-                    />
+                    <FilaCampos :columnas="3">
+                        <CampoTexto
+                            nombre="codigo_postal"
+                            etiqueta="Código postal"
+                            :valor-inicial="organizacion.codigo_postal ?? ''"
+                            :error="errors.codigo_postal"
+                            inputmode="numeric"
+                            class="cifra"
+                        />
 
-                    <CampoTexto
-                        nombre="municipio"
-                        etiqueta="Municipio"
-                        :valor-inicial="organizacion.municipio ?? ''"
-                        :error="errors.municipio"
-                    />
+                        <CampoTexto
+                            nombre="municipio"
+                            etiqueta="Municipio"
+                            :valor-inicial="organizacion.municipio ?? ''"
+                            :error="errors.municipio"
+                        />
 
-                    <CampoTexto
-                        nombre="provincia"
-                        etiqueta="Provincia"
-                        :valor-inicial="organizacion.provincia ?? ''"
-                        :error="errors.provincia"
-                    />
+                        <CampoTexto
+                            nombre="provincia"
+                            etiqueta="Provincia"
+                            :valor-inicial="organizacion.provincia ?? ''"
+                            :error="errors.provincia"
+                        />
+                    </FilaCampos>
                 </div>
             </SeccionFormulario>
 
@@ -158,21 +161,23 @@ const cambioLaBase = computed(
                 titulo="Marco aplicable"
                 ayuda="Por qué le aplica el ENS a esta organización. Son dos motivos distintos y pueden darse los dos: la obligación legal es propia, y la de proveedor se hereda del cliente público."
             >
-                <CampoSwitch
-                    v-model="sujetoObligado"
-                    nombre="sujeto_obligado_ens"
-                    etiqueta="Es sujeto obligado del ENS"
-                    :error="errors.sujeto_obligado_ens"
-                    ayuda="Administración pública, o entidad del sector público institucional."
-                />
+                <FilaCampos>
+                    <CampoSwitch
+                        v-model="sujetoObligado"
+                        nombre="sujeto_obligado_ens"
+                        etiqueta="Es sujeto obligado del ENS"
+                        :error="errors.sujeto_obligado_ens"
+                        ayuda="Administración pública, o entidad del sector público institucional."
+                    />
 
-                <CampoSwitch
-                    v-model="proveedorPublico"
-                    nombre="proveedor_sector_publico"
-                    etiqueta="Presta servicios al sector público"
-                    :error="errors.proveedor_sector_publico"
-                    ayuda="El ENS le llega por contrato aunque no sea sujeto obligado."
-                />
+                    <CampoSwitch
+                        v-model="proveedorPublico"
+                        nombre="proveedor_sector_publico"
+                        etiqueta="Presta servicios al sector público"
+                        :error="errors.proveedor_sector_publico"
+                        ayuda="El ENS le llega por contrato aunque no sea sujeto obligado."
+                    />
+                </FilaCampos>
 
                 <!--
                     Derivado y en vivo, sin campo propio: es el primer lector que
@@ -195,7 +200,7 @@ const cambioLaBase = computed(
                 titulo="Marca"
                 ayuda="El logo de tu organización, en su documentación y en el panel lateral. Statera se queda donde está: esto acompaña a la herramienta, no la sustituye."
             >
-                <div class="grid gap-5 sm:grid-cols-2">
+                <FilaCampos>
                     <PiezaDeMarca
                         pieza="logo"
                         etiqueta="Logo horizontal"
@@ -211,7 +216,7 @@ const cambioLaBase = computed(
                         :url="marca.simbolo"
                         ayuda="Cuadrado o casi. Va en la cabecera de cada página del PDF, a 8 pt: un logo con el nombre dentro no se lee a ese tamaño."
                     />
-                </div>
+                </FilaCampos>
 
                 <Aviso tono="info" titulo="Se usan tal y como llegan">
                     No se recortan, no se recolorean y no se deforman: sólo se escalan. Ten en cuenta que el

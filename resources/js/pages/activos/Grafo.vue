@@ -87,7 +87,7 @@ watch(
 </script>
 
 <template>
-    <AppLayout :titulo="`Dependencias de ${activo.codigo}`">
+    <AppLayout ancho="completo" :titulo="`Dependencias de ${activo.codigo}`">
         <CabeceraPagina
             titulo="Grafo de dependencias"
             descripcion="Arriba lo que se cae si este activo cae; abajo lo que necesita para funcionar. El color de cada caja es su valoración efectiva, que es la que sube por estos vínculos."
