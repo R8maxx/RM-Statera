@@ -111,6 +111,11 @@ it('rechaza una baja anterior al alta', function (): void {
         ->assertSessionHasErrors('fecha_baja');
 });
 
+/*
+ * Los «cuatro bloques» son los cuatro registros que la ficha recibe —nombramientos,
+ * formación, acuerdos y checklists—, no sus tarjetas: la ficha los agrupa en tres
+ * tarjetas y un lateral, y esa maquetación no la fija ningún test.
+ */
 it('pinta la ficha con sus cuatro bloques', function (): void {
     $persona = Persona::factory()->create();
 
