@@ -309,8 +309,10 @@ final class CuerpoDeFabrica
                 Nodo::hueco('tabla_puntos_auditoria'),
             ]),
 
+            // «Detalle» y no «Hallazgos» a secas: el resultado de arriba ya lleva
+            // un subtítulo «Hallazgos» con el recuento por tipo.
             Nodo::de('seccion', [], [
-                Nodo::encabezado(2, 'Hallazgos'),
+                Nodo::encabezado(2, 'Detalle de los hallazgos'),
                 Nodo::hueco('tabla_hallazgos'),
             ]),
 

@@ -325,3 +325,9 @@ El orden importa: el catálogo y el motor son la parte más específica del domi
     se las hace y las imprime, y `PanelController::sistemas()` se mudó a
     `ResumenCumplimiento::porSistema()` para que panel e informe cuenten con la
     misma consulta. **No es el INES**, y lo dice.
+
+    **Y la lección de siempre**: la suite en verde no encontró tres fallos que
+    salieron al recorrerlo en el navegador —el formulario presentaba el acta y el
+    informe de estado como una política, crear un documento sin responsable
+    fallaba, y el pie de portada hablaba de una categoría que esos documentos no
+    tienen—. Los tres eran anteriores a este punto.

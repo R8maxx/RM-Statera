@@ -9,6 +9,7 @@ use App\Domain\Documento\Enums\TipoDocumento;
 use App\Domain\Documento\Models\Documento;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Sistema\Models\Sistema;
+use App\Http\Requests\Concerns\NormalizaSeleccionVacia;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -21,6 +22,8 @@ use Illuminate\Validation\Validator;
  */
 class GuardarDocumentoRequest extends FormRequest
 {
+    use NormalizaSeleccionVacia;
+
     /**
      * @return array<string, mixed>
      */
@@ -169,6 +172,19 @@ class GuardarDocumentoRequest extends FormRequest
             && (int) $this->input('sistema_id') !== $documento->sistema_id) {
             $validator->errors()->add('sistema_id', 'El sistema de un informe de auditoría es el de su auditoría.');
         }
+    }
+
+    /**
+     * Los dos desplegables opcionales del formulario: «Sin responsable» y, en un
+     * documento redactado, «Toda la organización». Sin traducir el centinela, el
+     * alta fallaba con «el campo responsable debe ser un número entero» en
+     * cuanto nadie elegía responsable.
+     *
+     * @return list<string>
+     */
+    protected function seleccionesOpcionales(): array
+    {
+        return ['responsable_id', 'sistema_id'];
     }
 
     /**

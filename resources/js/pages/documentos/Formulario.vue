@@ -28,10 +28,16 @@ interface OpcionConMarco extends Opcion {
     marco: string | null;
 }
 
+/** El tipo dice además de qué familia es y si cuelga de un sistema: no se deduce del marco. */
+interface OpcionTipo extends OpcionConMarco {
+    redactado: boolean;
+    exigeSistema: boolean;
+}
+
 const props = defineProps<{
     documento: Documento | null;
     sistemas: OpcionConMarco[];
-    tipos: OpcionConMarco[];
+    tipos: OpcionTipo[];
     clasificaciones: Opcion[];
     responsables: Opcion[];
 }>();
@@ -66,14 +72,19 @@ const avisoMarco = computed<string | null>(() => {
 });
 
 /**
- * Un documento redactado no declara conformidad con ningún marco.
+ * Las tres familias, dichas por el servidor.
  *
- * El servidor manda `marco: null` para política, norma y procedimiento, y ese
- * nulo significa «no hay nada que casar», nunca «no se ha rellenado». De ahí sale
- * también que el sistema deje de ser obligatorio: una política de seguridad es de
- * la organización entera.
+ * Esto se deducía de `marco === null`, y era falso: el análisis del contexto, el
+ * acta y el informe de estado no tienen marco y **no** son redactados — se
+ * calculan y son de la organización entera. El formulario los presentaba como
+ * una política y les ofrecía un sistema que no significa nada para ellos.
  */
-const redactado = computed(() => props.tipos.find((t) => t.valor === tipo.value)?.marco === null);
+const tipoElegido = computed(() => props.tipos.find((t) => t.valor === tipo.value));
+const redactado = computed(() => tipoElegido.value?.redactado ?? false);
+const exigeSistema = computed(() => tipoElegido.value?.exigeSistema ?? true);
+
+/** Calculado y sin sistema: no hay sistema que elegir, así que el campo no se ofrece. */
+const deLaOrganizacion = computed(() => !redactado.value && !exigeSistema.value);
 
 const acuse = ref(props.documento?.exige_acuse ?? false);
 </script>
@@ -85,7 +96,9 @@ const acuse = ref(props.documento?.exige_acuse ?? false);
             :descripcion="
                 redactado
                     ? 'Una política, una norma, un procedimiento o un plan de continuidad los escribe la organización: aquí se le da código y responsable, y el contenido se redacta después en el editor.'
-                    : 'Una declaración de aplicabilidad no se redacta: se genera a partir de lo que ya está registrado. Aquí sólo se decide de qué sistema es, cómo se llama y quién responde de él.'
+                    : deLaOrganizacion
+                      ? 'Un análisis del contexto, un acta de revisión o un informe de estado no se redactan ni cuelgan de un sistema: se generan a partir de lo que la organización tiene registrado. Aquí sólo se decide cómo se llama y quién responde de él.'
+                      : 'Una declaración de aplicabilidad no se redacta: se genera a partir de lo que ya está registrado. Aquí sólo se decide de qué sistema es, cómo se llama y quién responde de él.'
             "
             :action="edicion ? `/documentos/${documento!.id}` : '/documentos'"
             :method="edicion ? 'put' : 'post'"
@@ -108,14 +121,15 @@ const acuse = ref(props.documento?.exige_acuse ?? false);
                 />
 
                 <CampoSelect
+                    v-if="!deLaOrganizacion"
                     v-model="sistema"
                     nombre="sistema_id"
                     etiqueta="Sistema"
-                    :opciones="redactado ? conOpcionVacia(sistemas, 'Toda la organización') : sistemas"
+                    :opciones="exigeSistema ? sistemas : conOpcionVacia(sistemas, 'Toda la organización')"
                     :error="errors.sistema_id ?? avisoMarco ?? undefined"
-                    :requerido="!redactado"
+                    :requerido="exigeSistema"
                     :ayuda="
-                        redactado
+                        !exigeSistema
                             ? 'Opcional: una política de seguridad suele ser de la organización entera y no colgar de ningún sistema.'
                             : 'De él salen el alcance declarado, la categoría y el conjunto de requisitos exigibles.'
                     "

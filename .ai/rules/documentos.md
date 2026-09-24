@@ -355,6 +355,22 @@ cifras, y una retocada a mano es el documento desmintiendo al registro.
 **No es el INES**, y lo dicen sus limitaciones: el INES se cumplimenta en la plataforma del CCN.
 Tampoco compara con el informe anterior, aunque la instantánea de cada versión lo permitiría.
 
+**Lo que falta por rellenar va con «Sin» o «Falta» delante.** El inventario, el plan y la continuidad
+etiquetan esos indicadores con el nombre del campo —«propietario», «la aprobación»— porque la interfaz
+los pinta tras un «faltan»; en una tabla, «propietario · 5» no se entiende. Por lo mismo la
+continuidad va en dos bloques, BIA y pruebas.
+
+### Tres cosas que destapó el recorrido en el navegador, no los tests
+
+- **El formulario deducía «redactado» de `marco === null`**, y el contexto, el acta y el informe de
+  estado no tienen marco y no son redactados: se presentaban como una política y ofrecían un sistema.
+  Ahora el servidor manda `redactado` y `exigeSistema` por tipo (`FormularioDocumentoTest`).
+- **`GuardarDocumentoRequest` no usaba `NormalizaSeleccionVacia`**: crear un documento sin responsable
+  fallaba con «el campo responsable debe ser un número entero». Era anterior a este módulo.
+- **El pie de portada** decía «la derivación de la categoría se genera desde el registro de
+  implantaciones» en todos los calculados, falso en los que no tienen tabla de requisitos. Ahora
+  depende de `ColumnasTabla::para()`.
+
 ```sh
 php artisan documentos:generar INF-AUD-2025-01 --html   # el informe de la auditoría del seeder
 ```

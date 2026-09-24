@@ -670,6 +670,15 @@ class DocumentoController extends Controller
                     'valor' => $tipo->value,
                     'etiqueta' => $tipo->etiqueta(),
                     'marco' => $tipo->marcoEsperado(),
+                    /*
+                     * Las dos preguntas que el formulario deducía de `marco`, y
+                     * mal: sin marco no quiere decir «redactado». El análisis del
+                     * contexto, el acta y el informe de estado son calculados y de
+                     * la organización entera, y el formulario los presentaba como
+                     * una política.
+                     */
+                    'redactado' => $tipo->esRedactado(),
+                    'exigeSistema' => $tipo->exigeSistema(),
                 ],
                 self::tiposOfrecidos($actual),
             ),

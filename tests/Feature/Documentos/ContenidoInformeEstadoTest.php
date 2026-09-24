@@ -93,7 +93,7 @@ it('recoge los registros del sistema de gestión, con lo que pide acción marcad
     $noConformidades = $registros['No conformidades'];
     $vencidas = collect($noConformidades['indicadores'])->firstWhere('etiqueta', 'Fuera de plazo');
 
-    expect($registros->keys()->all())->toContain('Riesgos', 'Incidentes', 'Auditorías', 'Continuidad')
+    expect($registros->keys()->all())->toContain('Riesgos', 'Incidentes', 'Auditorías', 'Continuidad: pruebas')
         ->and($noConformidades['total'])->toBe(1)
         ->and($vencidas['valor'])->toBe(1)
         ->and($vencidas['alerta'])->toBeTrue();
@@ -120,7 +120,10 @@ it('el cuerpo materializado lleva las cifras con su denominador y cada registro'
         ->and($texto)->toContain('50 %')
         ->and($texto)->toContain('SIS-EST')
         ->and($texto)->toContain('No conformidades')
-        ->and($texto)->toContain('Continuidad');
+        ->and($texto)->toContain('Continuidad: análisis de impacto')
+        // Lo que falta por rellenar, con su «Sin» delante: la etiqueta a secas
+        // es el nombre del campo y en una tabla no dice nada.
+        ->and($texto)->toContain('Sin propietario');
 });
 
 it('el HTML del documento se pinta entero, con cada registro', function (): void {

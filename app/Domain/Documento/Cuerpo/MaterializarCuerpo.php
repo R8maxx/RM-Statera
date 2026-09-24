@@ -345,6 +345,17 @@ final class MaterializarCuerpo
                 'redacta la organización; Statera aporta el control de versiones, la huella del fichero '.
                 'entregado y el registro de su aprobación.',
 
+            /*
+             * Los calculados sin tabla de requisitos —el contexto, el acta, la
+             * Declaración de Conformidad y los dos informes del § 4.18— no
+             * derivan ninguna categoría ni salen de `implantaciones`: salen de una
+             * revisión, de una auditoría o del registro entero. La frase de las
+             * declaraciones era falsa en su portada.
+             */
+            ColumnasTabla::para($tipo) === [] => 'Statera — un producto de RM Technology. '.
+                'Las tablas y las cifras se generan desde el registro de la herramienta y no se mantienen '.
+                'a mano; los textos de presentación los redacta la organización.',
+
             default => 'Statera — un producto de RM Technology. '.
                 'Las tablas, las cifras y la derivación de la categoría se generan desde el registro de '.
                 'implantaciones y no se mantienen a mano; los textos de presentación los redacta la '.

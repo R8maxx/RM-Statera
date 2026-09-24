@@ -164,9 +164,9 @@ final class InformeEstadoSeguridad implements GeneradorDocumento
     private function registros(): array
     {
         return [
-            $this->registro('Inventario de activos', $this->inventario->vigentes(), $this->inventario->alertas(), $this->inventario->pendientesDeCompletar()),
+            $this->registro('Inventario de activos', $this->inventario->vigentes(), $this->inventario->alertas(), [], $this->inventario->pendientesDeCompletar()),
             $this->registro('Riesgos', $this->riesgos->total(), $this->riesgos->alertas(), $this->riesgos->pendientes()),
-            $this->registro('Plan de acción', null, $this->plan->alertas(), $this->plan->pendientesDeCompletar()),
+            $this->registro('Plan de acción', null, $this->plan->alertas(), [], $this->plan->pendientesDeCompletar()),
             $this->registro('Incidentes', $this->incidentes->total(), $this->incidentes->alertas(), $this->incidentes->pendientes()),
             $this->registro('No conformidades', $this->noConformidades->total(), $this->noConformidades->alertas(), $this->noConformidades->pendientes()),
             $this->registro('Auditorías', $this->auditorias->total(), $this->auditorias->alertas(), $this->auditorias->pendientes()),
@@ -177,10 +177,10 @@ final class InformeEstadoSeguridad implements GeneradorDocumento
             $this->registro('Documentación', null, $this->documental->alertas(), []),
             $this->registro('Personas', $this->personas->total(), $this->personas->alertas(), $this->personas->pendientes()),
             $this->registro('Formación', $this->formacion->total(), [], $this->formacion->pendientes()),
-            $this->registro('Continuidad', null, $this->continuidad->alertas(), [
-                ...$this->continuidad->pendientesDeBia(),
-                ...$this->continuidad->pendientesDePruebas(),
-            ]),
+            // En dos, como en `/continuidad`: «falta la aprobación» es del BIA y
+            // «falta el resultado» es de una prueba, y juntos no se sabe de qué.
+            $this->registro('Continuidad: análisis de impacto', null, $this->continuidad->alertasDeBia(), [], $this->continuidad->pendientesDeBia(), 'Falta '),
+            $this->registro('Continuidad: pruebas', null, $this->continuidad->alertasDePruebas(), [], $this->continuidad->pendientesDePruebas(), 'Falta '),
         ];
     }
 
@@ -191,14 +191,21 @@ final class InformeEstadoSeguridad implements GeneradorDocumento
      * el documento no pinta colores de estado, y lo que tiene que decir es qué
      * cifras piden acción.
      *
+     * **Lo que falta por rellenar llega aparte**, con «Sin» o «Falta» delante:
+     * el inventario, el plan y la continuidad lo etiquetan con el nombre de lo que
+     * falta —«propietario», «la aprobación»— porque la interfaz lo pinta en una
+     * línea que ya empieza por «faltan». En una tabla, «propietario · 5» no dice
+     * nada.
+     *
      * @param  list<Indicador>  $alertas
      * @param  list<Indicador>  $pendientes
+     * @param  list<Indicador>  $sinCompletar
      * @return array{titulo: string, total: ?int, indicadores: list<array{etiqueta: string, valor: int, ayuda: ?string, alerta: bool}>}
      */
-    private function registro(string $titulo, ?int $total, array $alertas, array $pendientes): array
+    private function registro(string $titulo, ?int $total, array $alertas, array $pendientes, array $sinCompletar = [], string $prefijo = 'Sin '): array
     {
-        $plano = static fn (bool $alerta): callable => static fn (Indicador $indicador): array => [
-            'etiqueta' => $indicador->etiqueta,
+        $plano = static fn (bool $alerta, string $prefijo = ''): callable => static fn (Indicador $indicador): array => [
+            'etiqueta' => $prefijo.$indicador->etiqueta,
             'valor' => $indicador->valor,
             'ayuda' => $indicador->ayuda,
             'alerta' => $alerta,
@@ -210,6 +217,7 @@ final class InformeEstadoSeguridad implements GeneradorDocumento
             'indicadores' => [
                 ...array_map($plano(true), $alertas),
                 ...array_map($plano(false), $pendientes),
+                ...array_map($plano(false, $prefijo), $sinCompletar),
             ],
         ];
     }
