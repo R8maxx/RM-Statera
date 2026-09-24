@@ -18,6 +18,8 @@ use App\Domain\Contexto\RegistroContexto;
 use App\Domain\Sistema\Enums\EstadoSistema;
 use App\Domain\Sistema\Models\Sistema;
 use App\Http\Requests\GuardarAnalisisContextoRequest;
+use App\Http\Resources\AnalisisContextoRecurso;
+use App\Http\Resources\Concerns\RespondeConRecurso;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -41,6 +43,8 @@ use Inertia\Response;
  */
 class ContextoController extends Controller
 {
+    use RespondeConRecurso;
+
     public function index(AnalisisEnCurso $enCurso, RegistroContexto $registro): Response
     {
         $vigente = $enCurso->vigente();
@@ -59,21 +63,10 @@ class ContextoController extends Controller
     }
 
     /** El historial de revisiones, que es lo que contesta a «¿qué ha cambiado?». */
-    public function analisis(AnalisisEnCurso $enCurso): Response
+    public function analisis(Request $request, AnalisisEnCurso $enCurso): Response
     {
-        $analisis = AnalisisContexto::query()
-            ->with(['creadoPor', 'aprobadoPor'])
-            ->withCount(['cuestionesDadasDeAlta', 'cuestionesRetiradas', 'partesDadasDeAlta', 'partesRetiradas'])
-            ->orderByRaw('numero is null desc')
-            ->orderByDesc('numero')
-            ->get();
-
         return Inertia::render('contexto/Analisis', [
-            'analisis' => $analisis->map(fn (AnalisisContexto $fila): array => [
-                ...$this->serializarAnalisis($fila),
-                'altas' => $fila->cuestiones_dadas_de_alta_count + $fila->partes_dadas_de_alta_count,
-                'bajas' => $fila->cuestiones_retiradas_count + $fila->partes_retiradas_count,
-            ])->all(),
+            ...$this->tabla(new AnalisisContextoRecurso, $request),
             'hayBorrador' => $enCurso->borrador() instanceof AnalisisContexto,
         ]);
     }

@@ -4,8 +4,8 @@ import EstadoVacio from '@/components/EstadoVacio.vue';
 import CeldaBadge from '@/components/tabla/celdas/CeldaBadge.vue';
 import TextoResaltado from '@/components/tabla/celdas/TextoResaltado.vue';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Link } from '@inertiajs/vue3';
 import { PencilIcon, SearchIcon, XIcon } from '@lucide/vue';
@@ -33,15 +33,15 @@ const props = defineProps<{ tipos: TipoPlantilla[] }>();
 /**
  * La búsqueda entra en los TEXTOS, no sólo en los títulos.
  *
- * Buscar sobre ocho tarjetas no vale el control que ocupa. Lo que de verdad
- * falta aquí son los cincuenta y seis huecos que hay detrás, repartidos por ocho
+ * Buscar sobre doce tipos no vale el control que ocupa. Lo que de verdad
+ * falta aquí son los ochenta y dos huecos que hay detrás, repartidos por doce
  * pantallas: «¿dónde escribí aquella frase sobre el alcance?» no se contestaba
  * sin abrirlas una a una.
  *
  * En cliente y no en servidor porque el corpus **está medido**: 10,9 kB de
  * fábrica, el hueco más largo de 671 caracteres. Mismo patrón que el buscador de
  * la ficha de una acción formativa. Si algún día una organización llena los
- * cincuenta y seis huecos hasta el tope, esto se convierte en una consulta.
+ * ochenta y dos huecos hasta el tope, esto se convierte en una consulta.
  */
 const busqueda = ref('');
 
@@ -88,7 +88,13 @@ const totalCoincidencias = computed(() =>
  *
  * Una Declaración de Aplicabilidad es una consulta congelada en un PDF y una
  * política no sale de ninguna consulta: `TipoDocumento::esRedactado()` ya lo
- * distingue en el dominio desde hace tiempo y aquí eran ocho tarjetas iguales.
+ * distingue en el dominio desde hace tiempo y aquí eran doce tarjetas iguales.
+ *
+ * **Y es una tabla estática, no tarjetas**: doce filas con las mismas columnas
+ * se comparan en vertical —cuántos textos llevan personalizados, de cuándo es el
+ * último retoque— y en tarjetas había que leerlas una a una. `ui/table` y no
+ * `DataTable`, porque aquí no hay nada que paginar ni que filtrar en servidor:
+ * la búsqueda entra en los textos y va en cliente (ver arriba).
  */
 const familias = [
     {
@@ -110,7 +116,7 @@ function deLaFamilia(familia: 'calculado' | 'redactado') {
 /**
  * Un trozo de texto alrededor de lo buscado.
  *
- * Enseñar el hueco entero convertiría cada tarjeta en un muro; enseñar sólo el
+ * Enseñar el hueco entero convertiría cada fila en un muro; enseñar sólo el
  * nombre de la sección no dice si es la frase que se buscaba.
  */
 function extracto(contenido: string, termino: string): string {
@@ -128,13 +134,13 @@ function extracto(contenido: string, termino: string): string {
 
 const formatoFecha = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
 
-/** «Última vez el 21 sept 2026, por Ana M.», sin quien no conste. */
+/** «21 sept 2026, por Ana M.», sin quien no conste. La columna ya dice qué es. */
 function retoque(tipo: TipoPlantilla): string {
     if (tipo.retoque === null) {
         return '';
     }
 
-    const cuando = `Última vez el ${formatoFecha.format(new Date(tipo.retoque.en))}`;
+    const cuando = formatoFecha.format(new Date(tipo.retoque.en));
 
     return tipo.retoque.por === null ? cuando : `${cuando}, por ${tipo.retoque.por}`;
 }
@@ -147,7 +153,7 @@ function insignia(tipo: TipoPlantilla) {
 </script>
 
 <template>
-    <AppLayout titulo="Plantillas de documento">
+    <AppLayout titulo="Plantillas de documento" ancho="completo">
         <CabeceraPagina
             titulo="Plantillas de documento"
             descripcion="Los textos con los que arrancan los documentos de la organización: la introducción, la metodología y las notas de cada tabla. Lo que no se toque sale con el texto que trae Statera."
@@ -177,7 +183,7 @@ function insignia(tipo: TipoPlantilla) {
                 <button
                     v-if="buscando"
                     type="button"
-                    class="absolute top-1/2 right-2 flex size-6 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                    class="absolute top-1/2 right-2 flex size-6 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground hover:bg-muted hover:text-foreground"
                     aria-label="Limpiar la búsqueda"
                     @click="busqueda = ''"
                 >
@@ -205,65 +211,80 @@ function insignia(tipo: TipoPlantilla) {
                 <h2 class="text-sm font-semibold tracking-[-0.01em]">
                     {{ familia.titulo }}
                 </h2>
-                <p class="mt-1 mb-3 text-sm text-muted-foreground">{{ familia.ayuda }}</p>
+                <p class="mt-1 mb-3 max-w-2xl text-sm text-muted-foreground">{{ familia.ayuda }}</p>
 
-                <div class="grid gap-4 md:grid-cols-2">
-                    <Card v-for="{ tipo, coincidencias } in deLaFamilia(familia.clave)" :key="tipo.valor">
-                        <CardHeader>
-                            <div class="flex flex-wrap items-start justify-between gap-2">
-                                <CardTitle>
+                <!-- `table-fixed` con los mismos anchos en las dos familias: con
+                     anchos automáticos cada tabla calculaba los suyos y las
+                     columnas no caían una debajo de otra. -->
+                <Table class="min-w-[56rem] table-fixed">
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Documento</TableHead>
+                            <TableHead class="w-32">Textos</TableHead>
+                            <TableHead class="w-36 text-right">Personalizados</TableHead>
+                            <TableHead class="w-44 text-right">Documentos creados</TableHead>
+                            <TableHead class="w-64">Último retoque</TableHead>
+                            <TableHead class="w-48"><span class="sr-only">Acciones</span></TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        <template v-for="{ tipo, coincidencias } in deLaFamilia(familia.clave)" :key="tipo.valor">
+                            <TableRow>
+                                <TableCell class="font-medium">
                                     <TextoResaltado :texto="tipo.etiqueta" :terminos="terminos" />
-                                </CardTitle>
-                                <CeldaBadge :valor="insignia(tipo)" />
-                            </div>
-                        </CardHeader>
+                                </TableCell>
+                                <TableCell>
+                                    <CeldaBadge :valor="insignia(tipo)" />
+                                </TableCell>
+                                <!-- Toda cifra con su denominador: «3 textos
+                                     personalizados» no dice lo mismo sobre 5
+                                     que sobre 11. -->
+                                <TableCell class="cifra text-right">
+                                    {{ tipo.personalizadas }}
+                                    <span class="text-muted-foreground">de {{ tipo.secciones.length }}</span>
+                                </TableCell>
+                                <TableCell class="cifra text-right">{{ tipo.documentos }}</TableCell>
+                                <!-- Quién y cuándo: el modelo lo guarda desde la
+                                     primera migración, y en una herramienta de
+                                     cumplimiento es la primera pregunta. -->
+                                <TableCell class="text-muted-foreground">
+                                    <template v-if="tipo.retoque">{{ retoque(tipo) }}</template>
+                                    <span v-else aria-label="sin valor">—</span>
+                                </TableCell>
+                                <TableCell class="text-right">
+                                    <Button as-child variant="outline" size="sm">
+                                        <Link :href="`/plantillas-documento/${tipo.valor}`">
+                                            <PencilIcon class="size-4" />
+                                            Editar los textos
+                                        </Link>
+                                    </Button>
+                                </TableCell>
+                            </TableRow>
 
-                        <CardContent class="space-y-3">
-                            <!--
-                                Toda cifra con su denominador: «3 textos
-                                personalizados» no dice lo mismo sobre 5 que
-                                sobre 11.
-                            -->
-                            <p class="text-sm text-muted-foreground">
-                                {{ tipo.personalizadas }} de {{ tipo.secciones.length }} textos personalizados ·
-                                {{ tipo.documentos }}
-                                {{ tipo.documentos === 1 ? 'documento creado' : 'documentos creados' }}
-                            </p>
-
-                            <!-- Dónde está lo que se buscaba, con su contexto. -->
-                            <ul v-if="coincidencias.length > 0" class="space-y-2 border-l-2 border-border pl-3">
-                                <li v-for="seccion in coincidencias" :key="seccion.clave" class="text-sm">
-                                    <p class="font-medium">
-                                        <TextoResaltado :texto="seccion.etiqueta" :terminos="terminos" />
-                                    </p>
-                                    <p v-if="seccion.contenido !== ''" class="text-muted-foreground">
-                                        <TextoResaltado
-                                            :texto="extracto(seccion.contenido, busqueda.trim())"
-                                            :terminos="terminos"
-                                        />
-                                    </p>
-                                    <p v-else class="text-muted-foreground italic">Este hueco está vacío.</p>
-                                </li>
-                            </ul>
-
-                            <Button as-child variant="outline">
-                                <Link :href="`/plantillas-documento/${tipo.valor}`">
-                                    <PencilIcon class="size-4" />
-                                    Editar los textos
-                                </Link>
-                            </Button>
-                        </CardContent>
-
-                        <!--
-                            Quién y cuándo: el modelo lo guarda desde la primera
-                            migración y la pantalla no lo enseñaba. En una
-                            herramienta de cumplimiento es la primera pregunta.
-                        -->
-                        <CardFooter v-if="tipo.retoque" class="text-xs text-muted-foreground">
-                            {{ retoque(tipo) }}
-                        </CardFooter>
-                    </Card>
-                </div>
+                            <!-- Dónde está lo que se buscaba, con su contexto:
+                                 una fila de detalle bajo su tipo, como la fila
+                                 desplegada de `DataTable`. -->
+                            <TableRow v-if="coincidencias.length > 0" class="hover:bg-transparent">
+                                <TableCell colspan="6" class="pt-0">
+                                    <ul class="space-y-2 border-l-2 border-border pl-3">
+                                        <li v-for="seccion in coincidencias" :key="seccion.clave" class="text-sm">
+                                            <p class="font-medium">
+                                                <TextoResaltado :texto="seccion.etiqueta" :terminos="terminos" />
+                                            </p>
+                                            <p v-if="seccion.contenido !== ''" class="max-w-prose text-muted-foreground">
+                                                <TextoResaltado
+                                                    :texto="extracto(seccion.contenido, busqueda.trim())"
+                                                    :terminos="terminos"
+                                                />
+                                            </p>
+                                            <p v-else class="text-muted-foreground italic">Este hueco está vacío.</p>
+                                        </li>
+                                    </ul>
+                                </TableCell>
+                            </TableRow>
+                        </template>
+                    </TableBody>
+                </Table>
             </section>
         </div>
     </AppLayout>

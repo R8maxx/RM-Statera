@@ -2,9 +2,10 @@
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
 import EstadoVacio from '@/components/EstadoVacio.vue';
 import CeldaBadge from '@/components/tabla/celdas/CeldaBadge.vue';
-import { Card, CardContent } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { Link } from '@inertiajs/vue3';
+import { fechaLegible } from '@/lib/celdas';
+import { Link, router } from '@inertiajs/vue3';
 import { BadgeCheckIcon, ChevronRightIcon } from '@lucide/vue';
 
 interface Resumen {
@@ -35,6 +36,11 @@ interface SistemaEns {
  * está cada sistema?», y en una organización los sistemas bajo el ENS son unos
  * pocos: una tabla paginada con filtros sería ceremonia. Las declaraciones
  * anteriores viven en la ficha de cada uno.
+ *
+ * **Tabla estática y no tarjetas.** Eran una tarjeta por sistema, y cinco
+ * tarjetas iguales son una tabla (DESIGN.md §9): con columnas, la categoría y el
+ * estado de cada sistema se comparan en vertical. Sin `Recurso` ni `MetaTabla`,
+ * por lo de arriba: `ui/table` es la tabla de lo que no se pagina.
  */
 defineProps<{
     sistemas: SistemaEns[];
@@ -42,7 +48,7 @@ defineProps<{
 </script>
 
 <template>
-    <AppLayout titulo="Conformidad ENS">
+    <AppLayout titulo="Conformidad ENS" ancho="completo">
         <CabeceraPagina
             titulo="Conformidad con el ENS"
             descripcion="En categoría básica, la organización se autoevalúa, firma la Declaración de Conformidad y publica el distintivo. Media y alta se certifican con una entidad acreditada por ENAC."
@@ -56,67 +62,85 @@ defineProps<{
             :accion="{ etiqueta: 'Ir a sistemas', href: '/sistemas' }"
         />
 
-        <ul v-else class="grid gap-3">
-            <li v-for="sistema in sistemas" :key="sistema.id">
-                <Card class="transition-colors hover:border-foreground/20">
-                    <CardContent class="p-0">
+        <Table v-else>
+            <TableHeader>
+                <TableRow>
+                    <TableHead>Sistema</TableHead>
+                    <TableHead>Categoría</TableHead>
+                    <TableHead>Declaración vigente</TableHead>
+                    <TableHead>En preparación</TableHead>
+                    <TableHead class="w-10"><span class="sr-only">Abrir</span></TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                <!-- La fila entera abre la ficha, como en `DataTable`; el enlace
+                     del nombre es el que se alcanza con el teclado. -->
+                <TableRow
+                    v-for="sistema in sistemas"
+                    :key="sistema.id"
+                    class="cursor-pointer"
+                    @click="router.visit(`/conformidad/sistemas/${sistema.id}`)"
+                >
+                    <TableCell>
                         <Link
                             :href="`/conformidad/sistemas/${sistema.id}`"
-                            class="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            class="flex items-baseline gap-2 rounded underline-offset-4 hover:underline"
+                            @click.stop
                         >
-                            <div class="min-w-0 flex-1">
-                                <p class="cifra text-xs text-muted-foreground">{{ sistema.codigo }}</p>
-                                <p class="truncate font-medium">{{ sistema.nombre }}</p>
-                            </div>
+                            <span class="cifra text-xs text-muted-foreground">{{ sistema.codigo }}</span>
+                            <span class="font-medium">{{ sistema.nombre }}</span>
+                        </Link>
+                    </TableCell>
 
+                    <TableCell>
+                        <CeldaBadge
+                            v-if="sistema.categoria"
+                            :valor="{
+                                valor: sistema.categoriaTono ?? '',
+                                etiqueta: `Categoría ${sistema.categoria}`,
+                                tono: sistema.categoriaTono ?? 'no_iniciado',
+                                icono: null,
+                            }"
+                        />
+                        <span v-else class="text-muted-foreground">Sin valorar</span>
+                    </TableCell>
+
+                    <TableCell>
+                        <div v-if="sistema.vigente" class="flex flex-wrap items-center gap-2">
                             <CeldaBadge
-                                v-if="sistema.categoria"
                                 :valor="{
-                                    valor: sistema.categoriaTono ?? '',
-                                    etiqueta: `Categoría ${sistema.categoria}`,
-                                    tono: sistema.categoriaTono ?? 'no_iniciado',
-                                    icono: null,
+                                    valor: sistema.vigente.estado,
+                                    etiqueta: sistema.vigente.estadoEtiqueta,
+                                    tono: sistema.vigente.tono,
+                                    icono: sistema.vigente.icono,
                                 }"
                             />
-                            <span v-else class="text-sm text-muted-foreground">Sin valorar</span>
+                            <span v-if="sistema.vigente.vigenteHasta" class="text-xs text-muted-foreground">
+                                {{ sistema.vigente.caducada ? 'Caducó el' : 'Hasta el' }}
+                                {{ fechaLegible(sistema.vigente.vigenteHasta) }}
+                            </span>
+                        </div>
+                        <span v-else class="text-muted-foreground">Sin declarar</span>
+                    </TableCell>
 
-                            <div class="flex flex-wrap items-center gap-2">
-                                <template v-if="sistema.vigente">
-                                    <CeldaBadge
-                                        :valor="{
-                                            valor: sistema.vigente.estado,
-                                            etiqueta: sistema.vigente.estadoEtiqueta,
-                                            tono: sistema.vigente.tono,
-                                            icono: sistema.vigente.icono,
-                                        }"
-                                    />
-                                    <span v-if="sistema.vigente.vigenteHasta" class="text-xs text-muted-foreground">
-                                        {{ sistema.vigente.caducada ? 'Caducó el' : 'Hasta el' }}
-                                        {{ sistema.vigente.vigenteHasta }}
-                                    </span>
-                                </template>
-                                <CeldaBadge
-                                    v-if="sistema.enPreparacion"
-                                    :valor="{
-                                        valor: sistema.enPreparacion.estado,
-                                        etiqueta: sistema.vigente ? 'Renovación en preparación' : sistema.enPreparacion.estadoEtiqueta,
-                                        tono: sistema.enPreparacion.tono,
-                                        icono: sistema.enPreparacion.icono,
-                                    }"
-                                />
-                                <span
-                                    v-if="!sistema.vigente && !sistema.enPreparacion"
-                                    class="text-sm text-muted-foreground"
-                                >
-                                    Sin declarar
-                                </span>
-                            </div>
+                    <TableCell>
+                        <CeldaBadge
+                            v-if="sistema.enPreparacion"
+                            :valor="{
+                                valor: sistema.enPreparacion.estado,
+                                etiqueta: sistema.vigente ? 'Renovación en preparación' : sistema.enPreparacion.estadoEtiqueta,
+                                tono: sistema.enPreparacion.tono,
+                                icono: sistema.enPreparacion.icono,
+                            }"
+                        />
+                        <span v-else class="text-muted-foreground" aria-label="sin valor">—</span>
+                    </TableCell>
 
-                            <ChevronRightIcon class="size-4 text-muted-foreground" aria-hidden="true" />
-                        </Link>
-                    </CardContent>
-                </Card>
-            </li>
-        </ul>
+                    <TableCell>
+                        <ChevronRightIcon class="size-4 text-muted-foreground" aria-hidden="true" />
+                    </TableCell>
+                </TableRow>
+            </TableBody>
+        </Table>
     </AppLayout>
 </template>
