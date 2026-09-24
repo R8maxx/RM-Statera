@@ -608,6 +608,29 @@
     --ease-marca: var(--curva);
     --ease-en-pantalla: var(--curva-en-pantalla);
     --ease-panel: var(--curva-panel);
+
+    /*
+     * Lo que no declara duración hereda la de hover y foco, con la curva de
+     * marca. Había ~80 `transition-colors` sueltos, y cada uno heredaba los
+     * 150 ms y la `ease` de Tailwind: ningún número que DESIGN.md §10 conozca.
+     * Así la regla se cumple por omisión en vez de por disciplina.
+     */
+    --default-transition-duration: var(--duracion-rapida);
+    --default-transition-timing-function: var(--curva);
+}
+
+/*
+ * La escala de capas, con nombre (DESIGN.md §6). Se usa como `z-(--z-cabecera)`.
+ * Antes la cabecera de la aplicación y la de la tabla compartían `z-30` por
+ * coincidencia, y nadie podía saber cuál tenía que quedar encima.
+ */
+:root {
+    --z-pegajoso: 10;
+    --z-barra-acciones: 20;
+    --z-cabecera: 30;
+    --z-navegacion: 40;
+    --z-superposicion: 50;
+    --z-recorrido: 60;
 }
 
 @layer base {

@@ -132,7 +132,7 @@ const descripcion = computed(() =>
             <div
                 v-for="signo in signos"
                 :key="`cabecera-${signo.signo}`"
-                class="hidden pb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase sm:block"
+                class="hidden pb-1 text-xs font-medium text-muted-foreground sm:block"
                 aria-hidden="true"
             >
                 {{ signo.signoEtiqueta }}
@@ -146,7 +146,7 @@ const descripcion = computed(() =>
                     aria-hidden="true"
                 >
                     <span
-                        class="text-xs font-semibold tracking-wide text-muted-foreground uppercase [writing-mode:vertical-rl] [text-orientation:mixed]"
+                        class="text-xs font-medium text-muted-foreground [writing-mode:vertical-rl] [text-orientation:mixed]"
                     >
                         {{ ambito.etiqueta }}
                     </span>

@@ -38,7 +38,7 @@ const nivel = computed(() => tono(activo.value.nivelTono));
         class="flex h-full w-full flex-col gap-1 rounded-xl border bg-card px-3 py-2 text-left shadow-xs"
         :class="activo.sentido === 'centro' ? 'border-primary ring-2 ring-primary/25' : 'border-border'"
     >
-        <p class="flex items-center gap-1.5 text-[11px] leading-none text-muted-foreground">
+        <p class="flex items-center gap-1.5 text-xs leading-none text-muted-foreground">
             <IconoTipo v-if="activo.tipoIcono" :nombre="activo.tipoIcono" class="size-3 shrink-0" />
             <span class="cifra">{{ activo.codigo }}</span>
             <span class="truncate">{{ activo.tipoEtiqueta }}</span>
@@ -51,7 +51,7 @@ const nivel = computed(() => tono(activo.value.nivelTono));
             {{ activo.nombre }}
         </Link>
 
-        <p class="mt-auto flex items-center gap-1.5 text-[11px]">
+        <p class="mt-auto flex items-center gap-1.5 text-xs">
             <span class="size-1.5 shrink-0 rounded-full" :class="nivel.punto" aria-hidden="true" />
             <span class="text-muted-foreground">
                 Valor efectivo

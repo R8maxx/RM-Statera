@@ -92,9 +92,9 @@ watch(
             descripcion="Arriba lo que se cae si este activo cae; abajo lo que necesita para funcionar. El color de cada caja es su valoración efectiva, que es la que sube por estos vínculos."
         >
             <template #acciones>
-                <Link :href="`/activos/${activo.id}`">
-                    <Button variant="outline">Volver a la ficha</Button>
-                </Link>
+                <Button as-child variant="outline">
+                    <Link :href="`/activos/${activo.id}`">Volver a la ficha</Link>
+                </Button>
             </template>
         </CabeceraPagina>
 

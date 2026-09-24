@@ -152,9 +152,9 @@ const enCurso = computed(() => pasos.value.findIndex((paso) => !paso.hecho));
                         <template v-if="numero === enCurso">
                             <p class="mt-1 max-w-prose text-sm text-muted-foreground">{{ paso.cuerpo }}</p>
 
-                            <Link :href="paso.accion.href" class="mt-3 inline-block">
-                                <Button size="sm">{{ paso.accion.etiqueta }}</Button>
-                            </Link>
+                            <Button as-child size="sm" class="mt-3">
+                                <Link :href="paso.accion.href">{{ paso.accion.etiqueta }}</Link>
+                            </Button>
                         </template>
                     </div>
                 </li>

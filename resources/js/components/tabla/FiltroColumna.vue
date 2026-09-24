@@ -247,7 +247,7 @@ const disparador = computed(() =>
             <span class="min-w-0 flex-1 truncate">{{ rotulo }}</span>
             <span
                 v-if="filtro.multiple && marcados.length > 1"
-                class="cifra shrink-0 rounded-full bg-primary/15 px-1.5 text-[10px] text-primary"
+                class="cifra shrink-0 rounded-full bg-primary/15 px-1.5 text-xs text-primary"
             >
                 {{ marcados.length }}
             </span>

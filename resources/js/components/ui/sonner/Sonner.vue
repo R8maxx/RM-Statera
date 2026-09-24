@@ -24,8 +24,14 @@ const delegatedProps = reactiveOmit(props, 'class', 'toastOptions')
       '--normal-bg': 'var(--popover)',
       '--normal-text': 'var(--popover-foreground)',
       '--normal-border': 'var(--border)',
-      '--border-radius': 'var(--radius)',
-      '--gray2': 'hsl(var(--popover) / 0.9)',
+      '--border-radius': 'calc(var(--radius) + 4px)',
+      '--success-bg': 'var(--popover)',
+      '--success-text': 'var(--estado-implantado)',
+      '--success-border': 'color-mix(in oklch, var(--estado-implantado) 35%, var(--border))',
+      '--error-bg': 'var(--popover)',
+      '--error-text': 'var(--destructive)',
+      '--error-border': 'color-mix(in oklch, var(--destructive) 35%, var(--border))',
+      '--gray2': 'var(--muted)',
       '--gray3': 'var(--border)',
       '--gray4': 'var(--border)',
       '--gray5': 'var(--border)',
@@ -33,7 +39,7 @@ const delegatedProps = reactiveOmit(props, 'class', 'toastOptions')
     }"
     :toast-options="props.toastOptions ?? {
       classes: {
-        toast: 'rounded-2xl',
+        toast: 'rounded-xl shadow-sombra-2',
       },
     }"
     v-bind="delegatedProps"

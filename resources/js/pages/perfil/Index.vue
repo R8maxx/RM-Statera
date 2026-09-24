@@ -182,7 +182,7 @@ const cuando = (valor: string | null): string =>
             :variants="variantesEntrada"
             initial="oculto"
             animate="visible"
-            class="mx-auto w-full max-w-4xl space-y-6"
+            class="w-full max-w-4xl space-y-6"
         >
             <!--
                 Lo único que va mal de verdad en esta pantalla sube arriba, en
@@ -387,11 +387,11 @@ const cuando = (valor: string | null): string =>
                 </template>
 
                 <div class="flex flex-wrap justify-end gap-2">
-                    <Link v-if="dosFactores.confirmado || dosFactores.pendiente" href="/perfil/dos-factores">
-                        <Button variant="outline">
+                    <Button v-if="dosFactores.confirmado || dosFactores.pendiente" as-child variant="outline">
+                        <Link href="/perfil/dos-factores">
                             {{ secreto ? 'Recargar el código' : 'Ver el código y los de recuperación' }}
-                        </Button>
-                    </Link>
+                        </Link>
+                    </Button>
 
                     <Button v-if="sinSegundoFactor" @click="activar">Activar</Button>
                     <Button v-else variant="ghost" @click="desactivar">Desactivar</Button>

@@ -77,9 +77,9 @@ const vigencia = computed(() => {
     <AppLayout :titulo="evidencia.titulo">
         <CabeceraPagina :titulo="evidencia.titulo" :descripcion="evidencia.descripcion">
             <template #acciones>
-                <Link :href="`/evidencias/${evidencia.id}/editar`">
-                    <Button variant="outline">Editar</Button>
-                </Link>
+                <Button as-child variant="outline">
+                    <Link :href="`/evidencias/${evidencia.id}/editar`">Editar</Link>
+                </Button>
                 <a v-if="evidencia.esFichero" :href="`/evidencias/${evidencia.id}/descargar`">
                     <Button>Descargar</Button>
                 </a>

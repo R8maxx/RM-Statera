@@ -313,7 +313,8 @@ Instrument Sans es estrecha y de altura de x generosa: aguanta una tabla de cont
 
 - Línea de texto corrido de 68 caracteres como máximo (`max-w-2xl` en descripciones, `max-w-prose` en texto largo).
 - Los titulares largos llevan `text-balance`; los párrafos, `text-pretty`. Una palabra huérfana en la última línea de un titular se ve, y se ve mal.
-- Mayúsculas con tracking amplio: nunca en la interfaz. Capitalización de frase en todo, títulos incluidos.
+- Mayúsculas con tracking amplio: nunca en la interfaz. Capitalización de frase en todo, títulos incluidos. La única excepción es la cabecera de tabla (§9), y los títulos de grupo del sidebar, que estuvieron en versalitas, ya no lo son.
+- **Nada por debajo de 12 px** en pantalla. Hubo veinticuatro textos a 10 y 11 px —el chrome, los nodos del organigrama y del grafo, los contadores de la tabla— y no aguantan un monitor mal calibrado. Tres excepciones declaradas, y ninguna más: el respaldo del logotipo (§2), los ejes y cifras de `MatrizRiesgo`, que es una gráfica de celdas de tamaño fijo, y la hoja de etiquetas adhesivas de `activos/Etiquetas.vue`, que se imprime a 63,5 × 38,1 mm.
 - Nada de etiquetas pequeñas encima de cada título salvo que aporten un dato real: un estado, un identificador, una fecha.
 
 ## 5. Espacio y retícula
@@ -321,7 +322,7 @@ Instrument Sans es estrecha y de altura de x generosa: aguanta una tabla de cont
 Base de 4 px. Escala: 4, 8, 12, 16, 24, 32, 48, 64, 96, 128.
 
 - Web pública: contenedor de 1200 px, secciones de 96–128 px de alto interior.
-- Aplicación: contenedor de 1440 px, márgenes laterales 32 / 24 / 16 px según tamaño.
+- Aplicación: contenedor de 1440 px, márgenes laterales 32 / 24 / 16 px según tamaño. Lo pone `AppLayout` en el `<main>`, pegado al sidebar y no centrado. Los formularios van dentro a `max-w-4xl` (o `max-w-6xl` los anchos), **también alineados a la izquierda**, con su `BarraAcciones` pegajosa dentro de ellos y no fija a la ventana.
 - Contenido de lectura: 720 px.
 - Retícula de 12 columnas, canal de 24 px.
 - Ritmo vertical en producto: 64 px entre secciones, 32 px entre bloques, 16 px dentro del bloque, 8 px entre etiqueta y campo.
@@ -350,6 +351,10 @@ Bordes: 1 px en `--border`. El borde es el separador principal; la sombra se res
 - `sombra-1` — elevación mínima: botón `outline`, input enfocado
 - `sombra-2` — desplegable, popover, tarjeta que se levanta
 - `sombra-3` — diálogo, panel lateral
+
+Los flotantes de `components/ui/` —popover, menú, select, diálogo, panel lateral y toast— las usan todos. Traían `shadow-md` y `shadow-lg` de shadcn, que son negro puro.
+
+**Capas con nombre.** Las superficies de la aplicación que se pisan entre sí leen su `z-index` de una escala en `app.css`, y nunca de un número suelto: `--z-pegajoso` 10, `--z-barra-acciones` 20, `--z-cabecera` 30, `--z-navegacion` 40, `--z-superposicion` 50 y `--z-recorrido` 60, usadas como `z-(--z-cabecera)`. Antes la cabecera de la aplicación y la de la tabla compartían `z-30` por coincidencia. Lo que se apila **dentro** de la tabla —celdas ancladas, cabecera y fila de filtros— vive en el contexto de apilamiento de su contenedor con desplazamiento y conserva sus números locales.
 
 **Filete de acento.** Regla de 3 px por 40 de ancho en violeta —`bg-acento` sobre claro, `bg-violeta-400` sobre superficie de marca—, colocada encima de un titular. Es el gesto distintivo: **uno por pantalla, nunca dos**. Vive en `CabeceraPagina` (prop `filete`) y en el panel de acceso.
 
@@ -417,6 +422,8 @@ Un solo primario por vista. El texto nombra la acción concreta: «Guardar cambi
 - **Salir con cambios sin guardar pregunta.** `BarraAcciones` intercepta Cancelar en fase de captura —en burbujeo competiría con el manejador del `<Link>` de Inertia— y registra un `beforeunload`. No se intercepta toda navegación: `router.on('before')` es síncrono y no admite esperar a un diálogo.
 
 **Tarjetas.** `bg-card`, radio `rounded-xl`, `ring-1 ring-foreground/10` en lugar de borde, padding vertical 24. Más de cuatro tarjetas idénticas seguidas suele significar que eso era una tabla.
+
+**Toasts.** Lo que confirma o falla tras una acción (`vue-sonner`, llamado desde el flash de Inertia). Superficie `popover`, `rounded-xl`, `sombra-2`, y el texto y el borde del éxito y del error leídos de `estado-implantado` y `destructive`: con `rich-colors` sin más, la librería pintaba su propio verde y su propio rojo, que no son los del producto.
 
 **Avisos.** Radio `rounded-xl`, borde e icono del tono correspondiente sobre un fondo al 5 %: `destructive` para el error, `estado-implantado` para el éxito, neutro para el informativo. El error lleva `role="alert"`; el resto no, para no interrumpir al lector de pantalla por una confirmación.
 
@@ -508,7 +515,8 @@ Y sigue en pie la mitad de la regla que protege la herramienta: **lo decorativo 
 
 ### Dos reglas de forma
 
-- **Sólo `transform` y `opacity`.** Se saltan el cálculo de disposición y el pintado. Hay tres excepciones declaradas y ninguna más: el `grid-template-rows` de `.desplegable`, el `flex-grow` de `BarraSegmentada` —para una altura o un reparto desconocidos no existe equivalente con `transform`— y el `background-size` de `.tachado`, que repinta pero no recalcula nada.
+- **Sólo `transform` y `opacity`.** Se saltan el cálculo de disposición y el pintado. Hay cuatro excepciones declaradas y ninguna más: el `grid-template-rows` de `.desplegable`, el `flex-grow` de `BarraSegmentada` —para una altura o un reparto desconocidos no existe equivalente con `transform`—, el `background-size` de `.tachado`, que repinta pero no recalcula nada, y el `width` del sidebar al plegarse, que es lo único que le devuelve el ancho al lienzo: un `translateX` lo escondería y dejaría el hueco. Se pliega pocas veces al día y dura 220 ms.
+- **Lo que no declara duración hereda 120 ms con `--curva`.** `app.css` redefine `--default-transition-duration` y `--default-transition-timing-function` de Tailwind, así que un `transition-colors` suelto ya cumple la tabla de arriba. Una duración distinta se escribe con el token, `duration-(--duracion)`, nunca como `duration-300`.
 - **`.desplegable` es la forma canónica de plegar.** Rejilla de `0fr` a `1fr`, que anima una altura que nadie ha medido y **deja el contenido en el DOM** —lo que sale del DOM sale del `FormData`—. A altura cero el contenido sigue siendo tabulable, así que va con `inert`.
 - **`.tachado` es la otra utilidad de `app.css`**, y existe porque `text-decoration` no se puede animar. Un paso que se marca hecho se tacha con un `scaleX` sobre un pseudo-elemento: la raya se traza de izquierda a derecha y confirma que el clic llegó, que en una lista que se guarda contra el servidor es el único acuse que hay.
 - **Toda lista que puede menguar lleva salida**, con `AnimatePresence` o `<TransitionGroup>`. Una fila que desaparece de un fotograma al siguiente y arrastra a las de abajo es el salto más común y el más fácil de evitar.
@@ -545,8 +553,8 @@ Son dos y siguen siendo dos: **el hilo de carga de la tabla** —que no es decor
 Una web de ISO 27001 y ENS que falla accesibilidad se contradice a sí misma, y en contratación pública el EN 301 549 no es opcional.
 
 - Texto normal ≥ 4.5:1, texto grande y componentes ≥ 3:1. **Lo comprueba `tests/Unit/Diseno/PaletaTest.php` sobre los tokens de `app.css`**, no la buena voluntad. Sobre blanco, `marca-600` da 4.87 y `violeta-600` 6.03; `marca-400` (2.45) y `violeta-400` (3.02) son decorativos sobre claro y no valen como texto. Las cifras salen de convertir los `oklch` de `app.css` a sRGB, no de estimarlas: cada retoque de la paleta obliga a recalcularlas.
-- Foco siempre visible: `outline-ring outline-2 outline-offset-2`, en el teal de marca. El anillo **no** es violeta, y no se elimina el outline sin sustituto.
-- Objetivos táctiles de 44 × 44 px mínimo en móvil.
+- Foco siempre visible: `outline-ring outline-2 outline-offset-2`, en el teal de marca. El anillo **no** es violeta, y no se elimina el outline sin sustituto. Los botones lo heredan de `app.css` y no llevan anillo propio: el `ring-ring/50` de shadcn quedaba por debajo de 3:1. Los campos conservan el suyo de 3 px porque además pintan el borde (§9).
+- Objetivos táctiles de 44 × 44 px mínimo en móvil. En los botones pequeños —`sm`, `icon-sm`, `icon-xs`— lo pone un `::after` que sólo existe con `pointer: coarse`: el «⋯» de una fila sigue midiendo 32 px en el escritorio y se pulsa como uno de 44 en una tableta.
 - Todo accionable por teclado, en orden lógico. Los modales atrapan el foco y lo devuelven al cerrar.
 - Estados también en texto, nunca solo en color.
 - Toda animación ambiente se apaga con `prefers-reduced-motion: reduce`, sin excepción — incluida la balanza del acceso, que en ese caso se pinta quieta.

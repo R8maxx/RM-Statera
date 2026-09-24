@@ -75,9 +75,9 @@ const escalonado = variantesEscalonado(0.04);
         >
             <template #acciones>
                 <ConmutadorOrganigrama />
-                <Link href="/puestos">
-                    <Button variant="outline">Ver la tabla</Button>
-                </Link>
+                <Button as-child variant="outline">
+                    <Link href="/puestos">Ver la tabla</Link>
+                </Button>
             </template>
         </CabeceraPagina>
 

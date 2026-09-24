@@ -122,7 +122,7 @@ function mover(clave: string, paso: -1 | 1): void {
                 Columnas
                 <span
                     v-if="ocultas > 0"
-                    class="cifra rounded-full bg-muted px-1.5 text-[10px] text-muted-foreground"
+                    class="cifra rounded-full bg-muted px-1.5 text-xs text-muted-foreground"
                 >
                     {{ ocultas }}
                 </span>

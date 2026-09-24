@@ -159,9 +159,9 @@ function mover(estado: string): void {
     <AppLayout :titulo="tarea.titulo">
         <CabeceraPagina :titulo="tarea.titulo" :descripcion="tarea.descripcion">
             <template #acciones>
-                <Link :href="`/tareas/${tarea.id}/editar`">
-                    <Button variant="outline">Editar</Button>
-                </Link>
+                <Button as-child variant="outline">
+                    <Link :href="`/tareas/${tarea.id}/editar`">Editar</Link>
+                </Button>
             </template>
         </CabeceraPagina>
 

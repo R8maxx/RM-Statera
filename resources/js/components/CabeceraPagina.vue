@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
+import { duracion, curva } from '@/lib/motion';
 import { motion } from 'motion-v';
 
 /**
@@ -46,19 +47,21 @@ const { reducido } = useMovimientoReducido();
                 class="mb-3 block h-[3px] w-10 origin-left bg-acento"
                 :initial="reducido ? { scaleX: 1 } : { scaleX: 0 }"
                 :animate="{ scaleX: 1 }"
-                :transition="{ duration: reducido ? 0 : 0.38, ease: [0.16, 1, 0.3, 1] }"
+                :transition="{ duration: reducido ? 0 : duracion.lenta, ease: curva }"
                 aria-hidden="true"
             />
 
-            <h1 class="text-xl font-semibold tracking-tight">{{ titulo }}</h1>
-            <p v-if="descripcion" class="mt-1 max-w-2xl text-sm text-muted-foreground">{{ descripcion }}</p>
+            <h1 class="text-xl leading-7 font-semibold tracking-[-0.015em] text-balance">{{ titulo }}</h1>
+            <p v-if="descripcion" class="mt-1 max-w-2xl text-sm text-pretty text-muted-foreground">{{ descripcion }}</p>
 
             <!-- Para lo que matiza al título sin ser acción: la leyenda de
                  campos obligatorios de un formulario, por ejemplo. -->
             <slot />
         </div>
 
-        <div v-if="$slots.acciones" class="flex shrink-0 items-center gap-2">
+        <!-- Se parte en varias líneas por debajo de `sm`: con tres botones, a
+             375 px el hueco no cabía y empujaba la página en horizontal. -->
+        <div v-if="$slots.acciones" class="flex flex-wrap items-center gap-2 sm:shrink-0">
             <slot name="acciones" />
         </div>
     </div>

@@ -118,20 +118,20 @@ const salir = (): void => router.post('/logout');
         <TooltipProvider :delay-duration="400">
             <div class="flex min-h-[100dvh] bg-background">
                 <!--
-                    Saltar al contenido. Con un sidebar de diecinueve módulos,
+                    Saltar al contenido. Con un sidebar de veintiséis módulos,
                     llegar a la tabla con el teclado significaba tabular por toda
                     la navegación en cada carga de página.
                 -->
                 <a
                     href="#contenido"
-                    class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground"
+                    class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-(--z-recorrido) focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground"
                 >
                     Saltar al contenido
                 </a>
 
                 <!-- ── Sidebar de escritorio ──────────────────────────────── -->
                 <aside
-                    class="hidden shrink-0 flex-col border-r bg-superficie transition-[width] duration-300 ease-marca md:flex"
+                    class="hidden shrink-0 flex-col border-r bg-superficie transition-[width] duration-(--duracion) ease-marca md:flex"
                     :class="plegado ? 'w-[4.25rem]' : 'w-60'"
                 >
                     <div class="flex h-16 items-center border-b px-4">
@@ -144,7 +144,7 @@ const salir = (): void => router.post('/logout');
                         <div v-for="grupo in navegacion" :key="grupo.titulo" class="space-y-1">
                             <p
                                 v-if="!plegado"
-                                class="px-3 pb-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase"
+                                class="px-3 pb-1 text-xs font-medium text-muted-foreground"
                             >
                                 {{ grupo.titulo }}
                             </p>
@@ -154,7 +154,7 @@ const salir = (): void => router.post('/logout');
                                     <Link
                                         :href="entrada.href"
                                         :data-recorrido="anclaRecorrido(entrada.href)"
-                                        class="relative flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors duration-150"
+                                        class="relative flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors"
                                         :class="[
                                             esSeccionActiva(entrada.href, rutaActual)
                                                 ? 'bg-accent text-accent-foreground'
@@ -195,7 +195,7 @@ const salir = (): void => router.post('/logout');
                                         <BuildingIcon class="size-3.5" />
                                     </span>
                                     <span v-if="!plegado" class="min-w-0 flex-1">
-                                        <span class="block text-[11px] text-muted-foreground">Organización</span>
+                                        <span class="block text-xs text-muted-foreground">Organización</span>
                                         <span class="block truncate text-sm font-medium">
                                             {{ organizacion?.nombre ?? 'Sin contexto' }}
                                         </span>
@@ -256,7 +256,7 @@ const salir = (): void => router.post('/logout');
                             :aria-label="plegado ? 'Desplegar la navegación' : 'Plegar la navegación'"
                             @click="plegado = !plegado"
                         >
-                            <PanelLeftIcon class="size-4 transition-transform duration-300" :class="plegado && 'rotate-180'" />
+                            <PanelLeftIcon class="size-4 transition-transform duration-(--duracion)" :class="plegado && 'rotate-180'" />
                             <span v-if="!plegado">Plegar</span>
                         </Button>
                     </div>
@@ -265,169 +265,178 @@ const salir = (): void => router.post('/logout');
                 <!-- ── Columna principal ──────────────────────────────────── -->
                 <div class="flex min-w-0 flex-1 flex-col">
                     <header
-                        class="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b bg-background/85 px-4 backdrop-blur-sm sm:px-6"
+                        class="sticky top-0 z-(--z-cabecera) h-16 border-b bg-background/85 backdrop-blur-sm"
                     >
-                        <div class="flex min-w-0 items-center gap-2">
-                            <!-- La navegación en móvil no existía: por debajo de
-                                 768px el sidebar sencillamente desaparecía y no
-                                 quedaba forma de cambiar de módulo. -->
-                            <Sheet v-model:open="menuMovil">
-                                <SheetTrigger as-child>
-                                    <Button variant="ghost" size="icon-sm" class="md:hidden" aria-label="Abrir la navegación">
-                                        <MenuIcon />
-                                    </Button>
-                                </SheetTrigger>
-                                <SheetContent side="left" class="flex w-72 flex-col p-0">
-                                    <SheetTitle class="sr-only">Navegación</SheetTitle>
-                                    <SheetDescription class="sr-only">
-                                        Los módulos de Statera.
-                                    </SheetDescription>
+                        <!-- El mismo contenedor y los mismos márgenes que el
+                             `<main>`: con la cabecera a todo el ancho, a 1920 el
+                             usuario y el buscador quedaban lejos del contenido
+                             que acompañan. El borde y el velo sí van de lado a
+                             lado, que es lo que separa la cabecera del lienzo. -->
+                        <div
+                            class="flex h-full w-full max-w-[90rem] items-center justify-between gap-3 px-4 sm:px-6 lg:px-8"
+                        >
+                            <div class="flex min-w-0 items-center gap-2">
+                                <!-- La navegación en móvil no existía: por debajo de
+                                     768px el sidebar sencillamente desaparecía y no
+                                     quedaba forma de cambiar de módulo. -->
+                                <Sheet v-model:open="menuMovil">
+                                    <SheetTrigger as-child>
+                                        <Button variant="ghost" size="icon-sm" class="md:hidden" aria-label="Abrir la navegación">
+                                            <MenuIcon />
+                                        </Button>
+                                    </SheetTrigger>
+                                    <SheetContent side="left" class="flex w-72 flex-col p-0">
+                                        <SheetTitle class="sr-only">Navegación</SheetTitle>
+                                        <SheetDescription class="sr-only">
+                                            Los módulos de Statera.
+                                        </SheetDescription>
 
-                                    <div class="flex h-16 items-center border-b px-5">
-                                        <Logotipo respaldo />
-                                    </div>
-
-                                    <nav class="flex-1 space-y-6 overflow-y-auto p-3">
-                                        <div v-for="grupo in navegacion" :key="grupo.titulo" class="space-y-1">
-                                            <p class="px-3 pb-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-                                                {{ grupo.titulo }}
-                                            </p>
-                                            <Link
-                                                v-for="entrada in grupo.entradas"
-                                                :key="entrada.href"
-                                                :href="entrada.href"
-                                                class="flex items-center gap-2.5 rounded-md px-3 py-2.5 text-sm font-medium transition-colors"
-                                                :class="
-                                                    esSeccionActiva(entrada.href, rutaActual)
-                                                        ? 'bg-accent text-accent-foreground'
-                                                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                                                "
-                                                @click="menuMovil = false"
-                                            >
-                                                <component :is="entrada.icono" class="size-4" />
-                                                {{ entrada.titulo }}
-                                            </Link>
+                                        <div class="flex h-16 items-center border-b px-5">
+                                            <Logotipo respaldo />
                                         </div>
-                                    </nav>
 
-                                    <div v-if="organizacion" class="mt-auto border-t px-5 py-3">
-                                        <p class="text-[11px] text-muted-foreground">Organización</p>
-                                        <p class="truncate text-sm font-medium">{{ organizacion.nombre }}</p>
-                                    </div>
-                                </SheetContent>
-                            </Sheet>
+                                        <nav class="flex-1 space-y-6 overflow-y-auto p-3">
+                                            <div v-for="grupo in navegacion" :key="grupo.titulo" class="space-y-1">
+                                                <p class="px-3 pb-1 text-xs font-medium text-muted-foreground">
+                                                    {{ grupo.titulo }}
+                                                </p>
+                                                <Link
+                                                    v-for="entrada in grupo.entradas"
+                                                    :key="entrada.href"
+                                                    :href="entrada.href"
+                                                    class="flex items-center gap-2.5 rounded-md px-3 py-2.5 text-sm font-medium transition-colors"
+                                                    :class="
+                                                        esSeccionActiva(entrada.href, rutaActual)
+                                                            ? 'bg-accent text-accent-foreground'
+                                                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                                    "
+                                                    @click="menuMovil = false"
+                                                >
+                                                    <component :is="entrada.icono" class="size-4" />
+                                                    {{ entrada.titulo }}
+                                                </Link>
+                                            </div>
+                                        </nav>
 
-                            <!-- Migas: dónde estoy dentro del mapa, no sólo cómo
-                                 se llama la pantalla. -->
-                            <nav aria-label="Ruta" class="flex min-w-0 items-center gap-1.5 text-sm">
-                                <Link
-                                    v-if="seccion && seccion.href !== rutaActual"
-                                    :href="seccion.href"
-                                    class="hidden shrink-0 rounded text-muted-foreground transition-colors hover:text-foreground sm:inline"
+                                        <div v-if="organizacion" class="mt-auto border-t px-5 py-3">
+                                            <p class="text-xs text-muted-foreground">Organización</p>
+                                            <p class="truncate text-sm font-medium">{{ organizacion.nombre }}</p>
+                                        </div>
+                                    </SheetContent>
+                                </Sheet>
+
+                                <!-- Migas: dónde estoy dentro del mapa, no sólo cómo
+                                     se llama la pantalla. -->
+                                <nav aria-label="Ruta" class="flex min-w-0 items-center gap-1.5 text-sm">
+                                    <Link
+                                        v-if="seccion && seccion.href !== rutaActual"
+                                        :href="seccion.href"
+                                        class="hidden shrink-0 rounded text-muted-foreground transition-colors hover:text-foreground sm:inline"
+                                    >
+                                        {{ seccion.titulo }}
+                                    </Link>
+                                    <ChevronRightIcon
+                                        v-if="seccion && seccion.href !== rutaActual"
+                                        class="hidden size-3.5 shrink-0 text-muted-foreground/60 sm:block"
+                                    />
+                                    <span class="truncate font-medium">{{ titulo }}</span>
+                                </nav>
+                            </div>
+
+                            <div class="flex shrink-0 items-center gap-1">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    class="hidden gap-2 text-muted-foreground sm:flex"
+                                    @click="abrirPaleta"
                                 >
-                                    {{ seccion.titulo }}
-                                </Link>
-                                <ChevronRightIcon
-                                    v-if="seccion && seccion.href !== rutaActual"
-                                    class="hidden size-3.5 shrink-0 text-muted-foreground/60 sm:block"
-                                />
-                                <span class="truncate font-medium">{{ titulo }}</span>
-                            </nav>
-                        </div>
+                                    <SearchIcon class="size-3.5" />
+                                    Buscar
+                                    <kbd class="cifra rounded border bg-muted px-1 text-xs">⌘K</kbd>
+                                </Button>
 
-                        <div class="flex shrink-0 items-center gap-1">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                class="hidden gap-2 text-muted-foreground sm:flex"
-                                @click="abrirPaleta"
-                            >
-                                <SearchIcon class="size-3.5" />
-                                Buscar
-                                <kbd class="cifra rounded border bg-muted px-1 text-[10px]">⌘K</kbd>
-                            </Button>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger as-child>
+                                        <Button variant="ghost" size="icon-sm" aria-label="Cambiar el tema">
+                                            <SunIcon v-if="esOscuro" />
+                                            <MoonIcon v-else />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" class="w-44">
+                                        <DropdownMenuCheckboxItem
+                                            :model-value="preferencia === 'claro'"
+                                            @select="fijar('claro')"
+                                        >
+                                            <SunIcon class="size-4" />
+                                            Claro
+                                        </DropdownMenuCheckboxItem>
+                                        <DropdownMenuCheckboxItem
+                                            :model-value="preferencia === 'oscuro'"
+                                            @select="fijar('oscuro')"
+                                        >
+                                            <MoonIcon class="size-4" />
+                                            Oscuro
+                                        </DropdownMenuCheckboxItem>
+                                        <DropdownMenuCheckboxItem
+                                            :model-value="preferencia === 'sistema'"
+                                            @select="fijar('sistema')"
+                                        >
+                                            <MonitorIcon class="size-4" />
+                                            El del sistema
+                                        </DropdownMenuCheckboxItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
 
-                            <DropdownMenu>
-                                <DropdownMenuTrigger as-child>
-                                    <Button variant="ghost" size="icon-sm" aria-label="Cambiar el tema">
-                                        <SunIcon v-if="esOscuro" />
-                                        <MoonIcon v-else />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" class="w-44">
-                                    <DropdownMenuCheckboxItem
-                                        :model-value="preferencia === 'claro'"
-                                        @select="fijar('claro')"
-                                    >
-                                        <SunIcon class="size-4" />
-                                        Claro
-                                    </DropdownMenuCheckboxItem>
-                                    <DropdownMenuCheckboxItem
-                                        :model-value="preferencia === 'oscuro'"
-                                        @select="fijar('oscuro')"
-                                    >
-                                        <MoonIcon class="size-4" />
-                                        Oscuro
-                                    </DropdownMenuCheckboxItem>
-                                    <DropdownMenuCheckboxItem
-                                        :model-value="preferencia === 'sistema'"
-                                        @select="fijar('sistema')"
-                                    >
-                                        <MonitorIcon class="size-4" />
-                                        El del sistema
-                                    </DropdownMenuCheckboxItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger as-child>
+                                        <Button variant="ghost" size="sm" class="gap-2">
+                                            <AvatarUsuario
+                                                :nombre="usuario?.nombre"
+                                                :foto="usuario?.foto"
+                                                tamano="sm"
+                                                clase="text-xs"
+                                            />
+                                            <span class="hidden truncate sm:inline">{{ usuario?.nombre }}</span>
+                                        </Button>
+                                    </DropdownMenuTrigger>
 
-                            <DropdownMenu>
-                                <DropdownMenuTrigger as-child>
-                                    <Button variant="ghost" size="sm" class="gap-2">
-                                        <AvatarUsuario
-                                            :nombre="usuario?.nombre"
-                                            :foto="usuario?.foto"
-                                            tamano="sm"
-                                            clase="text-[11px]"
-                                        />
-                                        <span class="hidden truncate sm:inline">{{ usuario?.nombre }}</span>
-                                    </Button>
-                                </DropdownMenuTrigger>
-
-                                <DropdownMenuContent align="end" class="w-60">
-                                    <DropdownMenuLabel>
-                                        <p class="text-sm font-medium">{{ usuario?.nombre }}</p>
-                                        <p class="truncate text-xs font-normal text-muted-foreground">
-                                            {{ usuario?.email }}
-                                        </p>
-                                    </DropdownMenuLabel>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuLabel class="flex items-center gap-2 text-xs font-normal">
-                                        <ShieldCheckIcon
-                                            class="size-3.5"
-                                            :class="usuario?.dosFactores ? 'text-estado-implantado' : 'text-muted-foreground'"
-                                        />
-                                        {{ usuario?.dosFactores ? 'Segundo factor activo' : 'Sin segundo factor' }}
-                                    </DropdownMenuLabel>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem as-child>
-                                        <Link href="/perfil">
-                                            <UserRoundCogIcon class="size-4" />
-                                            Mi cuenta
-                                        </Link>
-                                    </DropdownMenuItem>
-                                    <!-- El recorrido se ofrece solo una vez; a
-                                         partir de ahí hay que poder encontrarlo,
-                                         y este es el menú donde ya se busca todo
-                                         lo que es del usuario y no del trabajo. -->
-                                    <DropdownMenuItem @select="abrirRecorrido">
-                                        <RouteIcon class="size-4" />
-                                        Recorrido guiado
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem @select="salir">
-                                        <LogOutIcon class="size-4" />
-                                        Cerrar sesión
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                                    <DropdownMenuContent align="end" class="w-60">
+                                        <DropdownMenuLabel>
+                                            <p class="text-sm font-medium">{{ usuario?.nombre }}</p>
+                                            <p class="truncate text-xs font-normal text-muted-foreground">
+                                                {{ usuario?.email }}
+                                            </p>
+                                        </DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuLabel class="flex items-center gap-2 text-xs font-normal">
+                                            <ShieldCheckIcon
+                                                class="size-3.5"
+                                                :class="usuario?.dosFactores ? 'text-estado-implantado' : 'text-muted-foreground'"
+                                            />
+                                            {{ usuario?.dosFactores ? 'Segundo factor activo' : 'Sin segundo factor' }}
+                                        </DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem as-child>
+                                            <Link href="/perfil">
+                                                <UserRoundCogIcon class="size-4" />
+                                                Mi cuenta
+                                            </Link>
+                                        </DropdownMenuItem>
+                                        <!-- El recorrido se ofrece solo una vez; a
+                                             partir de ahí hay que poder encontrarlo,
+                                             y este es el menú donde ya se busca todo
+                                             lo que es del usuario y no del trabajo. -->
+                                        <DropdownMenuItem @select="abrirRecorrido">
+                                            <RouteIcon class="size-4" />
+                                            Recorrido guiado
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem @select="salir">
+                                            <LogOutIcon class="size-4" />
+                                            Cerrar sesión
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
                         </div>
                     </header>
 
@@ -438,7 +447,13 @@ const salir = (): void => router.post('/logout');
                         foco donde estaba, y el siguiente tabulador vuelve al
                         principio de la navegación.
 
-                        `space-y-6` es el RITMO VERTICAL de la página, y vive
+                        El contenedor es de 1440 px (DESIGN.md §5) y va pegado a
+                        la izquierda, junto al sidebar: a 1920 las tablas y las
+                        fichas se estiraban hasta 1600 y una fila de doce
+                        columnas ya no se leía de un vistazo.
+
+                        `space-y-8` es el RITMO VERTICAL de la página —32 px
+                        entre bloques, el de §5—, y vive
                         aquí a propósito: antes lo ponía cada componente por su
                         cuenta —`CabeceraPagina` y `TiraIndicadores` llevaban
                         `mb-6`, `DataTable` y `Card` no llevan nada—, así que
@@ -449,7 +464,7 @@ const salir = (): void => router.post('/logout');
                         El contenedor es quien sabe separar a sus hijos; un
                         componente no puede saber si tiene algo debajo. Por eso
                         los `mb-6` salieron de los dos componentes: dejarlos
-                        sumaría 48 px donde toca 24.
+                        sumaría el doble de lo que toca.
                     -->
                     <motion.main
                         id="contenido"
@@ -458,7 +473,7 @@ const salir = (): void => router.post('/logout');
                         :variants="variantesEntrada"
                         initial="oculto"
                         animate="visible"
-                        class="min-w-0 flex-1 space-y-6 px-4 py-6 outline-none sm:px-6 lg:px-8"
+                        class="w-full max-w-[90rem] min-w-0 flex-1 space-y-8 px-4 pt-6 pb-10 outline-none sm:px-6 lg:px-8"
                     >
                         <slot />
                     </motion.main>

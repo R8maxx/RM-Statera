@@ -100,7 +100,7 @@ const { reducido } = useMovimientoReducido();
 <template>
     <nav aria-label="Secciones del documento" class="hidden w-56 shrink-0 lg:block">
         <div class="sticky top-20">
-            <p class="mb-2 px-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+            <p class="mb-2 px-2 text-sm font-semibold">
                 Secciones
             </p>
             <ol class="space-y-0.5">

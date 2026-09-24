@@ -72,7 +72,7 @@ function quitar(): void {
             :style="{ height: alto }"
         >
             <img v-if="url" :src="url" :alt="`${etiqueta} de la organización`" class="max-h-full max-w-full object-contain" />
-            <p v-else class="text-xs text-neutral-500">Sin {{ etiqueta.toLowerCase() }}</p>
+            <p v-else class="text-xs text-muted-foreground">Sin {{ etiqueta.toLowerCase() }}</p>
         </div>
 
         <input

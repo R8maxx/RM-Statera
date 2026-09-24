@@ -58,12 +58,12 @@ const historicas = () => props.asignaciones.filter((una) => !una.vigente);
     <AppLayout :titulo="puesto.titulo">
         <CabeceraPagina :titulo="puesto.titulo">
             <template #acciones>
-                <Link href="/puestos/organigrama">
-                    <Button variant="outline">Ver el organigrama</Button>
-                </Link>
-                <Link v-if="puedeGestionar" :href="`/puestos/${puesto.id}/editar`">
-                    <Button>Editar</Button>
-                </Link>
+                <Button as-child variant="outline">
+                    <Link href="/puestos/organigrama">Ver el organigrama</Link>
+                </Button>
+                <Button v-if="puedeGestionar" as-child variant="outline">
+                    <Link :href="`/puestos/${puesto.id}/editar`">Editar</Link>
+                </Button>
             </template>
         </CabeceraPagina>
 

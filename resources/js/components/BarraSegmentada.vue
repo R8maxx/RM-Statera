@@ -82,7 +82,7 @@ const descripcion = computed(
             <div
                 v-for="segmento in visibles"
                 :key="segmento.clave"
-                class="h-full min-w-[2px] shrink basis-0 rounded-full transition-[flex-grow] duration-500 ease-marca"
+                class="h-full min-w-[2px] shrink basis-0 rounded-full transition-[flex-grow] duration-(--duracion-lenta) ease-marca"
                 :class="segmento.fondo"
                 :style="{ flexGrow: segmento.porcentaje }"
                 :title="`${segmento.etiqueta}: ${segmento.valor}`"

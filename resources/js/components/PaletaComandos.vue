@@ -132,7 +132,7 @@ const temas: { valor: PreferenciaTema; etiqueta: string; icono: typeof SunIcon }
             </CommandGroup>
         </CommandList>
 
-        <div class="flex items-center justify-end gap-3 border-t px-3 py-2 text-[11px] text-muted-foreground">
+        <div class="flex items-center justify-end gap-3 border-t px-3 py-2 text-xs text-muted-foreground">
             <span class="flex items-center gap-1">
                 <CommandShortcut class="cifra">↑↓</CommandShortcut>
                 navegar

@@ -12,8 +12,8 @@ const props = withDefaults(defineProps<DialogRootProps & {
   class?: HTMLAttributes['class']
   showCloseButton?: boolean
 }>(), {
-  title: 'Command Palette',
-  description: 'Search for a command to run...',
+  title: 'Paleta de comandos',
+  description: 'Busca una pantalla o una acción.',
   showCloseButton: false,
 })
 const emits = defineEmits<DialogRootEmits>()

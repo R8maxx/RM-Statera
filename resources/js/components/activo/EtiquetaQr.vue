@@ -28,9 +28,9 @@ defineProps<{ activoId: number; svg: string; url: string }>();
             <p class="text-xs text-muted-foreground">Al escanearla abre</p>
             <p class="cifra mt-0.5 text-xs break-all">{{ url }}</p>
 
-            <Link :href="`/activos/etiquetas?ids[]=${activoId}`" class="mt-3 inline-block">
-                <Button variant="outline" size="sm">Imprimir la etiqueta</Button>
-            </Link>
+            <Button as-child variant="outline" size="sm" class="mt-3">
+                <Link :href="`/activos/etiquetas?ids[]=${activoId}`">Imprimir la etiqueta</Link>
+            </Button>
         </div>
     </div>
 </template>

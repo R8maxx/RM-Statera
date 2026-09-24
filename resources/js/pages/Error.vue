@@ -103,12 +103,12 @@ const hayHistorial = typeof window !== 'undefined' && window.history.length > 1;
                 </p>
 
                 <div class="mt-8 flex flex-wrap items-center gap-3">
-                    <Link :href="destino.href">
-                        <Button class="gap-1.5">
+                    <Button as-child class="gap-1.5">
+                        <Link :href="destino.href">
                             <ArrowLeftIcon class="size-4" />
                             {{ destino.etiqueta }}
-                        </Button>
-                    </Link>
+                        </Link>
+                    </Button>
 
                     <button
                         v-if="hayHistorial"

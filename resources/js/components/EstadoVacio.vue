@@ -72,9 +72,9 @@ const { variantesEntrada } = useMovimientoReducido();
             {{ descripcion }}
         </p>
 
-        <Link v-if="accion" :href="accion.href" class="relative mt-5">
-            <Button size="sm">{{ accion.etiqueta }}</Button>
-        </Link>
+        <Button v-if="accion" as-child size="sm" class="mt-5">
+            <Link :href="accion.href">{{ accion.etiqueta }}</Link>
+        </Button>
 
         <!--
             La salida cuando no es un enlace.

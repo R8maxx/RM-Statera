@@ -153,9 +153,9 @@ function retirar(dependenciaId: number): void {
     <AppLayout :titulo="`${activo.codigo} · ${activo.nombre}`">
         <CabeceraPagina :titulo="activo.nombre" :descripcion="activo.descripcion">
             <template #acciones>
-                <Link :href="`/activos/${activo.id}/editar`">
-                    <Button variant="outline">Editar</Button>
-                </Link>
+                <Button as-child variant="outline">
+                    <Link :href="`/activos/${activo.id}/editar`">Editar</Link>
+                </Button>
             </template>
         </CabeceraPagina>
 
@@ -243,12 +243,12 @@ function retirar(dependenciaId: number): void {
                                     desde el sidebar porque es el grafo DE ESTE
                                     activo, no una pantalla del módulo.
                                 -->
-                                <Link :href="`/activos/${activo.id}/grafo`">
-                                    <Button variant="outline" size="sm">
+                                <Button as-child variant="outline" size="sm">
+                                    <Link :href="`/activos/${activo.id}/grafo`">
                                         <NetworkIcon class="size-4" aria-hidden="true" />
                                         Ver el grafo
-                                    </Button>
-                                </Link>
+                                    </Link>
+                                </Button>
                                 <Button variant="outline" size="sm" @click="abierto = true">
                                     Declarar dependencia
                                 </Button>

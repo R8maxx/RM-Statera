@@ -59,7 +59,7 @@ const modelo = defineModel<string | undefined>();
                 v-for="opcion in opciones"
                 :key="opcion.valor"
                 :value="opcion.valor"
-                class="h-8 flex-1 cursor-pointer rounded-sm px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=checked]:hover:bg-marca-700"
+                class="h-8 flex-1 cursor-pointer rounded-sm px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=checked]:hover:bg-marca-700 dark:data-[state=checked]:hover:bg-marca-500"
             >
                 {{ opcion.etiqueta }}
             </RadioGroupItem>

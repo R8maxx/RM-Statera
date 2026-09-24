@@ -102,7 +102,7 @@ const ruta = (accion: string) => `/documentos/${props.documentoId}/versiones/${p
             >
                 <Label for="motivo-revision">
                     Motivo de la versión
-                    <span v-if="entregas > 0" class="text-destructive">*</span>
+                    <span v-if="entregas > 0" class="text-primary" aria-hidden="true">*</span>
                 </Label>
                 <Input
                     id="motivo-revision"
@@ -168,7 +168,7 @@ const ruta = (accion: string) => `/documentos/${props.documentoId}/versiones/${p
                     >
                         <Label for="motivo-rechazo">
                             Motivo del rechazo
-                            <span class="text-destructive">*</span>
+                            <span class="text-primary" aria-hidden="true">*</span>
                         </Label>
                         <Input
                             id="motivo-rechazo"

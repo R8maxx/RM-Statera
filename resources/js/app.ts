@@ -8,7 +8,12 @@ import { createInertiaApp } from '@inertiajs/vue3';
  */
 void createInertiaApp({
     title: (titulo) => (titulo ? `${titulo} · Statera` : 'Statera'),
+    /*
+     * La barra lee el token y no lo copia: con el valor escrito a mano se
+     * quedaba en el teal del tema claro también en oscuro, donde `--primary`
+     * sube de luminosidad.
+     */
     progress: {
-        color: 'oklch(0.52 0.13 196)',
+        color: 'var(--primary)',
     },
 });

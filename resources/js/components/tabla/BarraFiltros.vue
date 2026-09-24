@@ -62,7 +62,7 @@ const sueltosActivos = computed(
                         Filtros
                         <span
                             v-if="sueltosActivos > 0"
-                            class="cifra rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground"
+                            class="cifra rounded-full bg-primary px-1.5 text-xs text-primary-foreground"
                         >
                             {{ sueltosActivos }}
                         </span>

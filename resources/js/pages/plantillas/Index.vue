@@ -202,7 +202,7 @@ function insignia(tipo: TipoPlantilla) {
 
         <div v-else class="space-y-8">
             <section v-for="familia in familias" :key="familia.clave" v-show="deLaFamilia(familia.clave).length > 0">
-                <h2 class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                <h2 class="text-sm font-semibold tracking-[-0.01em]">
                     {{ familia.titulo }}
                 </h2>
                 <p class="mt-1 mb-3 text-sm text-muted-foreground">{{ familia.ayuda }}</p>

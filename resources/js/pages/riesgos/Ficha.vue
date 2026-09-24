@@ -322,9 +322,9 @@ const dimensiones: Record<string, string> = {
     <AppLayout :titulo="`${riesgo.codigo} · ${riesgo.titulo}`">
         <CabeceraPagina :titulo="riesgo.titulo" :descripcion="riesgo.amenaza">
             <template #acciones>
-                <Link :href="`/riesgos/${riesgo.id}/editar`">
-                    <Button variant="outline">Editar</Button>
-                </Link>
+                <Button as-child variant="outline">
+                    <Link :href="`/riesgos/${riesgo.id}/editar`">Editar</Link>
+                </Button>
             </template>
         </CabeceraPagina>
 

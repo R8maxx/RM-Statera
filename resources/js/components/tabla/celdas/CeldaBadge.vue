@@ -39,7 +39,7 @@ const icono = computed(() => props.valor?.icono ?? estilo.value.icono);
     <span
         v-if="valor"
         :title="valor.etiqueta"
-        class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-colors duration-200"
+        class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-colors"
         :class="estilo.badge"
     >
         <!--

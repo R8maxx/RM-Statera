@@ -108,7 +108,7 @@ function irAlCampo(nombre: string): void {
         :action="action"
         :method="method"
         #default="{ errors, processing, hasErrors }"
-        class="mx-auto w-full pb-24"
+        class="w-full"
         :class="ancho ? 'max-w-6xl' : 'max-w-4xl'"
     >
         <div ref="ancla" class="contents" />

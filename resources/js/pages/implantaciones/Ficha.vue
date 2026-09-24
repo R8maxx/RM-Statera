@@ -114,9 +114,9 @@ function cambiarEstado(): void {
     <AppLayout :titulo="requisito.codigo">
         <CabeceraPagina :titulo="requisito.codigo" :descripcion="requisito.titulo">
             <template #acciones>
-                <Link href="/implantaciones">
-                    <Button variant="ghost">Volver a la tabla</Button>
-                </Link>
+                <Button as-child variant="ghost">
+                    <Link href="/implantaciones">Volver a la tabla</Link>
+                </Button>
             </template>
         </CabeceraPagina>
 
@@ -339,9 +339,9 @@ function cambiarEstado(): void {
                     </CardContent>
 
                     <CardFooter class="justify-end">
-                        <Link :href="`/tareas/crear?implantacion=${implantacion.id}`">
-                            <Button variant="outline" size="sm">Nueva tarea</Button>
-                        </Link>
+                        <Button as-child variant="outline" size="sm">
+                            <Link :href="`/tareas/crear?implantacion=${implantacion.id}`">Nueva tarea</Link>
+                        </Button>
                     </CardFooter>
                 </Card>
 

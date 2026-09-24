@@ -30,7 +30,7 @@ const props = withDefaults(defineProps<{
   <component
     :is="props.as"
     data-slot="card-title"
-    :class="cn('text-base leading-normal font-medium group-data-[size=sm]/card:text-sm cn-font-heading', props.class)"
+    :class="cn('text-base leading-6 font-semibold tracking-[-0.01em] group-data-[size=sm]/card:text-sm cn-font-heading', props.class)"
   >
     <slot />
   </component>

@@ -92,7 +92,7 @@ onMounted(() => (destino.value = props.valor));
         </svg>
 
         <div class="absolute inset-0 flex flex-col items-center justify-center">
-            <span class="cifra text-3xl font-semibold tracking-tight">{{ Math.round(mostrado) }}%</span>
+            <span class="cifra text-3xl font-semibold tracking-tight">{{ Math.round(mostrado) }}&#8239;%</span>
             <span v-if="etiqueta" class="mt-0.5 text-xs text-muted-foreground">{{ etiqueta }}</span>
         </div>
     </div>

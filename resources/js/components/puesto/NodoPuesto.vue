@@ -36,7 +36,7 @@ const deMas = computed(() => Math.max(0, puesto.value.ocupantes.length - OCUPANT
         class="flex h-full w-full flex-col gap-1 rounded-xl border bg-card px-3 py-2.5 text-left shadow-xs"
         :class="puesto.caracterizado ? 'border-border' : 'border-dashed'"
     >
-        <p class="cifra text-[11px] leading-none text-muted-foreground">{{ puesto.codigo }}</p>
+        <p class="cifra text-xs leading-none text-muted-foreground">{{ puesto.codigo }}</p>
 
         <Link
             :href="`/puestos/${puesto.id}`"
@@ -50,7 +50,7 @@ const deMas = computed(() => Math.max(0, puesto.value.ocupantes.length - OCUPANT
             no puede ser el único canal —DESIGN.md § 11— y una línea de puntos
             tampoco lo es para quien no la distingue. Por eso va escrito.
         -->
-        <p v-if="!puesto.caracterizado && !data.conPersonas" class="text-[11px] text-muted-foreground">
+        <p v-if="!puesto.caracterizado && !data.conPersonas" class="text-xs text-muted-foreground">
             Sin caracterizar
         </p>
 
@@ -59,7 +59,7 @@ const deMas = computed(() => Math.max(0, puesto.value.ocupantes.length - OCUPANT
                 <li
                     v-for="ocupante in visibles"
                     :key="ocupante.id"
-                    class="flex items-center gap-1.5 text-[11px] text-muted-foreground"
+                    class="flex items-center gap-1.5 text-xs text-muted-foreground"
                 >
                     <UserIcon class="size-3 shrink-0" aria-hidden="true" />
                     <Link
@@ -69,12 +69,12 @@ const deMas = computed(() => Math.max(0, puesto.value.ocupantes.length - OCUPANT
                         {{ ocupante.nombre }}
                     </Link>
                 </li>
-                <li v-if="deMas > 0" class="pl-4.5 text-[11px] text-muted-foreground">
+                <li v-if="deMas > 0" class="pl-4.5 text-xs text-muted-foreground">
                     y {{ deMas }} más
                 </li>
             </ul>
 
-            <p v-else class="mt-0.5 text-[11px] text-muted-foreground italic">Sin ocupar</p>
+            <p v-else class="mt-0.5 text-xs text-muted-foreground italic">Sin ocupar</p>
         </template>
     </div>
 

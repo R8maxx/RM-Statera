@@ -123,9 +123,9 @@ const fecha = (valor: string): string => formatoFecha.format(new Date(valor));
 
         <div class="flex flex-wrap gap-2">
             <Button variant="outline" @click="abrir">Adjuntar una evidencia</Button>
-            <Link href="/evidencias/crear">
-                <Button variant="ghost">Registrar una nueva</Button>
-            </Link>
+            <Button as-child variant="ghost">
+                <Link href="/evidencias/crear">Registrar una nueva</Link>
+            </Button>
         </div>
 
         <Dialog v-model:open="abierto">

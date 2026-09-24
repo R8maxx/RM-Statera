@@ -86,18 +86,25 @@ onUnmounted(() => window.removeEventListener('beforeunload', alDescargar));
 </script>
 
 <template>
+    <!--
+        Pegajosa dentro de su formulario, no fija a la ventana. Era `fixed
+        inset-x-0` con un `mx-auto max-w-4xl` dentro, así que se centraba
+        respecto al viewport y no respecto al formulario: a 1920 quedaba
+        desplazada del botón que acompañaba, y en los formularios anchos era
+        más estrecha que ellos. Pegajosa, hereda el ancho de quien la contiene.
+    -->
     <div
-        class="fixed inset-x-0 bottom-0 z-20 border-t bg-background/90 px-4 py-3 backdrop-blur-sm sm:px-6 lg:px-8"
+        class="sticky bottom-0 z-(--z-barra-acciones) mt-8 border-t bg-background/90 py-3 backdrop-blur-sm"
     >
-        <div class="mx-auto flex max-w-4xl items-center gap-2">
-            <div class="min-w-0 flex-1 text-sm text-muted-foreground">
+        <div class="flex flex-wrap items-center gap-2">
+            <div class="min-w-0 flex-1 basis-48 text-sm text-muted-foreground">
                 <slot name="nota" />
             </div>
 
             <span @click.capture="alCancelar">
-                <Link :href="urlCancelar">
-                    <Button type="button" variant="ghost">{{ etiquetaCancelar ?? 'Cancelar' }}</Button>
-                </Link>
+                <Button as-child variant="ghost">
+                    <Link :href="urlCancelar">{{ etiquetaCancelar ?? 'Cancelar' }}</Link>
+                </Button>
             </span>
 
             <slot />

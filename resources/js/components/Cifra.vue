@@ -81,7 +81,7 @@ const ritmo = {
         easing: `cubic-bezier(${curva.join(',')})`,
     },
     /** El desvanecido de los dígitos que entran y salen, más corto. */
-    opacityTiming: { duration: duracion.lenta * 1000, easing: 'ease-out' },
+    opacityTiming: { duration: duracion.lenta * 1000, easing: `cubic-bezier(${curva.join(',')})` },
 } as const;
 </script>
 

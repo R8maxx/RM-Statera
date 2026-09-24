@@ -12,6 +12,7 @@ import {
   useForwardPropsEmits,
 } from 'reka-ui'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 
 defineOptions({
   inheritAttrs: false,
@@ -26,14 +27,20 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
 </script>
 
 <template>
+  <!--
+    El mismo diálogo que `DialogContent`, pero con el velo como contenedor que
+    se desplaza: para lo que es más alto que la ventana. Venía de la plantilla
+    antigua de shadcn —`bg-black/80`, `rounded-lg`, `shadow-lg`, 200 ms— y era
+    el único diálogo del producto que no se parecía a los otros.
+  -->
   <DialogPortal>
     <DialogOverlay
-      class="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/80  data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+      class="fixed inset-0 z-(--z-superposicion) grid place-items-center overflow-y-auto bg-black/10 px-4 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-open:duration-[var(--duracion)] data-closed:duration-[var(--duracion-salida)] ease-marca"
     >
       <DialogContent
         :class="
           cn(
-            'relative z-50 grid w-full max-w-lg my-8 gap-4 border border-border bg-background p-6 shadow-lg duration-200 sm:rounded-lg md:w-full',
+            'relative my-8 grid w-full max-w-lg gap-6 rounded-xl bg-popover p-6 text-sm text-popover-foreground shadow-sombra-3 ring-1 ring-foreground/10 outline-none data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 data-open:duration-[var(--duracion-lenta)] data-closed:duration-[var(--duracion-salida)] ease-marca',
             props.class,
           )
         "
@@ -48,11 +55,11 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
       >
         <slot />
 
-        <DialogClose
-          class="absolute top-4 right-4 p-0.5 transition-colors rounded-md hover:bg-secondary"
-        >
-          <XIcon class="w-4 h-4" />
-          <span class="sr-only">Close</span>
+        <DialogClose as-child>
+          <Button variant="ghost" class="absolute top-4 right-4" size="icon-sm">
+            <XIcon />
+            <span class="sr-only">Cerrar</span>
+          </Button>
         </DialogClose>
       </DialogContent>
     </DialogOverlay>
