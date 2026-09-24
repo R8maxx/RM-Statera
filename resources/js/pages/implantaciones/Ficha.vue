@@ -129,62 +129,6 @@ function cambiarEstado(): void {
             class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]"
         >
             <div class="space-y-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Estado</CardTitle>
-                        <CardDescription>
-                            Cada cambio queda registrado con su fecha y su autor. El estado «no aplica» no se
-                            elige aquí: lo deriva el motor, o lo pone una exclusión motivada.
-                        </CardDescription>
-                    </CardHeader>
-
-                    <CardContent class="space-y-4">
-                        <div class="flex items-center gap-3">
-                            <span class="text-sm text-muted-foreground">Ahora:</span>
-                            <CeldaBadge
-                                :valor="{
-                                    valor: implantacion.estado,
-                                    etiqueta: implantacion.estadoEtiqueta,
-                                    tono: implantacion.estado,
-                                }"
-                            />
-                        </div>
-
-                        <template v-if="transicionesPermitidas.length > 0">
-                            <CampoSelect
-                                v-model="transicion.estado"
-                                nombre="estado"
-                                etiqueta="Pasar a"
-                                :opciones="transicionesPermitidas"
-                                :error="transicion.errors.estado"
-                                placeholder="Elige el estado nuevo"
-                            />
-
-                            <CampoTextarea
-                                v-model="transicion.nota"
-                                nombre="nota"
-                                etiqueta="Nota"
-                                :filas="2"
-                                :error="transicion.errors.nota"
-                                ayuda="Qué ha cambiado. Se guarda en el histórico."
-                            />
-                        </template>
-
-                        <p v-else class="text-sm text-muted-foreground">
-                            Esta medida no se le exige al sistema. Vuelve a exigirse recalculando tras cambiar la
-                            valoración de sus dimensiones, o volviendo a incluirla aquí abajo.
-                        </p>
-                    </CardContent>
-
-                    <CardFooter v-if="transicionesPermitidas.length > 0" class="justify-end">
-                        <Button
-                            :disabled="transicion.processing || !transicion.estado"
-                            @click="cambiarEstado"
-                        >
-                            {{ transicion.processing ? 'Guardando…' : 'Cambiar estado' }}
-                        </Button>
-                    </CardFooter>
-                </Card>
 
                 <Card>
                     <CardHeader>
@@ -360,9 +304,79 @@ function cambiarEstado(): void {
                         <MapeoCruzado :correspondencias="correspondencias" />
                     </CardContent>
                 </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Histórico</CardTitle>
+                        <CardDescription>
+                            El auditor no pregunta si está implantado: pregunta desde cuándo.
+                        </CardDescription>
+                    </CardHeader>
+
+                    <CardContent>
+                        <HistoricoTransiciones :transiciones="historico" />
+                    </CardContent>
+                </Card>
             </div>
 
             <div class="space-y-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Estado</CardTitle>
+                        <CardDescription>
+                            Cada cambio queda registrado con su fecha y su autor. El estado «no aplica» no se
+                            elige aquí: lo deriva el motor, o lo pone una exclusión motivada.
+                        </CardDescription>
+                    </CardHeader>
+
+                    <CardContent class="space-y-4">
+                        <div class="flex items-center gap-3">
+                            <span class="text-sm text-muted-foreground">Ahora:</span>
+                            <CeldaBadge
+                                :valor="{
+                                    valor: implantacion.estado,
+                                    etiqueta: implantacion.estadoEtiqueta,
+                                    tono: implantacion.estado,
+                                }"
+                            />
+                        </div>
+
+                        <template v-if="transicionesPermitidas.length > 0">
+                            <CampoSelect
+                                v-model="transicion.estado"
+                                nombre="estado"
+                                etiqueta="Pasar a"
+                                :opciones="transicionesPermitidas"
+                                :error="transicion.errors.estado"
+                                placeholder="Elige el estado nuevo"
+                            />
+
+                            <CampoTextarea
+                                v-model="transicion.nota"
+                                nombre="nota"
+                                etiqueta="Nota"
+                                :filas="2"
+                                :error="transicion.errors.nota"
+                                ayuda="Qué ha cambiado. Se guarda en el histórico."
+                            />
+                        </template>
+
+                        <p v-else class="text-sm text-muted-foreground">
+                            Esta medida no se le exige al sistema. Vuelve a exigirse recalculando tras cambiar la
+                            valoración de sus dimensiones, o volviendo a incluirla aquí abajo.
+                        </p>
+                    </CardContent>
+
+                    <CardFooter v-if="transicionesPermitidas.length > 0" class="justify-end">
+                        <Button
+                            :disabled="transicion.processing || !transicion.estado"
+                            @click="cambiarEstado"
+                        >
+                            {{ transicion.processing ? 'Guardando…' : 'Cambiar estado' }}
+                        </Button>
+                    </CardFooter>
+                </Card>
+
                 <Card>
                     <CardHeader>
                         <CardTitle>Por qué se exige</CardTitle>
@@ -424,18 +438,6 @@ function cambiarEstado(): void {
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Histórico</CardTitle>
-                        <CardDescription>
-                            El auditor no pregunta si está implantado: pregunta desde cuándo.
-                        </CardDescription>
-                    </CardHeader>
-
-                    <CardContent>
-                        <HistoricoTransiciones :transiciones="historico" />
-                    </CardContent>
-                </Card>
             </div>
         </motion.div>
     </AppLayout>

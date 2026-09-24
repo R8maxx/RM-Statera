@@ -314,7 +314,7 @@ function mover(estado: string): void {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>La tarea</CardTitle>
+                        <CardTitle>Ficha</CardTitle>
                     </CardHeader>
 
                     <CardContent class="space-y-3 text-sm">

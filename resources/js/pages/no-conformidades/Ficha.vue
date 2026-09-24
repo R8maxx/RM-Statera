@@ -67,7 +67,6 @@ interface Accion {
     coste: string | null;
 }
 
-
 interface NoConformidad {
     id: number;
     codigo: string;
@@ -403,6 +402,42 @@ const abiertas = computed(
             </div>
 
             <div class="h-fit space-y-6">
+                <Card v-if="disponibles.length > 0">
+                    <CardHeader>
+                        <CardTitle>Estado</CardTitle>
+                        <CardDescription>
+                            Anular y verificar piden motivo escrito, y reabrir el
+                            tratamiento también: es el resultado de una verificación que
+                            salió mal.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent class="space-y-3">
+                        <div class="flex flex-wrap gap-2">
+                            <BotonEstado
+                                v-for="paso in disponibles"
+                                :key="paso.valor"
+                                :destino="paso"
+                                :deshabilitado="enviando"
+                                @click="mover(paso)"
+                            />
+                        </div>
+
+                        <div v-if="destino" class="space-y-2">
+                            <CampoTextarea
+                                nombre="nota"
+                                :etiqueta="etiquetaNota"
+                                :filas="4"
+                                :valor-inicial="nota"
+                                requerido
+                                @input="nota = ($event.target as HTMLTextAreaElement).value"
+                            />
+                            <Button :disabled="enviando || nota.trim() === ''" @click="mover(destino)">
+                                {{ destino.etiqueta }}
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+
                 <Card>
                     <CardHeader>
                         <CardTitle>Ficha</CardTitle>
@@ -456,41 +491,6 @@ const abiertas = computed(
                     </CardContent>
                 </Card>
 
-                <Card v-if="disponibles.length > 0">
-                    <CardHeader>
-                        <CardTitle>Estado</CardTitle>
-                        <CardDescription>
-                            Anular y verificar piden motivo escrito, y reabrir el
-                            tratamiento también: es el resultado de una verificación que
-                            salió mal.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent class="space-y-3">
-                        <div class="flex flex-wrap gap-2">
-                            <BotonEstado
-                                v-for="paso in disponibles"
-                                :key="paso.valor"
-                                :destino="paso"
-                                :deshabilitado="enviando"
-                                @click="mover(paso)"
-                            />
-                        </div>
-
-                        <div v-if="destino" class="space-y-2">
-                            <CampoTextarea
-                                nombre="nota"
-                                :etiqueta="etiquetaNota"
-                                :filas="4"
-                                :valor-inicial="nota"
-                                requerido
-                                @input="nota = ($event.target as HTMLTextAreaElement).value"
-                            />
-                            <Button :disabled="enviando || nota.trim() === ''" @click="mover(destino)">
-                                {{ destino.etiqueta }}
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
             </div>
         </div>
 

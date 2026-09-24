@@ -149,7 +149,7 @@ const vigencia = computed(() => {
             <div class="space-y-6">
                 <Card>
                     <CardHeader>
-                        <CardTitle>La prueba</CardTitle>
+                        <CardTitle>Ficha</CardTitle>
                     </CardHeader>
 
                     <CardContent class="space-y-3 text-sm">

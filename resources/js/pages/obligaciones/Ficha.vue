@@ -277,7 +277,7 @@ function retirar(): void {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Qué es y qué la exige</CardTitle>
+                    <CardTitle>Ficha</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <dl class="grid gap-3 text-sm">

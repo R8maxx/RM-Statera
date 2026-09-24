@@ -64,7 +64,6 @@ interface Actuacion {
     coste: string | null;
 }
 
-
 interface Objetivo {
     id: number;
     codigo: string;
@@ -478,6 +477,41 @@ const abiertas = computed(
             </div>
 
             <div class="h-fit space-y-6">
+                <Card v-if="disponibles.length > 0">
+                    <CardHeader>
+                        <CardTitle>Estado</CardTitle>
+                        <CardDescription>
+                            Retirar y dar por no alcanzado piden motivo escrito, y reabrir
+                            también: es darle otro plazo a algo que ya se cerró.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent class="space-y-3">
+                        <div class="flex flex-wrap gap-2">
+                            <BotonEstado
+                                v-for="paso in disponibles"
+                                :key="paso.valor"
+                                :destino="paso"
+                                :deshabilitado="enviando"
+                                @click="mover(paso)"
+                            />
+                        </div>
+
+                        <div v-if="destino" class="space-y-2">
+                            <CampoTextarea
+                                nombre="nota"
+                                :etiqueta="etiquetaNota"
+                                :filas="4"
+                                :valor-inicial="nota"
+                                requerido
+                                @input="nota = ($event.target as HTMLTextAreaElement).value"
+                            />
+                            <Button :disabled="enviando || nota.trim() === ''" @click="mover(destino)">
+                                {{ destino.etiqueta }}
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+
                 <Card>
                     <CardHeader>
                         <CardTitle>Ficha</CardTitle>
@@ -531,40 +565,6 @@ const abiertas = computed(
                     </CardContent>
                 </Card>
 
-                <Card v-if="disponibles.length > 0">
-                    <CardHeader>
-                        <CardTitle>Estado</CardTitle>
-                        <CardDescription>
-                            Retirar y dar por no alcanzado piden motivo escrito, y reabrir
-                            también: es darle otro plazo a algo que ya se cerró.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent class="space-y-3">
-                        <div class="flex flex-wrap gap-2">
-                            <BotonEstado
-                                v-for="paso in disponibles"
-                                :key="paso.valor"
-                                :destino="paso"
-                                :deshabilitado="enviando"
-                                @click="mover(paso)"
-                            />
-                        </div>
-
-                        <div v-if="destino" class="space-y-2">
-                            <CampoTextarea
-                                nombre="nota"
-                                :etiqueta="etiquetaNota"
-                                :filas="4"
-                                :valor-inicial="nota"
-                                requerido
-                                @input="nota = ($event.target as HTMLTextAreaElement).value"
-                            />
-                            <Button :disabled="enviando || nota.trim() === ''" @click="mover(destino)">
-                                {{ destino.etiqueta }}
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
             </div>
         </div>
 

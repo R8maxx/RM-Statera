@@ -304,71 +304,6 @@ function retirar(dependenciaId: number): void {
                 </div>
 
                 <div class="space-y-6">
-                    <Card v-if="etiqueta" class="h-fit">
-                        <CardHeader>
-                            <CardTitle>Etiqueta QR</CardTitle>
-                            <CardDescription>
-                                La que va pegada en la carcasa. El código no cambia aunque el activo cambie de manos.
-                            </CardDescription>
-                        </CardHeader>
-
-                        <CardContent>
-                            <EtiquetaQr :activo-id="activo.id" :svg="etiqueta.svg" :url="etiqueta.url" />
-                        </CardContent>
-                    </Card>
-
-                    <Card class="h-fit">
-                        <CardHeader>
-                            <CardTitle>Seguridad</CardTitle>
-                            <CardDescription>
-                                «Por confirmar» no es «no»: significa que nadie lo ha comprobado todavía.
-                            </CardDescription>
-                        </CardHeader>
-
-                        <CardContent>
-                            <dl class="grid gap-3 text-sm">
-                                <div class="flex items-center justify-between gap-3">
-                                    <dt class="text-muted-foreground">Cifrado en reposo</dt>
-                                    <dd>
-                                        <CeldaBadge
-                                            :valor="{
-                                                valor: activo.cifrado,
-                                                etiqueta: activo.cifradoEtiqueta,
-                                                tono: activo.cifradoTono,
-                                            }"
-                                        />
-                                    </dd>
-                                </div>
-                                <div class="flex items-center justify-between gap-3">
-                                    <dt class="text-muted-foreground">Copia de seguridad</dt>
-                                    <dd>
-                                        <CeldaBadge
-                                            :valor="{
-                                                valor: activo.copia_seguridad,
-                                                etiqueta: activo.copiaEtiqueta,
-                                                tono: activo.copiaTono,
-                                            }"
-                                        />
-                                    </dd>
-                                </div>
-                                <div class="flex items-center justify-between gap-3">
-                                    <dt class="text-muted-foreground">Última revisión</dt>
-                                    <dd>
-                                        <CeldaBadge
-                                            :valor="{
-                                                valor: activo.ultima_revision,
-                                                etiqueta: activo.ultima_revision
-                                                    ? fecha(activo.ultima_revision)
-                                                    : 'Nunca',
-                                                tono: activo.sinRevisar ? 'caducada' : 'implantado',
-                                            }"
-                                        />
-                                    </dd>
-                                </div>
-                            </dl>
-                        </CardContent>
-                    </Card>
-
                     <Card class="h-fit">
                         <CardHeader>
                             <CardTitle>Ficha</CardTitle>
@@ -452,6 +387,72 @@ function retirar(dependenciaId: number): void {
                             </dl>
                         </CardContent>
                     </Card>
+
+                    <Card v-if="etiqueta" class="h-fit">
+                        <CardHeader>
+                            <CardTitle>Etiqueta QR</CardTitle>
+                            <CardDescription>
+                                La que va pegada en la carcasa. El código no cambia aunque el activo cambie de manos.
+                            </CardDescription>
+                        </CardHeader>
+
+                        <CardContent>
+                            <EtiquetaQr :activo-id="activo.id" :svg="etiqueta.svg" :url="etiqueta.url" />
+                        </CardContent>
+                    </Card>
+
+                    <Card class="h-fit">
+                        <CardHeader>
+                            <CardTitle>Seguridad</CardTitle>
+                            <CardDescription>
+                                «Por confirmar» no es «no»: significa que nadie lo ha comprobado todavía.
+                            </CardDescription>
+                        </CardHeader>
+
+                        <CardContent>
+                            <dl class="grid gap-3 text-sm">
+                                <div class="flex items-center justify-between gap-3">
+                                    <dt class="text-muted-foreground">Cifrado en reposo</dt>
+                                    <dd>
+                                        <CeldaBadge
+                                            :valor="{
+                                                valor: activo.cifrado,
+                                                etiqueta: activo.cifradoEtiqueta,
+                                                tono: activo.cifradoTono,
+                                            }"
+                                        />
+                                    </dd>
+                                </div>
+                                <div class="flex items-center justify-between gap-3">
+                                    <dt class="text-muted-foreground">Copia de seguridad</dt>
+                                    <dd>
+                                        <CeldaBadge
+                                            :valor="{
+                                                valor: activo.copia_seguridad,
+                                                etiqueta: activo.copiaEtiqueta,
+                                                tono: activo.copiaTono,
+                                            }"
+                                        />
+                                    </dd>
+                                </div>
+                                <div class="flex items-center justify-between gap-3">
+                                    <dt class="text-muted-foreground">Última revisión</dt>
+                                    <dd>
+                                        <CeldaBadge
+                                            :valor="{
+                                                valor: activo.ultima_revision,
+                                                etiqueta: activo.ultima_revision
+                                                    ? fecha(activo.ultima_revision)
+                                                    : 'Nunca',
+                                                tono: activo.sinRevisar ? 'caducada' : 'implantado',
+                                            }"
+                                        />
+                                    </dd>
+                                </div>
+                            </dl>
+                        </CardContent>
+                    </Card>
+
                 </div>
             </div>
         </motion.div>

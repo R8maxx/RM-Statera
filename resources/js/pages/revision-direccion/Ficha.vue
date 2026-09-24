@@ -296,9 +296,30 @@ const abiertas = computed(
             </div>
 
             <div class="h-fit space-y-6">
+                <Card v-if="puedeGestionar && transiciones.length > 0">
+                    <CardHeader>
+                        <CardTitle>Estado</CardTitle>
+                        <CardDescription>
+                            De aprobada sólo se vuelve a «en curso»: decir que la reunión no se
+                            celebró sería reescribir el pasado.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div class="flex flex-wrap gap-2">
+                            <BotonEstado
+                                v-for="paso in transiciones"
+                                :key="paso.valor"
+                                :destino="paso"
+                                :deshabilitado="enviando"
+                                @click="mover(paso)"
+                            />
+                        </div>
+                    </CardContent>
+                </Card>
+
                 <Card>
                     <CardHeader>
-                        <CardTitle>La reunión</CardTitle>
+                        <CardTitle>Ficha</CardTitle>
                     </CardHeader>
                     <CardContent class="space-y-3 text-sm">
                         <div>
@@ -347,26 +368,6 @@ const abiertas = computed(
                     </CardContent>
                 </Card>
 
-                <Card v-if="puedeGestionar && transiciones.length > 0">
-                    <CardHeader>
-                        <CardTitle>Estado</CardTitle>
-                        <CardDescription>
-                            De aprobada sólo se vuelve a «en curso»: decir que la reunión no se
-                            celebró sería reescribir el pasado.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div class="flex flex-wrap gap-2">
-                            <BotonEstado
-                                v-for="paso in transiciones"
-                                :key="paso.valor"
-                                :destino="paso"
-                                :deshabilitado="enviando"
-                                @click="mover(paso)"
-                            />
-                        </div>
-                    </CardContent>
-                </Card>
             </div>
         </div>
 

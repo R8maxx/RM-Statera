@@ -388,6 +388,41 @@ const sinTratar = computed(
             </div>
 
             <div class="h-fit space-y-6">
+                <Card v-if="puedeGestionar && transiciones.length > 0">
+                    <CardHeader>
+                        <CardTitle>Estado</CardTitle>
+                        <CardDescription>
+                            Cerrarla congela su checklist y sus hallazgos: a partir de ahí
+                            ya no se pueden cambiar, y reabrirla queda registrado.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent class="space-y-3">
+                        <div class="flex flex-wrap gap-2">
+                            <BotonEstado
+                                v-for="paso in transiciones"
+                                :key="paso.valor"
+                                :destino="paso"
+                                :deshabilitado="enviando"
+                                @click="mover(paso.valor)"
+                            />
+                        </div>
+
+                        <div v-if="exigeConclusiones" class="space-y-2">
+                            <CampoTextarea
+                                nombre="conclusiones"
+                                etiqueta="Conclusiones"
+                                :filas="4"
+                                :valor-inicial="conclusiones"
+                                ayuda="Qué salió de la auditoría. Se congela con ella."
+                                @input="conclusiones = ($event.target as HTMLTextAreaElement).value"
+                            />
+                            <Button variant="outline" :disabled="enviando" @click="mover('cerrada')">
+                                Cerrar la auditoría
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+
                 <Card>
                     <CardHeader>
                         <CardTitle>Ficha</CardTitle>
@@ -461,40 +496,6 @@ const sinTratar = computed(
                     </CardContent>
                 </Card>
 
-                <Card v-if="puedeGestionar && transiciones.length > 0">
-                    <CardHeader>
-                        <CardTitle>Estado</CardTitle>
-                        <CardDescription>
-                            Cerrarla congela su checklist y sus hallazgos: a partir de ahí
-                            ya no se pueden cambiar, y reabrirla queda registrado.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent class="space-y-3">
-                        <div class="flex flex-wrap gap-2">
-                            <BotonEstado
-                                v-for="paso in transiciones"
-                                :key="paso.valor"
-                                :destino="paso"
-                                :deshabilitado="enviando"
-                                @click="mover(paso.valor)"
-                            />
-                        </div>
-
-                        <div v-if="exigeConclusiones" class="space-y-2">
-                            <CampoTextarea
-                                nombre="conclusiones"
-                                etiqueta="Conclusiones"
-                                :filas="4"
-                                :valor-inicial="conclusiones"
-                                ayuda="Qué salió de la auditoría. Se congela con ella."
-                                @input="conclusiones = ($event.target as HTMLTextAreaElement).value"
-                            />
-                            <Button variant="outline" :disabled="enviando" @click="mover('cerrada')">
-                                Cerrar la auditoría
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
             </div>
         </div>
 

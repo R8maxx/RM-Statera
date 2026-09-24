@@ -250,6 +250,32 @@ function mover(paso: Destino): void {
             </div>
 
             <div class="space-y-6">
+                <Card v-if="bia.responsable || bia.aprobadoPor || bia.fechaRevision">
+                    <CardHeader>
+                        <CardTitle>Ficha</CardTitle>
+                    </CardHeader>
+                    <CardContent class="text-sm">
+                        <dl class="grid gap-2">
+                            <div v-if="bia.responsable" class="flex flex-wrap gap-x-2">
+                                <dt class="text-muted-foreground">Responsable</dt>
+                                <dd>{{ bia.responsable }}</dd>
+                            </div>
+                            <div v-if="bia.aprobadoPor" class="flex flex-wrap gap-x-2">
+                                <dt class="text-muted-foreground">Aprobado por</dt>
+                                <dd>{{ bia.aprobadoPor }}</dd>
+                            </div>
+                            <div v-if="bia.fechaAprobacion" class="flex flex-wrap gap-x-2">
+                                <dt class="text-muted-foreground">Aprobado el</dt>
+                                <dd>{{ bia.fechaAprobacion }}</dd>
+                            </div>
+                            <div v-if="bia.fechaRevision" class="flex flex-wrap gap-x-2">
+                                <dt class="text-muted-foreground">Revisión</dt>
+                                <dd>{{ bia.fechaRevision }}</dd>
+                            </div>
+                        </dl>
+                    </CardContent>
+                </Card>
+
                 <Card>
                     <CardHeader>
                         <CardTitle>Dependencias</CardTitle>
@@ -358,31 +384,6 @@ function mover(paso: Destino): void {
                     </CardContent>
                 </Card>
 
-                <Card v-if="bia.responsable || bia.aprobadoPor || bia.fechaRevision">
-                    <CardHeader>
-                        <CardTitle>Ficha</CardTitle>
-                    </CardHeader>
-                    <CardContent class="text-sm">
-                        <dl class="grid gap-2">
-                            <div v-if="bia.responsable" class="flex flex-wrap gap-x-2">
-                                <dt class="text-muted-foreground">Responsable</dt>
-                                <dd>{{ bia.responsable }}</dd>
-                            </div>
-                            <div v-if="bia.aprobadoPor" class="flex flex-wrap gap-x-2">
-                                <dt class="text-muted-foreground">Aprobado por</dt>
-                                <dd>{{ bia.aprobadoPor }}</dd>
-                            </div>
-                            <div v-if="bia.fechaAprobacion" class="flex flex-wrap gap-x-2">
-                                <dt class="text-muted-foreground">Aprobado el</dt>
-                                <dd>{{ bia.fechaAprobacion }}</dd>
-                            </div>
-                            <div v-if="bia.fechaRevision" class="flex flex-wrap gap-x-2">
-                                <dt class="text-muted-foreground">Revisión</dt>
-                                <dd>{{ bia.fechaRevision }}</dd>
-                            </div>
-                        </dl>
-                    </CardContent>
-                </Card>
             </div>
         </div>
     </AppLayout>

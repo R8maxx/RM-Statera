@@ -558,17 +558,6 @@ function crearMejora(): void {
             </div>
 
             <div class="space-y-6">
-                <Card v-if="prueba.plan">
-                    <CardHeader>
-                        <CardTitle>Plan de continuidad</CardTitle>
-                    </CardHeader>
-                    <CardContent class="text-sm">
-                        <Link :href="`/documentos/${prueba.documento_id}`" class="underline-offset-4 hover:underline">
-                            <span class="cifra">{{ prueba.plan.codigo }}</span> · {{ prueba.plan.titulo }}
-                        </Link>
-                    </CardContent>
-                </Card>
-
                 <Card v-if="prueba.responsable || prueba.evidencia">
                     <CardHeader>
                         <CardTitle>Ficha</CardTitle>
@@ -590,6 +579,18 @@ function crearMejora(): void {
                         </dl>
                     </CardContent>
                 </Card>
+
+                <Card v-if="prueba.plan">
+                    <CardHeader>
+                        <CardTitle>Plan de continuidad</CardTitle>
+                    </CardHeader>
+                    <CardContent class="text-sm">
+                        <Link :href="`/documentos/${prueba.documento_id}`" class="underline-offset-4 hover:underline">
+                            <span class="cifra">{{ prueba.plan.codigo }}</span> · {{ prueba.plan.titulo }}
+                        </Link>
+                    </CardContent>
+                </Card>
+
             </div>
         </div>
 

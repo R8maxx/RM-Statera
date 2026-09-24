@@ -62,7 +62,6 @@ interface Actuacion {
     coste: string | null;
 }
 
-
 interface Mejora {
     id: number;
     codigo: string;
@@ -353,30 +352,6 @@ const abiertas = computed(
             </div>
 
             <div class="h-fit space-y-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Ficha</CardTitle>
-                    </CardHeader>
-                    <CardContent class="space-y-3 text-sm">
-                        <div>
-                            <dt class="text-muted-foreground">Origen</dt>
-                            <dd>{{ mejora.origenEtiqueta }}</dd>
-                        </div>
-                        <div v-if="mejora.responsable">
-                            <dt class="text-muted-foreground">Responsable</dt>
-                            <dd>{{ mejora.responsable }}</dd>
-                        </div>
-                        <div v-if="mejora.fecha_prevista">
-                            <dt class="text-muted-foreground">Prevista</dt>
-                            <dd>{{ mejora.fecha_prevista }}</dd>
-                        </div>
-                        <div v-if="mejora.fechaCierre">
-                            <dt class="text-muted-foreground">Cerrada</dt>
-                            <dd>{{ mejora.fechaCierre }}</dd>
-                        </div>
-                    </CardContent>
-                </Card>
-
                 <Card v-if="disponibles.length > 0">
                     <CardHeader>
                         <CardTitle>Estado</CardTitle>
@@ -411,6 +386,31 @@ const abiertas = computed(
                         </div>
                     </CardContent>
                 </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Ficha</CardTitle>
+                    </CardHeader>
+                    <CardContent class="space-y-3 text-sm">
+                        <div>
+                            <dt class="text-muted-foreground">Origen</dt>
+                            <dd>{{ mejora.origenEtiqueta }}</dd>
+                        </div>
+                        <div v-if="mejora.responsable">
+                            <dt class="text-muted-foreground">Responsable</dt>
+                            <dd>{{ mejora.responsable }}</dd>
+                        </div>
+                        <div v-if="mejora.fecha_prevista">
+                            <dt class="text-muted-foreground">Prevista</dt>
+                            <dd>{{ mejora.fecha_prevista }}</dd>
+                        </div>
+                        <div v-if="mejora.fechaCierre">
+                            <dt class="text-muted-foreground">Cerrada</dt>
+                            <dd>{{ mejora.fechaCierre }}</dd>
+                        </div>
+                    </CardContent>
+                </Card>
+
             </div>
         </div>
 

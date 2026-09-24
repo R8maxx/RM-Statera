@@ -228,7 +228,7 @@ const borrar = (medicion: Medicion): void => {
             <div class="space-y-6">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Cómo se mide</CardTitle>
+                        <CardTitle>Ficha</CardTitle>
                         <CardDescription>
                             La cláusula 9.1 b) pregunta por el método, y «¿de dónde sale ese
                             número?» es la primera pregunta de cualquier auditor.

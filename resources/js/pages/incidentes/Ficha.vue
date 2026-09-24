@@ -370,6 +370,28 @@ function anotarNotificacion(): void {
             </div>
 
             <div class="space-y-6">
+                <Card v-if="incidente.responsable || incidente.sistema || incidente.fechaCierre">
+                    <CardHeader>
+                        <CardTitle>Ficha</CardTitle>
+                    </CardHeader>
+                    <CardContent class="text-sm">
+                        <dl class="grid gap-2">
+                            <div v-if="incidente.responsable" class="flex flex-wrap gap-x-2">
+                                <dt class="text-muted-foreground">Responsable</dt>
+                                <dd>{{ incidente.responsable }}</dd>
+                            </div>
+                            <div v-if="incidente.sistema" class="flex flex-wrap gap-x-2">
+                                <dt class="text-muted-foreground">Sistema</dt>
+                                <dd class="cifra">{{ incidente.sistema }}</dd>
+                            </div>
+                            <div v-if="incidente.fechaCierre" class="flex flex-wrap gap-x-2">
+                                <dt class="text-muted-foreground">Cerrado el</dt>
+                                <dd>{{ incidente.fechaCierre }}</dd>
+                            </div>
+                        </dl>
+                    </CardContent>
+                </Card>
+
                 <Card>
                     <CardHeader>
                         <CardTitle>Notificación a supervisores</CardTitle>
@@ -478,27 +500,6 @@ function anotarNotificacion(): void {
                     </CardContent>
                 </Card>
 
-                <Card v-if="incidente.responsable || incidente.sistema || incidente.fechaCierre">
-                    <CardHeader>
-                        <CardTitle>Ficha</CardTitle>
-                    </CardHeader>
-                    <CardContent class="text-sm">
-                        <dl class="grid gap-2">
-                            <div v-if="incidente.responsable" class="flex flex-wrap gap-x-2">
-                                <dt class="text-muted-foreground">Responsable</dt>
-                                <dd>{{ incidente.responsable }}</dd>
-                            </div>
-                            <div v-if="incidente.sistema" class="flex flex-wrap gap-x-2">
-                                <dt class="text-muted-foreground">Sistema</dt>
-                                <dd class="cifra">{{ incidente.sistema }}</dd>
-                            </div>
-                            <div v-if="incidente.fechaCierre" class="flex flex-wrap gap-x-2">
-                                <dt class="text-muted-foreground">Cerrado el</dt>
-                                <dd>{{ incidente.fechaCierre }}</dd>
-                            </div>
-                        </dl>
-                    </CardContent>
-                </Card>
             </div>
         </div>
 
