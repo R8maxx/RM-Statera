@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Aviso from '@/components/Aviso.vue';
 import BotonEstado from '@/components/BotonEstado.vue';
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
@@ -16,7 +17,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { Link, router, useForm } from '@inertiajs/vue3';
+import { Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
 interface Destino {
@@ -60,8 +61,11 @@ interface Auditoria {
     estadoTono: string;
     estadoIcono: string;
     alcance: string | null;
+    criterios: string | null;
+    metodo: string | null;
     fecha: string;
     auditor: string | null;
+    equipo: string | null;
     entidad_certificadora: string | null;
     conclusiones: string | null;
     fechaCierre: string | null;
@@ -78,7 +82,28 @@ const props = defineProps<{
     puedeGestionar: boolean;
     puedeTratar: boolean;
     puedeTratarMejoras: boolean;
+    informe: { id: number; codigo: string } | null;
+    admiteInforme: boolean;
+    puedeGenerar: boolean;
 }>();
+
+const pagina = usePage();
+const errores = computed(() => (pagina.props.errors ?? {}) as Record<string, string>);
+
+/*
+ * El informe (§ 4.18, 9.2.2) sólo se prepara con la auditoría cerrada: es el
+ * cierre lo que congela lo que el informe imprime. Una externa no lo tiene aquí,
+ * porque lo emite la entidad certificadora.
+ */
+const cerrada = computed(() => props.auditoria.estado === 'cerrada');
+const preparandoInforme = ref(false);
+
+function prepararInforme(): void {
+    preparandoInforme.value = true;
+    router.post(`/auditorias/${props.auditoria.id}/informe`, {}, {
+        onFinish: () => (preparandoInforme.value = false),
+    });
+}
 
 /*
  * Cerrar pide conclusiones y el resto no, así que el primer clic en «Cerrada» no
@@ -205,6 +230,14 @@ const sinTratar = computed(
             />
             <span class="text-sm text-muted-foreground">{{ auditoria.fecha }}</span>
         </div>
+
+        <Aviso v-if="errores.informe" tono="error" titulo="No se ha podido preparar el informe">
+            {{ errores.informe }}
+        </Aviso>
+
+        <Aviso v-if="errores.auditoria" tono="error" titulo="No se ha podido eliminar">
+            {{ errores.auditoria }}
+        </Aviso>
 
         <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
             <div class="space-y-6">
@@ -372,9 +405,21 @@ const sinTratar = computed(
                             <dt class="text-muted-foreground">Entidad certificadora</dt>
                             <dd>{{ auditoria.entidad_certificadora }}</dd>
                         </div>
+                        <div v-if="auditoria.equipo">
+                            <dt class="text-muted-foreground">Equipo auditor</dt>
+                            <dd>{{ auditoria.equipo }}</dd>
+                        </div>
                         <div v-if="auditoria.alcance">
                             <dt class="text-muted-foreground">Alcance</dt>
                             <dd>{{ auditoria.alcance }}</dd>
+                        </div>
+                        <div v-if="auditoria.criterios">
+                            <dt class="text-muted-foreground">Criterios</dt>
+                            <dd>{{ auditoria.criterios }}</dd>
+                        </div>
+                        <div v-if="auditoria.metodo">
+                            <dt class="text-muted-foreground">Método</dt>
+                            <dd>{{ auditoria.metodo }}</dd>
                         </div>
                         <div v-if="auditoria.fechaCierre">
                             <dt class="text-muted-foreground">Cerrada</dt>
@@ -384,6 +429,35 @@ const sinTratar = computed(
                             <dt class="text-muted-foreground">Conclusiones</dt>
                             <dd>{{ auditoria.conclusiones }}</dd>
                         </div>
+                    </CardContent>
+                </Card>
+
+                <Card v-if="admiteInforme">
+                    <CardHeader>
+                        <CardTitle>Informe</CardTitle>
+                        <CardDescription>
+                            El informe que pide la cláusula 9.2.2, en PDF y en Word. Recoge la
+                            checklist y los hallazgos tal como quedaron al cerrar la auditoría.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent class="space-y-3 text-sm">
+                        <Button v-if="informe" as-child variant="outline">
+                            <Link :href="`/documentos/${informe.id}`">Abrir {{ informe.codigo }}</Link>
+                        </Button>
+                        <template v-else-if="cerrada">
+                            <Button
+                                v-if="puedeGestionar && puedeGenerar"
+                                variant="outline"
+                                :disabled="preparandoInforme"
+                                @click="prepararInforme"
+                            >
+                                Preparar el informe
+                            </Button>
+                            <p v-else class="text-muted-foreground">Todavía no se ha preparado.</p>
+                        </template>
+                        <p v-else class="text-muted-foreground">
+                            Se prepara al cerrar la auditoría.
+                        </p>
                     </CardContent>
                 </Card>
 

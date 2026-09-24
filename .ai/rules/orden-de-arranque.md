@@ -308,3 +308,20 @@ El orden importa: el catálogo y el motor son la parte más específica del domi
     ofrecía renovar sobre la misma autoevaluación, que habría reiniciado los dos
     años sin volver a comprobar nada. El tercero, que `aprobada_en` es una fecha
     y no un instante, se vio leyendo el esquema antes de probar.
+27. ✅ Informes y exportación (§ 4.18). **Cuatro de los seis documentos que
+    nombra ya existían** —SoA, DdA, plan de adecuación y acta, en PDF/A y en
+    Word— y faltaban el informe de auditoría interna y el informe de estado. Los
+    dos son documentos calculados sobre la tubería de siempre, y el Word les llega
+    gratis porque `CuerpoAWord` despacha por nodo y no por tipo.
+
+    **El informe de auditoría es el primer tipo que nombra su fuente**, en
+    `documentos.auditoria_id`: el acta imprime la última revisión aprobada, y aquí
+    cada auditoría tiene su informe. El vínculo va en `documentos` porque la fila
+    de una auditoría cerrada es inmutable. Y trajo tres columnas que la 9.2.2 pide
+    y la tabla no tenía: criterios, método y equipo.
+
+    **El informe de estado no calcula ninguna cifra.** Cinco clases llevaban escrito
+    que sus preguntas «son las que contestará el informe de estado»; el generador
+    se las hace y las imprime, y `PanelController::sistemas()` se mudó a
+    `ResumenCumplimiento::porSistema()` para que panel e informe cuenten con la
+    misma consulta. **No es el INES**, y lo dice.

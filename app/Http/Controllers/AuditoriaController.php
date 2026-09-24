@@ -10,11 +10,13 @@ use App\Domain\Auditoria\Enums\ResultadoPunto;
 use App\Domain\Auditoria\Enums\TipoAuditoria;
 use App\Domain\Auditoria\Enums\TipoHallazgo;
 use App\Domain\Auditoria\Excepciones\AuditoriaCerrada;
+use App\Domain\Auditoria\Excepciones\InformeNoPreparable;
 use App\Domain\Auditoria\Excepciones\TransicionDeAuditoriaNoPermitida;
 use App\Domain\Auditoria\Models\Auditoria;
 use App\Domain\Auditoria\Models\AuditoriaPunto;
 use App\Domain\Auditoria\Models\Hallazgo;
 use App\Domain\Auditoria\PrecargarChecklist;
+use App\Domain\Auditoria\PrepararInformeAuditoria;
 use App\Domain\Auditoria\RegistrarAuditoria;
 use App\Domain\Auditoria\RegistrarHallazgo;
 use App\Domain\Auditoria\RegistroAuditorias;
@@ -77,6 +79,7 @@ class AuditoriaController extends Controller
         $auditoria->load([
             'sistema.marco',
             'cerradaPor',
+            'informe',
             'hallazgos.punto.implantacion.requisito',
             // Para saber cuáles siguen sin tratamiento, que es la costura entre
             // las dos mitades del módulo. Desde la cláusula 10.1 son **dos**
@@ -135,7 +138,34 @@ class AuditoriaController extends Controller
              * lateral al otro sin que nadie la decida.
              */
             'puedeTratarMejoras' => request()->user()?->can(Permiso::MejorasGestionar->value) ?? false,
+            /*
+             * El informe (§ 4.18, 9.2.2). Prepararlo crea una serie documental, así
+             * que pide además `documentos.generar`, igual que preparar la
+             * Declaración de Conformidad.
+             */
+            'informe' => $auditoria->informe === null ? null : [
+                'id' => $auditoria->informe->id,
+                'codigo' => $auditoria->informe->codigo,
+            ],
+            'admiteInforme' => $auditoria->tipo->admiteInforme(),
+            'puedeGenerar' => request()->user()?->can(Permiso::DocumentosGenerar->value) ?? false,
         ]);
+    }
+
+    public function prepararInforme(
+        Request $request,
+        Auditoria $auditoria,
+        PrepararInformeAuditoria $preparar,
+    ): RedirectResponse {
+        try {
+            $documento = $preparar($auditoria, $request->user());
+        } catch (InformeNoPreparable $error) {
+            return back()->withErrors(['informe' => $error->getMessage()]);
+        }
+
+        Inertia::flash('exito', "Documento {$documento->codigo} listo. Genera un borrador para ver cómo queda.");
+
+        return to_route('documentos.show', $documento);
     }
 
     public function edit(Auditoria $auditoria): Response
@@ -157,6 +187,15 @@ class AuditoriaController extends Controller
 
     public function destroy(Auditoria $auditoria): RedirectResponse
     {
+        /*
+         * Con informe no se borra. La clave foránea también lo impide, pero con
+         * un error de base de datos; y un informe emitido es el registro de lo que
+         * se encontró, que es justo lo que no puede desaparecer con la auditoría.
+         */
+        if ($auditoria->informe()->exists()) {
+            return back()->withErrors(['auditoria' => InformeNoPreparable::conInforme($auditoria)->getMessage()]);
+        }
+
         $codigo = $auditoria->codigo;
         $auditoria->delete();
 
@@ -370,8 +409,11 @@ class AuditoriaController extends Controller
             'estadoTono' => $auditoria->estado->tono(),
             'estadoIcono' => $auditoria->estado->icono(),
             'alcance' => $auditoria->alcance,
+            'criterios' => $auditoria->criterios,
+            'metodo' => $auditoria->metodo,
             'fecha' => $auditoria->fecha->toDateString(),
             'auditor' => $auditoria->auditor,
+            'equipo' => $auditoria->equipo,
             'entidad_certificadora' => $auditoria->entidad_certificadora,
             'conclusiones' => $auditoria->conclusiones,
             'fechaCierre' => $auditoria->fecha_cierre?->format('d/m/Y'),

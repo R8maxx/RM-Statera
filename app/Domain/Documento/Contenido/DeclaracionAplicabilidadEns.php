@@ -117,11 +117,19 @@ final class DeclaracionAplicabilidadEns extends DocumentoCalculado
                  * hace que un punto de la checklist distinga `pendiente` de
                  * `conforme`.
                  */
+                /*
+                 * **Y quinta con el § 4.18**, que trajo el informe de auditoría
+                 * como documento: decir que no se genera pasó a ser falso en el
+                 * PDF entregado. Se dice dónde está y por qué no aquí, igual que
+                 * con el plan de adecuación.
+                 */
                 'Las **auditorías y autoevaluaciones** se registran en la herramienta, con su '
-                .'checklist, sus hallazgos y el tratamiento de las no conformidades; su resultado '
-                .'**no figura aquí por diseño**, porque una Declaración de Aplicabilidad declara la '
-                .'situación de cada medida y no el resultado de quien la revisó. Lo que la '
-                .'herramienta **todavía no hace**: generar el informe de auditoría como documento, '
+                .'checklist, sus hallazgos y el tratamiento de las no conformidades, y las internas y '
+                .'las autoevaluaciones tienen su **informe de auditoría en documento aparte**; su '
+                .'resultado **no figura aquí por '
+                .'diseño**, porque una Declaración de Aplicabilidad declara la situación de cada '
+                .'medida y no el resultado de quien la revisó. Lo que la herramienta **todavía no '
+                .'hace**: '
                 /*
                  * **Precisada, no borrada, con el § 4.16.** El calendario avisa
                  * ya de la auditoría que toca, pero avisar no es programar: la

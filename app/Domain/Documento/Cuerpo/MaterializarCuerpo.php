@@ -63,6 +63,13 @@ final class MaterializarCuerpo
         'declaracion_formal' => 'la declaración formal de conformidad',
         'ficha_autoevaluacion' => 'la ficha de la autoevaluación',
         'resultado_autoevaluacion' => 'el resultado de la autoevaluación',
+        'ficha_auditoria' => 'la ficha de la auditoría',
+        'resultado_auditoria' => 'el resultado de la checklist',
+        'tabla_puntos_auditoria' => 'la tabla de medidas no conformes y con observación',
+        'tabla_hallazgos' => 'la tabla de hallazgos',
+        'conclusiones_auditoria' => 'las conclusiones del auditor',
+        'estado_cumplimiento' => 'las cifras de cumplimiento',
+        'estado_registros' => 'las cifras de los registros',
         'limitaciones_sistema' => 'las limitaciones del sistema',
         'control_versiones' => 'el control de versiones',
     ];
@@ -148,6 +155,13 @@ final class MaterializarCuerpo
             'declaracion_formal' => $this->declaracionFormal($contenido),
             'ficha_autoevaluacion' => $this->fichaAutoevaluacion($contenido),
             'resultado_autoevaluacion' => $this->resultadoAutoevaluacion($contenido),
+            'ficha_auditoria' => $this->fichaAuditoria($contenido),
+            'resultado_auditoria' => $this->resultadoAuditoria($contenido),
+            'tabla_puntos_auditoria' => $this->tablaPuntosAuditoria($contenido),
+            'tabla_hallazgos' => $this->tablaHallazgos($contenido),
+            'conclusiones_auditoria' => $this->conclusionesAuditoria($contenido),
+            'estado_cumplimiento' => $this->estadoCumplimiento($contenido),
+            'estado_registros' => $this->estadoRegistros($contenido),
             'limitaciones_sistema' => $this->limitaciones($contenido, $editado, $tocados),
             'control_versiones' => $this->controlVersiones($contenido),
 
@@ -1742,6 +1756,23 @@ final class MaterializarCuerpo
             return [Nodo::parrafo('La autoevaluación no tiene checklist: no hay medidas revisadas que contar.', 'vacio')];
         }
 
+        return $this->tablasDeResultado($r);
+    }
+
+    /**
+     * Las dos tablas del resultado de una auditoría: los puntos por resultado, con
+     * el total, y los hallazgos por tipo.
+     *
+     * Las pintan la Declaración de Conformidad y el informe de auditoría sobre el
+     * mismo array (`Auditoria\ResultadoAuditoria`), y por eso una sola función:
+     * la declaración y el informe en que se apoya no pueden enseñar la misma
+     * checklist con columnas distintas.
+     *
+     * @param  array<string, mixed>  $r
+     * @return list<array<string, mixed>>
+     */
+    private function tablasDeResultado(array $r): array
+    {
         $total = $this->entero($r, 'total');
 
         $filas = [Nodo::fila([
@@ -1786,6 +1817,389 @@ final class MaterializarCuerpo
             Nodo::encabezado(3, 'Hallazgos', null, 'separado'),
             Nodo::de('table', [], $hallazgos),
         ];
+    }
+
+    // --- Informe de auditoría interna (§ 4.18) ------------------------------
+
+    /**
+     * Lo que la cláusula 9.2.2 pide saber de la auditoría.
+     *
+     * «Sin registrar» y no una fila ausente, como en la ficha de la reunión: que
+     * una auditoría no declare sus criterios es un dato, y una fila que no está se
+     * lee como que no aplica.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function fichaAuditoria(ContenidoDocumento $contenido): array
+    {
+        $a = $contenido->extras['auditoria'] ?? null;
+
+        if (! is_array($a)) {
+            return [Nodo::parrafo('No hay ninguna auditoría que recoger.', 'vacio')];
+        }
+
+        $sistema = trim(($this->cadena($a, 'sistemaCodigo') ?? '').' — '.($this->cadena($a, 'sistemaNombre') ?? ''), ' —');
+        $cierre = $this->cadena($a, 'fechaCierre');
+        $cerradaPor = $this->cadena($a, 'cerradaPor');
+
+        $filas = [
+            Nodo::de('fichaFila', ['clave' => 'Auditoría'], [Nodo::texto($this->cadena($a, 'codigo') ?? '—', ['cifra'])]),
+            Nodo::de('fichaFila', ['clave' => 'Tipo'], [Nodo::texto($this->cadena($a, 'tipo') ?? '—')]),
+            Nodo::de('fichaFila', ['clave' => 'Sistema'], [Nodo::texto($sistema === '' ? '—' : $sistema)]),
+            Nodo::de('fichaFila', ['clave' => 'Realizada el'], [Nodo::texto($this->cadena($a, 'fecha') ?? '—')]),
+            Nodo::de('fichaFila', ['clave' => 'Cerrada el'], [Nodo::texto(
+                ($cierre ?? '—').($cerradaPor === null ? '' : ' · '.$cerradaPor),
+            )]),
+            Nodo::de('fichaFila', ['clave' => 'Auditor'], [Nodo::texto($this->cadena($a, 'auditor') ?? 'Sin registrar')]),
+        ];
+
+        $equipo = $this->cadena($a, 'equipo');
+
+        if ($equipo !== null) {
+            $filas[] = Nodo::de('fichaFila', ['clave' => 'Equipo auditor'], [Nodo::texto($equipo)]);
+        }
+
+        $filas[] = Nodo::de('fichaFila', ['clave' => 'Alcance'], [Nodo::texto($this->cadena($a, 'alcance') ?? 'Sin registrar')]);
+        $filas[] = Nodo::de('fichaFila', ['clave' => 'Criterios'], [Nodo::texto($this->cadena($a, 'criterios') ?? 'Sin registrar')]);
+        $filas[] = Nodo::de('fichaFila', ['clave' => 'Método'], [Nodo::texto($this->cadena($a, 'metodo') ?? 'Sin registrar')]);
+
+        return [Nodo::de('ficha', [], $filas)];
+    }
+
+    /**
+     * El resultado, contado sobre la checklist congelada y con su denominador.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function resultadoAuditoria(ContenidoDocumento $contenido): array
+    {
+        $r = $contenido->extras['resultado'] ?? null;
+
+        if (! is_array($r) || $this->entero($r, 'total') === 0) {
+            return [Nodo::parrafo('La auditoría no tiene checklist: no hay medidas revisadas que contar.', 'vacio')];
+        }
+
+        return $this->tablasDeResultado($r);
+    }
+
+    /**
+     * Las medidas que la auditoría no dio por buenas, con lo que tenían al cerrar.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function tablaPuntosAuditoria(ContenidoDocumento $contenido): array
+    {
+        $puntos = $contenido->extras['puntos'] ?? [];
+
+        if (! is_array($puntos) || $puntos === []) {
+            return [Nodo::parrafo(
+                'Ninguna medida de la checklist quedó no conforme ni con observación.',
+                'vacio',
+            )];
+        }
+
+        $filas = [Nodo::fila([
+            Nodo::cabeceraCelda('Medida', '1.1in', 'col'),
+            Nodo::cabeceraCelda('Resultado', '1.1in', 'col'),
+            Nodo::cabeceraCelda('Estado al cerrar', '1.3in', 'col'),
+            Nodo::cabeceraCelda('Exigencia al cerrar', '1.3in', 'col'),
+            Nodo::cabeceraCelda('Nota del auditor', null, 'col'),
+        ])];
+
+        foreach ($puntos as $punto) {
+            if (! is_array($punto)) {
+                continue;
+            }
+
+            $titulo = $this->cadena($punto, 'titulo');
+
+            $filas[] = Nodo::fila([
+                Nodo::celda([
+                    Nodo::texto($this->cadena($punto, 'codigo') ?? '—', ['cifra']),
+                    ...($titulo === null ? [] : [Nodo::de('hardBreak'), Nodo::texto($titulo, ['suave'])]),
+                ]),
+                Nodo::celdaTexto($this->cadena($punto, 'resultado') ?? '—'),
+                Nodo::celdaTexto($this->cadena($punto, 'estado') ?? '—'),
+                Nodo::celdaTexto($this->cadena($punto, 'exigencia') ?? '—'),
+                Nodo::celdaTexto($this->cadena($punto, 'nota') ?? '—'),
+            ]);
+        }
+
+        return [Nodo::de('table', [], $filas)];
+    }
+
+    /**
+     * Los hallazgos, con su tratamiento en la fecha de extracción.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function tablaHallazgos(ContenidoDocumento $contenido): array
+    {
+        $hallazgos = $contenido->extras['hallazgos'] ?? [];
+
+        if (! is_array($hallazgos) || $hallazgos === []) {
+            return [Nodo::parrafo('La auditoría no registró ningún hallazgo.', 'vacio')];
+        }
+
+        $filas = [Nodo::fila([
+            Nodo::cabeceraCelda('Tipo', '1.4in', 'col'),
+            Nodo::cabeceraCelda('Medida', '1.0in', 'col'),
+            Nodo::cabeceraCelda('Descripción', null, 'col'),
+            Nodo::cabeceraCelda('Tratamiento', '1.8in', 'col'),
+        ])];
+
+        foreach ($hallazgos as $hallazgo) {
+            if (! is_array($hallazgo)) {
+                continue;
+            }
+
+            $medida = $this->cadena($hallazgo, 'medida');
+
+            $filas[] = Nodo::fila([
+                Nodo::celdaTexto($this->cadena($hallazgo, 'tipo') ?? '—'),
+                // Un hallazgo sin medida no es un dato que falte: es del sistema de
+                // gestión —«el programa de auditoría no está definido»—.
+                $medida === null
+                    ? Nodo::celdaTexto('Sin medida', null)
+                    : Nodo::celdaTexto($medida, 'codigo'),
+                Nodo::celdaTexto($this->cadena($hallazgo, 'descripcion') ?? '—'),
+                Nodo::celdaTexto($this->cadena($hallazgo, 'tratamiento') ?? 'No requiere'),
+            ]);
+        }
+
+        return [Nodo::de('table', [], $filas)];
+    }
+
+    /**
+     * Lo que concluyó quien auditó, tal como quedó al cerrar.
+     *
+     * Texto de un campo de la auditoría y no Markdown: lo escribió el auditor en
+     * un `textarea`, y se imprime en párrafos sin interpretar nada.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function conclusionesAuditoria(ContenidoDocumento $contenido): array
+    {
+        $texto = $contenido->extras['conclusiones'] ?? null;
+
+        if (! is_string($texto) || trim($texto) === '') {
+            return [Nodo::parrafo('La auditoría se cerró sin conclusiones registradas.', 'vacio')];
+        }
+
+        $parrafos = preg_split('/\n\s*\n/u', trim($texto)) ?: [];
+
+        return array_values(array_map(
+            static fn (string $parrafo): array => Nodo::parrafo(trim($parrafo)),
+            array_filter($parrafos, static fn (string $parrafo): bool => trim($parrafo) !== ''),
+        ));
+    }
+
+    // --- Informe de estado (§ 4.18) ----------------------------------------
+
+    /**
+     * El cumplimiento de la organización: las cifras, los sistemas, el reparto por
+     * estado y el avance por marco.
+     *
+     * **Toda cifra con su denominador**, y el denominador es siempre lo
+     * **exigible**: un requisito que no se le exige a un sistema no está
+     * pendiente, no cuenta. Es la misma regla que el panel, porque son las mismas
+     * consultas.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function estadoCumplimiento(ContenidoDocumento $contenido): array
+    {
+        $c = $contenido->extras['cumplimiento'] ?? null;
+
+        if (! is_array($c)) {
+            return [Nodo::parrafo('No hay cifras de cumplimiento que recoger.', 'vacio')];
+        }
+
+        $sistemas = is_array($c['sistemas'] ?? null) ? $c['sistemas'] : [];
+        $exigibles = 0;
+        $implantadas = 0;
+
+        foreach ($sistemas as $sistema) {
+            if (is_array($sistema)) {
+                $exigibles += $this->entero($sistema, 'aplicables');
+                $implantadas += $this->entero($sistema, 'implantadas');
+            }
+        }
+
+        $media = $c['madurezMedia'] ?? null;
+        $evaluadas = $this->entero($c, 'madurezEvaluadas');
+        $evidencias = $this->entero($c, 'evidencias');
+
+        $nodos = [Nodo::de('cifras', [], [
+            $this->cifra((string) $implantadas, 'de '.$exigibles, 'Requisitos exigibles implantados'),
+            $this->cifra((string) $this->entero($c, 'pendientes'), 'de '.$exigibles, 'Pendientes de implantar'),
+            $this->cifra(
+                is_float($media) || is_int($media) ? number_format((float) $media, 1, ',', '') : '—',
+                $evaluadas === 0 ? 'sin valorar' : 'sobre '.$evaluadas,
+                'Madurez media (L0–L5)',
+            ),
+            $this->cifra((string) $this->entero($c, 'implantadasSinEvidencia'), 'de '.$exigibles, 'Exigibles sin evidencia'),
+            $this->cifra((string) $this->entero($c, 'evidenciasCaducadas'), 'de '.$evidencias, 'Evidencias caducadas'),
+            $this->cifra((string) $this->entero($c, 'evidenciasPorCaducar'), 'de '.$evidencias, 'Evidencias por caducar'),
+        ])];
+
+        if ($sistemas === []) {
+            $nodos[] = Nodo::parrafo('La organización no tiene ningún sistema registrado.', 'vacio');
+
+            return $nodos;
+        }
+
+        $filas = [Nodo::fila([
+            Nodo::cabeceraCelda('Sistema', null, 'col'),
+            Nodo::cabeceraCelda('Marco', '1.6in', 'col'),
+            Nodo::cabeceraCelda('Categoría', '0.9in', 'col'),
+            Nodo::cabeceraCelda('Implantados', '1.3in', 'col'),
+            Nodo::cabeceraCelda('%', '0.6in', 'col'),
+        ])];
+
+        foreach ($sistemas as $sistema) {
+            if (! is_array($sistema)) {
+                continue;
+            }
+
+            $deEste = $this->entero($sistema, 'aplicables');
+            $hechas = $this->entero($sistema, 'implantadas');
+
+            $filas[] = Nodo::fila([
+                Nodo::celda([
+                    Nodo::texto($this->cadena($sistema, 'codigo') ?? '—', ['cifra']),
+                    Nodo::de('hardBreak'),
+                    Nodo::texto($this->cadena($sistema, 'nombre') ?? '', ['suave']),
+                ]),
+                Nodo::celdaTexto($this->cadena($sistema, 'marco') ?? '—'),
+                // Un sistema del ENS sin valorar no tiene categoría, y se dice.
+                Nodo::celdaTexto($this->cadena($sistema, 'categoria') ?? '—'),
+                Nodo::celda([Nodo::texto($hechas.' de '.$deEste, ['cifra'])]),
+                Nodo::celda([Nodo::texto($this->porcentaje($hechas, $deEste), ['cifra'])]),
+            ]);
+        }
+
+        $nodos[] = Nodo::encabezado(3, 'Por sistema', null, 'separado');
+        $nodos[] = Nodo::de('table', [], $filas);
+
+        $estados = [Nodo::fila([
+            Nodo::cabeceraCelda('Estado', null, 'col'),
+            Nodo::cabeceraCelda('Requisitos exigibles', '1.6in', 'col'),
+        ])];
+
+        foreach (is_array($c['estados'] ?? null) ? $c['estados'] : [] as $estado) {
+            if (is_array($estado)) {
+                $estados[] = Nodo::fila([
+                    Nodo::celdaTexto($this->cadena($estado, 'etiqueta') ?? '—'),
+                    Nodo::celda([Nodo::texto((string) $this->entero($estado, 'valor'), ['cifra'])]),
+                ]);
+            }
+        }
+
+        $nodos[] = Nodo::encabezado(3, 'Por estado de implantación', null, 'separado');
+        $nodos[] = Nodo::de('table', [], $estados);
+
+        $marcos = [Nodo::fila([
+            Nodo::cabeceraCelda('Marco', null, 'col'),
+            Nodo::cabeceraCelda('Implantados', '1.3in', 'col'),
+            Nodo::cabeceraCelda('%', '0.6in', 'col'),
+        ])];
+
+        foreach (is_array($c['marcos'] ?? null) ? $c['marcos'] : [] as $marco) {
+            if (is_array($marco)) {
+                $deEste = $this->entero($marco, 'aplicables');
+                $hechas = $this->entero($marco, 'implantadas');
+
+                $marcos[] = Nodo::fila([
+                    Nodo::celdaTexto($this->cadena($marco, 'nombre') ?? '—'),
+                    Nodo::celda([Nodo::texto($hechas.' de '.$deEste, ['cifra'])]),
+                    Nodo::celda([Nodo::texto($this->porcentaje($hechas, $deEste), ['cifra'])]),
+                ]);
+            }
+        }
+
+        $nodos[] = Nodo::encabezado(3, 'Por marco', null, 'separado');
+        $nodos[] = Nodo::de('table', [], $marcos);
+
+        return $nodos;
+    }
+
+    /**
+     * El resto del sistema de gestión, registro a registro.
+     *
+     * Cada cifra lleva al lado si **pide acción** —viene de las alertas del
+     * registro— o si es trabajo a medias. En palabras y no en color: el documento
+     * no tiene los tonos de estado de la aplicación, y la diferencia entre las dos
+     * es justo lo que la dirección tiene que poder leer.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function estadoRegistros(ContenidoDocumento $contenido): array
+    {
+        $registros = $contenido->extras['registros'] ?? [];
+
+        if (! is_array($registros) || $registros === []) {
+            return [Nodo::parrafo('No hay registros que recoger.', 'vacio')];
+        }
+
+        $nodos = [];
+
+        foreach ($registros as $registro) {
+            if (! is_array($registro)) {
+                continue;
+            }
+
+            $nodos[] = Nodo::encabezado(3, $this->cadena($registro, 'titulo') ?? '—', null, 'separado');
+
+            $total = $registro['total'] ?? null;
+
+            if (is_int($total)) {
+                $nodos[] = Nodo::parrafo($total === 1 ? '1 registrado.' : $total.' registrados.', 'suave');
+            }
+
+            $indicadores = is_array($registro['indicadores'] ?? null) ? $registro['indicadores'] : [];
+
+            if ($indicadores === []) {
+                $nodos[] = Nodo::parrafo('Sin cifras que destacar.', 'vacio');
+
+                continue;
+            }
+
+            $filas = [Nodo::fila([
+                Nodo::cabeceraCelda('Cifra', null, 'col'),
+                Nodo::cabeceraCelda('Valor', '0.8in', 'col'),
+                Nodo::cabeceraCelda('Naturaleza', '1.4in', 'col'),
+            ])];
+
+            foreach ($indicadores as $indicador) {
+                if (! is_array($indicador)) {
+                    continue;
+                }
+
+                $ayuda = $this->cadena($indicador, 'ayuda');
+
+                $filas[] = Nodo::fila([
+                    Nodo::celda([
+                        Nodo::texto($this->cadena($indicador, 'etiqueta') ?? '—'),
+                        ...($ayuda === null ? [] : [Nodo::de('hardBreak'), Nodo::texto($ayuda, ['suave'])]),
+                    ]),
+                    Nodo::celda([Nodo::texto((string) $this->entero($indicador, 'valor'), ['cifra'])]),
+                    ($indicador['alerta'] ?? false) === true
+                        ? Nodo::celda([Nodo::texto('Pide acción', ['bold'])])
+                        : Nodo::celdaTexto('A medias'),
+                ]);
+            }
+
+            $nodos[] = Nodo::de('table', [], $filas);
+        }
+
+        return $nodos;
+    }
+
+    /** Un porcentaje sin decimales, o una raya si no hay denominador. */
+    private function porcentaje(int $parte, int $total): string
+    {
+        return $total === 0 ? '—' : (string) (int) round($parte * 100 / $total).' %';
     }
 
     // --- Cierre -------------------------------------------------------------

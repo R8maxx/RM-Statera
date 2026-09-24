@@ -77,6 +77,11 @@ argumento por el que un punto de la checklist distingue `pendiente` de `conforme
 las dos mitades —que la frase vieja no vuelve **y que la nueva sigue declarando lo que falta**—, porque
 si sólo mirara la primera daría por bueno borrar la limitación entera.
 
+**Y por quinta con el § 4.18**, que trajo el informe de auditoría como documento: la lista de «lo que
+sigue sin hacer» lo nombraba, y pasó a ser falso. Ahora la DdA dice que las internas y las
+autoevaluaciones tienen su informe **en documento aparte**, y lo que falta se queda en el programa
+anual y la cobertura del alcance. `ContenidoDdaTest` comprueba otra vez las dos mitades.
+
 ---
 
 ## Los textos de un documento
@@ -294,6 +299,64 @@ hay.
 
 ```sh
 php artisan documentos:generar PLA-ENS-01 --html   # sigue siendo el bucle rápido
+```
+
+## El informe de auditoría interna
+
+El séptimo calculado, y la cláusula 9.2.2. Se prepara desde la ficha de la auditoría cerrada
+(`Auditoria\PrepararInformeAuditoria`) y se genera y se firma aquí, como la Declaración de
+Conformidad.
+
+**Es el único tipo que nombra su fuente: `documentos.auditoria_id`.** El acta imprime la última
+revisión aprobada y la DdC la conformidad viva del sistema; un informe no, porque dos auditorías
+cerradas del mismo sistema son dos informes y no dos versiones del mismo. **El FK va en
+`documentos` y no en `auditorias`** porque la fila de una auditoría cerrada es inmutable —su
+trigger compara la fila entera— y el informe se prepara justo después de cerrarla.
+
+- **Índice único parcial** `documentos_auditoria_unica`: un informe por auditoría.
+- **`CHECK` en las dos direcciones** (`documentos_auditoria_check`): ni informe sin auditoría ni
+  auditoría colgada de una SoA. Dos violaciones en el mismo test no se pueden comprobar: la primera
+  aborta la transacción y la segunda sentencia ya no llega al `CHECK`.
+- **`ON DELETE NO ACTION` y no `RESTRICT`**: se comprueba al final de la sentencia, así que borrar un
+  sistema, que arrastra a la vez sus auditorías y sus documentos, sigue funcionando. Borrar a mano una
+  auditoría con informe lo impide antes el controlador, con mensaje.
+- **`TipoDocumento::nacePorSuFuente()`**: el formulario de documentos no ofrece el tipo al crear, no
+  deja convertir un informe en otra cosa ni cambiarle el sistema. Sin eso, el error que sube es el del
+  `CHECK`.
+- **Sólo interna y autoevaluación** (`TipoAuditoria::admiteInforme()`): el de la externa lo firma la
+  entidad certificadora.
+
+**Se construye desde lo congelado**: exigencia y estado de cada punto tal como quedaron al cerrar, y
+sólo con la auditoría cerrada, comprobado también al generar porque entre preparar y generar se puede
+reabrir. **La excepción, declarada en sus limitaciones**: el tratamiento de cada hallazgo es el de la
+fecha de extracción, porque la no conformidad avanza después del cierre.
+
+**El recuento de la checklist vive en `Auditoria\ResultadoAuditoria`** y lo usan el informe y la DdC,
+y en el cuerpo los pinta el mismo `tablasDeResultado()`: con dos copias, la declaración y el informe
+en que se apoya contarían distinto la misma checklist.
+
+## El informe de estado
+
+El octavo calculado, de la organización entera y **sin fuente congelada**: lo que se congela es la
+`instantanea` de cada generación, como en la SoA.
+
+**Ninguna cifra se calcula en el generador.** Pide a `ResumenCumplimiento`, `ResumenPlanDeAccion`,
+`ResumenInventario` y a los `Registro*` lo mismo que el panel, y `PanelController::sistemas()` se
+mudó a `ResumenCumplimiento::porSistema()` para que haya una sola consulta. Lo clava
+`ContenidoInformeEstadoTest`, que compara el informe con la respuesta de `/panel`.
+
+**Todos los módulos, sin mirar permisos**, a diferencia del panel: es un documento que prepara quien
+tiene `documentos.generar` para la dirección y el auditor, y un informe que se salta los incidentes
+según quién pulsó «Generar» no es un informe de estado. Imprime **recuentos**, nunca registros.
+
+**Los dos bloques van en `SIEMPRE_RECALCULADOS`**: un informe de estado no tiene más contenido que sus
+cifras, y una retocada a mano es el documento desmintiendo al registro.
+
+**No es el INES**, y lo dicen sus limitaciones: el INES se cumplimenta en la plataforma del CCN.
+Tampoco compara con el informe anterior, aunque la instantánea de cada versión lo permitiría.
+
+```sh
+php artisan documentos:generar INF-AUD-2025-01 --html   # el informe de la auditoría del seeder
 ```
 
 ## Desvíos respecto al stack

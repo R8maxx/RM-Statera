@@ -85,6 +85,7 @@ class GuardarDocumentoRequest extends FormRequest
     public function after(): array
     {
         return [
+            $this->comprobarTiposConFuente(...),
             function (Validator $validator): void {
                 $tipo = TipoDocumento::tryFrom((string) $this->input('tipo'));
                 $sistema = Sistema::query()->with('marco')->find($this->input('sistema_id'));
@@ -124,6 +125,50 @@ class GuardarDocumentoRequest extends FormRequest
                 ));
             },
         ];
+    }
+
+    /**
+     * Un informe de auditoría no nace de este formulario, y tampoco se convierte.
+     *
+     * Su fuente es una auditoría cerrada, y el único sitio que la nombra es la
+     * ficha de esa auditoría (`PrepararInformeAuditoria`). Desde aquí no hay forma
+     * de elegirla, y sin esta comprobación el error que sube es el del `CHECK`
+     * `documentos_auditoria_check`, que no habla de lo que la persona estaba
+     * haciendo. Por lo mismo, un informe no cambia de tipo —dejaría una auditoría
+     * colgada de una SoA— ni de sistema, que es el de su auditoría.
+     */
+    private function comprobarTiposConFuente(Validator $validator): void
+    {
+        $tipo = TipoDocumento::tryFrom((string) $this->input('tipo'));
+        $documento = $this->route('documento');
+        $actual = $documento instanceof Documento ? $documento->tipo : null;
+
+        if ($tipo === null) {
+            return;
+        }
+
+        if ($tipo->nacePorSuFuente() && $actual !== $tipo) {
+            $validator->errors()->add('tipo', sprintf(
+                '«%s» se prepara desde la ficha de la auditoría cerrada, no desde aquí.',
+                $tipo->etiqueta(),
+            ));
+
+            return;
+        }
+
+        if ($actual !== null && $actual->nacePorSuFuente() && $actual !== $tipo) {
+            $validator->errors()->add('tipo', sprintf(
+                'Un «%s» no cambia de tipo: recoge una auditoría concreta.',
+                $actual->etiqueta(),
+            ));
+
+            return;
+        }
+
+        if ($documento instanceof Documento && $actual?->nacePorSuFuente() === true
+            && (int) $this->input('sistema_id') !== $documento->sistema_id) {
+            $validator->errors()->add('sistema_id', 'El sistema de un informe de auditoría es el de su auditoría.');
+        }
     }
 
     /**

@@ -47,7 +47,11 @@ class GuardarAuditoriaRequest extends FormRequest
             'tipo' => ['required', Rule::enum(TipoAuditoria::class)],
             'fecha' => ['required', 'date'],
             'alcance' => ['nullable', 'string', 'max:5000'],
+            // La 9.2.2: contra qué se audita y cómo. Los imprime el informe.
+            'criterios' => ['nullable', 'string', 'max:5000'],
+            'metodo' => ['nullable', 'string', 'max:5000'],
             'auditor' => ['nullable', 'string', 'max:255'],
+            'equipo' => ['nullable', 'string', 'max:1000'],
             'entidad_certificadora' => ['nullable', 'string', 'max:255'],
             'conclusiones' => ['nullable', 'string', 'max:5000'],
         ];
@@ -93,6 +97,8 @@ class GuardarAuditoriaRequest extends FormRequest
         return [
             'sistema_id' => 'sistema',
             'entidad_certificadora' => 'entidad certificadora',
+            'metodo' => 'método',
+            'equipo' => 'equipo auditor',
         ];
     }
 }

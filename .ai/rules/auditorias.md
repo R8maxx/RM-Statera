@@ -104,3 +104,14 @@ es de quien consulta.
 coinciden y parece un olvido: este rol es el auditor **externo** que § 4.19 describe como de sólo
 lectura, y quien registra la auditoría interna es el responsable de seguridad. Dejarle escribir sería
 que quien audita redactara el acta de su propia auditoría.
+
+### El informe (§ 4.18)
+
+**Tres columnas de la 9.2.2 que la tabla no tenía**: `criterios`, `metodo` y `equipo`. El trigger de
+inmutabilidad no se tocó y no hacía falta: compara la fila entera, así que quedan blindadas desde el
+cierre. Lo comprueba `InformeTest`, no la cabecera de la migración.
+
+**La ficha ofrece «Preparar el informe» sólo con la auditoría cerrada** y con `documentos.generar`
+además de `auditorias.gestionar`, el mismo par que preparar la Declaración de Conformidad. Una
+auditoría con informe **no se elimina**: el controlador lo impide antes que la clave foránea. El
+porqué del vínculo está en `documentos.md`.

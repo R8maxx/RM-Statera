@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Documento\Contenido;
 
-use App\Domain\Auditoria\Enums\ResultadoPunto;
-use App\Domain\Auditoria\Enums\TipoHallazgo;
 use App\Domain\Auditoria\Models\Auditoria;
-use App\Domain\Auditoria\Models\Hallazgo;
+use App\Domain\Auditoria\ResultadoAuditoria;
 use App\Domain\Conformidad\Enums\EstadoConformidad;
 use App\Domain\Conformidad\Models\Conformidad;
 use App\Domain\Conformidad\RequisitosDeDeclaracion;
@@ -47,6 +45,7 @@ final class DeclaracionConformidadEns implements GeneradorDocumento
         private readonly ResolverNarrativa $narrativa,
         private readonly MarkdownDocumento $markdown,
         private readonly RequisitosDeDeclaracion $requisitos,
+        private readonly ResultadoAuditoria $resultado,
     ) {}
 
     public function tipo(): TipoDocumento
@@ -89,7 +88,7 @@ final class DeclaracionConformidadEns implements GeneradorDocumento
             historial: $this->historialDe($documento),
             extras: [
                 'declaracion' => $this->declaracion($conformidad, $auditoria, $version, $portada),
-                'resultado' => $this->resultado($auditoria),
+                'resultado' => $this->resultado->para($auditoria),
             ],
             textos: TextosDocumento::desdeMarkdown(
                 $this->narrativa->paraDocumento($documento),
@@ -194,56 +193,6 @@ final class DeclaracionConformidadEns implements GeneradorDocumento
                 ? null
                 : (new Cadencia(Conformidad::VIGENCIA_MESES))->despuesDe($firma)->format('d/m/Y'),
             'mayoresAbiertas' => $this->requisitos->mayoresAbiertas($auditoria),
-        ];
-    }
-
-    /**
-     * El resultado de la autoevaluación, contado sobre su checklist congelada.
-     *
-     * **Con el denominador impreso**, como toda cifra de un documento: «ninguna
-     * no conformidad» no dice nada, «0 no conformes sobre 52 medidas revisadas»
-     * sí.
-     *
-     * @return array<string, mixed>
-     */
-    private function resultado(Auditoria $auditoria): array
-    {
-        /** @var array<string, int> $conteos */
-        $conteos = $auditoria->puntos()
-            ->selectRaw('resultado as clave, count(*) as total')
-            ->groupBy('resultado')
-            ->pluck('total', 'clave')
-            ->map(static fn (mixed $total): int => (int) $total)
-            ->all();
-
-        $puntos = [];
-
-        foreach (ResultadoPunto::cases() as $resultado) {
-            $puntos[] = [
-                'clave' => $resultado->value,
-                'etiqueta' => $resultado->etiqueta(),
-                'tono' => $resultado->tono(),
-                'total' => $conteos[$resultado->value] ?? 0,
-            ];
-        }
-
-        $hallazgos = [];
-
-        foreach (TipoHallazgo::cases() as $tipo) {
-            $total = Hallazgo::query()->where('auditoria_id', $auditoria->id)->where('tipo', $tipo->value)->count();
-
-            $hallazgos[] = [
-                'clave' => $tipo->value,
-                'etiqueta' => $tipo->etiqueta(),
-                'tono' => $tipo->tono(),
-                'total' => $total,
-            ];
-        }
-
-        return [
-            'total' => array_sum($conteos),
-            'puntos' => $puntos,
-            'hallazgos' => $hallazgos,
         ];
     }
 }

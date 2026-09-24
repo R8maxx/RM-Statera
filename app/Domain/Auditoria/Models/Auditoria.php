@@ -7,6 +7,7 @@ namespace App\Domain\Auditoria\Models;
 use App\Domain\Auditoria\Enums\EstadoAuditoria;
 use App\Domain\Auditoria\Enums\ResultadoPunto;
 use App\Domain\Auditoria\Enums\TipoAuditoria;
+use App\Domain\Documento\Models\Documento;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
 use App\Domain\Sistema\Models\Sistema;
 use App\Domain\Traza\Concerns\RegistraTraza;
@@ -17,6 +18,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -40,8 +42,11 @@ use Illuminate\Support\Carbon;
  * @property TipoAuditoria $tipo
  * @property EstadoAuditoria $estado
  * @property ?string $alcance
+ * @property ?string $criterios
+ * @property ?string $metodo
  * @property Carbon $fecha
  * @property ?string $auditor
+ * @property ?string $equipo
  * @property ?string $entidad_certificadora
  * @property ?string $resultado
  * @property ?string $conclusiones
@@ -65,8 +70,11 @@ class Auditoria extends Model
         'tipo',
         'estado',
         'alcance',
+        'criterios',
+        'metodo',
         'fecha',
         'auditor',
+        'equipo',
         'entidad_certificadora',
         'resultado',
         'conclusiones',
@@ -105,6 +113,20 @@ class Auditoria extends Model
     public function puntos(): HasMany
     {
         return $this->hasMany(AuditoriaPunto::class);
+    }
+
+    /**
+     * Su informe, si ya se ha preparado.
+     *
+     * El vínculo vive en `documentos.auditoria_id` y no aquí: la fila de una
+     * auditoría cerrada es inmutable, y el informe se prepara justo después de
+     * cerrarla.
+     *
+     * @return HasOne<Documento, $this>
+     */
+    public function informe(): HasOne
+    {
+        return $this->hasOne(Documento::class);
     }
 
     /** @return HasMany<Hallazgo, $this> */

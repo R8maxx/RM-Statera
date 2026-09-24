@@ -139,8 +139,9 @@ la ficha de un activo. Hoy los tres roles del § 4.19 lo tienen, así que la gua
 el test la comprueba quitándole el permiso **al rol** y no al usuario, porque `revokePermissionTo`
 sobre la persona no quita lo que hereda y el test pasaría por el motivo equivocado.
 
-**Lo que este módulo declara que no hace todavía**, y está escrito además en la limitación de la DdA:
-el informe de auditoría interna como documento generado, el programa anual de auditoría, comprobar que
+**Lo que este módulo declara que no hace todavía**, y está escrito además en la limitación de la DdA
+—el informe de auditoría interna salió de esta lista con el § 4.18—:
+el programa anual de auditoría, comprobar que
 el alcance auditado cubra lo exigible, y **su propia `Fuente` en el calendario de obligaciones** —la
 `fecha_prevista` de una no conformidad vence el mismo día que sus acciones correctivas, y el calendario
 pintaría tres chips para un solo compromiso—.

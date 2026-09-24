@@ -116,6 +116,18 @@ final class TextosDeFabrica
                 La declaración se apoya en la autoevaluación identificada más abajo, cerrada antes de emitir este documento. Su checklist quedó congelada al cerrarla, y la categoría que se declara es la que tenía el sistema el día en que se inició la declaración.
                 MD,
 
+            TipoDocumento::InformeAuditoria => <<<'MD'
+                Este documento es el informe de una auditoría del sistema identificado en la portada. Recoge lo que la cláusula 9.2.2 de ISO/IEC 27001:2022 pide conservar como información documentada de cada auditoría: su alcance y sus criterios, cómo se realizó, qué se revisó y qué se encontró.
+
+                Se genera desde la auditoría cerrada. Su checklist y sus hallazgos quedaron congelados al cerrarla: lo que aquí figura es lo que el auditor revisó y encontró, no lo que el registro diga hoy de cada medida.
+                MD,
+
+            TipoDocumento::InformeEstado => <<<'MD'
+                Este documento es el informe de estado del sistema de gestión de la seguridad de la información de la organización. Recoge cómo va el cumplimiento de lo exigible en cada sistema y en cada marco, y la situación del resto del sistema de gestión: riesgos, plan de acción, incidentes, no conformidades, auditorías, indicadores, objetivos, obligaciones, documentación, personas y continuidad.
+
+                Refleja el registro de la herramienta en la fecha de extracción que figura al final del documento. No es el Informe Nacional del Estado de Seguridad (INES) que se presenta al CCN.
+                MD,
+
             // No llegan aquí: `para()` desvía los redactados a `redactado()`
             // antes, porque su introducción no es la de una declaración.
             TipoDocumento::Politica,
@@ -204,6 +216,8 @@ final class TextosDeFabrica
             TipoDocumento::PlanAdecuacionEns => 'El objeto de este documento es dejar constancia, ante la dirección y ante un auditor, de qué le queda al sistema para cumplir el Esquema Nacional de Seguridad, en qué plazo se prevé conseguirlo y quién responde de cada medida.',
             TipoDocumento::AnalisisContexto => 'El objeto de este documento es dejar constancia de cuáles son las cuestiones internas y externas pertinentes para la seguridad de la información de la organización, quiénes son sus partes interesadas y qué exige o espera cada una. Es lo que piden las cláusulas 4.1 y 4.2 de ISO/IEC 27001:2022.',
             TipoDocumento::ActaRevision => 'El objeto de este documento es dejar constancia, ante un auditor, de que la dirección ha revisado el sistema de gestión de la seguridad de la información: qué tuvo delante, cuándo, quiénes estuvieron y qué decidió. Es lo que pide la cláusula 9.3 de ISO/IEC 27001:2022.',
+            TipoDocumento::InformeEstado => 'El objeto de este documento es dar a la dirección, y a quien audite el sistema de gestión, una foto fechada de su situación: qué está cumplido, qué falta y qué pide acción.',
+            TipoDocumento::InformeAuditoria => 'El objeto de este documento es informar a la dirección y a los responsables de las áreas auditadas del resultado de la auditoría, como pide la cláusula 9.2.2, y dejar constancia de él ante el auditor siguiente.',
 
             // No llegan aquí: `para()` desvía los redactados antes.
             TipoDocumento::Politica,
@@ -224,6 +238,11 @@ final class TextosDeFabrica
             TipoDocumento::AnalisisContexto => 'El ámbito es la organización entera, no un sistema concreto. El alcance declarado de cada '
                 .'sistema del que la organización responde figura en su propio apartado, tal como estaba el '
                 .'día en que se aprobó esta revisión.',
+            TipoDocumento::InformeEstado => 'El ámbito es la organización entera, no un sistema concreto: recoge todos los sistemas '
+                .'que tiene registrados y todos los marcos que se les aplican.',
+            TipoDocumento::InformeAuditoria => 'El alcance es el que la auditoría declaró, que figura en su ficha. La checklist parte '
+                .'de las medidas exigibles al sistema, y lo que el auditor dejó fuera de la muestra se cuenta '
+                .'aparte y no se da por conforme.',
             TipoDocumento::ActaRevision => 'El ámbito es el sistema de gestión entero, no un sistema concreto: lo que la dirección '
                 .'revisa son los riesgos, las auditorías, los objetivos y las no conformidades de la '
                 .'organización, y ésos cubren todos los marcos que se le apliquen. El periodo revisado '
@@ -244,6 +263,8 @@ final class TextosDeFabrica
             TipoDocumento::PlanAdecuacionEns => 'El conjunto de medidas exigibles se deriva de la categoría del sistema, y de él entran en este plan las que no figuran como implantadas. La fecha objetivo y el responsable son los que consten en cada medida; el trabajo asociado son las tareas abiertas vinculadas a ella.',
             TipoDocumento::AnalisisContexto => 'Las cuestiones se clasifican en los cuatro cuadrantes de un análisis DAFO. El ámbito —interno o externo— y el signo —a favor o en contra— no se eligen: se derivan del cuadrante, que es lo que define la matriz.',
             TipoDocumento::ActaRevision => 'Las siete entradas de la cláusula 9.3.2 no se transcriben a mano: se recogen del registro de la herramienta en el momento de aprobar el acta y quedan congeladas con ella. Las auditorías se acotan al periodo revisado; lo que está abierto —no conformidades, riesgos, mejoras— se recoge tal como está, con independencia de cuándo se detectara.',
+            TipoDocumento::InformeEstado => 'Ninguna cifra se transcribe a mano: todas se calculan desde el registro de la herramienta en el momento de generar el documento, con las mismas consultas que el panel. Las de cumplimiento se cuentan siempre sobre lo exigible a cada sistema, según su marco y, en el ENS, según su categoría.',
+            TipoDocumento::InformeAuditoria => 'La checklist de la auditoría se genera desde el conjunto de requisitos exigibles al sistema y no se elige a mano. El auditor marca cada línea como conforme, no conforme, con observación o fuera de muestra; lo que no marca queda sin revisar. Una no conformidad o una observación se registran además como hallazgo, y un hallazgo puede no colgar de ninguna medida cuando lo que se encuentra es del sistema de gestión.',
             TipoDocumento::DeclaracionConformidadEns => 'La autoevaluación revisa, una a una, las medidas del Anexo II exigibles al sistema según su categoría: la checklist se genera desde ese conjunto y no se elige a mano. Cada medida queda conforme, no conforme, con observación o fuera de muestra, y la declaración sólo se puede iniciar con la autoevaluación cerrada, sin medidas pendientes de revisar y sin no conformidades mayores abiertas.',
 
             // No llegan aquí: `SeccionNarrativa::aplicaA()` no ofrece este hueco
@@ -266,6 +287,12 @@ final class TextosDeFabrica
             TipoDocumento::ActaRevision => 'Las decisiones de la revisión se registran como tareas con responsable y plazo, y el estado '
                 .'en que estén se recoge como primera entrada de la revisión siguiente. Es lo que permite '
                 .'comprobar un año después si lo que se decidió se hizo.',
+            TipoDocumento::InformeEstado => 'Cada versión emitida conserva sus cifras con su fecha. Generar el informe otro día da '
+                .'las cifras de ese día; para comparar dos momentos, se comparan dos versiones emitidas.',
+            TipoDocumento::InformeAuditoria => 'Al cerrar la auditoría se congelan, para cada medida, la exigencia y el estado de '
+                .'implantación que tenía ese día, y desde el cierre ni la checklist ni los hallazgos admiten '
+                .'cambios. Cada no conformidad se trata en su propio registro, con su causa, su acción '
+                .'correctiva y la verificación de su eficacia.',
             TipoDocumento::DeclaracionConformidadEns => 'La declaración se renueva cada dos años con una autoevaluación nueva. Las no conformidades '
                 .'menores y las observaciones no impiden declarar: se tratan en el registro de no conformidades, '
                 .'con su causa, su acción correctiva y la verificación de su eficacia.',
@@ -315,6 +342,18 @@ final class TextosDeFabrica
                 Cada medida de la checklist cuenta una sola vez, con el resultado que tenía al cerrar la autoevaluación. La suma de las filas es el total de medidas revisadas o fuera de muestra, y es el denominador de todo lo demás.
 
                 **Fuera de muestra no es conforme.** Es una medida que la autoevaluación decidió no revisar esta vez, y la declaración no afirma nada sobre ella.
+                MD,
+
+            TipoDocumento::InformeEstado => <<<'MD'
+                Cada cifra de cumplimiento va con su denominador, que es lo exigible: un requisito que no se le exige a un sistema no está pendiente, no cuenta. La madurez media va con el número de requisitos valorados sobre el que se calcula.
+
+                En el resto del sistema de gestión, **«pide acción»** marca las cifras que indican algo que va mal —un plazo vencido, una evidencia caducada—, y **«a medias»** las que indican trabajo sin terminar. Un cero es una cifra recogida, no una cifra que falte.
+                MD,
+
+            TipoDocumento::InformeAuditoria => <<<'MD'
+                Cada medida de la checklist cuenta una sola vez, con el resultado que tenía al cerrar la auditoría. La suma de las filas es el total de la checklist, y es el denominador de todo lo demás.
+
+                **Ni «fuera de muestra» ni «sin revisar» son conforme.** La primera es una medida que el auditor decidió no revisar esta vez; la segunda, una que nadie llegó a marcar. El informe no afirma nada sobre ninguna de las dos.
                 MD,
 
             // No llegan aquí: un documento redactado no tiene tabla que explicar.

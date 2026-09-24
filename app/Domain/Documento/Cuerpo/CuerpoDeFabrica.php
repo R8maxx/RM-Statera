@@ -78,6 +78,8 @@ final class CuerpoDeFabrica
                 TipoDocumento::AnalisisContexto => $this->cuerpoContexto(),
                 TipoDocumento::ActaRevision => $this->cuerpoActa(),
                 TipoDocumento::DeclaracionConformidadEns => $this->cuerpoDeclaracionConformidad(),
+                TipoDocumento::InformeAuditoria => $this->cuerpoInformeAuditoria(),
+                TipoDocumento::InformeEstado => $this->cuerpoInformeEstado(),
 
                 /*
                  * Un documento redactado no tiene cuerpo calculado: entre el
@@ -273,6 +275,75 @@ final class CuerpoDeFabrica
                 Nodo::encabezado(2, 'Resultado de la autoevaluación'),
                 ...$this->prosa(SeccionNarrativa::NotaTabla),
                 Nodo::hueco('resultado_autoevaluacion'),
+            ]),
+        ];
+    }
+
+    /**
+     * El informe de auditoría interna (§ 4.18, cláusula 9.2.2).
+     *
+     * **En el orden en que un auditor lo lee**: de qué auditoría se trata —quién,
+     * cuándo, sobre qué, contra qué y cómo—, qué se revisó con su denominador, qué
+     * no se dio por bueno, qué se encontró y qué concluyó quien auditó. Las
+     * conclusiones del auditor van aparte de las de la organización —el hueco
+     * narrativo de conclusiones, más abajo—, porque no las firma la misma persona.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function cuerpoInformeAuditoria(): array
+    {
+        return [
+            Nodo::de('seccion', [], [
+                Nodo::encabezado(2, 'La auditoría'),
+                Nodo::hueco('ficha_auditoria'),
+            ]),
+
+            Nodo::de('seccion', [], [
+                Nodo::encabezado(2, 'Resultado de la checklist'),
+                ...$this->prosa(SeccionNarrativa::NotaTabla),
+                Nodo::hueco('resultado_auditoria'),
+            ]),
+
+            Nodo::de('seccion', [], [
+                Nodo::encabezado(2, 'Medidas no conformes y con observación'),
+                Nodo::hueco('tabla_puntos_auditoria'),
+            ]),
+
+            Nodo::de('seccion', [], [
+                Nodo::encabezado(2, 'Hallazgos'),
+                Nodo::hueco('tabla_hallazgos'),
+            ]),
+
+            Nodo::de('seccion', [], [
+                Nodo::encabezado(2, 'Conclusiones del auditor'),
+                Nodo::hueco('conclusiones_auditoria'),
+            ]),
+        ];
+    }
+
+    /**
+     * El informe de estado (§ 4.18).
+     *
+     * **De lo exigible a lo que lo sostiene**: primero cómo va el cumplimiento
+     * —sistema a sistema y marco a marco, que es lo que la dirección pregunta—, y
+     * después el resto del sistema de gestión, registro a registro. Las cifras de
+     * cumplimiento van primero porque son las únicas que contestan «¿cumplimos?»;
+     * las otras dicen por qué.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function cuerpoInformeEstado(): array
+    {
+        return [
+            Nodo::de('seccion', [], [
+                Nodo::encabezado(2, 'Cumplimiento'),
+                ...$this->prosa(SeccionNarrativa::NotaTabla),
+                Nodo::hueco('estado_cumplimiento'),
+            ]),
+
+            Nodo::de('seccion', [], [
+                Nodo::encabezado(2, 'El sistema de gestión, registro a registro'),
+                Nodo::hueco('estado_registros'),
             ]),
         ];
     }

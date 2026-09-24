@@ -664,6 +664,18 @@ Route::middleware('auth')->group(function (): void {
         });
 
     /*
+     * El informe de la auditoría (§ 4.18, 9.2.2). Prepararlo crea una serie
+     * documental, que es trabajo de `documentos.generar` además del de
+     * auditorías: el mismo par de permisos que preparar la Declaración de
+     * Conformidad. La generación y la firma siguen en `/documentos`.
+     */
+    Route::middleware(['can:auditorias.gestionar', 'can:documentos.generar', ExigirDosFactores::class])
+        ->group(function (): void {
+            Route::post('/auditorias/{auditoria}/informe', [AuditoriaController::class, 'prepararInforme'])
+                ->name('auditorias.informe');
+        });
+
+    /*
     |--------------------------------------------------------------------------
     | No conformidades
     |--------------------------------------------------------------------------

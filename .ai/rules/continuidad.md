@@ -198,7 +198,8 @@ Detalle en `obligaciones.md`.
 - **Ningún `CalculoIndicador`.** No hay indicador calculado de pruebas hechas ni
   de BIA vigentes; quien quiera medirlo lo declara manual.
 - **No es un informe.** El plan se redacta; un informe de continuidad con el BIA
-  y las pruebas impresos es del § 4.18.
+  y las pruebas impresos no está entre los seis del § 4.18, que está hecho sin él:
+  sería un tipo de documento nuevo.
 - **No mueve implantaciones** (invariante 4). Aprobar un BIA o superar una prueba
   no marca `op.cont.*` como implantada: eso sigue siendo una transición con autor.
 - **`op.cont.4` —medios alternativos— no tiene registro propio.** Se documenta

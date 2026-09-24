@@ -144,6 +144,17 @@ final class EsquemaCuerpo
         'declaracion_formal',
         'ficha_autoevaluacion',
         'resultado_autoevaluacion',
+        // Las cinco del informe de auditoría interna (§ 4.18, 9.2.2). Todas salen
+        // de la auditoría cerrada, con su checklist congelada.
+        'ficha_auditoria',
+        'resultado_auditoria',
+        'tabla_puntos_auditoria',
+        'tabla_hallazgos',
+        'conclusiones_auditoria',
+        // Las dos del informe de estado (§ 4.18): las cifras del panel, contadas
+        // por las mismas clases de dominio, en la fecha de extracción.
+        'estado_cumplimiento',
+        'estado_registros',
         'limitaciones_sistema',
         'control_versiones',
     ];
@@ -180,6 +191,22 @@ final class EsquemaCuerpo
          * un auditor no puede aceptar. Que se editó, lo declaran las limitaciones.
          */
         'declaracion_formal',
+        /*
+         * **La ficha del informe de auditoría**, por lo mismo: qué auditoría es,
+         * quién la hizo y cuándo se cerró es identificación, no narrativa. Un
+         * informe con el auditor cambiado a mano sería otro informe con la huella
+         * del primero.
+         */
+        'ficha_auditoria',
+        /*
+         * **Las dos del informe de estado, enteras.** Un informe de estado no
+         * tiene más contenido que sus cifras, y una cifra retocada a mano en él
+         * es el documento desmintiendo al registro del que dice salir. Lo que la
+         * organización quiera añadir va en los huecos narrativos, que sí se
+         * editan.
+         */
+        'estado_cumplimiento',
+        'estado_registros',
         'limitaciones_sistema',
         'control_versiones',
     ];

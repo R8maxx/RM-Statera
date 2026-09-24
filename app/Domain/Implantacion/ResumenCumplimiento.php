@@ -7,8 +7,11 @@ namespace App\Domain\Implantacion;
 use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Implantacion\Enums\EstadoImplantacion;
 use App\Domain\Implantacion\Models\Implantacion;
+use App\Domain\Sistema\Models\Sistema;
 use App\Http\Resources\Panel\AvanceMarco;
 use App\Http\Resources\Panel\SegmentoEstado;
+use App\Http\Resources\Panel\SistemaResumido;
+use Illuminate\Database\Eloquent\Builder;
 
 /**
  * Las cifras de cumplimiento de la organización activa.
@@ -106,6 +109,47 @@ final class ResumenCumplimiento
                 (string) $fila->getAttribute('marco_nombre'),
                 (int) $fila->getAttribute('aplicables'),
                 (int) $fila->getAttribute('implantadas'),
+            ))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Los sistemas con su avance, contados sobre lo exigible.
+     *
+     * Estaba en `PanelController`, y se mudó aquí con el informe de estado
+     * (§ 4.18): el panel y el informe hacen la misma pregunta, y con la consulta
+     * escrita dos veces el panel diría 40 de 52 y el informe entregado otra cosa.
+     *
+     * @return list<SistemaResumido>
+     */
+    public function porSistema(): array
+    {
+        return Sistema::query()
+            ->with('marco')
+            ->withCount([
+                'implantaciones as aplicables' => fn (Builder $query) => $query->where('aplica', true),
+                /*
+                 * Sólo cuentan las implantadas que además son exigibles: sin el
+                 * `aplica`, una medida excluida y luego implantada inflaba el
+                 * numerador por encima del denominador.
+                 */
+                'implantaciones as implantadas' => fn (Builder $query) => $query
+                    ->where('aplica', true)
+                    ->where('estado', EstadoImplantacion::Implantado->value),
+            ])
+            ->orderBy('codigo')
+            ->get()
+            ->map(fn (Sistema $sistema): SistemaResumido => new SistemaResumido(
+                id: $sistema->id,
+                codigo: $sistema->codigo,
+                nombre: $sistema->nombre,
+                marco: $sistema->marco?->nombre,
+                categoria: $sistema->categoria()?->etiqueta(),
+                // Alias de `withCount`: no son columnas del modelo, así que se
+                // leen por `getAttribute` y no como propiedad.
+                aplicables: (int) $sistema->getAttribute('aplicables'),
+                implantadas: (int) $sistema->getAttribute('implantadas'),
             ))
             ->values()
             ->all();

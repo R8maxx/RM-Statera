@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\Domain\Auditoria\Models\Auditoria;
 use App\Domain\Documento\Enums\ClasificacionDocumental;
 use App\Domain\Documento\Enums\TipoDocumento;
 use App\Domain\Documento\Models\Documento;
@@ -140,6 +141,35 @@ class DocumentoFactory extends Factory
         return $this->deTipo(TipoDocumento::DeclaracionConformidadEns)->state(fn (): array => [
             'codigo' => 'DDC-ENS-01',
             'titulo' => 'Declaración de Conformidad con el ENS',
+        ]);
+    }
+
+    /**
+     * El informe de una auditoría: calculado, **con sistema** y con su fuente
+     * nombrada. El sistema es el de la auditoría y no uno cualquiera, igual que en
+     * `PrepararInformeAuditoria`: el `CHECK` no lo exige, pero un informe de un
+     * sistema sobre la auditoría de otro sería un documento que se contradice.
+     */
+    public function informeAuditoria(Auditoria $auditoria): self
+    {
+        return $this->deTipo(TipoDocumento::InformeAuditoria)->state(fn (): array => [
+            'codigo' => 'INF-'.$auditoria->codigo,
+            'titulo' => 'Informe de auditoría interna — '.$auditoria->codigo,
+            'sistema_id' => $auditoria->sistema_id,
+            'auditoria_id' => $auditoria->id,
+        ]);
+    }
+
+    /**
+     * El informe de estado: calculado y **sin sistema**, como el acta. Cuenta la
+     * organización entera.
+     */
+    public function informeEstado(): self
+    {
+        return $this->deTipo(TipoDocumento::InformeEstado)->state(fn (): array => [
+            'codigo' => 'EST-SGSI-01',
+            'titulo' => 'Informe de estado de la seguridad',
+            'sistema_id' => null,
         ]);
     }
 

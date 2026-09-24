@@ -18,6 +18,7 @@ use App\Domain\Auditoria\Enums\TipoHallazgo;
 use App\Domain\Auditoria\Models\Auditoria;
 use App\Domain\Auditoria\Models\Hallazgo;
 use App\Domain\Auditoria\PrecargarChecklist;
+use App\Domain\Auditoria\PrepararInformeAuditoria;
 use App\Domain\Auditoria\RegistrarAuditoria;
 use App\Domain\Auditoria\RegistrarHallazgo;
 use App\Domain\Auditoria\RevisarPunto;
@@ -1312,7 +1313,11 @@ class DesarrolloSeeder extends Seeder
             'tipo' => TipoAuditoria::Interna->value,
             'fecha' => Carbon::today()->subMonths(8),
             'auditor' => 'Consultora externa de ejemplo',
+            'equipo' => 'Responsable de seguridad, como acompañante',
             'alcance' => 'Muestreo de las medidas de control de acceso y de explotación.',
+            // La 9.2.2: contra qué y cómo. Salen impresos en el informe.
+            'criterios' => 'Anexo II del Real Decreto 311/2022 y la política de seguridad de la organización.',
+            'metodo' => 'Entrevistas con los responsables y revisión documental sobre una muestra de las medidas.',
         ]);
 
         $precargar($cerrada);
@@ -1354,6 +1359,10 @@ class DesarrolloSeeder extends Seeder
             User::query()->where('organizacion_id', $sistema->organizacion_id)->first(),
             'Dos desviaciones menores sobre el muestreo revisado. Sin no conformidades mayores.',
         );
+
+        // Su informe (§ 4.18), preparado y sin generar: `documentos:generar
+        // INF-AUD-2025-01 --html` es el bucle rápido para verlo.
+        app(PrepararInformeAuditoria::class)($cerrada->fresh() ?? $cerrada);
 
         // --- La de este año, a medias --------------------------------------
 

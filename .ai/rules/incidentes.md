@@ -170,8 +170,9 @@ trazabilidad que no hay.
   respecto a los tres módulos anteriores: el plazo de la AEPD se mide en **horas**
   y una rejilla de meses no es donde se mira un reloj de 72 h. Vive en la ficha y
   en el panel.
-- **No genera el informe de incidente** como documento. Es del § 4.18, que sigue
-  pendiente.
+- **No genera el informe de incidente** como documento. El § 4.18 no lo nombra
+  entre sus seis y está hecho sin él, así que no hay ningún módulo pendiente que lo
+  traiga: sería un tipo de documento nuevo.
 - **No notifica por sí solo a ningún supervisor**, ni prepara el formulario de la
   sede: registra la decisión y la fecha.
 - **No decide si hay que notificar.** `notificable_aepd` lo marca una persona, y

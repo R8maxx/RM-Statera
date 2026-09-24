@@ -95,7 +95,19 @@ enum SeccionNarrativa: string
          * el resultado de una autoevaluación, no una tabla de requisitos con su
          * resumen y su derivación —ésa es la DdA de al lado—.
          */
-        if (in_array($tipo, [TipoDocumento::AnalisisContexto, TipoDocumento::ActaRevision, TipoDocumento::DeclaracionConformidadEns], true)) {
+        /*
+         * Y el informe de auditoría (§ 4.18), igual que la Declaración que se
+         * apoya en una autoevaluación: cuenta una checklist, no una tabla de
+         * requisitos del sistema. Y el informe de estado, que cuenta registros
+         * enteros y tampoco tiene tabla de requisitos.
+         */
+        if (in_array($tipo, [
+            TipoDocumento::AnalisisContexto,
+            TipoDocumento::ActaRevision,
+            TipoDocumento::DeclaracionConformidadEns,
+            TipoDocumento::InformeAuditoria,
+            TipoDocumento::InformeEstado,
+        ], true)) {
             return ! in_array($this, [
                 self::NotaResumen,
                 self::NotaDerivacion,

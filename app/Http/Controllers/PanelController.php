@@ -7,7 +7,6 @@ namespace App\Http\Controllers;
 use App\Domain\Activo\ResumenInventario;
 use App\Domain\Autorizacion\Enums\Permiso;
 use App\Domain\Contexto\RegistroContexto;
-use App\Domain\Implantacion\Enums\EstadoImplantacion;
 use App\Domain\Implantacion\ResumenCumplimiento;
 use App\Domain\Incidente\RegistroIncidentes;
 use App\Domain\Metrica\RegistroIndicadores;
@@ -16,14 +15,11 @@ use App\Domain\Objetivo\RegistroObjetivos;
 use App\Domain\Obligacion\RegistroObligaciones;
 use App\Domain\Panel\AlertasDelPanel;
 use App\Domain\Persona\RegistroPersonas;
-use App\Domain\Sistema\Models\Sistema;
 use App\Domain\Tarea\ResumenPlanDeAccion;
 use App\Http\Resources\Panel\ResumenEvidencias;
 use App\Http\Resources\Panel\ResumenPanel;
 use App\Http\Resources\Panel\SistemaResumido;
 use App\Http\Resources\Panel\VistaPanel;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -68,7 +64,7 @@ class PanelController extends Controller
      */
     public function cumplimiento(ResumenCumplimiento $resumen, AlertasDelPanel $alertas): Response
     {
-        $sistemas = $this->sistemas();
+        $sistemas = collect($resumen->porSistema());
         $madurez = $resumen->madurez();
         $pruebas = $resumen->evidencias();
 
@@ -219,42 +215,6 @@ class PanelController extends Controller
                 ),
             ],
         ];
-    }
-
-    /**
-     * Los sistemas con su avance, contados sobre lo exigible.
-     *
-     * @return Collection<int, SistemaResumido>
-     */
-    private function sistemas(): Collection
-    {
-        return Sistema::query()
-            ->with('marco')
-            ->withCount([
-                'implantaciones as aplicables' => fn (Builder $query) => $query->where('aplica', true),
-                /*
-                 * Sólo cuentan las implantadas que además son exigibles: sin el
-                 * `aplica`, una medida excluida y luego implantada inflaba el
-                 * numerador por encima del denominador.
-                 */
-                'implantaciones as implantadas' => fn (Builder $query) => $query
-                    ->where('aplica', true)
-                    ->where('estado', EstadoImplantacion::Implantado->value),
-            ])
-            ->orderBy('codigo')
-            ->get()
-            ->map(fn (Sistema $sistema): SistemaResumido => new SistemaResumido(
-                id: $sistema->id,
-                codigo: $sistema->codigo,
-                nombre: $sistema->nombre,
-                marco: $sistema->marco?->nombre,
-                categoria: $sistema->categoria()?->etiqueta(),
-                // Alias de `withCount`: no son columnas del modelo, así que se
-                // leen por `getAttribute` y no como propiedad.
-                aplicables: (int) $sistema->getAttribute('aplicables'),
-                implantadas: (int) $sistema->getAttribute('implantadas'),
-            ))
-            ->values();
     }
 
     private function puede(Permiso $permiso): bool

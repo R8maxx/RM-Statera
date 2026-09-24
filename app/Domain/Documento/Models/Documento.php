@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Documento\Models;
 
 use App\Domain\Activo\Models\Activo;
+use App\Domain\Auditoria\Models\Auditoria;
 use App\Domain\Documento\Enums\ClasificacionDocumental;
 use App\Domain\Documento\Enums\EstadoDocumental;
 use App\Domain\Documento\Enums\TipoDocumento;
@@ -34,6 +35,7 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $organizacion_id
  * @property ?int $sistema_id
+ * @property ?int $auditoria_id
  * @property string $codigo
  * @property string $titulo
  * @property TipoDocumento $tipo
@@ -56,6 +58,7 @@ class Documento extends Model
     protected $fillable = [
         'organizacion_id',
         'sistema_id',
+        'auditoria_id',
         'codigo',
         'titulo',
         'tipo',
@@ -70,6 +73,18 @@ class Documento extends Model
     public function sistema(): BelongsTo
     {
         return $this->belongsTo(Sistema::class);
+    }
+
+    /**
+     * La auditoría que recoge, si es un informe de auditoría.
+     *
+     * Sólo ese tipo la lleva, y lo dice el `CHECK` `documentos_auditoria_check`.
+     *
+     * @return BelongsTo<Auditoria, $this>
+     */
+    public function auditoria(): BelongsTo
+    {
+        return $this->belongsTo(Auditoria::class);
     }
 
     /** @return BelongsTo<User, $this> */

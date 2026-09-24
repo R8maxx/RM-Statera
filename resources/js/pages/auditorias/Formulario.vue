@@ -27,7 +27,10 @@ interface Auditoria {
     tipo: string;
     fecha: string;
     alcance: string | null;
+    criterios: string | null;
+    metodo: string | null;
     auditor: string | null;
+    equipo: string | null;
     entidad_certificadora: string | null;
 }
 
@@ -126,6 +129,14 @@ const opcionesSistema = computed(() => props.sistemas.map((s) => ({ valor: s.val
                 />
 
                 <CampoTexto
+                    nombre="equipo"
+                    etiqueta="Equipo auditor"
+                    :valor-inicial="auditoria?.equipo ?? undefined"
+                    :error="errors.equipo"
+                    ayuda="El resto de personas que auditan, si las hay. El auditor es quien firma y responde."
+                />
+
+                <CampoTexto
                     v-if="admiteEntidad"
                     nombre="entidad_certificadora"
                     etiqueta="Entidad certificadora"
@@ -141,6 +152,31 @@ const opcionesSistema = computed(() => props.sistemas.map((s) => ({ valor: s.val
                     :valor-inicial="auditoria?.alcance ?? undefined"
                     :error="errors.alcance"
                     ayuda="Qué se ha muestreado. Lo que no entra en la muestra se marca como tal en la checklist."
+                />
+            </SeccionFormulario>
+
+            <!--
+                La cláusula 9.2.2: contra qué se audita y cómo. Salen impresos en
+                el informe de auditoría, y a partir del cierre ya no se pueden
+                cambiar.
+            -->
+            <SeccionFormulario titulo="Cómo se audita" plegable>
+                <CampoTextarea
+                    nombre="criterios"
+                    etiqueta="Criterios"
+                    :filas="3"
+                    :valor-inicial="auditoria?.criterios ?? undefined"
+                    :error="errors.criterios"
+                    ayuda="Contra qué se audita: la norma, el Anexo II del ENS, la política y los procedimientos propios."
+                />
+
+                <CampoTextarea
+                    nombre="metodo"
+                    etiqueta="Método"
+                    :filas="3"
+                    :valor-inicial="auditoria?.metodo ?? undefined"
+                    :error="errors.metodo"
+                    ayuda="Entrevistas, revisión documental, inspección, y con qué criterio se ha elegido la muestra."
                 />
             </SeccionFormulario>
         </FormularioRecurso>

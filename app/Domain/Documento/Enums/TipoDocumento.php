@@ -43,10 +43,11 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * El cuarto nivel de esa jerarquía —el **registro**— no entra: un registro es la
  * salida de un procedimiento, no un documento que Statera redacte y versione.
  *
- * La lista seguirá creciendo —informe de auditoría interna, informe de estado— y
- * por eso el `CHECK` de la tabla enumera valores en vez de usar un tipo enum de
- * PostgreSQL. El acta de la revisión por la dirección y la Declaración de
- * Conformidad del ENS, que llevaban en esta lista desde el principio, ya están.
+ * La lista seguirá creciendo —el informe de incidente y el de continuidad están
+ * declarados como pendientes en sus módulos— y por eso el `CHECK` de la tabla
+ * enumera valores en vez de usar un tipo enum de PostgreSQL. Los seis que nombra
+ * el § 4.18 ya están: el acta de la revisión por la dirección, el informe de
+ * auditoría interna y el informe de estado fueron los últimos.
  */
 #[TypeScript]
 enum TipoDocumento: string
@@ -91,6 +92,37 @@ enum TipoDocumento: string
      */
     case DeclaracionConformidadEns = 'declaracion_conformidad_ens';
 
+    /**
+     * El informe de auditoría interna: § 4.18 y la cláusula 9.2.2, el séptimo
+     * documento calculado.
+     *
+     * **Es el único tipo que nombra su fuente**, en `documentos.auditoria_id`. El
+     * acta imprime la última revisión aprobada y la Declaración de Conformidad la
+     * conformidad viva del sistema; aquí cada auditoría tiene su propio informe,
+     * y dos auditorías cerradas del mismo sistema son dos documentos, no dos
+     * versiones del mismo.
+     *
+     * **Con sistema**, porque la auditoría lo lleva siempre, y **sin marco
+     * esperado**, porque la auditoría no lleva `marco_id`: lo que se audita es el
+     * sistema con el marco que tenga.
+     */
+    case InformeAuditoria = 'informe_auditoria';
+
+    /**
+     * El informe de estado: § 4.18, el octavo documento calculado.
+     *
+     * **Calculado, de la organización y sin fuente congelada detrás.** El acta
+     * imprime una revisión aprobada y el informe de auditoría una auditoría
+     * cerrada; éste imprime el registro tal como está al generarlo, igual que la
+     * SoA, y lo que se congela es la `instantanea` de esa generación. Sus cifras
+     * son las del panel, contadas por las mismas clases de dominio.
+     *
+     * **No es el INES**: el Informe Nacional del Estado de Seguridad es un
+     * cuestionario que se presenta al CCN, y éste es un informe interno para la
+     * dirección y el auditor. Lo dicen sus limitaciones.
+     */
+    case InformeEstado = 'informe_estado';
+
     public function etiqueta(): string
     {
         return match ($this) {
@@ -104,6 +136,8 @@ enum TipoDocumento: string
             self::Procedimiento => 'Procedimiento',
             self::PlanContinuidad => 'Plan de continuidad',
             self::DeclaracionConformidadEns => 'Declaración de Conformidad (ENS)',
+            self::InformeAuditoria => 'Informe de auditoría interna',
+            self::InformeEstado => 'Informe de estado de la seguridad',
         };
     }
 
@@ -121,6 +155,8 @@ enum TipoDocumento: string
             self::Procedimiento => 'Procedimiento',
             self::PlanContinuidad => 'Plan de continuidad',
             self::DeclaracionConformidadEns => 'DdC',
+            self::InformeAuditoria => 'Informe de auditoría',
+            self::InformeEstado => 'Informe de estado',
         };
     }
 
@@ -141,7 +177,8 @@ enum TipoDocumento: string
         return match ($this) {
             self::SoaIso, self::DdaEns, self::PlanAdecuacionEns,
             self::AnalisisContexto, self::ActaRevision,
-            self::DeclaracionConformidadEns => false,
+            self::DeclaracionConformidadEns, self::InformeAuditoria,
+            self::InformeEstado => false,
             self::Politica, self::Norma, self::Procedimiento,
             self::PlanContinuidad => true,
         };
@@ -164,8 +201,8 @@ enum TipoDocumento: string
     {
         return match ($this) {
             self::SoaIso, self::DdaEns, self::PlanAdecuacionEns,
-            self::DeclaracionConformidadEns => true,
-            self::AnalisisContexto, self::ActaRevision,
+            self::DeclaracionConformidadEns, self::InformeAuditoria => true,
+            self::AnalisisContexto, self::ActaRevision, self::InformeEstado,
             self::Politica, self::Norma, self::Procedimiento,
             self::PlanContinuidad => false,
         };
@@ -190,6 +227,7 @@ enum TipoDocumento: string
             self::PlanAdecuacionEns, self::AnalisisContexto, self::ActaRevision,
             self::Politica, self::Norma, self::Procedimiento,
             self::PlanContinuidad => 'Limitaciones de este documento',
+            self::InformeAuditoria, self::InformeEstado => 'Limitaciones de este informe',
         };
     }
 
@@ -223,8 +261,22 @@ enum TipoDocumento: string
             self::DeclaracionConformidadEns => 'ENS-RD311-2022',
             self::AnalisisContexto, self::ActaRevision,
             self::Politica, self::Norma, self::Procedimiento,
-            self::PlanContinuidad => null,
+            self::PlanContinuidad, self::InformeAuditoria, self::InformeEstado => null,
         };
+    }
+
+    /**
+     * Si el documento sólo se puede crear desde su fuente, y no desde el
+     * formulario de documentos.
+     *
+     * El informe de auditoría nace de la ficha de una auditoría cerrada, que es
+     * la que pone `auditoria_id`: desde el formulario no hay forma de nombrarla,
+     * y el `CHECK` `documentos_auditoria_check` lo rechazaría con un error de
+     * base de datos.
+     */
+    public function nacePorSuFuente(): bool
+    {
+        return $this === self::InformeAuditoria;
     }
 
     /*

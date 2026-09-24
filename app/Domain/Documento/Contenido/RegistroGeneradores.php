@@ -13,7 +13,8 @@ use Illuminate\Contracts\Container\Container;
  * Un `match` y no un array de configuración: así cada tipo nuevo lo señala
  * PHPStan en vez de dejar que reviente en ejecución delante de quien pulsó
  * «Generar». Ha avisado ya con el plan de adecuación, con el análisis del
- * contexto, con el acta de revisión y con la Declaración de Conformidad.
+ * contexto, con el acta de revisión, con la Declaración de Conformidad y con los dos
+ * informes del § 4.18.
  */
 final readonly class RegistroGeneradores
 {
@@ -28,6 +29,8 @@ final readonly class RegistroGeneradores
             TipoDocumento::AnalisisContexto => AnalisisDelContexto::class,
             TipoDocumento::ActaRevision => ActaRevisionDireccion::class,
             TipoDocumento::DeclaracionConformidadEns => DeclaracionConformidadEns::class,
+            TipoDocumento::InformeAuditoria => InformeAuditoriaInterna::class,
+            TipoDocumento::InformeEstado => InformeEstadoSeguridad::class,
 
             /*
              * Los tres redactados comparten generador: lo que los separa es qué

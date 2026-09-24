@@ -53,4 +53,31 @@ final class DocumentoNoGenerable extends RuntimeException
             .'conformidad: es la que fija la categoría y la autoevaluación que el documento declara.'
         );
     }
+
+    /**
+     * Un informe de auditoría sin auditoría detrás.
+     *
+     * El `CHECK` `documentos_auditoria_check` lo hace imposible en la base; esto
+     * existe para que un dato roto se explique en vez de reventar con un «call to
+     * a member function on null».
+     */
+    public static function sinAuditoria(): self
+    {
+        return new self(
+            'Este informe no está vinculado a ninguna auditoría. Prepáralo desde la ficha de la auditoría cerrada.'
+        );
+    }
+
+    /**
+     * El informe se imprime desde una auditoría **cerrada**: es el cierre lo que
+     * congela la checklist y los hallazgos. Si se reabrió después de preparar el
+     * informe, hay que volver a cerrarla.
+     */
+    public static function auditoriaSinCerrar(string $codigo): self
+    {
+        return new self(sprintf(
+            'La auditoría %s está abierta. El informe recoge lo que quedó congelado al cerrarla: vuelve a cerrarla antes de generarlo.',
+            $codigo,
+        ));
+    }
 }

@@ -58,6 +58,18 @@ enum TipoAuditoria: string
         return $this === self::Externa;
     }
 
+    /**
+     * Si Statera emite el informe de esta auditoría (§ 4.18, cláusula 9.2.2).
+     *
+     * **La externa no**: su informe lo firma la entidad certificadora, y uno
+     * emitido aquí sería la organización redactando el resultado de quien la ha
+     * auditado. Lo que se hace con él es guardarlo como evidencia.
+     */
+    public function admiteInforme(): bool
+    {
+        return $this !== self::Externa;
+    }
+
     public function icono(): string
     {
         return match ($this) {

@@ -162,7 +162,7 @@ class DocumentoController extends Controller
     {
         return Inertia::render('documentos/Formulario', [
             'documento' => $this->serializar($documento),
-            ...$this->opciones(),
+            ...$this->opciones($documento->tipo),
         ]);
     }
 
@@ -616,6 +616,8 @@ class DocumentoController extends Controller
             TipoDocumento::AnalisisContexto,
             TipoDocumento::ActaRevision,
             TipoDocumento::DeclaracionConformidadEns,
+            TipoDocumento::InformeAuditoria,
+            TipoDocumento::InformeEstado,
             TipoDocumento::Politica,
             TipoDocumento::Norma,
             TipoDocumento::Procedimiento,
@@ -624,9 +626,31 @@ class DocumentoController extends Controller
     }
 
     /**
+     * Los tipos que el formulario puede ofrecer.
+     *
+     * Un tipo que nace de su fuente —el informe de auditoría— no se ofrece al
+     * crear, porque desde aquí no hay forma de nombrar la auditoría; y un
+     * documento de ese tipo sólo puede seguir siéndolo. Ofrecerlo para que lo
+     * rechace el `FormRequest` sería un gesto que se acepta y luego falla.
+     *
+     * @return list<TipoDocumento>
+     */
+    private static function tiposOfrecidos(?TipoDocumento $actual): array
+    {
+        if ($actual?->nacePorSuFuente() === true) {
+            return [$actual];
+        }
+
+        return array_values(array_filter(
+            TipoDocumento::cases(),
+            static fn (TipoDocumento $tipo): bool => ! $tipo->nacePorSuFuente(),
+        ));
+    }
+
+    /**
      * @return array<string, mixed>
      */
-    private function opciones(): array
+    private function opciones(?TipoDocumento $actual = null): array
     {
         return [
             /*
@@ -647,7 +671,7 @@ class DocumentoController extends Controller
                     'etiqueta' => $tipo->etiqueta(),
                     'marco' => $tipo->marcoEsperado(),
                 ],
-                TipoDocumento::cases(),
+                self::tiposOfrecidos($actual),
             ),
             'clasificaciones' => array_map(
                 static fn (ClasificacionDocumental $c): array => ['valor' => $c->value, 'etiqueta' => $c->etiqueta()],

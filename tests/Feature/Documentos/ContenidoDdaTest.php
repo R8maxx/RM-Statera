@@ -231,7 +231,9 @@ it('ya no dice que el módulo de auditorías esté sin implantar, y declara lo q
         // Y lo que sigue sin hacer, incluido el que de verdad importa: sin
         // comprobar la cobertura del muestreo, «sin hallazgos» se lee como
         // «revisada y conforme».
-        ->toContain('informe de auditoría')
+        // El informe existe desde el § 4.18, y la frase vieja no vuelve.
+        ->not->toContain('generar el informe de auditoría como documento')
+        ->toContain('informe de auditoría en documento aparte')
         ->toContain('programa anual')
         ->toContain('no significa que se haya revisado');
 });

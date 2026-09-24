@@ -92,9 +92,11 @@ it('pinta toda columna declarada de la tabla larga', function (TipoDocumento $ti
 
         expect($celda['type'] ?? null)->toBe('tableCell');
     }
+    // Sólo los tipos que tienen tabla larga: en el resto el bucle no entra y el
+    // caso saldría «risky» sin comprobar nada.
 })->with(fn () => array_values(array_filter(
     TipoDocumento::cases(),
-    static fn (TipoDocumento $tipo): bool => ! $tipo->esRedactado(),
+    static fn (TipoDocumento $tipo): bool => ColumnasTabla::para($tipo) !== [],
 )));
 
 /**
