@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Aviso from '@/components/Aviso.vue';
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
 import BarraAcciones from '@/components/formulario/BarraAcciones.vue';
 import CampoOpciones from '@/components/formulario/CampoOpciones.vue';
@@ -141,13 +142,9 @@ function aplicar(): void {
                     </div>
                 </div>
 
-                <div
-                    v-if="previa.hasErrors"
-                    role="alert"
-                    class="rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive"
-                >
+                <Aviso v-if="previa.hasErrors" tono="error">
                     Revisa las dimensiones marcadas: las cinco tienen que llevar un nivel.
-                </div>
+                </Aviso>
 
                 <SeccionFormulario
                     v-for="dimension in dimensiones"

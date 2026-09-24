@@ -26,6 +26,17 @@ withDefaults(
         titulo: string;
         descripcion?: string | null;
         /**
+         * El identificador de lo que enseña la ficha —`R-001`, `op.acc.4`—,
+         * pintado como el chip neutro y monoespaciado de DESIGN.md §9.
+         *
+         * Existe porque cada ficha lo ponía en un sitio: seis de título, cuatro
+         * de descripción y el resto en ninguna parte. La regla es una: **si lo
+         * que se enseña tiene nombre, el nombre es el título y el código va
+         * aquí**; si no lo tiene —una no conformidad, una revisión—, el código
+         * es el título y esto no se pasa.
+         */
+        codigo?: string | null;
+        /**
          * El filete de acento sobre el título. Se apaga en la pantalla que ya
          * lleve uno: la regla de DESIGN.md §6 es uno por bloque y nunca dos en
          * la misma pantalla.
@@ -51,7 +62,15 @@ const { reducido } = useMovimientoReducido();
                 aria-hidden="true"
             />
 
-            <h1 class="text-xl leading-7 font-semibold tracking-[-0.015em] text-balance">{{ titulo }}</h1>
+            <div class="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+                <span
+                    v-if="codigo"
+                    class="cifra shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-xs text-muted-foreground"
+                >
+                    {{ codigo }}
+                </span>
+                <h1 class="text-xl leading-7 font-semibold tracking-[-0.015em] text-balance">{{ titulo }}</h1>
+            </div>
             <p v-if="descripcion" class="mt-1 max-w-2xl text-sm text-pretty text-muted-foreground">{{ descripcion }}</p>
 
             <!-- Para lo que matiza al título sin ser acción: la leyenda de

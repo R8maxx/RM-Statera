@@ -36,8 +36,15 @@ withDefaults(
          * un índice delante, la caja de texto se queda sin sitio para escribir.
          */
         ancho?: boolean;
+        /**
+         * El formulario es una sección de otra pantalla y no la pantalla entera.
+         * Su título baja a `<h2>` y pierde el filete: `riesgos/Metodologia`
+         * ponía su propia cabecera encima, y salían dos `<h1>` y dos filetes en
+         * la misma vista, contra «uno por pantalla» de DESIGN.md §6.
+         */
+        seccion?: boolean;
     }>(),
-    { method: 'post', etiquetaEnviar: 'Guardar', ancho: false },
+    { method: 'post', etiquetaEnviar: 'Guardar', ancho: false, seccion: false },
 );
 
 const { variantesEntrada } = useMovimientoReducido();
@@ -113,8 +120,21 @@ function irAlCampo(nombre: string): void {
     >
         <div ref="ancla" class="contents" />
 
-        <motion.div :variants="variantesEntrada" initial="oculto" animate="visible">
-            <CabeceraPagina :titulo="titulo" :descripcion="descripcion">
+        <!-- El ritmo del formulario, igual que el de la página: 32 px entre
+             la cabecera, el resumen de errores y las secciones. Sin esto, la
+             primera sección salía pegada a la leyenda de obligatorios. -->
+        <motion.div :variants="variantesEntrada" initial="oculto" animate="visible" class="space-y-8">
+            <div v-if="seccion">
+                <h2 class="text-base font-semibold tracking-[-0.01em]">{{ titulo }}</h2>
+                <p v-if="descripcion" class="mt-1 max-w-2xl text-sm text-pretty text-muted-foreground">
+                    {{ descripcion }}
+                </p>
+                <p v-if="hayObligatorios" class="mt-2 text-xs text-muted-foreground">
+                    {{ leyendaObligatorios }}
+                </p>
+            </div>
+
+            <CabeceraPagina v-else :titulo="titulo" :descripcion="descripcion">
                 <!-- Un formulario sin campos obligatorios no anuncia asteriscos. -->
                 <p v-if="hayObligatorios" class="mt-2 text-xs text-muted-foreground">
                     {{ leyendaObligatorios }}
@@ -124,7 +144,7 @@ function irAlCampo(nombre: string): void {
             <div
                 v-if="hasErrors"
                 role="alert"
-                class="mb-8 rounded-xl border border-destructive/40 bg-destructive/5 p-4"
+                class="rounded-xl border border-destructive/40 bg-destructive/5 p-4"
             >
                 <p class="flex items-center gap-2 text-sm font-medium text-destructive">
                     <AlertCircleIcon class="size-4" />

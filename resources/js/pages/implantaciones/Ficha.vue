@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ArrowLeftIcon } from '@lucide/vue';
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import CampoSwitch from '@/components/formulario/CampoSwitch.vue';
@@ -6,7 +7,7 @@ import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
 import MensajeError from '@/components/formulario/MensajeError.vue';
 import BloqueEvidencias, { type EvidenciaVinculada } from '@/components/implantacion/BloqueEvidencias.vue';
-import HistoricoTransiciones, { type Transicion } from '@/components/implantacion/HistoricoTransiciones.vue';
+import HistoricoTransiciones, { type Transicion } from '@/components/HistoricoTransiciones.vue';
 import MapeoCruzado from '@/components/implantacion/MapeoCruzado.vue';
 import CeldaBadge from '@/components/tabla/celdas/CeldaBadge.vue';
 import { Button } from '@/components/ui/button';
@@ -112,10 +113,10 @@ function cambiarEstado(): void {
 
 <template>
     <AppLayout :titulo="requisito.codigo">
-        <CabeceraPagina :titulo="requisito.codigo" :descripcion="requisito.titulo">
+        <CabeceraPagina :titulo="requisito.titulo" :codigo="requisito.codigo">
             <template #acciones>
                 <Button as-child variant="ghost">
-                    <Link href="/implantaciones">Volver a la tabla</Link>
+                    <Link href="/implantaciones"><ArrowLeftIcon />Volver a la tabla</Link>
                 </Button>
             </template>
         </CabeceraPagina>
@@ -212,7 +213,7 @@ function cambiarEstado(): void {
                             />
                         </div>
 
-                        <div v-else class="rounded-xl border bg-superficie px-4 py-3">
+                        <div v-else class="border-l-2 border-primary pl-4">
                             <p class="text-sm font-medium">La exigencia de esta medida se deriva</p>
                             <p class="mt-1 text-sm text-muted-foreground">
                                 {{ exigencia.origen }}. Deja de exigirse cambiando la valoración de las dimensiones
@@ -266,7 +267,7 @@ function cambiarEstado(): void {
                     </CardContent>
 
                     <CardFooter class="justify-end">
-                        <Button :disabled="gestion.processing" @click="guardar">
+                        <Button variant="outline" :disabled="gestion.processing" @click="guardar">
                             {{ gestion.processing ? 'Guardando…' : 'Guardar' }}
                         </Button>
                     </CardFooter>

@@ -56,7 +56,7 @@ const historicas = () => props.asignaciones.filter((una) => !una.vigente);
 
 <template>
     <AppLayout :titulo="puesto.titulo">
-        <CabeceraPagina :titulo="puesto.titulo">
+        <CabeceraPagina :titulo="puesto.titulo" :codigo="puesto.codigo">
             <template #acciones>
                 <Button as-child variant="outline">
                     <Link href="/puestos/organigrama">Ver el organigrama</Link>
@@ -76,7 +76,6 @@ const historicas = () => props.asignaciones.filter((una) => !una.vigente);
                     icono: puesto.caracterizado ? 'CheckCircle2' : 'CircleDashed',
                 }"
             />
-            <span class="cifra text-sm text-muted-foreground">{{ puesto.codigo }}</span>
             <span v-if="puesto.reporta_a" class="text-sm text-muted-foreground">
                 Depende de
                 <Link

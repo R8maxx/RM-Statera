@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ArrowLeftIcon } from '@lucide/vue';
+import Aviso from '@/components/Aviso.vue';
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
 import CeldaBadge from '@/components/tabla/celdas/CeldaBadge.vue';
 import DataTable, { type Fila } from '@/components/tabla/DataTable.vue';
@@ -73,8 +75,8 @@ function marcarConformes(_accion: App.Http.Resources.Definicion.Accion, ids: (nu
                         icono: auditoria.estadoIcono,
                     }"
                 />
-                <Button as-child variant="outline">
-                    <Link :href="`/auditorias/${auditoria.id}`">Volver a la auditoría</Link>
+                <Button as-child variant="ghost">
+                    <Link :href="`/auditorias/${auditoria.id}`"><ArrowLeftIcon />Volver a la auditoría</Link>
                 </Button>
             </template>
         </CabeceraPagina>
@@ -84,14 +86,11 @@ function marcarConformes(_accion: App.Http.Resources.Definicion.Accion, ids: (nu
             sólo al intentarlo: un gesto que se ofrece y luego falla se explica
             mucho peor que uno que no se ofrece.
         -->
-        <p
-            v-if="!auditoria.admiteCambios"
-            class="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground"
-        >
-            Esta auditoría está cerrada: su checklist quedó congelada tal como se
-            entregó y ya no admite cambios. Para corregir algo hay que reabrirla
-            desde su ficha, y eso queda registrado.
-        </p>
+        <Aviso v-if="!auditoria.admiteCambios" titulo="Auditoría cerrada">
+            Su checklist quedó congelada tal como se entregó y ya no admite
+            cambios. Para corregir algo hay que reabrirla desde su ficha, y eso
+            queda registrado.
+        </Aviso>
 
         <DataTable
             :recurso="recurso"

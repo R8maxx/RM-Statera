@@ -185,7 +185,7 @@ function retirar(): void {
 
 <template>
     <AppLayout :titulo="compromiso.titulo">
-        <CabeceraPagina :titulo="compromiso.titulo" :descripcion="compromiso.descripcion ?? undefined">
+        <CabeceraPagina :titulo="compromiso.titulo" :codigo="compromiso.codigo" :descripcion="compromiso.descripcion ?? undefined">
             <template #acciones>
                 <Button v-if="puedeGestionar && compromiso.activo" @click="abierto = true">
                     Registrar cumplimiento

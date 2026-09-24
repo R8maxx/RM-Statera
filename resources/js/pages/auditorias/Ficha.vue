@@ -489,7 +489,7 @@ const sinTratar = computed(
                                 ayuda="Qué salió de la auditoría. Se congela con ella."
                                 @input="conclusiones = ($event.target as HTMLTextAreaElement).value"
                             />
-                            <Button :disabled="enviando" @click="mover('cerrada')">
+                            <Button variant="outline" :disabled="enviando" @click="mover('cerrada')">
                                 Cerrar la auditoría
                             </Button>
                         </div>

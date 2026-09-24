@@ -320,7 +320,7 @@ const dimensiones: Record<string, string> = {
 
 <template>
     <AppLayout :titulo="`${riesgo.codigo} · ${riesgo.titulo}`">
-        <CabeceraPagina :titulo="riesgo.titulo" :descripcion="riesgo.amenaza">
+        <CabeceraPagina :titulo="riesgo.titulo" :codigo="riesgo.codigo" :descripcion="riesgo.amenaza">
             <template #acciones>
                 <Button as-child variant="outline">
                     <Link :href="`/riesgos/${riesgo.id}/editar`">Editar</Link>
@@ -330,8 +330,6 @@ const dimensiones: Record<string, string> = {
 
         <motion.div :variants="variantesEntrada" initial="oculto" animate="visible" class="space-y-6">
             <div class="flex flex-wrap items-center gap-2">
-                <span class="cifra text-sm text-muted-foreground">{{ riesgo.codigo }}</span>
-
                 <CeldaBadge
                     v-if="valoracion"
                     :valor="{

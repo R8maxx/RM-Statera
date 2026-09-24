@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import Aviso from '@/components/Aviso.vue';
+import HistoricoTransiciones, { type Transicion } from '@/components/HistoricoTransiciones.vue';
 import BotonEstado from '@/components/BotonEstado.vue';
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
@@ -62,16 +64,6 @@ interface Actuacion {
     coste: string | null;
 }
 
-interface Transicion {
-    id: number;
-    anterior: string | null;
-    nuevo: string;
-    tono: string;
-    icono: string;
-    usuario: string | null;
-    fecha: string;
-    nota: string | null;
-}
 
 interface Objetivo {
     id: number;
@@ -244,7 +236,7 @@ const abiertas = computed(
 
 <template>
     <AppLayout :titulo="objetivo.codigo">
-        <CabeceraPagina :titulo="objetivo.codigo" :descripcion="objetivo.titulo">
+        <CabeceraPagina :titulo="objetivo.titulo" :codigo="objetivo.codigo">
             <template #acciones>
                 <Button v-if="puedeGestionar" as-child variant="outline">
                     <Link :href="`/objetivos/${objetivo.id}/editar`">Editar</Link>
@@ -312,14 +304,11 @@ const abiertas = computed(
                         </CardDescription>
                     </CardHeader>
                     <CardContent class="space-y-4">
-                        <p
-                            v-if="avance.contradice"
-                            class="rounded-xl border border-border bg-muted/40 p-4 text-sm"
-                        >
+                        <Aviso v-if="avance.contradice">
                             Este objetivo figura como alcanzado y
                             {{ avance.medidos - avance.enObjetivo }} de sus
                             {{ avance.medidos }} indicadores medidos no llegan a su objetivo.
-                        </p>
+                        </Aviso>
 
                         <EstadoVacio
                             v-if="indicadores.length === 0"
@@ -473,7 +462,7 @@ const abiertas = computed(
                     </CardContent>
                 </Card>
 
-                <Card v-if="historial.length > 0">
+                <Card>
                     <CardHeader>
                         <CardTitle>Histórico</CardTitle>
                         <CardDescription>
@@ -483,25 +472,7 @@ const abiertas = computed(
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <ul class="divide-y divide-border">
-                            <li v-for="paso in historial" :key="paso.id" class="space-y-1 py-3">
-                                <div class="flex flex-wrap items-center gap-2">
-                                    <CeldaBadge
-                                        :valor="{
-                                            valor: paso.nuevo,
-                                            etiqueta: paso.nuevo,
-                                            tono: paso.tono,
-                                            icono: paso.icono,
-                                        }"
-                                    />
-                                    <span class="text-xs text-muted-foreground">
-                                        {{ paso.fecha }}
-                                        <template v-if="paso.usuario"> · {{ paso.usuario }}</template>
-                                    </span>
-                                </div>
-                                <p v-if="paso.nota" class="text-sm">{{ paso.nota }}</p>
-                            </li>
-                        </ul>
+                        <HistoricoTransiciones :transiciones="historial" />
                     </CardContent>
                 </Card>
             </div>

@@ -5,7 +5,7 @@ import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import ComparativaRecuperacion, { type ServicioComparado } from '@/components/continuidad/ComparativaRecuperacion.vue';
 import EstadoVacio from '@/components/EstadoVacio.vue';
-import HistoricoTransiciones, { type Transicion } from '@/components/implantacion/HistoricoTransiciones.vue';
+import HistoricoTransiciones, { type Transicion } from '@/components/HistoricoTransiciones.vue';
 import CeldaBadge from '@/components/tabla/celdas/CeldaBadge.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -265,7 +265,7 @@ function crearMejora(): void {
 
 <template>
     <AppLayout :titulo="prueba.codigo">
-        <CabeceraPagina :titulo="prueba.titulo" :descripcion="prueba.codigo">
+        <CabeceraPagina :titulo="prueba.titulo" :codigo="prueba.codigo">
             <template #acciones>
                 <Button v-if="puedeGestionar && planificada" as-child variant="outline">
                     <Link :href="`/continuidad/pruebas/${prueba.id}/editar`">Editar</Link>

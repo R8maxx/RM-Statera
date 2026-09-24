@@ -182,7 +182,7 @@ function desvincularTarea(id: number): void {
 
 <template>
     <AppLayout :titulo="`${cuestion.codigo} · ${cuestion.titulo}`">
-        <CabeceraPagina :titulo="cuestion.titulo" :descripcion="cuestion.descripcion">
+        <CabeceraPagina :titulo="cuestion.titulo" :codigo="cuestion.codigo" :descripcion="cuestion.descripcion">
             <template #acciones>
                 <Button v-if="puedeGestionar" variant="outline" size="sm" as-child>
                     <Link :href="`/contexto/cuestiones/${cuestion.id}/editar`">Editar</Link>
@@ -202,7 +202,6 @@ function desvincularTarea(id: number): void {
             <Card>
                 <CardHeader>
                     <CardTitle class="flex flex-wrap items-center gap-2">
-                        <span class="cifra text-sm text-muted-foreground">{{ cuestion.codigo }}</span>
                         <span
                             class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium"
                             :class="tono(cuestion.tipo.tono).badge"

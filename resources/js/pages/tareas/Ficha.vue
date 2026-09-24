@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import HistoricoTransiciones, { type Transicion } from '@/components/HistoricoTransiciones.vue';
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
 import EstadoVacio from '@/components/EstadoVacio.vue';
 import BotonEstado from '@/components/BotonEstado.vue';
@@ -24,15 +25,6 @@ interface Vinculo {
     estadoEtiqueta: string;
 }
 
-interface Transicion {
-    id: number;
-    anterior: string | null;
-    nuevo: string;
-    tono: string;
-    quien: string | null;
-    cuando: string;
-    nota: string | null;
-}
 
 interface PruebaContinuidad {
     id: number;
@@ -113,9 +105,6 @@ function guardarSubtareas(pasos: Paso[]): void {
 }
 
 const fecha = (valor: string | null): string => (valor ? formatoFecha.format(new Date(valor)) : '—');
-
-const fechaHora = (valor: string): string =>
-    new Date(valor).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' });
 
 // Ya viene escrito del servidor: el euro se formatea en `Domain\Tarea\Coste`,
 // que es lo que lee también la tabla y el plan de adecuación.
@@ -261,20 +250,7 @@ function mover(estado: string): void {
                     </CardHeader>
 
                     <CardContent>
-                        <ol class="space-y-4">
-                            <li v-for="paso in historico" :key="paso.id" class="flex gap-3 text-sm">
-                                <CeldaBadge :valor="{ valor: paso.nuevo, etiqueta: paso.nuevo, tono: paso.tono }" />
-
-                                <div class="min-w-0">
-                                    <p class="text-muted-foreground">
-                                        <template v-if="paso.anterior">desde «{{ paso.anterior }}» · </template>
-                                        {{ fechaHora(paso.cuando) }}
-                                        <template v-if="paso.quien"> · {{ paso.quien }}</template>
-                                    </p>
-                                    <p v-if="paso.nota" class="mt-0.5">{{ paso.nota }}</p>
-                                </div>
-                            </li>
-                        </ol>
+                        <HistoricoTransiciones :transiciones="historico" />
                     </CardContent>
                 </Card>
             </div>

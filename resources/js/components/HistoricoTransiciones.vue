@@ -3,6 +3,7 @@ import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
 import { motion } from 'motion-v';
 import CeldaBadge from '@/components/tabla/celdas/CeldaBadge.vue';
 import { formatoFechaHora } from '@/lib/celdas';
+import { curva, duracion } from '@/lib/motion';
 
 export interface Transicion {
     id: number;
@@ -24,12 +25,12 @@ export interface Transicion {
  * Aquí se lee del más reciente al más antiguo porque lo que se consulta casi
  * siempre es lo último que pasó.
  *
- * **Dos consumidores desde el § 4.10**: la ficha de una implantación y la de un
- * incidente. Sigue viviendo en `components/implantacion/` porque es donde nació
- * y la regla de la casa mueve al tercero, no al segundo; el día que llegue, esto
- * va a `components/` a secas, al lado de `Aviso` y `EstadoVacio`, y son dos
- * líneas de import. Lo que no puede pasar mientras tanto es que el fichero
- * vuelva a nombrar «implantación» por dentro.
+ * **Es el histórico de todas las fichas con máquina de estados**: implantación,
+ * incidente, BIA, prueba de continuidad, tarea, no conformidad, mejora y
+ * objetivo. Nació en `components/implantacion/` y subió aquí cuando las cuatro
+ * últimas dejaron de pintar el suyo a mano —cuatro listas distintas para la
+ * misma pregunta, dos con la fecha ya cocinada en el servidor y tres que
+ * desaparecían enteras con el historial vacío—.
  *
  * **El tono llega del servidor y no se deduce de la clave del estado.** Lo pide
  * `DESIGN.md` §9 y es lo que permite que la misma pieza sirva a dos máquinas de
@@ -59,7 +60,7 @@ const retrasoDe = (indice: number): number => (reducido.value ? 0 : Math.min(ind
             :key="transicion.id"
             :initial="reducido ? { opacity: 1 } : { opacity: 0, y: 6 }"
             :animate="{ opacity: 1, y: 0 }"
-            :transition="{ duration: reducido ? 0 : 0.22, delay: retrasoDe(indice), ease: [0.16, 1, 0.3, 1] }"
+            :transition="{ duration: reducido ? 0 : duracion.normal, delay: retrasoDe(indice), ease: curva }"
             class="relative"
         >
             <span
@@ -95,6 +96,6 @@ const retrasoDe = (indice: number): number => (reducido.value ? 0 : Math.min(ind
     </ol>
 
     <p v-else class="text-sm text-muted-foreground">
-        Todavía no hay transiciones registradas.
+        Sin cambios de estado todavía.
     </p>
 </template>

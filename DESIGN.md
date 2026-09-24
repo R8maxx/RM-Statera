@@ -419,7 +419,15 @@ Un solo primario por vista. El texto nombra la acción concreta: «Guardar cambi
 - **Una escala corta se elige de un clic, no en un desplegable** (`CampoOpciones.vue`, sobre `RadioGroupRoot` de Reka). Vale para lo que **ordena**: los niveles del Anexo I, la madurez. Es el mismo argumento que hay más abajo para no pintar la madurez como badge —lo que se pregunta es si esto es más que aquello, y eso lo contesta la posición antes que el texto—, y con las cinco dimensiones a la vista se ve de golpe cuál manda, que es la que decide la categoría. A menos de `sm` se reparte en dos columnas.
 - **Una sección se pliega desde su título**, que es donde se mira y donde se pulsa; el chevron va delante y el estado en `aria-expanded`. El recuento de obligatorios que faltan se queda **fuera de lo que se pliega**, para que plegar no esconda que la sección todavía debe dos campos.
 - **Una sección plegada sigue en el DOM.** Se pliega con `v-show`, no con `v-if` ni con el `Collapsible` de Reka: lo que sale del DOM sale del `FormData`, y con campos `nullable` una edición los borraría en silencio. `display:none` no excluye nada del envío —`FormData` sólo se salta los deshabilitados y los que no tienen `name`—, mientras que el `forceMount` de Reka deja el contenido montado pero **visible**, que no es plegar. Y el resumen de errores abre la sección antes de saltar al campo: dentro de un `display:none` no se puede enfocar ni desplazar nada.
+- **Un formulario dentro de otra pantalla** (`FormularioRecurso` con `seccion`) lleva su título en `<h2>` y sin filete. La cabecera de página es de la pantalla.
 - **Salir con cambios sin guardar pregunta.** `BarraAcciones` intercepta Cancelar en fase de captura —en burbujeo competiría con el manejador del `<Link>` de Inertia— y registra un `beforeunload`. No se intercepta toda navegación: `router.on('before')` es síncrono y no admite esperar a un diálogo.
+
+**Fichas.** La pantalla de una cosa concreta —un riesgo, un activo, una no conformidad—. Lo que se lee igual en todas:
+
+- **Título e identificador.** Si lo que se enseña tiene nombre, el nombre es el título y el código va en el chip de `CabeceraPagina` (`codigo`), monoespaciado y neutro, delante del título. Si no lo tiene —una no conformidad, una mejora, una revisión—, el código es el título. Antes seis fichas ponían el código de título, cuatro en la descripción y el resto en ningún sitio.
+- **Histórico.** Toda ficha con máquina de estados lo pinta con `HistoricoTransiciones`, con la fecha en ISO desde el servidor, y **la tarjeta no desaparece** cuando está vacía: dice «Sin cambios de estado todavía». Un histórico que se esconde no contesta a «¿desde cuándo?», que es para lo que está (invariante 7).
+- **Volver.** En las subpantallas —grafo, checklist, editor, historial— es un botón `ghost` con flecha, el primero del hueco de acciones.
+- **Lo que viene de otra ficha** —el hallazgo que abrió una no conformidad, la exigencia que deriva el motor— se cita con una regla de 2 px a la izquierda, no con una caja con borde dentro de la tarjeta. Una tarjeta dentro de otra no dice nada que no diga ya la sangría.
 
 **Tarjetas.** `bg-card`, radio `rounded-xl`, `ring-1 ring-foreground/10` en lugar de borde, padding vertical 24. Más de cuatro tarjetas idénticas seguidas suele significar que eso era una tabla.
 
@@ -475,7 +483,9 @@ El tono que viaja del servidor es **un nombre de estado del dominio, no un color
 
 **Modales.** `rounded-xl`, padding 24, ancho máximo `sm:max-w-md` salvo formularios largos. Primario a la derecha. Escape y clic fuera cierran, salvo con cambios sin guardar.
 
-**Estados vacíos.** Título de una línea que dice qué falta, una frase de contexto y un botón. Nada de ilustraciones genéricas.
+**Estados vacíos.** Título de una línea que dice qué falta, una frase de contexto y un botón. Nada de ilustraciones genéricas. **Dentro de una tarjeta se compacta solo** (`in-data-[slot=card]:`): sin la balanza de fondo, con menos aire y el icono más pequeño. Una ficha con cuatro secciones vacías pintaba cuatro balanzas, y §2 pide una por pieza.
+
+**Errores que no tienen dónde pintarse.** Un 422 cuyo mensaje no aparece en la pantalla —un cambio de estado con `router.post` suelto, sin campo al lado— sale en un toast de error. Lo decide un solo oyente en `AppLayout` mirando si el texto está pintado, no cada llamada con su `onError`: el formulario que ya lo enseña junto al campo no lo duplica.
 
 **Carga.** Esqueletos con la forma del contenido real y pulso, no ruedas girando. Spinner sólo donde no hay forma que anticipar. Cuando ya hay contenido y sólo se está reconsultando —filtrar, ordenar, paginar— no se sustituye por esqueletos: un hilo de 2 px recorre el borde superior de la tabla y el resto se queda quieto. Es el único bucle del chrome de trabajo, dura lo que dura la petición y con `prefers-reduced-motion` se pinta quieto. Cuando lo que se espera es un **documento** —Gotenberg tarda decenas de segundos—, el esqueleto tiene la forma de la página que va a salir: portada, tabla y pie. Es donde esta regla se gana el sueldo, porque es la única espera del producto lo bastante larga como para que una rueda girando se note vacía.
 

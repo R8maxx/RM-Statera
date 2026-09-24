@@ -13,6 +13,12 @@ import { motion } from 'motion-v';
  * explicar para qué sirve la pantalla. Antes cada sitio improvisaba el suyo con
  * un `<p>` gris, y el más importante —el panel sin ningún sistema, que es lo
  * primero que ve alguien que estrena la herramienta— no decía qué hacer.
+ *
+ * **Dentro de una tarjeta se compacta solo**, con `in-data-[slot=card]:`: sin
+ * balanza, con menos aire y el icono más pequeño. Una ficha con cuatro
+ * secciones vacías pintaba cuatro balanzas de 22 rem, y §2 pide «una por pieza,
+ * nunca repetida en patrón». Se decide por dónde está y no por una prop, para
+ * que ninguna de las cuarenta llamadas tenga que acordarse.
  */
 defineProps<{
     icono?: LucideIcon;
@@ -29,7 +35,7 @@ const { variantesEntrada } = useMovimientoReducido();
         :variants="variantesEntrada"
         initial="oculto"
         animate="visible"
-        class="relative flex flex-col items-center overflow-hidden px-6 py-14 text-center"
+        class="relative flex flex-col items-center overflow-hidden px-6 py-14 text-center in-data-[slot=card]:px-4 in-data-[slot=card]:py-6"
     >
         <!--
             La balanza ampliada y recortada por el borde, al 7 % de opacidad.
@@ -57,18 +63,20 @@ const { variantesEntrada } = useMovimientoReducido();
         -->
         <SimboloBalanza
             :trazo="1"
-            class="pointer-events-none absolute -right-20 -bottom-24 h-[22rem] w-[22rem] text-primary opacity-[0.07] select-none"
+            class="pointer-events-none absolute -right-20 -bottom-24 h-[22rem] w-[22rem] text-primary opacity-[0.07] select-none in-data-[slot=card]:hidden"
         />
 
         <span
             v-if="icono"
-            class="relative mb-4 flex size-11 items-center justify-center rounded-full bg-accent text-accent-foreground"
+            class="relative mb-4 flex size-11 items-center justify-center rounded-full bg-accent text-accent-foreground in-data-[slot=card]:mb-3 in-data-[slot=card]:size-9"
         >
-            <component :is="icono" class="size-5" />
+            <component :is="icono" class="size-5 in-data-[slot=card]:size-4" />
         </span>
 
-        <p class="relative text-sm font-medium">{{ titulo }}</p>
-        <p v-if="descripcion" class="relative mt-1.5 max-w-sm text-sm text-muted-foreground">
+        <p class="relative text-base font-semibold text-balance in-data-[slot=card]:text-sm in-data-[slot=card]:font-medium">
+            {{ titulo }}
+        </p>
+        <p v-if="descripcion" class="relative mt-1.5 max-w-sm text-sm text-pretty text-muted-foreground">
             {{ descripcion }}
         </p>
 

@@ -264,7 +264,7 @@ const cuando = (valor: string | null): string =>
                 />
 
                 <div class="flex justify-end">
-                    <Button :disabled="datos.processing" @click="guardarDatos">
+                    <Button variant="outline" :disabled="datos.processing" @click="guardarDatos">
                         {{ datos.processing ? 'Guardando…' : 'Guardar' }}
                     </Button>
                 </div>
@@ -303,7 +303,7 @@ const cuando = (valor: string | null): string =>
                 />
 
                 <div class="flex justify-end">
-                    <Button :disabled="password.processing" @click="cambiarPassword">
+                    <Button variant="outline" :disabled="password.processing" @click="cambiarPassword">
                         {{ password.processing ? 'Guardando…' : 'Cambiar la contraseña' }}
                     </Button>
                 </div>
@@ -393,7 +393,7 @@ const cuando = (valor: string | null): string =>
                         </Link>
                     </Button>
 
-                    <Button v-if="sinSegundoFactor" @click="activar">Activar</Button>
+                    <Button v-if="sinSegundoFactor" variant="outline" @click="activar">Activar</Button>
                     <Button v-else variant="ghost" @click="desactivar">Desactivar</Button>
                 </div>
             </SeccionFormulario>

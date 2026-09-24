@@ -188,7 +188,7 @@ class MejoraController extends Controller
                     'tono' => $transicion->estado_nuevo->tono(),
                     'icono' => $transicion->estado_nuevo->icono(),
                     'usuario' => $transicion->usuario?->name,
-                    'fecha' => $transicion->created_at->format('d/m/Y H:i'),
+                    'fecha' => $transicion->created_at->toIso8601String(),
                     'nota' => $transicion->nota,
                 ])
                 ->values()

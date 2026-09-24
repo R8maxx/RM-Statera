@@ -50,7 +50,7 @@ const { variantesEntrada } = useMovimientoReducido();
     <motion.div
         class="flex items-start gap-2.5 rounded-xl border px-3.5 py-3 text-sm"
         :class="estilo.caja"
-        :role="tono === 'error' ? 'alert' : 'status'"
+        :role="tono === 'error' ? 'alert' : undefined"
         :variants="variantesEntrada"
         initial="oculto"
         animate="visible"
@@ -58,7 +58,9 @@ const { variantesEntrada } = useMovimientoReducido();
         <component :is="estilo.icono" class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
         <div class="min-w-0">
             <p v-if="titulo" class="font-medium">{{ titulo }}</p>
-            <p :class="titulo && 'mt-0.5 opacity-90'"><slot /></p>
+            <!-- `div` y no `p`: quien lo usa pasa párrafos, y un `<p>` dentro
+                 de otro no es HTML válido — el navegador lo parte en dos. -->
+            <div :class="titulo && 'mt-0.5 opacity-90'"><slot /></div>
         </div>
     </motion.div>
 </template>

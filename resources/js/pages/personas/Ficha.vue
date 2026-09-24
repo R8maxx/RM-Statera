@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { fechaLegible } from '@/lib/celdas';
 import Aviso from '@/components/Aviso.vue';
 import BloqueAdjuntos, { type Adjunto as Documento } from '@/components/adjunto/BloqueAdjuntos.vue';
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
@@ -356,7 +357,7 @@ function guardarLista(tipo: string, pasos: Paso[]): void {
 
 <template>
     <AppLayout :titulo="persona.nombre">
-        <CabeceraPagina :titulo="persona.nombre" :descripcion="persona.puesto ?? persona.codigo">
+        <CabeceraPagina :titulo="persona.nombre" :codigo="persona.codigo" :descripcion="persona.puesto">
             <template #acciones>
                 <Button v-if="puedeGestionar" as-child variant="outline">
                     <Link :href="`/personas/${persona.id}/editar`">Editar</Link>
@@ -375,8 +376,8 @@ function guardarLista(tipo: string, pasos: Paso[]): void {
             />
             <span class="cifra text-sm text-muted-foreground">{{ persona.codigo }}</span>
             <span class="text-sm text-muted-foreground">
-                Desde el {{ persona.fecha_alta }}
-                <template v-if="persona.fecha_baja"> hasta el {{ persona.fecha_baja }}</template>
+                Desde el {{ fechaLegible(persona.fecha_alta) }}
+                <template v-if="persona.fecha_baja"> hasta el {{ fechaLegible(persona.fecha_baja) }}</template>
             </span>
             <span v-if="persona.email" class="text-sm text-muted-foreground">{{ persona.email }}</span>
         </div>
@@ -726,7 +727,7 @@ function guardarLista(tipo: string, pasos: Paso[]): void {
                                         icono: item.vigente ? 'FileCheck' : 'FileX',
                                     }"
                                 />
-                                <span>Firmado el {{ item.fecha_firma }}</span>
+                                <span>Firmado el {{ fechaLegible(item.fecha_firma) }}</span>
                                 <span v-if="item.vigente_hasta" class="text-xs text-muted-foreground">
                                     hasta el {{ item.vigente_hasta }}
                                 </span>

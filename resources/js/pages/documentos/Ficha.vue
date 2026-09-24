@@ -189,7 +189,7 @@ const kb = (bytes: number | null | undefined): string =>
 
 <template>
     <AppLayout :titulo="documento.codigo">
-        <CabeceraPagina :titulo="documento.titulo" :descripcion="documento.tipoEtiqueta">
+        <CabeceraPagina :titulo="documento.titulo" :codigo="documento.codigo" :descripcion="documento.tipoEtiqueta">
             <template #acciones>
                 <Button as-child variant="outline">
                     <Link :href="`/documentos/${documento.id}/cuerpo`">

@@ -131,6 +131,7 @@ const fecha = (valor: string | null): string => (valor ? formatoFecha.format(new
             </Card>
 
             <FormularioRecurso
+                seccion
                 titulo="Definir la metodología"
                 descripcion="Los escalones son cinco y cinco. Lo que se escribe aquí es cómo los entiende tu organización: si dos personas eligen el mismo escalón ante el mismo caso, el análisis es comparable consigo mismo."
                 action="/riesgos/metodologia"

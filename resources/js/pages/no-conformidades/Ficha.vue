@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { fechaLegible } from '@/lib/celdas';
+import HistoricoTransiciones, { type Transicion } from '@/components/HistoricoTransiciones.vue';
 import BotonEstado from '@/components/BotonEstado.vue';
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
@@ -65,16 +67,6 @@ interface Accion {
     coste: string | null;
 }
 
-interface Transicion {
-    id: number;
-    anterior: string | null;
-    nuevo: string;
-    tono: string;
-    icono: string;
-    usuario: string | null;
-    fecha: string;
-    nota: string | null;
-}
 
 interface NoConformidad {
     id: number;
@@ -241,7 +233,7 @@ const abiertas = computed(
                 }"
             />
             <span class="text-sm text-muted-foreground">
-                Detectada el {{ noConformidad.fecha_deteccion }}
+                Detectada el {{ fechaLegible(noConformidad.fecha_deteccion) }}
             </span>
         </div>
 
@@ -258,7 +250,7 @@ const abiertas = computed(
                     <CardContent class="space-y-4 text-sm">
                         <div
                             v-if="hallazgo"
-                            class="space-y-2 rounded-xl border border-border bg-muted/40 p-4"
+                            class="space-y-2 border-l-2 border-border pl-4"
                         >
                             <div class="flex flex-wrap items-center gap-2">
                                 <CeldaBadge
@@ -396,7 +388,7 @@ const abiertas = computed(
                     </CardContent>
                 </Card>
 
-                <Card v-if="historial.length > 0">
+                <Card>
                     <CardHeader>
                         <CardTitle>Histórico</CardTitle>
                         <CardDescription>
@@ -405,25 +397,7 @@ const abiertas = computed(
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <ul class="divide-y divide-border">
-                            <li v-for="paso in historial" :key="paso.id" class="space-y-1 py-3">
-                                <div class="flex flex-wrap items-center gap-2">
-                                    <CeldaBadge
-                                        :valor="{
-                                            valor: paso.nuevo,
-                                            etiqueta: paso.nuevo,
-                                            tono: paso.tono,
-                                            icono: paso.icono,
-                                        }"
-                                    />
-                                    <span class="text-xs text-muted-foreground">
-                                        {{ paso.fecha }}
-                                        <template v-if="paso.usuario"> · {{ paso.usuario }}</template>
-                                    </span>
-                                </div>
-                                <p v-if="paso.nota" class="text-sm">{{ paso.nota }}</p>
-                            </li>
-                        </ul>
+                        <HistoricoTransiciones :transiciones="historial" />
                     </CardContent>
                 </Card>
             </div>

@@ -7,7 +7,7 @@ import TramosImpacto from '@/components/continuidad/TramosImpacto.vue';
 import { FileTextIcon, FlaskConicalIcon, NetworkIcon } from '@lucide/vue';
 import HistoricoTransiciones, {
     type Transicion,
-} from '@/components/implantacion/HistoricoTransiciones.vue';
+} from '@/components/HistoricoTransiciones.vue';
 import CeldaBadge from '@/components/tabla/celdas/CeldaBadge.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -142,7 +142,7 @@ function mover(paso: Destino): void {
 
 <template>
     <AppLayout :titulo="bia.servicio ?? 'BIA'">
-        <CabeceraPagina :titulo="bia.servicio ?? 'BIA'" :descripcion="bia.servicioCodigo">
+        <CabeceraPagina :titulo="bia.servicio ?? 'BIA'" :codigo="bia.servicioCodigo">
             <template #acciones>
                 <Button v-if="puedeGestionar" as-child variant="outline">
                     <Link :href="`/continuidad/bia/${bia.id}/editar`">Editar</Link>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ArrowLeftIcon } from '@lucide/vue';
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
 import IconoTipo from '@/components/IconoTipo.vue';
 import { Button } from '@/components/ui/button';
@@ -121,8 +122,8 @@ function aprobar(): void {
             :descripcion="`Análisis del contexto de la organización, con fecha ${analisis.fechaAnalisis}.`"
         >
             <template #acciones>
-                <Button variant="outline" size="sm" as-child>
-                    <Link href="/contexto/analisis">Volver al historial</Link>
+                <Button variant="ghost" as-child>
+                    <Link href="/contexto/analisis"><ArrowLeftIcon />Volver al historial</Link>
                 </Button>
                 <Button
                     v-if="puedeAprobar && analisis.numero === null"

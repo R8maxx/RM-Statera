@@ -221,7 +221,7 @@ const abiertoRetirar = computed({
 
 <template>
     <AppLayout :titulo="`Conformidad · ${sistema.codigo}`">
-        <CabeceraPagina :titulo="sistema.nombre" :descripcion="`${sistema.codigo} · ${sistema.marco}`">
+        <CabeceraPagina :titulo="sistema.nombre" :codigo="sistema.codigo" :descripcion="sistema.marco">
             <template #acciones>
                 <Button as-child variant="outline">
                     <Link :href="`/sistemas/${sistema.id}`">Ver el sistema</Link>

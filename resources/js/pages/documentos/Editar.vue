@@ -4,7 +4,7 @@ import VistaImpresion from '@/components/documento/VistaImpresion.vue';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { router, usePoll } from '@inertiajs/vue3';
-import { FileTextIcon } from '@lucide/vue';
+import { FileTextIcon, ArrowLeftIcon } from '@lucide/vue';
 import { computed, defineAsyncComponent, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
 import { toast } from 'vue-sonner';
 
@@ -207,11 +207,14 @@ const etiquetaPdf = computed(() => {
     <AppLayout :titulo="`Editar ${documento.codigo}`">
         <CabeceraPagina
             :titulo="documento.titulo"
-            :descripcion="`${documento.tipoEtiqueta} · ${documento.codigo}. Se edita el documento entero. Los apartados que salen del registro llevan su distintivo: cambiarlos queda declarado en el propio documento.`"
+            :codigo="documento.codigo"
+            :descripcion="`${documento.tipoEtiqueta}. Se edita el documento entero. Los apartados que salen del registro llevan su distintivo: cambiarlos queda declarado en el propio documento.`"
         >
             <template #acciones>
-                <Button variant="outline" as-child>
-                    <a :href="`/documentos/${documento.id}`">Volver a la ficha</a>
+                <!-- `<a>` y no `Link`, a propósito: la navegación completa es
+                     la que dispara el aviso de cambios sin guardar. -->
+                <Button variant="ghost" as-child>
+                    <a :href="`/documentos/${documento.id}`"><ArrowLeftIcon />Volver a la ficha</a>
                 </Button>
                 <!--
                     Un solo botón de color lleno por vista (DESIGN.md §9): aquí

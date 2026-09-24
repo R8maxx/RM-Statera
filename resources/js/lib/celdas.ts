@@ -26,6 +26,16 @@ export function fechaDe(valor: unknown): Date | null {
     return Number.isNaN(instante.getTime()) ? null : instante;
 }
 
+/**
+ * Una fecha ISO del servidor, legible en una frase: «Detectada el 23 sept 2026».
+ * Varias fichas interpolaban la cadena tal cual y salía «el 2026-09-23».
+ */
+export function fechaLegible(valor: string | null | undefined): string {
+    const fecha = fechaDe(valor);
+
+    return fecha ? formatoFecha.format(fecha) : (valor ?? '—');
+}
+
 export function esVacio(valor: unknown): boolean {
     return valor === null || valor === undefined || valor === '';
 }

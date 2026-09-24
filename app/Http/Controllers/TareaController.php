@@ -274,8 +274,9 @@ class TareaController extends Controller
                     'anterior' => $transicion->estado_anterior?->etiqueta(),
                     'nuevo' => $transicion->estado_nuevo->etiqueta(),
                     'tono' => $transicion->estado_nuevo->tono(),
-                    'quien' => $transicion->usuario?->name,
-                    'cuando' => $transicion->created_at->toIso8601String(),
+                    'icono' => $transicion->estado_nuevo->icono(),
+                    'usuario' => $transicion->usuario?->name,
+                    'fecha' => $transicion->created_at->toIso8601String(),
                     'nota' => $transicion->nota,
                 ])
                 ->all(),

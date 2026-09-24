@@ -106,7 +106,7 @@ const borrar = (medicion: Medicion): void => {
 
 <template>
     <AppLayout :titulo="indicador.codigo">
-        <CabeceraPagina :titulo="indicador.nombre" :descripcion="indicador.codigo">
+        <CabeceraPagina :titulo="indicador.nombre" :codigo="indicador.codigo">
             <template #acciones>
                 <!--
                     Un solo elemento fuerte por pantalla (DESIGN.md § 14), y en

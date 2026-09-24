@@ -38,7 +38,7 @@ import {
 } from '@lucide/vue';
 import { useStorage } from '@vueuse/core';
 import { MotionConfig, motion } from 'motion-v';
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
 import { toast } from 'vue-sonner';
 import 'vue-sonner/style.css';
 
@@ -89,6 +89,33 @@ const { variantesEntrada } = useMovimientoReducido();
  * en el historial.
  */
 let dejarDeEscuchar: (() => void) | undefined;
+let dejarDeEscucharErrores: (() => void) | undefined;
+
+/*
+ * Un error de validación que no se ve en ninguna parte se anuncia.
+ *
+ * Las fichas cambian de estado, descartan o vinculan con `router.post` suelto,
+ * y un 422 del `FormRequest` dejaba la pantalla igual: el botón no hacía nada y
+ * nadie decía por qué. Añadir `onError` a cada una de las ~60 llamadas era
+ * fiarse de que la siguiente se acuerde, así que el criterio es uno y está aquí:
+ * **si el mensaje no aparece pintado en la pantalla, sale en un toast**. Un
+ * formulario que ya lo pinta junto a su campo no lo duplica.
+ *
+ * Se comprueba en el `nextTick`: Inertia deja los errores en las props antes de
+ * emitir el evento, y Vue los pinta en el repintado siguiente. No con
+ * `requestAnimationFrame`, que no corre con la pestaña en segundo plano.
+ */
+function anunciarErroresSinSitio(errores: Record<string, string>): void {
+    void nextTick(() => {
+        // El `body` y no `#contenido`: un diálogo se pinta fuera, teletransportado.
+        const visible = document.body.innerText;
+        const sinSitio = Object.values(errores).find((mensaje) => !visible.includes(mensaje));
+
+        if (sinSitio !== undefined) {
+            toast.error(sinSitio);
+        }
+    });
+}
 
 onMounted(() => {
     dejarDeEscuchar = router.on('flash', (evento) => {
@@ -102,9 +129,14 @@ onMounted(() => {
             toast.error(flash.error);
         }
     });
+
+    dejarDeEscucharErrores = router.on('error', (evento) => anunciarErroresSinSitio(evento.detail.errors));
 });
 
-onUnmounted(() => dejarDeEscuchar?.());
+onUnmounted(() => {
+    dejarDeEscuchar?.();
+    dejarDeEscucharErrores?.();
+});
 
 const salir = (): void => router.post('/logout');
 </script>

@@ -9,7 +9,7 @@ import EstadoVacio from '@/components/EstadoVacio.vue';
 import { ServerIcon } from '@lucide/vue';
 import HistoricoTransiciones, {
     type Transicion,
-} from '@/components/implantacion/HistoricoTransiciones.vue';
+} from '@/components/HistoricoTransiciones.vue';
 import CeldaBadge from '@/components/tabla/celdas/CeldaBadge.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -180,7 +180,7 @@ function anotarNotificacion(): void {
 
 <template>
     <AppLayout :titulo="incidente.codigo">
-        <CabeceraPagina :titulo="incidente.codigo" :descripcion="incidente.titulo">
+        <CabeceraPagina :titulo="incidente.titulo" :codigo="incidente.codigo">
             <template #acciones>
                 <Button v-if="puedeGestionar" as-child variant="outline">
                     <Link :href="`/incidentes/${incidente.id}/editar`">Editar</Link>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ArrowLeftIcon } from '@lucide/vue';
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
 import EstadoVacio from '@/components/EstadoVacio.vue';
 import NodoActivo from '@/components/activo/NodoActivo.vue';
@@ -92,8 +93,8 @@ watch(
             descripcion="Arriba lo que se cae si este activo cae; abajo lo que necesita para funcionar. El color de cada caja es su valoración efectiva, que es la que sube por estos vínculos."
         >
             <template #acciones>
-                <Button as-child variant="outline">
-                    <Link :href="`/activos/${activo.id}`">Volver a la ficha</Link>
+                <Button as-child variant="ghost">
+                    <Link :href="`/activos/${activo.id}`"><ArrowLeftIcon />Volver a la ficha</Link>
                 </Button>
             </template>
         </CabeceraPagina>

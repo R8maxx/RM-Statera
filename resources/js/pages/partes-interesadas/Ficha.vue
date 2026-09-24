@@ -195,7 +195,7 @@ function desvincular(requisitoId: number, implantacionId: number): void {
 
 <template>
     <AppLayout :titulo="`${parte.codigo} · ${parte.nombre}`">
-        <CabeceraPagina :titulo="parte.nombre" :descripcion="parte.descripcion">
+        <CabeceraPagina :titulo="parte.nombre" :codigo="parte.codigo" :descripcion="parte.descripcion">
             <template #acciones>
                 <Button v-if="puedeGestionar" variant="outline" size="sm" as-child>
                     <Link :href="`/partes-interesadas/${parte.id}/editar`">Editar</Link>
@@ -215,7 +215,6 @@ function desvincular(requisitoId: number, implantacionId: number): void {
             <Card>
                 <CardHeader>
                     <CardTitle class="flex flex-wrap items-center gap-2">
-                        <span class="cifra text-sm text-muted-foreground">{{ parte.codigo }}</span>
                         <span class="text-sm font-normal text-muted-foreground">
                             {{ parte.tipo }} · {{ parte.ambito }}
                         </span>
@@ -276,7 +275,7 @@ function desvincular(requisitoId: number, implantacionId: number): void {
                     <article
                         v-for="requisito in requisitos"
                         :key="requisito.id"
-                        class="space-y-2 rounded-xl border border-border p-4"
+                        class="space-y-2 border-b border-border pb-4 last:border-b-0 last:pb-0"
                     >
                         <header class="flex flex-wrap items-start justify-between gap-2">
                             <p class="min-w-0 text-sm">{{ requisito.descripcion }}</p>

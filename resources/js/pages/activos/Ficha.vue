@@ -151,7 +151,7 @@ function retirar(dependenciaId: number): void {
 
 <template>
     <AppLayout :titulo="`${activo.codigo} · ${activo.nombre}`">
-        <CabeceraPagina :titulo="activo.nombre" :descripcion="activo.descripcion">
+        <CabeceraPagina :titulo="activo.nombre" :codigo="activo.codigo" :descripcion="activo.descripcion">
             <template #acciones>
                 <Button as-child variant="outline">
                     <Link :href="`/activos/${activo.id}/editar`">Editar</Link>

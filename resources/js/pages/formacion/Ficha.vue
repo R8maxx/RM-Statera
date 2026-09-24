@@ -147,7 +147,7 @@ function guardar(): void {
 
 <template>
     <AppLayout :titulo="accion.codigo">
-        <CabeceraPagina :titulo="accion.titulo" :descripcion="accion.codigo">
+        <CabeceraPagina :titulo="accion.titulo" :codigo="accion.codigo">
             <template #acciones>
                 <Button v-if="puedeGestionar" as-child variant="outline">
                     <Link :href="`/formacion/${accion.id}/editar`">Editar</Link>
