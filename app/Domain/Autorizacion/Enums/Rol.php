@@ -178,6 +178,14 @@ enum Rol: string
                  */
                 Permiso::ContinuidadVer,
                 Permiso::ContinuidadGestionar,
+                /*
+                 * Prepara la declaración de conformidad y registra el
+                 * distintivo, y **no la firma**: la firma es la de la
+                 * Declaración de Conformidad, y ésa pide `documentos.aprobar`,
+                 * que el técnico no tiene.
+                 */
+                Permiso::ConformidadVer,
+                Permiso::ConformidadGestionar,
                 Permiso::RevisionDireccionVer,
                 Permiso::RevisionDireccionGestionar,
                 Permiso::DocumentosVer,
@@ -218,6 +226,8 @@ enum Rol: string
                 Permiso::PersonasVer,
                 Permiso::IncidentesVer,
                 Permiso::ContinuidadVer,
+                // La conformidad es lo primero que un auditor externo mira.
+                Permiso::ConformidadVer,
                 Permiso::RevisionDireccionVer,
                 Permiso::DocumentosVer,
                 /*

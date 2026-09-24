@@ -60,6 +60,9 @@ final class MaterializarCuerpo
         'ficha_revision' => 'la ficha de la reunión',
         'entradas_revision' => 'las entradas de la revisión por la dirección',
         'tabla_decisiones' => 'la tabla de decisiones',
+        'declaracion_formal' => 'la declaración formal de conformidad',
+        'ficha_autoevaluacion' => 'la ficha de la autoevaluación',
+        'resultado_autoevaluacion' => 'el resultado de la autoevaluación',
         'limitaciones_sistema' => 'las limitaciones del sistema',
         'control_versiones' => 'el control de versiones',
     ];
@@ -142,6 +145,9 @@ final class MaterializarCuerpo
             'ficha_revision' => $this->fichaRevision($contenido),
             'entradas_revision' => $this->entradasRevision($contenido),
             'tabla_decisiones' => $this->tablaDecisiones($contenido),
+            'declaracion_formal' => $this->declaracionFormal($contenido),
+            'ficha_autoevaluacion' => $this->fichaAutoevaluacion($contenido),
+            'resultado_autoevaluacion' => $this->resultadoAutoevaluacion($contenido),
             'limitaciones_sistema' => $this->limitaciones($contenido, $editado, $tocados),
             'control_versiones' => $this->controlVersiones($contenido),
 
@@ -1633,6 +1639,153 @@ final class MaterializarCuerpo
         }
 
         return Nodo::de('table', [], $filas);
+    }
+
+    // --- Declaración de Conformidad (§ 4.17) --------------------------------
+
+    /**
+     * La frase que el documento existe para decir.
+     *
+     * **Se construye, no se redacta**, y se vuelve a pedir en cada generación
+     * (`EsquemaCuerpo::SIEMPRE_RECALCULADOS`): quién declara, qué sistema, qué
+     * categoría y sobre qué autoevaluación son identificación y tienen que
+     * coincidir con el registro.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function declaracionFormal(ContenidoDocumento $contenido): array
+    {
+        $d = $contenido->extras['declaracion'] ?? null;
+
+        if (! is_array($d)) {
+            return [Nodo::parrafo('No hay ninguna declaración de conformidad iniciada que recoger.', 'vacio')];
+        }
+
+        $organizacion = $this->cadena($d, 'organizacion') ?? 'La organización';
+        $cif = $this->cadena($d, 'cif');
+        $sistema = trim(($this->cadena($d, 'sistemaCodigo') ?? '').' '.($this->cadena($d, 'sistemaNombre') ?? ''));
+        $categoria = mb_strtoupper($this->cadena($d, 'categoria') ?? '—');
+        $autoevaluacion = $this->cadena($d, 'autoevaluacion') ?? '—';
+        $cierre = $this->cadena($d, 'fechaCierre');
+
+        $frase = '**'.$organizacion.'**'.($cif === null ? '' : ', con CIF '.$cif.',')
+            .' declara que el sistema de información **'.$sistema.'**, de categoría **'.$categoria.'**, '
+            .'es conforme con el Esquema Nacional de Seguridad, regulado por el Real Decreto 311/2022, '
+            .'de 3 de mayo, según la autoevaluación **'.$autoevaluacion.'**'
+            .($cierre === null ? '' : ', cerrada el '.$cierre).'.';
+
+        $firmante = $this->cadena($d, 'firmante');
+        $fechaFirma = $this->cadena($d, 'fechaFirma');
+        $vigente = $this->cadena($d, 'vigenteHasta');
+
+        $pie = $firmante === null
+            ? 'Pendiente de firma. La declaración surte efecto cuando se aprueba y se emite esta versión.'
+            : 'Firmada por '.$firmante.($fechaFirma === null ? '' : ' el '.$fechaFirma)
+                .($vigente === null ? '.' : '. Vigente hasta el '.$vigente.', salvo que se retire antes.');
+
+        return [
+            Nodo::de('caja', ['variante' => 'marca'], [
+                Nodo::parrafoRico($frase),
+            ]),
+            Nodo::parrafo($pie, 'suave'),
+        ];
+    }
+
+    /**
+     * De dónde sale la declaración: la autoevaluación que la respalda.
+     *
+     * «Sin registrar» y no una fila ausente, como en la ficha de la reunión:
+     * quién hizo la autoevaluación es lo primero que se comprueba.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function fichaAutoevaluacion(ContenidoDocumento $contenido): array
+    {
+        $d = $contenido->extras['declaracion'] ?? null;
+
+        if (! is_array($d)) {
+            return [Nodo::parrafo('No hay ninguna autoevaluación que recoger.', 'vacio')];
+        }
+
+        $filas = [
+            Nodo::de('fichaFila', ['clave' => 'Autoevaluación'], [Nodo::texto($this->cadena($d, 'autoevaluacion') ?? '—', ['cifra'])]),
+            Nodo::de('fichaFila', ['clave' => 'Realizada el'], [Nodo::texto($this->cadena($d, 'fechaAutoevaluacion') ?? '—')]),
+            Nodo::de('fichaFila', ['clave' => 'Cerrada el'], [Nodo::texto($this->cadena($d, 'fechaCierre') ?? '—')]),
+            Nodo::de('fichaFila', ['clave' => 'Realizada por'], [Nodo::texto($this->cadena($d, 'auditor') ?? 'Sin registrar')]),
+            Nodo::de('fichaFila', ['clave' => 'Categoría declarada'], [Nodo::texto($this->cadena($d, 'categoria') ?? '—', ['bold'])]),
+        ];
+
+        $alcance = $this->cadena($d, 'alcanceAuditado');
+
+        if ($alcance !== null) {
+            $filas[] = Nodo::de('fichaFila', ['clave' => 'Alcance auditado'], [Nodo::texto($alcance)]);
+        }
+
+        return [Nodo::de('ficha', [], $filas)];
+    }
+
+    /**
+     * El resultado, contado sobre la checklist congelada y con su denominador.
+     *
+     * **En texto y no en badges**: «no conforme» y «no conformidad mayor» gastan
+     * el rojo en la aplicación, y el documento no lo tiene entre sus tonos
+     * (`EsquemaCuerpo::TONOS_BADGE`). Pintarlos en gris los igualaría a una
+     * medida fuera de muestra, que es peor que no colorear ninguno.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function resultadoAutoevaluacion(ContenidoDocumento $contenido): array
+    {
+        $r = $contenido->extras['resultado'] ?? null;
+
+        if (! is_array($r) || $this->entero($r, 'total') === 0) {
+            return [Nodo::parrafo('La autoevaluación no tiene checklist: no hay medidas revisadas que contar.', 'vacio')];
+        }
+
+        $total = $this->entero($r, 'total');
+
+        $filas = [Nodo::fila([
+            Nodo::cabeceraCelda('Resultado', null, 'col'),
+            Nodo::cabeceraCelda('Medidas', '1.2in', 'col'),
+        ])];
+
+        foreach (is_array($r['puntos'] ?? null) ? $r['puntos'] : [] as $punto) {
+            if (! is_array($punto)) {
+                continue;
+            }
+
+            $filas[] = Nodo::fila([
+                Nodo::celdaTexto($this->cadena($punto, 'etiqueta') ?? '—'),
+                Nodo::celda([Nodo::texto((string) $this->entero($punto, 'total'), ['cifra'])]),
+            ]);
+        }
+
+        $filas[] = Nodo::fila([
+            Nodo::celda([Nodo::texto('Total de medidas de la checklist', ['bold'])]),
+            Nodo::celda([Nodo::texto((string) $total, ['bold', 'cifra'])]),
+        ]);
+
+        $hallazgos = [Nodo::fila([
+            Nodo::cabeceraCelda('Hallazgo', null, 'col'),
+            Nodo::cabeceraCelda('Registrados', '1.2in', 'col'),
+        ])];
+
+        foreach (is_array($r['hallazgos'] ?? null) ? $r['hallazgos'] : [] as $hallazgo) {
+            if (! is_array($hallazgo)) {
+                continue;
+            }
+
+            $hallazgos[] = Nodo::fila([
+                Nodo::celdaTexto($this->cadena($hallazgo, 'etiqueta') ?? '—'),
+                Nodo::celda([Nodo::texto((string) $this->entero($hallazgo, 'total'), ['cifra'])]),
+            ]);
+        }
+
+        return [
+            Nodo::de('table', [], $filas),
+            Nodo::encabezado(3, 'Hallazgos', null, 'separado'),
+            Nodo::de('table', [], $hallazgos),
+        ];
     }
 
     // --- Cierre -------------------------------------------------------------

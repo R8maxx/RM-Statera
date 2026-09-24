@@ -96,7 +96,7 @@ No usar paquetes de multi-tenancy de terceros: es la frontera de seguridad princ
 
 ## Los módulos
 
-Veinticinco puntos, y el orden importa: el catálogo y el motor son la parte más
+Veintiséis puntos, y el orden importa: el catálogo y el motor son la parte más
 específica del dominio y la que más se estropea si se improvisa; el resto es CRUD con
 reglas de negocio encima. **El porqué de cada uno —qué problema abrió, qué decisión se
 tomó y qué dejó declarado que no hace— está en su fichero de reglas**, y la bitácora
@@ -129,15 +129,19 @@ completa con el razonamiento del orden, en `.ai/rules/orden-de-arranque.md`.
 | 23 | La marca del cliente | — | `organizacion.md` |
 | 24 | El calendario de obligaciones | 4.16 | `obligaciones.md` |
 | 25 | Continuidad — **cierra la fase 3** | 4.11 | `continuidad.md` |
+| 26 | Conformidad con el ENS, categoría básica | 4.17 | `conformidad.md` |
 
 **La fase 3 está cerrada.** Con continuidad (§ 4.11) dentro —el BIA por servicio,
 el plan como documento y las pruebas que lo contrastan— el ciclo vivo se recorre
 entero: auditar, tratar, medir, revisar desde la dirección, vigilar los plazos y
 comprobar que la organización sabe recuperarse.
 
-Lo que queda: los otros dos tercios del flujo de conformidad (§ 4.17); informes y
-exportación (§ 4.18); la gestión de cuentas y roles (§ 4.19); proveedores (§ 4.9), y el
-registro de vulnerabilidades del invariante 8.
+Y con el punto 26 el objetivo de la fase actual se recorre de punta a punta: la
+conformidad de categoría básica —autoevaluación, Declaración firmada y distintivo— ya
+tiene dónde vivir (§ 4.17). La vía de media y alta se modela y no se recorre.
+
+Lo que queda: informes y exportación (§ 4.18); la gestión de cuentas y roles (§ 4.19);
+proveedores (§ 4.9), y el registro de vulnerabilidades del invariante 8.
 
 ## El catálogo
 
@@ -224,7 +228,7 @@ sobre el directorio pilla lo que un encaje de ruta se deja.
 | `interfaz.md` | `resources/js/**` | `lib/tonos.ts` y `lib/navegacion.ts` como mapas únicos; los tres canales de un estado; qué librería entró, cuál no y por qué |
 | `tests.md` | `tests/**` | Los nueve tests que descubren en vez de enumerar |
 | `infraestructura.md` | `docker-compose.yml`, `docker/**`, `.env.example` | Los dos endpoints de MinIO, `quay.io`, el `ARG UID`, `predis` |
-| `orden-de-arranque.md` | este fichero, `README.md`, `PRODUCT.md` | La bitácora de los 25 puntos, con el razonamiento del orden |
+| `orden-de-arranque.md` | este fichero, `README.md`, `PRODUCT.md` | La bitácora de los 26 puntos, con el razonamiento del orden |
 
 ### Por módulo
 
@@ -249,6 +253,7 @@ sobre el directorio pilla lo que un encaje de ruta se deja.
 | `personas.md` | `app/Domain/Persona/**`, personas, puestos, formación y `lib/organigrama.ts` |
 | `incidentes.md` | `app/Domain/Incidente/**` y sus pantallas |
 | `continuidad.md` | `app/Domain/Continuidad/**`, el BIA, las pruebas y sus pantallas |
+| `conformidad.md` | `app/Domain/Conformidad/**`, la conformidad y la Declaración de Conformidad |
 | `adjuntos.md` | `app/Domain/Adjunto/**` y `components/adjunto/**` |
 | `panel.md` | `app/Domain/Panel/**` y las tres vistas del panel |
 | `organizacion.md` | `app/Domain/Organizacion/**` y la ficha del tenant |

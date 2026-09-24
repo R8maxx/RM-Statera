@@ -18,7 +18,7 @@ export type TipoHallazgo = 'nc_mayor' | 'nc_menor' | 'observacion' | 'oportunida
 }
 namespace Autorizacion {
 namespace Enums {
-export type Permiso = 'panel.ver' | 'contexto.ver' | 'contexto.gestionar' | 'contexto.aprobar' | 'sistemas.ver' | 'sistemas.gestionar' | 'sistemas.valorar' | 'implantaciones.ver' | 'implantaciones.gestionar' | 'evidencias.ver' | 'evidencias.gestionar' | 'activos.ver' | 'activos.gestionar' | 'riesgos.ver' | 'riesgos.gestionar' | 'riesgos.aceptar' | 'tareas.ver' | 'tareas.gestionar' | 'auditorias.ver' | 'auditorias.gestionar' | 'no_conformidades.ver' | 'no_conformidades.gestionar' | 'no_conformidades.verificar' | 'mejoras.ver' | 'mejoras.gestionar' | 'indicadores.ver' | 'indicadores.gestionar' | 'objetivos.ver' | 'objetivos.gestionar' | 'objetivos.aprobar' | 'personas.ver' | 'personas.gestionar' | 'personas.designar' | 'incidentes.ver' | 'incidentes.gestionar' | 'continuidad.ver' | 'continuidad.gestionar' | 'continuidad.aprobar' | 'revision_direccion.ver' | 'revision_direccion.gestionar' | 'revision_direccion.aprobar' | 'documentos.ver' | 'documentos.generar' | 'documentos.aprobar' | 'documentos.redactar' | 'documentos.plantillas' | 'organizacion.gestionar' | 'calendario.ver' | 'obligaciones.ver' | 'obligaciones.gestionar';
+export type Permiso = 'panel.ver' | 'contexto.ver' | 'contexto.gestionar' | 'contexto.aprobar' | 'sistemas.ver' | 'sistemas.gestionar' | 'sistemas.valorar' | 'implantaciones.ver' | 'implantaciones.gestionar' | 'evidencias.ver' | 'evidencias.gestionar' | 'activos.ver' | 'activos.gestionar' | 'riesgos.ver' | 'riesgos.gestionar' | 'riesgos.aceptar' | 'tareas.ver' | 'tareas.gestionar' | 'auditorias.ver' | 'auditorias.gestionar' | 'no_conformidades.ver' | 'no_conformidades.gestionar' | 'no_conformidades.verificar' | 'mejoras.ver' | 'mejoras.gestionar' | 'indicadores.ver' | 'indicadores.gestionar' | 'objetivos.ver' | 'objetivos.gestionar' | 'objetivos.aprobar' | 'personas.ver' | 'personas.gestionar' | 'personas.designar' | 'incidentes.ver' | 'incidentes.gestionar' | 'continuidad.ver' | 'continuidad.gestionar' | 'continuidad.aprobar' | 'conformidad.ver' | 'conformidad.gestionar' | 'revision_direccion.ver' | 'revision_direccion.gestionar' | 'revision_direccion.aprobar' | 'documentos.ver' | 'documentos.generar' | 'documentos.aprobar' | 'documentos.redactar' | 'documentos.plantillas' | 'organizacion.gestionar' | 'calendario.ver' | 'obligaciones.ver' | 'obligaciones.gestionar';
 export type Rol = 'responsable_seguridad' | 'tecnico' | 'auditor';
 }
 }
@@ -54,6 +54,12 @@ export type NivelDimension = 'na' | 'bajo' | 'medio' | 'alto';
 export type OrigenExigencia = 'categoria' | 'modulacion_dimension' | 'perfil' | 'catalogo';
 }
 }
+namespace Conformidad {
+namespace Enums {
+export type EstadoConformidad = 'en_preparacion' | 'declarada' | 'publicada' | 'retirada';
+export type ViaConformidad = 'declaracion' | 'certificacion';
+}
+}
 namespace Contexto {
 namespace Enums {
 export type Ambito = 'interno' | 'externo';
@@ -82,7 +88,7 @@ export type EstadoDocumental = 'borrador' | 'en_revision' | 'aprobado' | 'rechaz
 export type EstadoGeneracion = 'encolada' | 'generando' | 'generada' | 'fallida';
 export type OrigenTexto = 'plantilla' | 'propio';
 export type SeccionNarrativa = 'introduccion' | 'objeto_y_alcance' | 'metodologia' | 'nota_resumen' | 'nota_tabla' | 'nota_derivacion' | 'nota_madurez' | 'nota_exclusiones' | 'conclusiones' | 'limitaciones_propias' | 'aprobacion';
-export type TipoDocumento = 'soa_iso' | 'dda_ens' | 'plan_adecuacion_ens' | 'analisis_contexto' | 'acta_revision' | 'politica' | 'norma' | 'procedimiento' | 'plan_continuidad';
+export type TipoDocumento = 'soa_iso' | 'dda_ens' | 'plan_adecuacion_ens' | 'analisis_contexto' | 'acta_revision' | 'politica' | 'norma' | 'procedimiento' | 'plan_continuidad' | 'declaracion_conformidad_ens';
 }
 }
 namespace Evidencia {

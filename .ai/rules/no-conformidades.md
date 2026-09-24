@@ -149,8 +149,9 @@ pintaría tres chips para un solo compromiso—.
 > frase habría envejecido igual que la del plan de adecuación. El argumento —tres chips para un
 > compromiso— no depende del número y se queda; el número, no.
 
-**Y el § 4.17 se queda a un tercio.** El flujo de conformidad de categoría básica son tres pasos
-—autoevaluación → Declaración de Conformidad → publicación del distintivo— y de esos existe el primero:
-`TipoAuditoria::Autoevaluacion` con su checklist y sus hallazgos. La Declaración de Conformidad es un
-cuarto documento calculado y el distintivo es un trámite ante el CCN; ninguno de los dos entra aquí. Se
-declara por escrito, que es lo que este proyecto hace con lo que aún no puede afirmar.
+**El § 4.17 ya no se queda a un tercio.** Decía que del flujo de categoría básica —autoevaluación →
+Declaración de Conformidad → distintivo— sólo existía el primer paso. Los otros dos llegaron con su
+propio módulo (`.ai/rules/conformidad.md`), y la costura con éste es una sola: **una no conformidad
+mayor abierta sobre la autoevaluación impide iniciar la declaración**, y «abierta» se lee con
+`EstadoNoConformidad::esCerrada()`. Las menores no bloquean. Se reescribe y no se borra, como las
+limitaciones de los documentos: la frase anterior había pasado a ser falsa.

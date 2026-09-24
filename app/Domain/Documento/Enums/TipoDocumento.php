@@ -43,10 +43,10 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * El cuarto nivel de esa jerarquía —el **registro**— no entra: un registro es la
  * salida de un procedimiento, no un documento que Statera redacte y versione.
  *
- * La lista seguirá creciendo —informe de auditoría interna, informe de estado,
- * Declaración de Conformidad del ENS— y por eso el `CHECK` de la tabla enumera
- * valores en vez de usar un tipo enum de PostgreSQL. El acta de la revisión por
- * la dirección, que llevaba en esta lista desde el principio, ya está.
+ * La lista seguirá creciendo —informe de auditoría interna, informe de estado— y
+ * por eso el `CHECK` de la tabla enumera valores en vez de usar un tipo enum de
+ * PostgreSQL. El acta de la revisión por la dirección y la Declaración de
+ * Conformidad del ENS, que llevaban en esta lista desde el principio, ya están.
  */
 #[TypeScript]
 enum TipoDocumento: string
@@ -78,6 +78,19 @@ enum TipoDocumento: string
      */
     case PlanContinuidad = 'plan_continuidad';
 
+    /**
+     * La Declaración de Conformidad del ENS: § 4.17, categoría básica, y el sexto
+     * documento calculado.
+     *
+     * **Calculado y con sistema**, como la DdA: lo que se declara conforme es un
+     * sistema de información concreto con su categoría. Pero no hereda de
+     * `DocumentoCalculado`, porque no imprime la tabla del Anexo II —eso ya lo
+     * hace la DdA de al lado—: imprime la declaración formal, la autoevaluación
+     * que la respalda y su resultado, **congelados** en la conformidad que la
+     * inició.
+     */
+    case DeclaracionConformidadEns = 'declaracion_conformidad_ens';
+
     public function etiqueta(): string
     {
         return match ($this) {
@@ -90,6 +103,7 @@ enum TipoDocumento: string
             self::Norma => 'Norma',
             self::Procedimiento => 'Procedimiento',
             self::PlanContinuidad => 'Plan de continuidad',
+            self::DeclaracionConformidadEns => 'Declaración de Conformidad (ENS)',
         };
     }
 
@@ -106,6 +120,7 @@ enum TipoDocumento: string
             self::Norma => 'Norma',
             self::Procedimiento => 'Procedimiento',
             self::PlanContinuidad => 'Plan de continuidad',
+            self::DeclaracionConformidadEns => 'DdC',
         };
     }
 
@@ -125,7 +140,8 @@ enum TipoDocumento: string
     {
         return match ($this) {
             self::SoaIso, self::DdaEns, self::PlanAdecuacionEns,
-            self::AnalisisContexto, self::ActaRevision => false,
+            self::AnalisisContexto, self::ActaRevision,
+            self::DeclaracionConformidadEns => false,
             self::Politica, self::Norma, self::Procedimiento,
             self::PlanContinuidad => true,
         };
@@ -147,7 +163,8 @@ enum TipoDocumento: string
     public function exigeSistema(): bool
     {
         return match ($this) {
-            self::SoaIso, self::DdaEns, self::PlanAdecuacionEns => true,
+            self::SoaIso, self::DdaEns, self::PlanAdecuacionEns,
+            self::DeclaracionConformidadEns => true,
             self::AnalisisContexto, self::ActaRevision,
             self::Politica, self::Norma, self::Procedimiento,
             self::PlanContinuidad => false,
@@ -168,7 +185,8 @@ enum TipoDocumento: string
     public function tituloLimitaciones(): string
     {
         return match ($this) {
-            self::SoaIso, self::DdaEns => 'Limitaciones de esta declaración',
+            self::SoaIso, self::DdaEns,
+            self::DeclaracionConformidadEns => 'Limitaciones de esta declaración',
             self::PlanAdecuacionEns, self::AnalisisContexto, self::ActaRevision,
             self::Politica, self::Norma, self::Procedimiento,
             self::PlanContinuidad => 'Limitaciones de este documento',
@@ -201,7 +219,8 @@ enum TipoDocumento: string
     {
         return match ($this) {
             self::SoaIso => 'ISO27001-2022',
-            self::DdaEns, self::PlanAdecuacionEns => 'ENS-RD311-2022',
+            self::DdaEns, self::PlanAdecuacionEns,
+            self::DeclaracionConformidadEns => 'ENS-RD311-2022',
             self::AnalisisContexto, self::ActaRevision,
             self::Politica, self::Norma, self::Procedimiento,
             self::PlanContinuidad => null,

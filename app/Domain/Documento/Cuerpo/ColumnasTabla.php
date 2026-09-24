@@ -105,6 +105,7 @@ final class ColumnasTabla
              */
             TipoDocumento::AnalisisContexto,
             TipoDocumento::ActaRevision,
+            TipoDocumento::DeclaracionConformidadEns,
             TipoDocumento::Politica,
             TipoDocumento::Norma,
             TipoDocumento::Procedimiento,
@@ -125,6 +126,7 @@ final class ColumnasTabla
             // Sin tabla larga no hay recuento que etiquetar.
             TipoDocumento::AnalisisContexto,
             TipoDocumento::ActaRevision,
+            TipoDocumento::DeclaracionConformidadEns,
             TipoDocumento::Politica,
             TipoDocumento::Norma,
             TipoDocumento::Procedimiento,

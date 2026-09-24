@@ -138,6 +138,12 @@ final class EsquemaCuerpo
         'ficha_revision',
         'entradas_revision',
         'tabla_decisiones',
+        // Las tres de la Declaración de Conformidad (§ 4.17). La primera es la
+        // frase que el documento existe para decir, y por eso se recalcula
+        // siempre: ver `SIEMPRE_RECALCULADOS`.
+        'declaracion_formal',
+        'ficha_autoevaluacion',
+        'resultado_autoevaluacion',
         'limitaciones_sistema',
         'control_versiones',
     ];
@@ -165,6 +171,15 @@ final class EsquemaCuerpo
     public const SIEMPRE_RECALCULADOS = [
         'portada_ficha',
         'portada_pie',
+        /*
+         * **La declaración formal de la DdC (§ 4.17)**, por el mismo motivo que
+         * la ficha de portada: quién declara, qué sistema, qué categoría y sobre
+         * qué autoevaluación no es narrativa, es identificación, y tiene que
+         * coincidir con el registro. Una declaración de conformidad editada a
+         * mano para decir «categoría media» sería exactamente el documento que
+         * un auditor no puede aceptar. Que se editó, lo declaran las limitaciones.
+         */
+        'declaracion_formal',
         'limitaciones_sistema',
         'control_versiones',
     ];

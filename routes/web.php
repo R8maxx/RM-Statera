@@ -6,6 +6,7 @@ use App\Http\Controllers\ActivoController;
 use App\Http\Controllers\AuditoriaController;
 use App\Http\Controllers\BiaServicioController;
 use App\Http\Controllers\CalendarioController;
+use App\Http\Controllers\ConformidadController;
 use App\Http\Controllers\ContextoController;
 use App\Http\Controllers\CuestionContextoController;
 use App\Http\Controllers\DocumentoController;
@@ -1297,6 +1298,50 @@ Route::middleware('auth')->group(function (): void {
     Route::middleware(['can:continuidad.ver', 'can:mejoras.gestionar', ExigirDosFactores::class])->group(function (): void {
         Route::post('/continuidad/pruebas/{prueba}/mejoras', [PruebaContinuidadController::class, 'derivarMejora'])
             ->name('continuidad.pruebas.mejoras.store');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Conformidad con el ENS (§ 4.17)
+    |--------------------------------------------------------------------------
+    |
+    | **Dos permisos y ninguno de supervisión**: la firma existe, pero es la de
+    | la Declaración de Conformidad y se da en `/documentos` con
+    | `documentos.aprobar`. Aquí se inicia la declaración, se le ata la versión
+    | firmada, se registra el distintivo y se retira.
+    |
+    | La ficha cuelga del **sistema** y no de la conformidad: la pregunta que se
+    | hace es «¿cómo está este sistema?», y la respuesta incluye las
+    | declaraciones anteriores. Las acciones sobre una declaración concreta
+    | cuelgan de `{conformidad}`, y el controlador comprueba que sea del sistema
+    | que dice la ruta.
+    |
+    | Preparar el documento pide además `documentos.generar`: crea una serie
+    | documental, que es trabajo de ese permiso.
+    |
+    */
+
+    Route::middleware('can:conformidad.ver')->group(function (): void {
+        Route::get('/conformidad', [ConformidadController::class, 'index'])
+            ->name('conformidad.index');
+        Route::get('/conformidad/sistemas/{sistema}', [ConformidadController::class, 'show'])
+            ->name('conformidad.show');
+    });
+
+    Route::middleware(['can:conformidad.gestionar', ExigirDosFactores::class])->group(function (): void {
+        Route::post('/conformidad/sistemas/{sistema}', [ConformidadController::class, 'iniciar'])
+            ->name('conformidad.iniciar');
+        Route::post('/conformidad/{conformidad}/declarar', [ConformidadController::class, 'declarar'])
+            ->name('conformidad.declarar');
+        Route::post('/conformidad/{conformidad}/distintivo', [ConformidadController::class, 'distintivo'])
+            ->name('conformidad.distintivo');
+        Route::post('/conformidad/{conformidad}/retirar', [ConformidadController::class, 'retirar'])
+            ->name('conformidad.retirar');
+    });
+
+    Route::middleware(['can:conformidad.gestionar', 'can:documentos.generar', ExigirDosFactores::class])->group(function (): void {
+        Route::post('/conformidad/sistemas/{sistema}/documento', [ConformidadController::class, 'prepararDocumento'])
+            ->name('conformidad.documento');
     });
 
     /*

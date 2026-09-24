@@ -281,3 +281,30 @@ El orden importa: el catálogo y el motor son la parte más específica del domi
     encontrado un test que descubre. Cuatro llevan ahora el suyo; el `down()` se
     comprobó a mano —datos por el camino real, `migrate:rollback` y vuelta—,
     porque la suite no ejecuta rollbacks, y eso sigue siendo un hueco.
+
+26. ✅ Conformidad con el ENS (§ 4.17), categoría básica. **El primer punto fuera
+    de las tres fases**, y el que le faltaba al objetivo declarado de la fase
+    actual —ENS categoría básica—: la autoevaluación existía como
+    `TipoAuditoria::Autoevaluacion` y cerrarla no producía nada. Ahora el flujo
+    se recorre entero: autoevaluación cerrada → Declaración de Conformidad
+    firmada → distintivo publicado, por sistema y con histórico.
+
+    Tres decisiones hacen el módulo pequeño. **La firma no es suya**: es la de la
+    Declaración, un sexto documento calculado que hereda aprobación, versiones,
+    huella y PDF/A sin flujo propio. **La categoría se congela** al iniciar, como
+    la exigencia de un punto de checklist, y **caducar es una fecha y no un
+    estado**. Y **el distintivo se registra y no se sirve**: no hay ruta pública,
+    por decisión expresa, porque la herramienta entra en el alcance del SGSI. La
+    vía de media y alta —ENAC y Certificación— se modela en el esquema y no se
+    recorre, que es lo que pedía la especificación.
+
+    **La lección, otra vez con cifra.** La suite en verde y Larastan limpio no
+    encontraron dos de los tres fallos que tuvo. El primero lo destapó un test al
+    escribirse: `documento_versiones.emitida_en` es `timestamptz` y se escribe con
+    la hora de Madrid sin desfase, así que leída por Eloquent queda dos horas por
+    delante de cualquier `created_at`. Es anterior a este módulo y no se ha
+    tocado; aquí se compara en SQL, donde las dos columnas se leen igual. El
+    segundo lo destapó el recorrido en el navegador: recién declarada, la ficha
+    ofrecía renovar sobre la misma autoevaluación, que habría reiniciado los dos
+    años sin volver a comprobar nada. El tercero, que `aprobada_en` es una fecha
+    y no un instante, se vio leyendo el esquema antes de probar.

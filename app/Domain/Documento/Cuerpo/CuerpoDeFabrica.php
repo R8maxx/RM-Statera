@@ -77,6 +77,7 @@ final class CuerpoDeFabrica
                 TipoDocumento::PlanAdecuacionEns => $this->cuerpoPlan(),
                 TipoDocumento::AnalisisContexto => $this->cuerpoContexto(),
                 TipoDocumento::ActaRevision => $this->cuerpoActa(),
+                TipoDocumento::DeclaracionConformidadEns => $this->cuerpoDeclaracionConformidad(),
 
                 /*
                  * Un documento redactado no tiene cuerpo calculado: entre el
@@ -241,6 +242,37 @@ final class CuerpoDeFabrica
             Nodo::de('seccion', [], [
                 Nodo::encabezado(2, 'Decisiones y acciones'),
                 Nodo::hueco('tabla_decisiones'),
+            ]),
+        ];
+    }
+
+    /**
+     * La Declaración de Conformidad del ENS (§ 4.17).
+     *
+     * **La declaración formal va la primera**, antes que la autoevaluación que la
+     * respalda: es la frase que el documento existe para decir, y lo que la guía
+     * CCN-STIC 809 pide que se lea sin buscar. Detrás, de dónde sale —la ficha de
+     * la autoevaluación— y qué encontró, con su denominador.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function cuerpoDeclaracionConformidad(): array
+    {
+        return [
+            Nodo::de('seccion', [], [
+                Nodo::encabezado(2, 'Declaración'),
+                Nodo::hueco('declaracion_formal'),
+            ]),
+
+            Nodo::de('seccion', [], [
+                Nodo::encabezado(2, 'La autoevaluación'),
+                Nodo::hueco('ficha_autoevaluacion'),
+            ]),
+
+            Nodo::de('seccion', [], [
+                Nodo::encabezado(2, 'Resultado de la autoevaluación'),
+                ...$this->prosa(SeccionNarrativa::NotaTabla),
+                Nodo::hueco('resultado_autoevaluacion'),
             ]),
         ];
     }

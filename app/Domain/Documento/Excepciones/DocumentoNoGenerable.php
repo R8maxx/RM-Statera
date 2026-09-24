@@ -41,4 +41,16 @@ final class DocumentoNoGenerable extends RuntimeException
             .'documento: lo que se imprime son las siete entradas tal como quedaron congeladas al firmarla.'
         );
     }
+
+    /**
+     * Una Declaración de Conformidad se imprime desde la declaración iniciada del
+     * sistema, que es la que fija la categoría y la autoevaluación.
+     */
+    public static function sinDeclaracionIniciada(): self
+    {
+        return new self(
+            'Este sistema no tiene ninguna declaración de conformidad iniciada. Iníciala desde la ficha de '
+            .'conformidad: es la que fija la categoría y la autoevaluación que el documento declara.'
+        );
+    }
 }

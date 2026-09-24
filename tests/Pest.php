@@ -2,15 +2,26 @@
 
 declare(strict_types=1);
 
+use App\Domain\Auditoria\CerrarAuditoria;
+use App\Domain\Auditoria\Enums\ResultadoPunto;
+use App\Domain\Auditoria\Enums\TipoAuditoria;
+use App\Domain\Auditoria\Models\Auditoria;
+use App\Domain\Auditoria\Models\AuditoriaPunto;
 use App\Domain\Autorizacion\Enums\Rol;
 use App\Domain\Autorizacion\SembrarRoles;
+use App\Domain\Catalogo\Enums\TipoRequisito;
+use App\Domain\Catalogo\Models\Marco;
+use App\Domain\Catalogo\Models\Requisito;
 use App\Domain\Categorizacion\Enums\NivelDimension;
 use App\Domain\Categorizacion\ValoracionDimensiones;
 use App\Domain\Documento\AprobarVersion;
 use App\Domain\Documento\EnviarARevision;
 use App\Domain\Documento\Models\DocumentoVersion;
+use App\Domain\Implantacion\Models\Implantacion;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Organizacion\Models\Organizacion;
+use App\Domain\Sistema\AplicarValoracion;
+use App\Domain\Sistema\Models\Sistema;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Inertia;
@@ -325,4 +336,65 @@ function entregarVersion(
     app(EnviarARevision::class)($version, $motivo ?? 'Entrega a auditoría.');
 
     return app(AprobarVersion::class)($version->fresh() ?? $version, $direccion);
+}
+
+/*
+|--------------------------------------------------------------------------
+| La conformidad con el ENS (§ 4.17)
+|--------------------------------------------------------------------------
+|
+| Un sistema bajo el ENS, valorado, y una autoevaluación cerrada por el camino
+| real: cerrar es lo que congela la checklist, y el trigger no deja tocarla
+| después. Lo usan los tests del módulo y los del documento que declara.
+|
+*/
+
+function sistemaEns(Organizacion $organizacion, NivelDimension $nivel = NivelDimension::Bajo): Sistema
+{
+    $marco = Marco::query()->where('codigo', 'ENS-RD311-2022')->first()
+        ?? Marco::factory()->create(['codigo' => 'ENS-RD311-2022']);
+
+    $sistema = Sistema::factory()->de($organizacion)->conMarco($marco)->create();
+
+    app(AplicarValoracion::class)->aplicar($sistema, uniforme($nivel), []);
+
+    return $sistema->fresh() ?? $sistema;
+}
+
+/**
+ * @param  list<ResultadoPunto>  $resultados  una medida por resultado
+ * @param  (callable(Auditoria): void)|null  $antes  lo que se hace antes de cerrar
+ */
+function autoevaluacion(
+    Sistema $sistema,
+    array $resultados = [ResultadoPunto::Conforme, ResultadoPunto::Conforme],
+    bool $cerrar = true,
+    ?callable $antes = null,
+    ?User $autor = null,
+): Auditoria {
+    $auditoria = Auditoria::factory()
+        ->deTipo(TipoAuditoria::Autoevaluacion)
+        ->paraSistema($sistema->id)
+        ->enCurso()
+        ->create(['auditor' => 'Responsable de seguridad']);
+
+    foreach ($resultados as $orden => $resultado) {
+        $requisito = Requisito::factory()->create([
+            'marco_id' => $sistema->marco_id,
+            'codigo' => 'op.pl.'.fake()->unique()->numberBetween(1, 99999),
+            'tipo' => TipoRequisito::Medida->value,
+            'orden' => $orden,
+        ]);
+
+        AuditoriaPunto::factory()->con($resultado)->create([
+            'auditoria_id' => $auditoria->id,
+            'implantacion_id' => Implantacion::factory()->for($sistema)->create(['requisito_id' => $requisito->id])->id,
+        ]);
+    }
+
+    if ($antes !== null) {
+        $antes($auditoria);
+    }
+
+    return $cerrar ? app(CerrarAuditoria::class)->cerrar($auditoria, $autor, 'Sin incidencias.') : $auditoria;
 }

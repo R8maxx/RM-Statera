@@ -110,6 +110,12 @@ final class TextosDeFabrica
                 Las entradas se recogieron del registro de la herramienta el día en que se aprobó el acta y quedaron congeladas: lo que aquí figura es lo que la dirección tuvo delante, no lo que el sistema diga hoy.
                 MD,
 
+            TipoDocumento::DeclaracionConformidadEns => <<<'MD'
+                Este documento es la Declaración de Conformidad del sistema con el Esquema Nacional de Seguridad (Real Decreto 311/2022). Para los sistemas de categoría básica, el Esquema no exige una auditoría por entidad acreditada: exige que la organización se autoevalúe y declare el resultado, que es lo que aquí se hace.
+
+                La declaración se apoya en la autoevaluación identificada más abajo, cerrada antes de emitir este documento. Su checklist quedó congelada al cerrarla, y la categoría que se declara es la que tenía el sistema el día en que se inició la declaración.
+                MD,
+
             // No llegan aquí: `para()` desvía los redactados a `redactado()`
             // antes, porque su introducción no es la de una declaración.
             TipoDocumento::Politica,
@@ -203,6 +209,7 @@ final class TextosDeFabrica
             TipoDocumento::Politica,
             TipoDocumento::Norma,
             TipoDocumento::Procedimiento,
+            TipoDocumento::DeclaracionConformidadEns => 'El objeto de este documento es declarar, ante quien se relacione con la organización a través de este sistema, que el sistema cumple el Esquema Nacional de Seguridad en su categoría, y dejar constancia de en qué autoevaluación se apoya esa afirmación.',
             TipoDocumento::PlanContinuidad => '',
         };
 
@@ -237,6 +244,7 @@ final class TextosDeFabrica
             TipoDocumento::PlanAdecuacionEns => 'El conjunto de medidas exigibles se deriva de la categoría del sistema, y de él entran en este plan las que no figuran como implantadas. La fecha objetivo y el responsable son los que consten en cada medida; el trabajo asociado son las tareas abiertas vinculadas a ella.',
             TipoDocumento::AnalisisContexto => 'Las cuestiones se clasifican en los cuatro cuadrantes de un análisis DAFO. El ámbito —interno o externo— y el signo —a favor o en contra— no se eligen: se derivan del cuadrante, que es lo que define la matriz.',
             TipoDocumento::ActaRevision => 'Las siete entradas de la cláusula 9.3.2 no se transcriben a mano: se recogen del registro de la herramienta en el momento de aprobar el acta y quedan congeladas con ella. Las auditorías se acotan al periodo revisado; lo que está abierto —no conformidades, riesgos, mejoras— se recoge tal como está, con independencia de cuándo se detectara.',
+            TipoDocumento::DeclaracionConformidadEns => 'La autoevaluación revisa, una a una, las medidas del Anexo II exigibles al sistema según su categoría: la checklist se genera desde ese conjunto y no se elige a mano. Cada medida queda conforme, no conforme, con observación o fuera de muestra, y la declaración sólo se puede iniciar con la autoevaluación cerrada, sin medidas pendientes de revisar y sin no conformidades mayores abiertas.',
 
             // No llegan aquí: `SeccionNarrativa::aplicaA()` no ofrece este hueco
             // a un documento redactado, que no deriva nada de ninguna tabla.
@@ -258,6 +266,9 @@ final class TextosDeFabrica
             TipoDocumento::ActaRevision => 'Las decisiones de la revisión se registran como tareas con responsable y plazo, y el estado '
                 .'en que estén se recoge como primera entrada de la revisión siguiente. Es lo que permite '
                 .'comprobar un año después si lo que se decidió se hizo.',
+            TipoDocumento::DeclaracionConformidadEns => 'La declaración se renueva cada dos años con una autoevaluación nueva. Las no conformidades '
+                .'menores y las observaciones no impiden declarar: se tratan en el registro de no conformidades, '
+                .'con su causa, su acción correctiva y la verificación de su eficacia.',
             default => 'El estado de implantación y el nivel de madurez los mantiene la persona responsable de cada requisito, y cada cambio queda registrado con su fecha y su autor.',
         };
 
@@ -298,6 +309,12 @@ final class TextosDeFabrica
                 Cada apartado es una de las siete entradas que la cláusula 9.3.2 declara obligatorias, en el orden en que la norma las enumera. Las cifras son las del día en que se aprobó el acta y no cambian después.
 
                 **Un cero es una entrada recogida, no una entrada que falte.** Una organización puede llegar a su revisión sin no conformidades abiertas o sin auditorías en el periodo, y eso es lo que el acta tiene que decir.
+                MD,
+
+            TipoDocumento::DeclaracionConformidadEns => <<<'MD'
+                Cada medida de la checklist cuenta una sola vez, con el resultado que tenía al cerrar la autoevaluación. La suma de las filas es el total de medidas revisadas o fuera de muestra, y es el denominador de todo lo demás.
+
+                **Fuera de muestra no es conforme.** Es una medida que la autoevaluación decidió no revisar esta vez, y la declaración no afirma nada sobre ella.
                 MD,
 
             // No llegan aquí: un documento redactado no tiene tabla que explicar.

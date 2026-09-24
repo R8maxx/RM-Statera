@@ -200,6 +200,17 @@ enum Permiso: string
     case ContinuidadGestionar = 'continuidad.gestionar';
     case ContinuidadAprobar = 'continuidad.aprobar';
 
+    /*
+     * La conformidad con el ENS: § 4.17. **Dos verbos y ninguno de
+     * supervisión**, y no porque no haya nada que firmar: la firma existe y es
+     * la de la Declaración de Conformidad, que se aprueba con
+     * `documentos.aprobar`. Duplicarla aquí sería pedir dos firmas para el mismo
+     * papel. `conformidad.gestionar` cubre iniciar la declaración, atarle la
+     * versión firmada, registrar el distintivo y retirarla con su motivo.
+     */
+    case ConformidadVer = 'conformidad.ver';
+    case ConformidadGestionar = 'conformidad.gestionar';
+
     case RevisionDireccionVer = 'revision_direccion.ver';
     case RevisionDireccionGestionar = 'revision_direccion.gestionar';
     case RevisionDireccionAprobar = 'revision_direccion.aprobar';
@@ -287,6 +298,8 @@ enum Permiso: string
             self::ContinuidadVer => 'Ver el análisis de impacto en el negocio de los servicios',
             self::ContinuidadGestionar => 'Registrar y editar el BIA de un servicio, y mover su ciclo salvo la aprobación',
             self::ContinuidadAprobar => 'Aprobar el BIA de un servicio y el RTO que declara',
+            self::ConformidadVer => 'Ver la conformidad con el ENS de cada sistema y su histórico',
+            self::ConformidadGestionar => 'Iniciar la declaración de conformidad, registrar el distintivo y retirarla',
             self::RevisionDireccionVer => 'Ver las revisiones por la dirección y sus actas',
             self::RevisionDireccionGestionar => 'Convocar revisiones, recoger las entradas y registrar las decisiones',
             self::RevisionDireccionAprobar => 'Aprobar el acta de una revisión por la dirección',

@@ -130,6 +130,19 @@ class DocumentoFactory extends Factory
         ]);
     }
 
+    /**
+     * La Declaración de Conformidad del ENS: calculada y **con sistema**, como la
+     * DdA. El sistema lo pone quien llama con `paraSistema()`, porque la
+     * conformidad que la respalda es de ese sistema y no de uno cualquiera.
+     */
+    public function declaracionConformidad(): self
+    {
+        return $this->deTipo(TipoDocumento::DeclaracionConformidadEns)->state(fn (): array => [
+            'codigo' => 'DDC-ENS-01',
+            'titulo' => 'Declaración de Conformidad con el ENS',
+        ]);
+    }
+
     public function conPeriodicidad(?int $meses): self
     {
         return $this->state(fn (): array => ['periodicidad_revision_meses' => $meses]);

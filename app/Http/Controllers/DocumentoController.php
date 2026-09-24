@@ -615,6 +615,7 @@ class DocumentoController extends Controller
              */
             TipoDocumento::AnalisisContexto,
             TipoDocumento::ActaRevision,
+            TipoDocumento::DeclaracionConformidadEns,
             TipoDocumento::Politica,
             TipoDocumento::Norma,
             TipoDocumento::Procedimiento,

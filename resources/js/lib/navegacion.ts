@@ -1,4 +1,5 @@
 import {
+    BadgeCheckIcon,
     BoxesIcon,
     CalendarDaysIcon,
     ClipboardCheckIcon,
@@ -125,8 +126,11 @@ export const navegacion: GrupoNavegacion[] = [
                  * títulos de otras entradas. Lo que queda son las palabras con
                  * las que se busca esto y nada más: los nombres propios de cada
                  * obligación.
+                 *
+                 * «distintivo» se mudó a Conformidad con el § 4.17: es lo que
+                 * se teclea buscando dónde se registra, no cuándo vence.
                  */
-                alias: ['periódicas', 'cadencia', 'ines', 'informe del estado de seguridad', 'renovación de conformidad', 'distintivo', 'seguimiento', 'compromisos'],
+                alias: ['periódicas', 'cadencia', 'ines', 'informe del estado de seguridad', 'renovación de conformidad', 'seguimiento', 'compromisos'],
             },
             {
                 titulo: 'Auditorías',
@@ -279,6 +283,22 @@ export const navegacion: GrupoNavegacion[] = [
                 // `soa` y `dda` no son opcionales: es lo que la gente teclea en
                 // la paleta cuando busca la Declaración de Aplicabilidad.
                 alias: ['soa', 'dda', 'declaración de aplicabilidad', 'pdf', 'informes', 'documentación', 'entregables'],
+            },
+            /*
+             * La conformidad con el ENS: § 4.17. Va detrás de Documentos porque
+             * es lo que se hace con uno de ellos —la Declaración de
+             * Conformidad— una vez firmado.
+             *
+             * **Sin «conformidad» a secas**: es el título, y además subcadena de
+             * «No conformidades» y de «renovación de conformidad»; la paleta ya
+             * la encuentra por el título. «ddc» es lo que se teclea sabiendo de
+             * qué va, y «distintivo» lo que se busca sin acordarse del nombre.
+             */
+            {
+                titulo: 'Conformidad ENS',
+                href: '/conformidad',
+                icono: BadgeCheckIcon,
+                alias: ['ddc', 'declaración de conformidad', 'distintivo', 'ccn-stic 809', 'certificación'],
             },
         ],
     },

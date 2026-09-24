@@ -90,7 +90,12 @@ enum SeccionNarrativa: string
          * «metodología» aquí es cómo se preparó y se celebró la revisión — que es
          * literalmente lo que la 9.3.1 pide declarar.
          */
-        if ($tipo === TipoDocumento::AnalisisContexto || $tipo === TipoDocumento::ActaRevision) {
+        /*
+         * Y la Declaración de Conformidad (§ 4.17), por lo mismo: lo que cuenta es
+         * el resultado de una autoevaluación, no una tabla de requisitos con su
+         * resumen y su derivación —ésa es la DdA de al lado—.
+         */
+        if (in_array($tipo, [TipoDocumento::AnalisisContexto, TipoDocumento::ActaRevision, TipoDocumento::DeclaracionConformidadEns], true)) {
             return ! in_array($this, [
                 self::NotaResumen,
                 self::NotaDerivacion,

@@ -26,6 +26,9 @@ use App\Domain\Autorizacion\SembrarRoles;
 use App\Domain\Catalogo\Enums\Dimension;
 use App\Domain\Catalogo\Models\Marco;
 use App\Domain\Categorizacion\Enums\NivelDimension;
+use App\Domain\Conformidad\IniciarDeclaracion;
+use App\Domain\Conformidad\Models\Conformidad;
+use App\Domain\Conformidad\PrepararDocumentoDeclaracion;
 use App\Domain\Contexto\AbrirTareaDeCuestion;
 use App\Domain\Contexto\AnalisisEnCurso;
 use App\Domain\Contexto\AprobarAnalisis;
@@ -284,6 +287,61 @@ class DesarrolloSeeder extends Seeder
         // Detrás de los documentos, porque el plan de continuidad es uno, y del
         // inventario, porque el BIA se hace sobre sus servicios.
         $this->continuidadDeEjemplo();
+        // Detrás de las auditorías, porque se apoya en una autoevaluación
+        // cerrada, y de los documentos, porque prepara la serie de la DdC.
+        $this->conformidadDeEjemplo($sistema);
+    }
+
+    /**
+     * La conformidad con el ENS (§ 4.17), **en preparación y sin firmar**.
+     *
+     * Siembra una autoevaluación cerrada —la del trimestre pasado, todas las
+     * medidas revisadas y sin no conformidades mayores—, inicia la declaración
+     * sobre ella y prepara la serie de la Declaración de Conformidad. Se queda
+     * ahí a propósito, como la DdA y la política: firmar exige Gotenberg, y una
+     * versión «aprobada» sembrada a mano fabricaría una firma que nadie ha
+     * puesto. Lo que falta —generar, aprobar, atar la versión y registrar el
+     * distintivo— es el recorrido que se quiere poder hacer en el navegador.
+     *
+     * La autoevaluación en curso de `auditoriasDeEjemplo()` sigue abierta: es la
+     * de la renovación, y cerrarla aquí la dejaría sin nada que enseñar.
+     */
+    private function conformidadDeEjemplo(Sistema $sistema): void
+    {
+        if (Conformidad::query()->exists()) {
+            return;
+        }
+
+        $autor = User::query()->where('organizacion_id', $sistema->organizacion_id)->first();
+
+        $autoevaluacion = app(RegistrarAuditoria::class)([
+            'sistema_id' => $sistema->id,
+            'codigo' => 'AUD-2026-00',
+            'tipo' => TipoAuditoria::Autoevaluacion->value,
+            'fecha' => Carbon::today()->subMonths(3),
+            'auditor' => 'Responsable de seguridad',
+            'alcance' => 'Autoevaluación completa de las medidas exigibles en categoría básica.',
+        ]);
+
+        app(PrecargarChecklist::class)($autoevaluacion);
+        app(CerrarAuditoria::class)->empezar($autoevaluacion);
+
+        foreach ($autoevaluacion->puntos()->get() as $punto) {
+            app(RevisarPunto::class)->marcar($punto, ResultadoPunto::Conforme);
+        }
+
+        app(CerrarAuditoria::class)->cerrar($autoevaluacion, $autor, 'Todas las medidas revisadas y conformes.');
+
+        $conformidad = app(IniciarDeclaracion::class)($sistema->fresh(), $autor);
+        $documento = app(PrepararDocumentoDeclaracion::class)($sistema, $autor);
+
+        $this->command->info(sprintf(
+            'Conformidad del sistema %s en preparación sobre %s. Genera %s, apruébalo y átalo en /conformidad/sistemas/%d.',
+            $sistema->codigo,
+            $autoevaluacion->codigo,
+            $documento->codigo,
+            $conformidad->sistema_id,
+        ));
     }
 
     /**
