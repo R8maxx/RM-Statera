@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import EstadoVacio from '@/components/EstadoVacio.vue';
-import ConmutadorPanel from '@/components/panel/ConmutadorPanel.vue';
+import CabeceraPanel from '@/components/panel/CabeceraPanel.vue';
 import ResumenIncidentesPanel from '@/components/incidente/ResumenIncidentesPanel.vue';
 import ResumenMetricasPanel from '@/components/metrica/ResumenMetricasPanel.vue';
 import ResumenNoConformidadesPanel from '@/components/no-conformidad/ResumenNoConformidadesPanel.vue';
@@ -68,10 +68,23 @@ const vacia = computed(
 
 <template>
     <AppLayout titulo="El ciclo">
-        <ConmutadorPanel :vistas="vistas" />
+        <CabeceraPanel :vistas="vistas" />
 
-        <motion.div :variants="escalonado" initial="oculto" animate="visible" class="mt-6 space-y-6">
-            <motion.section v-if="vacia" :variants="variantesEntrada">
+        <!--
+            Un solo elemento fuerte (DESIGN.md §1): el plan de acción, a todo el
+            ancho y con su cifra grande, porque es lo único de la vista que habla
+            de lo que está pasando ahora mismo. Los otros cinco registros van
+            debajo, de dos en dos y con la cifra un escalón más baja. Antes eran
+            seis tarjetas iguales apiladas, cada una con un `text-3xl`, y no
+            mandaba ninguna.
+        -->
+        <motion.div
+            :variants="escalonado"
+            initial="oculto"
+            animate="visible"
+            class="grid grid-cols-1 gap-6 lg:grid-cols-2 [&>section>*]:h-full"
+        >
+            <motion.section v-if="vacia" :variants="variantesEntrada" class="lg:col-span-2">
                 <EstadoVacio
                     :icono="ListTodoIcon"
                     titulo="El ciclo todavía no ha empezado"
@@ -86,7 +99,7 @@ const vacia = computed(
                 está pasando ahora mismo: el cumplimiento, en la pestaña de al
                 lado, dice qué falta, y esto dice quién lo está haciendo.
             -->
-            <motion.section v-if="plan.total > 0" :variants="variantesEntrada">
+            <motion.section v-if="plan.total > 0" :variants="variantesEntrada" class="lg:col-span-2">
                 <ResumenPlanPanel :plan="plan" />
             </motion.section>
 

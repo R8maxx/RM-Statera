@@ -50,7 +50,7 @@ const barras = computed<Barra[]>(() =>
             <CardAction>
                 <Link
                     href="/objetivos"
-                    class="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+                    class="flex items-center gap-1 rounded text-sm font-medium text-primary underline-offset-4 hover:underline"
                 >
                     Ver los objetivos
                     <ChevronRightIcon class="size-4" />
@@ -62,7 +62,7 @@ const barras = computed<Barra[]>(() =>
             <div class="flex flex-col gap-6 sm:flex-row sm:items-start sm:gap-10">
                 <div class="shrink-0">
                     <p class="flex items-baseline gap-1.5">
-                        <Cifra class="text-3xl font-bold" :valor="resumen.vivos" />
+                        <Cifra class="text-2xl font-semibold" :valor="resumen.vivos" />
                         <!-- Con su denominador: dos vivos sobre tres es una
                              organización que no se pone objetivos, y sobre treinta
                              es una que ya ha cerrado el año. -->

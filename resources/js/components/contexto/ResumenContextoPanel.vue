@@ -63,7 +63,7 @@ const antiguedad = computed(() => {
             <CardAction>
                 <Link
                     href="/contexto"
-                    class="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+                    class="flex items-center gap-1 rounded text-sm font-medium text-primary underline-offset-4 hover:underline"
                 >
                     Ver el contexto
                     <ChevronRightIcon class="size-4" />

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import EstadoVacio from '@/components/EstadoVacio.vue';
-import ConmutadorPanel from '@/components/panel/ConmutadorPanel.vue';
+import CabeceraPanel from '@/components/panel/CabeceraPanel.vue';
 import ResumenContextoPanel from '@/components/contexto/ResumenContextoPanel.vue';
 import ResumenInventarioPanelCard from '@/components/activo/ResumenInventarioPanel.vue';
 import ResumenPersonasPanel from '@/components/persona/ResumenPersonasPanel.vue';
@@ -42,10 +42,17 @@ const vacia = computed(
 
 <template>
     <AppLayout titulo="La organización">
-        <ConmutadorPanel :vistas="vistas" />
+        <CabeceraPanel :vistas="vistas" />
 
-        <motion.div :variants="escalonado" initial="oculto" animate="visible" class="mt-6 space-y-6">
-            <motion.section v-if="vacia" :variants="variantesEntrada">
+        <!-- El contexto enmarca a los otros dos y va a todo el ancho; personas
+             e inventario, que dependen de él, debajo y de dos en dos. -->
+        <motion.div
+            :variants="escalonado"
+            initial="oculto"
+            animate="visible"
+            class="grid grid-cols-1 gap-6 xl:grid-cols-2 [&>section>*]:h-full"
+        >
+            <motion.section v-if="vacia" :variants="variantesEntrada" class="xl:col-span-2">
                 <EstadoVacio
                     :icono="CompassIcon"
                     titulo="Todavía no hay contexto registrado"
@@ -66,6 +73,7 @@ const vacia = computed(
             <motion.section
                 v-if="contexto && contexto.cuestiones > 0"
                 :variants="variantesEntrada"
+                class="xl:col-span-2"
             >
                 <ResumenContextoPanel :resumen="contexto" />
             </motion.section>

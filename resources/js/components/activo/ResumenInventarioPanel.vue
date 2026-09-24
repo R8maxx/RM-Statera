@@ -60,7 +60,7 @@ const totalCiclo = computed(() => props.inventario.porCicloDeVida.reduce((suma, 
                 confirmar».
             </CardDescription>
             <CardAction>
-                <Link href="/activos" class="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+                <Link href="/activos" class="flex items-center gap-1 rounded text-sm font-medium text-primary underline-offset-4 hover:underline">
                     Ver el inventario
                     <ChevronRightIcon class="size-4" />
                 </Link>

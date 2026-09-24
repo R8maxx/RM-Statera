@@ -65,7 +65,7 @@ const totalOrigenes = computed(() => props.plan.porOrigen.reduce((suma, t) => su
                 marcos a la vez.
             </CardDescription>
             <CardAction>
-                <Link href="/tareas" class="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+                <Link href="/tareas" class="flex items-center gap-1 rounded text-sm font-medium text-primary underline-offset-4 hover:underline">
                     Ver el plan
                     <ChevronRightIcon class="size-4" />
                 </Link>
@@ -93,29 +93,39 @@ const totalOrigenes = computed(() => props.plan.porOrigen.reduce((suma, t) => su
                 </div>
             </div>
 
-            <div v-if="plan.porPrioridad.length > 0" class="border-t pt-6">
-                <h3 class="mb-4 text-sm font-medium">Por prioridad</h3>
-                <GraficaBarras :barras="barras(plan.porPrioridad, totalPrioridades)" />
-            </div>
-
             <!--
-                De dónde sale el trabajo. Existe porque «40 tareas abiertas»
-                mezcla dos cosas que no se gestionan igual: la deuda que alguien
-                planificó y el trabajo correctivo que viene de algo que ya falló.
-                Un plan que es casi todo lo segundo es una organización apagando
-                fuegos, y eso no se ve en el total.
-
-                Va en barras etiquetadas y no en una barra por tramos: siete
-                orígenes no caben en siete colores distinguibles, y con el nombre
-                escrito al lado el color puede decir otra cosa —ámbar lo reactivo,
-                azul lo planificado—.
+                Los dos repartos, uno al lado del otro desde `lg`: la tarjeta va a
+                todo el ancho del panel y, apiladas, cada barra medía más de mil
+                píxeles para enseñar doce tareas.
             -->
-            <div v-if="plan.porOrigen.length > 1" class="border-t pt-6">
-                <h3 class="mb-1 text-sm font-medium">De dónde sale</h3>
-                <p class="mb-4 text-xs text-muted-foreground">
-                    En ámbar lo que viene de algo que falló; en azul, lo que se planificó.
-                </p>
-                <GraficaBarras :barras="barras(plan.porOrigen, totalOrigenes)" />
+            <div
+                v-if="plan.porPrioridad.length > 0 || plan.porOrigen.length > 1"
+                class="grid gap-6 border-t pt-6 lg:grid-cols-2 lg:gap-10"
+            >
+                <div v-if="plan.porPrioridad.length > 0">
+                    <h3 class="mb-4 text-sm font-medium">Por prioridad</h3>
+                    <GraficaBarras :barras="barras(plan.porPrioridad, totalPrioridades)" />
+                </div>
+
+                <!--
+                    De dónde sale el trabajo. Existe porque «40 tareas abiertas»
+                    mezcla dos cosas que no se gestionan igual: la deuda que alguien
+                    planificó y el trabajo correctivo que viene de algo que ya falló.
+                    Un plan que es casi todo lo segundo es una organización apagando
+                    fuegos, y eso no se ve en el total.
+
+                    Va en barras etiquetadas y no en una barra por tramos: siete
+                    orígenes no caben en siete colores distinguibles, y con el nombre
+                    escrito al lado el color puede decir otra cosa —ámbar lo reactivo,
+                    azul lo planificado—.
+                -->
+                <div v-if="plan.porOrigen.length > 1">
+                    <h3 class="mb-1 text-sm font-medium">De dónde sale</h3>
+                    <p class="mb-4 text-xs text-muted-foreground">
+                        En ámbar lo que viene de algo que falló; en azul, lo que se planificó.
+                    </p>
+                    <GraficaBarras :barras="barras(plan.porOrigen, totalOrigenes)" />
+                </div>
             </div>
 
             <!--

@@ -4,7 +4,7 @@ import Cifra from '@/components/Cifra.vue';
 import BarraSegmentada, { type Segmento } from '@/components/BarraSegmentada.vue';
 import EstadoVacio from '@/components/EstadoVacio.vue';
 import PrimerosPasos from '@/components/PrimerosPasos.vue';
-import ConmutadorPanel from '@/components/panel/ConmutadorPanel.vue';
+import CabeceraPanel from '@/components/panel/CabeceraPanel.vue';
 import GraficaBarras, { type Barra } from '@/components/grafica/GraficaBarras.vue';
 import {
     Card,
@@ -191,15 +191,9 @@ const metricas = computed(() => [
             vacías compiten con lo único que hay que hacer, que es dar de alta
             el primer sistema.
         -->
-        <ConmutadorPanel v-if="!primerArranque" :vistas="vistas" />
+        <CabeceraPanel :vistas="vistas" :conmutador="!primerArranque" />
 
-        <motion.div
-            :variants="escalonado"
-            initial="oculto"
-            animate="visible"
-            class="space-y-6"
-            :class="primerArranque ? '' : 'mt-6'"
-        >
+        <motion.div :variants="escalonado" initial="oculto" animate="visible" class="space-y-6">
             <!--
                 Mientras no haya nada exigible, la cabecera no resume: orienta.
                 Un anillo al 0 % sobre un denominador de cero no es un dato
@@ -227,7 +221,7 @@ const metricas = computed(() => [
                         />
 
                         <div class="min-w-0 flex-1">
-                            <h2 class="text-sm font-medium">Estado de implantación</h2>
+                            <h2 class="text-base font-semibold tracking-[-0.01em]">Estado de implantación</h2>
                             <p class="mt-1 text-sm text-muted-foreground">
                                 {{ resumen.implantadas }} de {{ resumen.aplicables }} requisitos exigibles están
                                 implantados en los sistemas dentro del alcance.
@@ -253,7 +247,7 @@ const metricas = computed(() => [
                                         </Link>
                                         <template v-else>{{ metrica.etiqueta }}</template>
                                     </dt>
-                                    <dd class="cifra mt-0.5 text-2xl font-semibold tracking-tight">
+                                    <dd class="cifra mt-0.5 text-lg font-semibold">
                                         <Cifra
                                             v-if="metrica.valor !== null"
                                             :valor="metrica.valor"
@@ -284,9 +278,10 @@ const metricas = computed(() => [
                         <CardAction>
                             <Link
                                 href="/evidencias"
-                                class="rounded text-sm font-medium text-primary underline-offset-4 hover:underline"
+                                class="flex items-center gap-1 rounded text-sm font-medium text-primary underline-offset-4 hover:underline"
                             >
                                 Ver todas
+                                <ChevronRightIcon class="size-4" />
                             </Link>
                         </CardAction>
                     </CardHeader>
@@ -323,7 +318,7 @@ const metricas = computed(() => [
                                     </Link>
                                 </dt>
                                 <dd
-                                    class="cifra mt-0.5 text-2xl font-semibold tracking-tight"
+                                    class="cifra mt-0.5 text-lg font-semibold"
                                     :class="prueba.alerta && 'text-destructive'"
                                 >
                                     <Cifra :valor="prueba.valor" />
@@ -361,9 +356,10 @@ const metricas = computed(() => [
                         <CardAction v-if="sistemas.length > 0">
                             <Link
                                 href="/sistemas"
-                                class="rounded text-sm font-medium text-primary underline-offset-4 hover:underline"
+                                class="flex items-center gap-1 rounded text-sm font-medium text-primary underline-offset-4 hover:underline"
                             >
                                 Ver todos
+                                <ChevronRightIcon class="size-4" />
                             </Link>
                         </CardAction>
                     </CardHeader>
@@ -412,11 +408,11 @@ const metricas = computed(() => [
                                     </div>
 
                                     <span class="cifra w-12 shrink-0 text-right text-sm font-medium">
-                                        {{ porcentaje(sistema.implantadas, sistema.aplicables) }}%
+                                        {{ porcentaje(sistema.implantadas, sistema.aplicables) }}&#8239;%
                                     </span>
 
                                     <ChevronRightIcon
-                                        class="size-4 shrink-0 text-muted-foreground/50 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-muted-foreground"
+                                        class="size-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:text-muted-foreground"
                                     />
                                 </Link>
                             </li>

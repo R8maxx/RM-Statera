@@ -31,7 +31,7 @@ defineProps<{ resumen: App.Http.Resources.Panel.ResumenObligacionesPanel }>();
             <CardAction>
                 <Link
                     href="/obligaciones"
-                    class="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+                    class="flex items-center gap-1 rounded text-sm font-medium text-primary underline-offset-4 hover:underline"
                 >
                     Ver las obligaciones
                     <ChevronRightIcon class="size-4" />

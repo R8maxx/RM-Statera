@@ -45,7 +45,7 @@ const barras = computed<Barra[]>(() =>
             <CardAction>
                 <Link
                     href="/incidentes"
-                    class="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+                    class="flex items-center gap-1 rounded text-sm font-medium text-primary underline-offset-4 hover:underline"
                 >
                     Ver los incidentes
                     <ChevronRightIcon class="size-4" />
@@ -57,7 +57,7 @@ const barras = computed<Barra[]>(() =>
             <div class="flex flex-col gap-6 sm:flex-row sm:items-start sm:gap-10">
                 <div class="shrink-0">
                     <p class="flex items-baseline gap-1.5">
-                        <Cifra class="text-3xl font-bold" :valor="resumen.abiertos" />
+                        <Cifra class="text-2xl font-semibold" :valor="resumen.abiertos" />
                         <span class="text-sm text-muted-foreground">de {{ resumen.total }}</span>
                     </p>
                     <p class="mt-0.5 text-sm text-muted-foreground">

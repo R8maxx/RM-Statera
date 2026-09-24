@@ -45,7 +45,7 @@ const segmentos = (reparto: Reparto[]): Segmento[] =>
             <CardAction>
                 <Link
                     href="/no-conformidades"
-                    class="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+                    class="flex items-center gap-1 rounded text-sm font-medium text-primary underline-offset-4 hover:underline"
                 >
                     Ver el registro
                     <ChevronRightIcon class="size-4" />
@@ -57,7 +57,7 @@ const segmentos = (reparto: Reparto[]): Segmento[] =>
             <div class="flex flex-col gap-6 sm:flex-row sm:items-start sm:gap-10">
                 <div class="shrink-0">
                     <p class="flex items-baseline gap-1.5">
-                        <Cifra class="text-3xl font-bold" :valor="resumen.abiertas" />
+                        <Cifra class="text-2xl font-semibold" :valor="resumen.abiertas" />
                         <!-- El denominador al lado: dos abiertas sobre tres es una
                              organización que no cierra nada, y sobre ciento veinte
                              es un martes. -->
