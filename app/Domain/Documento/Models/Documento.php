@@ -6,6 +6,7 @@ namespace App\Domain\Documento\Models;
 
 use App\Domain\Activo\Models\Activo;
 use App\Domain\Auditoria\Models\Auditoria;
+use App\Domain\Autorizacion\Concerns\AcotadoPorAlcance;
 use App\Domain\Documento\Enums\ClasificacionDocumental;
 use App\Domain\Documento\Enums\EstadoDocumental;
 use App\Domain\Documento\Enums\TipoDocumento;
@@ -47,11 +48,28 @@ use Illuminate\Support\Carbon;
  */
 class Documento extends Model
 {
+    use AcotadoPorAlcance;
+
     /** @use HasFactory<DocumentoFactory> */
     use HasFactory;
 
     use PerteneceAOrganizacion;
     use RegistraTraza;
+
+    /**
+     * Un documento sin sistema es de toda la organización —la política, las
+     * normas, el acta de la revisión— y el auditor lo necesita para auditar
+     * cualquier sistema. Se acota sólo lo que es de un sistema concreto.
+     *
+     * @param  Builder<static>  $consulta
+     * @param  list<int>  $sistemas
+     */
+    public function acotarAlAlcance(Builder $consulta, array $sistemas): void
+    {
+        $columna = $this->qualifyColumn('sistema_id');
+
+        $consulta->where(fn (Builder $dentro) => $dentro->whereNull($columna)->orWhereIn($columna, $sistemas));
+    }
 
     protected $table = 'documentos';
 

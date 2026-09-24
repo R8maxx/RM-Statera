@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Conformidad\Models;
 
 use App\Domain\Auditoria\Models\Auditoria;
+use App\Domain\Autorizacion\Concerns\AcotadoPorAlcance;
 use App\Domain\Catalogo\Enums\CategoriaEns;
 use App\Domain\Conformidad\Enums\EstadoConformidad;
 use App\Domain\Conformidad\Enums\ViaConformidad;
@@ -56,6 +57,8 @@ use Illuminate\Support\Carbon;
  */
 class Conformidad extends Model
 {
+    use AcotadoPorAlcance;
+
     /** @use HasFactory<ConformidadFactory> */
     use HasFactory;
 

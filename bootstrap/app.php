@@ -7,6 +7,8 @@ use App\Domain\Catalogo\Console\ImportarCatalogoCommand;
 use App\Domain\Documento\Console\GenerarDocumentoCommand;
 use App\Domain\Implantacion\Console\GenerarImplantacionesCommand;
 use App\Domain\Metrica\Console\MedirIndicadoresCommand;
+use App\Http\Middleware\BloqueoPorInactividad;
+use App\Http\Middleware\CuentaVigente;
 use App\Http\Middleware\EstablecerContextoOrganizacion;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
@@ -45,9 +47,16 @@ return Application::configure(basePath: dirname(__DIR__))
         //
         // Los props compartidos de Inertia van al final: leen la organización
         // activa y necesitan que ya esté puesta.
+        //
+        // Y antes que todo, las dos puertas de salida del § 4.19 y del § 6: la
+        // cuenta que ya no tiene acceso y la sesión que lleva demasiado rato
+        // quieta. Van delante del contexto para que quien sale no llegue a
+        // fijar organización ni alcance.
         $middleware->web(
             remove: [SubstituteBindings::class],
             append: [
+                CuentaVigente::class,
+                BloqueoPorInactividad::class,
                 EstablecerContextoOrganizacion::class,
                 SubstituteBindings::class,
                 HandleInertiaRequests::class,

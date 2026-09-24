@@ -101,6 +101,19 @@ return [
             'expire' => 60,
             'throttle' => 60,
         ],
+
+        /*
+         * Las invitaciones a una cuenta nueva (§ 4.19). Un broker aparte y una
+         * tabla aparte: una invitación tiene que durar lo que tarda alguien en
+         * leer el correo —días, no una hora—, y si compartiera la tabla con el
+         * restablecimiento, pedir una contraseña nueva pisaría la invitación.
+         */
+        'invitaciones' => [
+            'provider' => 'users',
+            'table' => 'invitacion_tokens',
+            'expire' => 60 * 24 * 7,
+            'throttle' => 60,
+        ],
     ],
 
     /*

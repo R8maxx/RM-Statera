@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Implantacion\Models;
 
+use App\Domain\Autorizacion\Concerns\AcotadoPorAlcance;
 use App\Domain\Catalogo\Enums\Dimension;
 use App\Domain\Catalogo\Enums\Exigencia;
 use App\Domain\Catalogo\Models\Requisito;
@@ -53,6 +54,8 @@ use Illuminate\Support\Carbon;
  */
 class Implantacion extends Model
 {
+    use AcotadoPorAlcance;
+
     /** @use HasFactory<ImplantacionFactory> */
     use HasFactory;
 

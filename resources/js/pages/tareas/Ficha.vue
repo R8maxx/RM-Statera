@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Aviso from '@/components/Aviso.vue';
 import HistoricoTransiciones, { type Transicion } from '@/components/HistoricoTransiciones.vue';
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
 import EstadoVacio from '@/components/EstadoVacio.vue';
@@ -58,6 +59,7 @@ const props = defineProps<{
     subtareas: Subtarea[];
     maximoSubtareas: number;
     puedeGestionar: boolean;
+    aCargoDeOtro: string | null;
 }>();
 
 /**
@@ -148,11 +150,16 @@ function mover(estado: string): void {
     <AppLayout :titulo="tarea.titulo">
         <CabeceraPagina :titulo="tarea.titulo" :descripcion="tarea.descripcion">
             <template #acciones>
-                <Button as-child variant="outline">
+                <Button v-if="puedeGestionar" as-child variant="outline">
                     <Link :href="`/tareas/${tarea.id}/editar`">Editar</Link>
                 </Button>
             </template>
         </CabeceraPagina>
+
+        <Aviso v-if="aCargoDeOtro" titulo="A cargo de otra persona">
+            La tiene {{ aCargoDeOtro }}. Puedes verla entera; la mueve quien la tiene asignada o el
+            responsable de seguridad.
+        </Aviso>
 
         <motion.div
             :variants="variantesEntrada"
@@ -277,7 +284,7 @@ function mover(estado: string): void {
                             Cada botón se parece al badge que vas a obtener al
                             pulsarlo, para no tener que leerlos uno a uno.
                         -->
-                        <div class="flex flex-wrap gap-2">
+                        <div v-if="puedeGestionar" class="flex flex-wrap gap-2">
                             <BotonEstado
                                 v-for="paso in transiciones"
                                 :key="paso.valor"

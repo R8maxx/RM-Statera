@@ -92,6 +92,22 @@ final class RegistroTraza
     }
 
     /**
+     * Un evento que no sale de un `created`, `updated` o `deleted`: un cambio de
+     * rol, un inicio de sesión.
+     *
+     * Lo escribe el dominio a mano, y **pasa por la misma puerta** que los
+     * otros tres, así que hereda la regla de la organización —la del modelo, no
+     * la del contexto— y la de quién escribe.
+     *
+     * @param  ?array<string, mixed>  $anterior
+     * @param  ?array<string, mixed>  $nuevo
+     */
+    public function evento(Model $modelo, AccionAuditada $accion, ?array $anterior = null, ?array $nuevo = null): void
+    {
+        $this->escribir($modelo, $accion, $anterior, $nuevo);
+    }
+
+    /**
      * @param  ?array<string, mixed>  $anterior
      * @param  ?array<string, mixed>  $nuevo
      */

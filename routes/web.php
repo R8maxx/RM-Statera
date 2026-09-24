@@ -2,12 +2,14 @@
 
 declare(strict_types=1);
 
+use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Http\Controllers\ActivoController;
 use App\Http\Controllers\AuditoriaController;
 use App\Http\Controllers\BiaServicioController;
 use App\Http\Controllers\CalendarioController;
 use App\Http\Controllers\ConformidadController;
 use App\Http\Controllers\ContextoController;
+use App\Http\Controllers\CuentaController;
 use App\Http\Controllers\CuestionContextoController;
 use App\Http\Controllers\DocumentoController;
 use App\Http\Controllers\DocumentoCuerpoController;
@@ -16,6 +18,7 @@ use App\Http\Controllers\FormacionController;
 use App\Http\Controllers\ImplantacionController;
 use App\Http\Controllers\IncidenteController;
 use App\Http\Controllers\IndicadorController;
+use App\Http\Controllers\InvitacionController;
 use App\Http\Controllers\MejoraController;
 use App\Http\Controllers\MetodologiaRiesgoController;
 use App\Http\Controllers\NoConformidadController;
@@ -38,7 +41,9 @@ use App\Http\Controllers\RiesgoController;
 use App\Http\Controllers\SistemaController;
 use App\Http\Controllers\TareaController;
 use App\Http\Controllers\ValoracionSistemaController;
+use App\Http\Middleware\EscribeLoSuyo;
 use App\Http\Middleware\ExigirDosFactores;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -282,7 +287,10 @@ Route::middleware('auth')->group(function (): void {
             ->name('implantaciones.show');
     });
 
-    Route::middleware(['can:implantaciones.gestionar', ExigirDosFactores::class])->group(function (): void {
+    // `EscribeLoSuyo`: el técnico sólo escribe en las implantaciones a su cargo
+    // o sin nadie a cargo (§ 4.19). Va en el grupo para que una ruta nueva lo
+    // herede sin acordarse.
+    Route::middleware(['can:implantaciones.gestionar', ExigirDosFactores::class, EscribeLoSuyo::class])->group(function (): void {
         Route::post('/implantaciones/estado', [ImplantacionController::class, 'cambiarEstado'])
             ->name('implantaciones.estado');
         Route::put('/implantaciones/{implantacion}', [ImplantacionController::class, 'update'])
@@ -574,7 +582,9 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/tareas/{tarea}', [TareaController::class, 'show'])->name('tareas.show');
     });
 
-    Route::middleware(['can:tareas.gestionar', ExigirDosFactores::class])->group(function (): void {
+    // `EscribeLoSuyo`, como en implantaciones: el técnico sólo mueve sus tareas
+    // o las que no tienen a nadie.
+    Route::middleware(['can:tareas.gestionar', ExigirDosFactores::class, EscribeLoSuyo::class])->group(function (): void {
         // Antes que `/tareas/{tarea}`: `estado` no es un identificador.
         Route::post('/tareas/estado', [TareaController::class, 'estado'])->name('tareas.estado');
 
@@ -1618,6 +1628,55 @@ Route::middleware('auth')->group(function (): void {
         Route::delete('/organizacion/marca/{pieza}', [OrganizacionMarcaController::class, 'destroy'])
             ->name('organizacion.marca.borrar');
     });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Las cuentas (§ 4.19)
+    |--------------------------------------------------------------------------
+    |
+    | Todo con `cuentas.gestionar`, que no tiene `.ver`: sólo el responsable de
+    | seguridad llega aquí. La lectura va también detrás del segundo factor,
+    | que es la excepción del producto, porque lo que se lee es a quién hay que
+    | robarle la cuenta.
+    |
+    | `/cuentas/crear` va antes que `{cuenta}`, como en el resto de módulos.
+    */
+    Route::middleware(['can:cuentas.gestionar', ExigirDosFactores::class])->group(function (): void {
+        Route::get('/cuentas', [CuentaController::class, 'index'])->name('cuentas.index');
+        Route::get('/cuentas/crear', [CuentaController::class, 'create'])->name('cuentas.create');
+        Route::post('/cuentas', [CuentaController::class, 'store'])->name('cuentas.store');
+        Route::get('/cuentas/{cuenta}', [CuentaController::class, 'show'])->name('cuentas.show');
+        Route::get('/cuentas/{cuenta}/editar', [CuentaController::class, 'edit'])->name('cuentas.edit');
+        Route::put('/cuentas/{cuenta}', [CuentaController::class, 'update'])->name('cuentas.update');
+        Route::post('/cuentas/{cuenta}/desactivar', [CuentaController::class, 'desactivar'])->name('cuentas.desactivar');
+        Route::post('/cuentas/{cuenta}/reactivar', [CuentaController::class, 'reactivar'])->name('cuentas.reactivar');
+        Route::post('/cuentas/{cuenta}/reenviar', [CuentaController::class, 'reenviar'])->name('cuentas.reenviar');
+    });
+});
+
+/*
+ * `{cuenta}` se resuelve a mano porque `User` está fuera de las tres capas:
+ * sin scope global y sin RLS, el binding implícito encontraría la cuenta de
+ * cualquier organización. Se acota por la del contexto, que ya está fijado
+ * cuando corre `SubstituteBindings`, y lo de otro cliente responde 404. Corre
+ * antes que `auth` y que `can:`, así que tampoco puede reventar sin contexto.
+ */
+Route::bind('cuenta', fn (string $valor): User => User::query()
+    // `?? 0` y no `id()` a secas: un `where` con nulo es un `whereNull` y
+    // encontraría justo las cuentas sin organización.
+    ->where('organizacion_id', app(ContextoOrganizacion::class)->id() ?? 0)
+    ->whereKey((int) $valor)
+    ->firstOrFail());
+
+/*
+ * Aceptar una invitación, sin sesión: quien la acepta todavía no ha entrado.
+ * El token es el del broker `invitaciones` y no el de Fortify.
+ */
+Route::middleware('guest')->group(function (): void {
+    Route::get('/invitacion/{token}', [InvitacionController::class, 'show'])->name('invitacion.show');
+    Route::post('/invitacion', [InvitacionController::class, 'store'])
+        ->middleware('throttle:6,1')
+        ->name('invitacion.store');
 });
 
 /*
@@ -1635,4 +1694,11 @@ Route::middleware('auth')->group(function (): void {
 | al acceso. Una redirección diría que la dirección existe detrás del login.
 */
 
-Route::fallback(fn () => abort(404));
+/*
+ * Con cualquier método, y no con `Route::fallback()`, que sólo registra GET y
+ * HEAD: con él, un POST a una dirección que no existe casaba por la ruta con
+ * la reserva y respondía 405, que dice «la dirección existe, el método no».
+ * `POST /register` es justo eso, y `LoginTest` lo exige 404 desde que se
+ * cerró el alta self-service.
+ */
+Route::any('{reserva}', fn () => abort(404))->where('reserva', '.*')->fallback();

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Domain\Autorizacion\Enums\Permiso;
+use App\Domain\Autorizacion\EscrituraPropia;
 use App\Domain\Catalogo\Models\Requisito;
 use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Evidencia\VincularEvidencia;
@@ -18,6 +20,7 @@ use App\Domain\Implantacion\Models\Implantacion;
 use App\Domain\Implantacion\Models\ImplantacionTransicion;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Tarea\Models\Tarea;
+use App\Http\Controllers\Concerns\EmpiezaPorLoMio;
 use App\Http\Requests\CambiarEstadoImplantacionesRequest;
 use App\Http\Requests\CambiarEstadoImplantacionRequest;
 use App\Http\Requests\GuardarImplantacionRequest;
@@ -33,10 +36,19 @@ use Inertia\Response;
 
 class ImplantacionController extends Controller
 {
+    use EmpiezaPorLoMio;
     use RespondeConRecurso;
 
-    public function index(Request $request): Response
+    public function index(Request $request): Response|RedirectResponse
     {
+        if (($loMio = $this->empezarPorLoMio(
+            $request,
+            'implantaciones',
+            fn (User $cuenta): bool => Implantacion::query()->where('responsable_id', $cuenta->id)->exists(),
+        )) !== null) {
+            return $loMio;
+        }
+
         return Inertia::render('implantaciones/Index', $this->tabla(new ImplantacionRecurso, $request));
     }
 
@@ -47,10 +59,16 @@ class ImplantacionController extends Controller
      * está la prueba— entra con el módulo de evidencias.
      */
     public function show(
+        Request $request,
         Implantacion $implantacion,
         CambiarAplicabilidad $aplicabilidad,
         CorrespondenciasCruzadas $correspondencias,
+        EscrituraPropia $escritura,
     ): Response {
+        $usuario = $request->user();
+        $conVerbo = $usuario?->can(Permiso::ImplantacionesGestionar->value) ?? false;
+        $suya = $usuario !== null && $escritura->puedeEscribir($usuario, $implantacion);
+
         $implantacion->load([
             'requisito.marco',
             'sistema',
@@ -190,6 +208,13 @@ class ImplantacionController extends Controller
                     'etiqueta' => $usuario->name,
                 ])
                 ->all(),
+            /*
+             * Quién escribe lo decide el servidor (§ 4.19): el técnico ve la
+             * implantación de otro entera, y no se le ofrecen los botones que
+             * `EscribeLoSuyo` le rechazaría.
+             */
+            'puedeEscribir' => $conVerbo && $suya,
+            'aCargoDeOtro' => $conVerbo && ! $suya ? $implantacion->responsable?->name : null,
             'niveles' => array_map(
                 static fn (NivelMadurez $nivel): array => [
                     'valor' => $nivel->value,
@@ -332,6 +357,7 @@ class ImplantacionController extends Controller
     public function cambiarEstado(
         CambiarEstadoImplantacionesRequest $request,
         CambiarEstado $cambiarEstado,
+        EscrituraPropia $escritura,
     ): RedirectResponse {
         $nuevo = EstadoImplantacion::from($request->string('estado')->toString());
         $nota = $request->string('nota')->toString() ?: null;
@@ -344,8 +370,18 @@ class ImplantacionController extends Controller
 
         $cambiadas = 0;
         $rechazadas = 0;
+        $ajenas = 0;
 
         foreach ($implantaciones as $implantacion) {
+            // Las de otro se saltan y se cuentan, igual que las que no admiten la
+            // transición: rechazar la operación entera por una fila obliga a
+            // adivinar cuál era (§ 4.19).
+            if (! $escritura->puedeEscribir($request->user(), $implantacion)) {
+                $ajenas++;
+
+                continue;
+            }
+
             try {
                 $cambiarEstado($implantacion, $nuevo, $request->user(), $nota);
                 $cambiadas++;
@@ -362,6 +398,10 @@ class ImplantacionController extends Controller
 
         if ($rechazadas > 0) {
             $mensaje .= " {$rechazadas} no admitían esa transición y se quedaron como estaban.";
+        }
+
+        if ($ajenas > 0) {
+            $mensaje .= " {$ajenas} están a cargo de otra persona y no se han tocado.";
         }
 
         Inertia::flash($cambiadas > 0 ? 'exito' : 'error', $mensaje);

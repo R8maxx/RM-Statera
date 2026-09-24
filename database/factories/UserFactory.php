@@ -32,7 +32,27 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            // Activa por defecto: una cuenta sin `activada_en` es una invitación
+            // pendiente y `CuentaVigente` la saca en la primera petición.
+            'activada_en' => now(),
         ];
+    }
+
+    /** Invitada y sin aceptar: nadie conoce todavía su contraseña. */
+    public function invitada(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'invitada_en' => now(),
+            'activada_en' => null,
+        ]);
+    }
+
+    public function desactivada(?string $motivo = null): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'desactivada_en' => now(),
+            'motivo_desactivacion' => $motivo,
+        ]);
     }
 
     /**

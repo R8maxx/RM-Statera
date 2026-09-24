@@ -78,3 +78,9 @@ it('una ruta inexistente conserva la sesión: a quien ya entró no lo manda al a
 it('sin sesión, una ruta inexistente sigue siendo un 404 y no una redirección al acceso', function (): void {
     $this->get('/esto-tampoco')->assertStatus(404);
 });
+
+it('una dirección que no existe es 404 con cualquier método, no 405', function (string $metodo): void {
+    // `Route::fallback()` sólo registra GET y HEAD: con él, un POST a una ruta
+    // inexistente casaba con la reserva por la ruta y respondía 405.
+    $this->call($metodo, '/esto-no-existe')->assertNotFound();
+})->with(['POST', 'PUT', 'DELETE']);

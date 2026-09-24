@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Riesgo\Models;
 
 use App\Domain\Activo\Models\Activo;
+use App\Domain\Autorizacion\Concerns\AcotadoPorAlcance;
 use App\Domain\Implantacion\Enums\EstadoImplantacion;
 use App\Domain\Implantacion\Models\Implantacion;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
@@ -44,11 +45,25 @@ use Illuminate\Support\Carbon;
  */
 class Riesgo extends Model
 {
+    use AcotadoPorAlcance;
+
     /** @use HasFactory<RiesgoFactory> */
     use HasFactory;
 
     use PerteneceAOrganizacion;
     use RegistraTraza;
+
+    /**
+     * Un riesgo es de los activos sobre los que se da, y por ellos, de sus
+     * sistemas. Mismo mecanismo que `Activo`: el scope viaja por la relación.
+     *
+     * @param  Builder<static>  $consulta
+     * @param  list<int>  $sistemas
+     */
+    public function acotarAlAlcance(Builder $consulta, array $sistemas): void
+    {
+        $consulta->whereHas('activos');
+    }
 
     protected $table = 'riesgos';
 

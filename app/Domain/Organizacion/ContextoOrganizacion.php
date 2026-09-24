@@ -32,6 +32,9 @@ final class ContextoOrganizacion
 
     private bool $mantenimiento = false;
 
+    /** @var ?list<int> */
+    private ?array $sistemasDelAlcance = null;
+
     public function establecer(Organizacion|int $organizacion): void
     {
         $this->organizacionId = $organizacion instanceof Organizacion ? $organizacion->id : $organizacion;
@@ -42,6 +45,7 @@ final class ContextoOrganizacion
     public function olvidar(): void
     {
         $this->organizacionId = null;
+        $this->sistemasDelAlcance = null;
 
         $this->sincronizarConLaBase();
     }
@@ -61,6 +65,32 @@ final class ContextoOrganizacion
         return $this->organizacionId ?? throw new RuntimeException(
             'No hay organización activa. Toda operación sobre datos propios necesita contexto de organización.'
         );
+    }
+
+    /**
+     * Acota lo que se ve a unos sistemas de la organización (§ 4.19).
+     *
+     * **No es una cuarta frontera de tenant, es un filtro dentro del tenant**:
+     * el auditor externo ve sólo lo que audita. Por eso vive aquí y no en una
+     * política de RLS —dentro de una misma organización RLS no distingue a
+     * nadie— y por eso nunca quita ninguna de las tres capas: se suma a ellas,
+     * por `AcotadoPorAlcance`.
+     *
+     * Nulo es sin acotar. Una lista vacía no acota a nada: se trata como nula,
+     * porque el dominio no deja que un auditor se quede sin sistemas y lo que
+     * llegue vacío es otra cuenta.
+     *
+     * @param  ?list<int>  $sistemas
+     */
+    public function acotarASistemas(?array $sistemas): void
+    {
+        $this->sistemasDelAlcance = $sistemas === [] ? null : $sistemas;
+    }
+
+    /** @return ?list<int> */
+    public function sistemasDelAlcance(): ?array
+    {
+        return $this->mantenimiento ? null : $this->sistemasDelAlcance;
     }
 
     public function enMantenimiento(): bool

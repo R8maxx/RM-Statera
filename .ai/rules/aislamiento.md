@@ -83,3 +83,14 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
   Usa `toBeTrue($mensaje)` y no `toContain`, **a propósito**: `toContain` es variádico en Pest y se
   traga el mensaje como una segunda aguja, con lo que el test falla siempre y por el motivo
   equivocado. Pasó al escribirlo.
+
+- **Hay una cuarta capa, y no es de tenant: el alcance de la cuenta (§ 4.19).** El
+  auditor externo ve sólo los sistemas que audita. Vive en
+  `ContextoOrganizacion::acotarASistemas()`, la fija `EstablecerContextoOrganizacion`
+  justo después de la organización y la aplica el scope global del trait
+  `AcotadoPorAlcance`. **Se suma a las tres y no quita ninguna**: dentro de una
+  misma organización RLS no distingue a nadie, así que no puede ir en PostgreSQL,
+  y tampoco toca la prohibición de `withoutGlobalScopes()`. `olvidar()` la borra
+  junto con la organización, y `comoMantenimiento()` la ignora. Que ningún modelo
+  con `sistema_id` se quede sin ella lo comprueba `AlcanceDelAuditorTest`. El
+  razonamiento entero, en `cuentas.md`.

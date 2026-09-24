@@ -47,8 +47,32 @@ const rotulo = computed(() => {
         return props.titulo;
     }
 
-    return activos.value.length === 1 ? activos.value[0].etiqueta : `${activos.value.length} filtros`;
+    return activos.value.length === 1 ? rotuloDe(activos.value[0]) : `${activos.value.length} filtros`;
 });
+
+/*
+ * Un predicado se nombra por su etiqueta —«Vencidas», «Sin responsable»—, pero
+ * un desplegable no: «Responsable» con el filtro puesto no dice a quién. Pasó
+ * en tareas, donde `responsable_id` comparte columna con `sin_responsable`, y la
+ * cabecera enseñaba «Responsable» con el filtro de una persona aplicado. Con
+ * opciones se pinta la elegida; con varias elegidas, cuántas.
+ */
+function rotuloDe(filtro: Filtro): string {
+    const valor = props.valores[filtro.clave] ?? null;
+
+    if (filtro.opciones.length === 0) {
+        return filtro.etiqueta;
+    }
+
+    const elegidos = (Array.isArray(valor) ? valor : [valor]).map(String);
+    const nombres = filtro.opciones.filter((opcion) => elegidos.includes(opcion.valor)).map((opcion) => opcion.etiqueta);
+
+    if (nombres.length === 1) {
+        return nombres[0];
+    }
+
+    return nombres.length > 1 ? `${filtro.etiqueta}: ${nombres.length}` : filtro.etiqueta;
+}
 
 const limpiarTodos = (): void => {
     for (const filtro of activos.value) {

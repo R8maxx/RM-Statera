@@ -22,4 +22,18 @@ return [
 
     'exigir_dos_factores' => env('EXIGIR_DOS_FACTORES', true),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Bloqueo por inactividad
+    |--------------------------------------------------------------------------
+    |
+    | Otro requisito del § 6: registro de sesiones y bloqueo por inactividad.
+    | Pasados estos minutos sin ninguna petición, la sesión se cierra y hay que
+    | volver a entrar —con el segundo factor, si la cuenta lo tiene—. Cero lo
+    | apaga, y apagarlo tiene que ser una decisión escrita en el entorno.
+    |
+    */
+
+    'inactividad_minutos' => (int) env('INACTIVIDAD_MINUTOS', 30),
+
 ];

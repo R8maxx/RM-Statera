@@ -24,6 +24,7 @@ import {
     ShieldAlertIcon,
     TargetIcon,
     UserRoundCheckIcon,
+    UserRoundCogIcon,
     UsersIcon,
     type LucideIcon,
 } from '@lucide/vue';
@@ -382,7 +383,8 @@ export const navegacion: GrupoNavegacion[] = [
         /*
          * El grupo nació con una sola entrada esperando a personas (§ 4.8), que
          * ya está, y a proveedores (§ 4.9), que sigue sin estar. Son de la
-         * organización y no del cumplimiento ni del alcance.
+         * organización y no del cumplimiento ni del alcance. Las cuentas (§ 4.19)
+         * van aquí también, sólo para quien las gestiona.
          */
         titulo: 'Organización',
         entradas: [
@@ -396,8 +398,9 @@ export const navegacion: GrupoNavegacion[] = [
                  * acordarse de la cláusula.
                  *
                  * **Sin el alias «usuarios»**, a propósito: las cuentas de
-                 * Statera son otra cosa y viven en el perfil. Empatar los dos en
-                 * la paleta es el error que ya se evitó con «revisión».
+                 * Statera son otra cosa y viven en «Cuentas», que sí lo lleva.
+                 * Empatar los dos en la paleta es el error que ya se evitó con
+                 * «revisión».
                  */
                 alias: ['plantilla', 'empleados', 'roles ens', 'nombramientos', 'confidencialidad', '5.3', 'mp.per'],
             },
@@ -428,6 +431,18 @@ export const navegacion: GrupoNavegacion[] = [
                  * asistencias exige su pantalla.
                  */
                 alias: ['concienciación', 'asistencia', 'curso', 'mp.per.3', 'mp.per.4'],
+            },
+            {
+                titulo: 'Cuentas',
+                href: '/cuentas',
+                icono: UserRoundCogIcon,
+                permiso: 'cuentas.gestionar',
+                /*
+                 * Quién entra en Statera y con qué rol (§ 4.19). **Aquí sí va
+                 * «usuarios»**, que Personas deja fuera a propósito: una cuenta
+                 * es quien entra, una persona es alguien de la plantilla.
+                 */
+                alias: ['usuarios', 'roles', 'permisos', 'invitar', 'auditor externo', 'acceso'],
             },
             {
                 titulo: 'Plantillas de documento',

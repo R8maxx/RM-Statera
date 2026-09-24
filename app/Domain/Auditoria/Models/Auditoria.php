@@ -7,6 +7,7 @@ namespace App\Domain\Auditoria\Models;
 use App\Domain\Auditoria\Enums\EstadoAuditoria;
 use App\Domain\Auditoria\Enums\ResultadoPunto;
 use App\Domain\Auditoria\Enums\TipoAuditoria;
+use App\Domain\Autorizacion\Concerns\AcotadoPorAlcance;
 use App\Domain\Documento\Models\Documento;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
 use App\Domain\Sistema\Models\Sistema;
@@ -55,6 +56,8 @@ use Illuminate\Support\Carbon;
  */
 class Auditoria extends Model
 {
+    use AcotadoPorAlcance;
+
     /** @use HasFactory<AuditoriaFactory> */
     use HasFactory;
 

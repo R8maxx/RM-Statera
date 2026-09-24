@@ -331,3 +331,28 @@ El orden importa: el catálogo y el motor son la parte más específica del domi
     informe de estado como una política, crear un documento sin responsable
     fallaba, y el pie de portada hablaba de una categoría que esos documentos no
     tienen—. Los tres eran anteriores a este punto.
+28. ✅ Cuentas, roles y el alcance del auditor (§ 4.19). **El primero de los tres que
+    quedaban**, y va delante porque es el que bloqueaba el uso real: una cuenta sólo
+    se creaba desde el seeder, así que nadie salvo las tres sintéticas podía entrar.
+    Los otros dos —proveedores y vulnerabilidades— muerden en básica
+    (`op.nub.1`, `op.exp.4`), pero sin cuentas no hay nadie que los registre.
+
+    Las dos frases del § 4.19 que ninguna lista de permisos expresa eran el módulo
+    de verdad. **El auditor externo ve sólo los sistemas que audita y hasta una
+    fecha**: una cuarta capa encima de las tres —un scope y no RLS, porque dentro de
+    un tenant RLS no distingue a nadie— y un décimo test que descubre, el que exige
+    `AcotadoPorAlcance` a todo modelo con `sistema_id`. **El técnico lee todo y
+    escribe lo suyo**: un middleware en el grupo de escritura de tareas e
+    implantaciones, y no un `authorize()` por `FormRequest`, porque la mitad de esas
+    rutas no tienen uno.
+
+    Tres decisiones lo hacen pequeño, y las tres son no guardar algo: **el estado de
+    la cuenta se deriva** de cuatro fechas, **desactivar no borra** y **la traza se
+    escribe a mano**, porque `users` está fuera de las tres capas y la traza no.
+    Trae además el registro de sesiones y el bloqueo por inactividad del § 6, que
+    estaban en los requisitos no funcionales desde el principio.
+
+    Y un hallazgo de paso: las fichas de tarea e implantación le pintaban al auditor
+    botones que le respondían 403. Ahora las dos reciben quién puede escribir, y lo
+    dicen cuando es otra persona.
+

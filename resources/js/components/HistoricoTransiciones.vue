@@ -15,6 +15,12 @@ export interface Transicion {
     usuario: string | null;
     nota: string | null;
     fecha: string | null;
+    /**
+     * Un evento de la traza y no un cambio de estado: sin «anterior →» ni «Se
+     * da de alta →». Llegó con la ficha de una cuenta (§ 4.19), que enseña
+     * entradas y cambios de rol con esta misma cronología.
+     */
+    evento?: boolean;
 }
 
 /**
@@ -36,7 +42,9 @@ export interface Transicion {
  * `DESIGN.md` §9 y es lo que permite que la misma pieza sirva a dos máquinas de
  * estados distintas sin saber nada de ninguna de las dos.
  */
-defineProps<{ transiciones: Transicion[] }>();
+withDefaults(defineProps<{ transiciones: Transicion[]; vacio?: string }>(), {
+    vacio: 'Sin cambios de estado todavía.',
+});
 
 function cuando(fecha: string | null): string {
     return fecha ? formatoFechaHora.format(new Date(fecha)) : '—';
@@ -69,10 +77,12 @@ const retrasoDe = (indice: number): number => (reducido.value ? 0 : Math.min(ind
             />
 
             <div class="flex flex-wrap items-center gap-2">
-                <span v-if="transicion.anterior" class="text-sm text-muted-foreground">
-                    {{ transicion.anterior }} →
-                </span>
-                <span v-else class="text-sm text-muted-foreground">Se da de alta →</span>
+                <template v-if="!transicion.evento">
+                    <span v-if="transicion.anterior" class="text-sm text-muted-foreground">
+                        {{ transicion.anterior }} →
+                    </span>
+                    <span v-else class="text-sm text-muted-foreground">Se da de alta →</span>
+                </template>
 
                 <CeldaBadge
                     :valor="{
@@ -96,6 +106,6 @@ const retrasoDe = (indice: number): number => (reducido.value ? 0 : Math.min(ind
     </ol>
 
     <p v-else class="text-sm text-muted-foreground">
-        Sin cambios de estado todavía.
+        {{ vacio }}
     </p>
 </template>

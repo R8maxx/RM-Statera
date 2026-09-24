@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Domain\Autorizacion\Enums\Permiso;
+use App\Domain\Autorizacion\EscrituraPropia;
 use App\Domain\Continuidad\Models\PruebaContinuidad;
 use App\Domain\Implantacion\Models\Implantacion;
 use App\Domain\Organizacion\ContextoOrganizacion;
@@ -22,6 +23,7 @@ use App\Domain\Tarea\Models\TareaTransicion;
 use App\Domain\Tarea\Plazo;
 use App\Domain\Tarea\ResumenPlanDeAccion;
 use App\Domain\Tarea\VincularTarea;
+use App\Http\Controllers\Concerns\EmpiezaPorLoMio;
 use App\Http\Requests\CambiarEstadoTareaRequest;
 use App\Http\Requests\CambiarEstadoTareasRequest;
 use App\Http\Requests\GuardarSubtareasRequest;
@@ -47,6 +49,7 @@ use Inertia\Response;
  */
 class TareaController extends Controller
 {
+    use EmpiezaPorLoMio;
     use RespondeConRecurso;
 
     /**
@@ -79,8 +82,16 @@ class TareaController extends Controller
      */
     private const FILTROS_QUE_SOBRAN = ['estado', 'bloqueadas'];
 
-    public function index(Request $request, ResumenPlanDeAccion $resumen): Response
+    public function index(Request $request, ResumenPlanDeAccion $resumen): Response|RedirectResponse
     {
+        if (($loMio = $this->empezarPorLoMio(
+            $request,
+            'tareas',
+            fn (User $cuenta): bool => Tarea::query()->where('responsable_id', $cuenta->id)->exists(),
+        )) !== null) {
+            return $loMio;
+        }
+
         return Inertia::render('tareas/Index', [
             ...$this->tabla(new TareaRecurso, $request),
             // No se recalculan al paginar ni al ordenar, pero sí al filtrar por
@@ -173,6 +184,14 @@ class TareaController extends Controller
     {
         $plazo = Plazo::de($tarea);
 
+        /*
+         * Una tarjeta ajena llega sin transiciones (§ 4.19): no se puede soltar
+         * en ninguna columna ni moverse desde su menú. Sin esto el técnico la
+         * arrastraría, el servidor diría 403 y la tarjeta volvería sola, que es
+         * un gesto que parece funcionar y no funciona.
+         */
+        $puedeMoverla = $this->puedeEscribir(request(), $tarea);
+
         return [
             'id' => $tarea->id,
             'titulo' => $tarea->titulo,
@@ -186,7 +205,7 @@ class TareaController extends Controller
             // Con cero pasos no se pinta nada: un «0/0» es ruido.
             'pasos' => (int) $tarea->getAttribute('pasos_count'),
             'pasosHechos' => (int) $tarea->getAttribute('pasos_hechos_count'),
-            'transiciones' => array_values(array_filter(
+            'transiciones' => ! $puedeMoverla ? [] : array_values(array_filter(
                 array_map(
                     static fn (EstadoTarea $estado): string => $estado->value,
                     $tarea->estado->transicionesPermitidas(),
@@ -199,7 +218,7 @@ class TareaController extends Controller
             )),
             // Descartar no es una columna, pero sigue siendo una salida: la
             // tarjeta la ofrece y el diálogo pide el motivo.
-            'descartable' => $tarea->estado->permite(EstadoTarea::Descartada),
+            'descartable' => $puedeMoverla && $tarea->estado->permite(EstadoTarea::Descartada),
         ];
     }
 
@@ -308,8 +327,24 @@ class TareaController extends Controller
              * acciones de la tabla. Un auditor viendo casillas que van a
              * responder 403 al pulsarlas es peor que no verlas.
              */
-            'puedeGestionar' => $request->user()?->can(Permiso::TareasGestionar->value) ?? false,
+            'puedeGestionar' => $this->puedeEscribir($request, $tarea),
+            // Quién la tiene, cuando no es quien mira y no la puede mover
+            // (§ 4.19): la ficha lo dice en vez de esconder los botones sin más.
+            'aCargoDeOtro' => ($request->user()?->can(Permiso::TareasGestionar->value) ?? false)
+                && ! $this->puedeEscribir($request, $tarea)
+                ? $tarea->responsable?->name
+                : null,
         ]);
+    }
+
+    /** Tiene el verbo y, si es técnico, la tarea es suya o de nadie. */
+    private function puedeEscribir(Request $request, Tarea $tarea): bool
+    {
+        $usuario = $request->user();
+
+        return $usuario !== null
+            && $usuario->can(Permiso::TareasGestionar->value)
+            && app(EscrituraPropia::class)->puedeEscribir($usuario, $tarea);
     }
 
     public function edit(Tarea $tarea): Response
@@ -385,15 +420,26 @@ class TareaController extends Controller
      * entera porque tres de cincuenta ya estaban hechas obliga a quitarlas de la
      * selección a mano y volver a empezar.
      */
-    public function estado(CambiarEstadoTareasRequest $request, CambiarEstadoTarea $cambiar): RedirectResponse
-    {
+    public function estado(
+        CambiarEstadoTareasRequest $request,
+        CambiarEstadoTarea $cambiar,
+        EscrituraPropia $escritura,
+    ): RedirectResponse {
         $estado = EstadoTarea::from($request->string('estado')->toString());
         $nota = $request->string('nota')->value() ?: null;
 
         $cambiadas = 0;
         $saltadas = 0;
+        $ajenas = 0;
 
         foreach (Tarea::query()->whereIn('id', $request->input('tareas', []))->get() as $tarea) {
+            // Las de otra persona se saltan y se cuentan (§ 4.19).
+            if (! $escritura->puedeEscribir($request->user(), $tarea)) {
+                $ajenas++;
+
+                continue;
+            }
+
             try {
                 $cambiar($tarea, $estado, $request->user(), $nota);
                 $cambiadas++;
@@ -402,9 +448,17 @@ class TareaController extends Controller
             }
         }
 
-        Inertia::flash('exito', $saltadas === 0
-            ? "{$cambiadas} tarea(s) a «{$estado->etiqueta()}»."
-            : "{$cambiadas} tarea(s) a «{$estado->etiqueta()}». {$saltadas} no admitían ese cambio y se han dejado como estaban.");
+        $mensaje = "{$cambiadas} tarea(s) a «{$estado->etiqueta()}».";
+
+        if ($saltadas > 0) {
+            $mensaje .= " {$saltadas} no admitían ese cambio y se han dejado como estaban.";
+        }
+
+        if ($ajenas > 0) {
+            $mensaje .= " {$ajenas} están a cargo de otra persona y no se han tocado.";
+        }
+
+        Inertia::flash('exito', $mensaje);
 
         return back();
     }

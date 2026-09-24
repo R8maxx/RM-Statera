@@ -96,7 +96,7 @@ No usar paquetes de multi-tenancy de terceros: es la frontera de seguridad princ
 
 ## Los módulos
 
-Veintisiete puntos, y el orden importa: el catálogo y el motor son la parte más
+Veintiocho puntos, y el orden importa: el catálogo y el motor son la parte más
 específica del dominio y la que más se estropea si se improvisa; el resto es CRUD con
 reglas de negocio encima. **El porqué de cada uno —qué problema abrió, qué decisión se
 tomó y qué dejó declarado que no hace— está en su fichero de reglas**, y la bitácora
@@ -131,6 +131,7 @@ completa con el razonamiento del orden, en `.ai/rules/orden-de-arranque.md`.
 | 25 | Continuidad — **cierra la fase 3** | 4.11 | `continuidad.md` |
 | 26 | Conformidad con el ENS, categoría básica | 4.17 | `conformidad.md` |
 | 27 | Informes y exportación: informe de auditoría e informe de estado | 4.18 | `documentos.md`, `auditorias.md` |
+| 28 | Cuentas, roles y el alcance del auditor externo | 4.19 | `cuentas.md` |
 
 **La fase 3 está cerrada.** Con continuidad (§ 4.11) dentro —el BIA por servicio,
 el plan como documento y las pruebas que lo contrastan— el ciclo vivo se recorre
@@ -146,8 +147,13 @@ SoA, DdA, plan de adecuación, acta de revisión, informe de auditoría interna 
 de estado. Fuera de esa lista siguen sin generarse el informe de incidente y el de
 continuidad, y el INES, que se presenta en la plataforma del CCN.
 
-Lo que queda: la gestión de cuentas y roles (§ 4.19); proveedores (§ 4.9), y el
-registro de vulnerabilidades del invariante 8.
+Con el punto 28 la herramienta deja de depender del seeder para tener usuarios:
+se invita, se da rol, se desactiva y se registra quién entra. El auditor externo
+ve sólo los sistemas que audita y hasta una fecha, y el técnico lee todo y
+escribe lo suyo.
+
+Lo que queda: proveedores (§ 4.9) y el registro de vulnerabilidades del
+invariante 8.
 
 ## El catálogo
 
@@ -202,7 +208,7 @@ Por orden, según dónde duele un fallo silencioso:
 4. **Importador del catálogo**, incluida la idempotencia y el diff.
 5. Resto de módulos: flujos principales.
 
-Y nueve tests **descubren** en vez de enumerar, así que cubren solos lo que traiga el
+Y diez tests **descubren** en vez de enumerar, así que cubren solos lo que traiga el
 módulo siguiente. Cuáles son y qué convierte en rojo cada uno, en `.ai/rules/tests.md`.
 
 ## Dónde está cada cosa
@@ -226,15 +232,15 @@ sobre el directorio pilla lo que un encaje de ruta se deja.
 
 | Fichero | Se carga al tocar | Qué lleva |
 |---|---|---|
-| `aislamiento.md` | `app/Domain/**`, middleware, factories, seeders | Las tres capas; el orden del middleware; la factory que no declara `organizacion_id`; `scoped` y no `singleton`; el job sin `SerializesModels`; `User` fuera de las tres capas; el rol `statera_app` |
+| `aislamiento.md` | `app/Domain/**`, middleware, factories, seeders | Las tres capas y la cuarta, el alcance del auditor; el orden del middleware; la factory que no declara `organizacion_id`; `scoped` y no `singleton`; el job sin `SerializesModels`; `User` fuera de las tres capas; el rol `statera_app` |
 | `recursos.md` | `app/Http/Resources/**`, `components/tabla/**`, `components/formulario/**` | La capa de recursos entera: qué describe un `Recurso`, filtros, `MetaTabla`, la vista guardada en el navegador, y por qué la clase se llama `Recurso` y no `Resource` |
 | `routing.md` | `routes/**` | `scopeBindings()` pluraliza en inglés: los cuatro `resolveChildRouteBinding()` escritos a mano y el parámetro que se llama `{accion}` |
 | `migraciones.md` | `database/migrations/**` | `CREATE OR REPLACE FUNCTION`; el `CHECK` construido desde un enum que `migrate:fresh` no prueba |
 | `diseno.md` | `resources/css/**`, `components/ui/**` | La paleta: hue 196, `--acento` frente a `--accent`, los cuatro sitios del violeta, radios, contraste y protanopía |
 | `interfaz.md` | `resources/js/**` | `lib/tonos.ts` y `lib/navegacion.ts` como mapas únicos; los tres canales de un estado; qué librería entró, cuál no y por qué |
-| `tests.md` | `tests/**` | Los nueve tests que descubren en vez de enumerar |
+| `tests.md` | `tests/**` | Los diez tests que descubren en vez de enumerar |
 | `infraestructura.md` | `docker-compose.yml`, `docker/**`, `.env.example` | Los dos endpoints de MinIO, `quay.io`, el `ARG UID`, `predis` |
-| `orden-de-arranque.md` | este fichero, `README.md`, `PRODUCT.md` | La bitácora de los 27 puntos, con el razonamiento del orden |
+| `orden-de-arranque.md` | este fichero, `README.md`, `PRODUCT.md` | La bitácora de los 28 puntos, con el razonamiento del orden |
 
 ### Por módulo
 
@@ -264,6 +270,7 @@ sobre el directorio pilla lo que un encaje de ruta se deja.
 | `panel.md` | `app/Domain/Panel/**` y las tres vistas del panel |
 | `organizacion.md` | `app/Domain/Organizacion/**` y la ficha del tenant |
 | `perfil.md` | `pages/perfil/**`, `app/Domain/Autorizacion/**` |
+| `cuentas.md` | `pages/cuentas/**`, `app/Domain/Usuario/**`, la invitación, los middlewares de cuenta y sesión |
 
 **Un módulo nuevo entra con su fichero y su `paths:`**, y no tocando este mapa: lo que
 hace que se cargue es el glob, no la fila de esta tabla. La tabla es para leerla un

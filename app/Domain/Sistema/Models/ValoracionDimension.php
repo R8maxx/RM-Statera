@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Sistema\Models;
 
+use App\Domain\Autorizacion\Concerns\AcotadoPorAlcance;
 use App\Domain\Catalogo\Enums\Dimension;
 use App\Domain\Categorizacion\Enums\NivelDimension;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
@@ -28,6 +29,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class ValoracionDimension extends Model
 {
+    use AcotadoPorAlcance;
+
     /** @use HasFactory<ValoracionDimensionFactory> */
     use HasFactory;
 

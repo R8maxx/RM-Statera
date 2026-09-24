@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Obligacion\Models;
 
+use App\Domain\Autorizacion\Concerns\AcotadoPorAlcance;
 use App\Domain\Obligacion\Cadencia;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
 use App\Domain\Sistema\Models\Sistema;
@@ -47,11 +48,28 @@ use Illuminate\Support\Carbon;
  */
 class Compromiso extends Model
 {
+    use AcotadoPorAlcance;
+
     /** @use HasFactory<CompromisoFactory> */
     use HasFactory;
 
     use PerteneceAOrganizacion;
     use RegistraTraza;
+
+    /**
+     * Un compromiso sin sistema es de la organización entera —la revisión por
+     * la dirección, la auditoría interna del SGSI—. Se acota lo que es de otro
+     * sistema.
+     *
+     * @param  Builder<static>  $consulta
+     * @param  list<int>  $sistemas
+     */
+    public function acotarAlAlcance(Builder $consulta, array $sistemas): void
+    {
+        $columna = $this->qualifyColumn('sistema_id');
+
+        $consulta->where(fn (Builder $dentro) => $dentro->whereNull($columna)->orWhereIn($columna, $sistemas));
+    }
 
     /**
      * La próxima vez que toca, en SQL.

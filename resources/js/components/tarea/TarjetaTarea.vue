@@ -60,8 +60,14 @@ onMounted(() => {
         return;
     }
 
+    /*
+     * Una tarjeta sin destinos no se arrastra (§ 4.19): es la de otra persona
+     * y llega sin transiciones. Arrastrarla y ver que ninguna columna la
+     * acepta es un gesto que parece funcionar y no hace nada.
+     */
     limpiar = draggable({
         element: elemento.value,
+        canDrag: () => props.tarjeta.transiciones.length > 0,
         getInitialData: () => ({
             tareaId: props.tarjeta.id,
             desde: props.tarjeta.estado,
@@ -126,7 +132,10 @@ const transicionTarjeta = transicionMovimiento;
                 El asa existe para decir que esto se arrastra. No es el único
                 camino: el menú de al lado hace lo mismo sin ratón.
             -->
+            <!-- Sin destinos, el asa se queda invisible y no se quita: ocupa
+                 el hueco que alinea el título con los badges de abajo. -->
             <GripVerticalIcon
+                :class="tarjeta.transiciones.length === 0 && 'invisible'"
                 class="mt-0.5 size-4 shrink-0 cursor-grab text-muted-foreground/40 transition-colors group-hover:text-muted-foreground"
                 aria-hidden="true"
             />
@@ -135,7 +144,10 @@ const transicionTarjeta = transicionMovimiento;
                 {{ tarjeta.titulo }}
             </Link>
 
-            <DropdownMenu>
+            <!-- Sin menú cuando no hay adónde moverla: una tarjeta a cargo de
+                 otra persona llega sin transiciones (§ 4.19), y un menú con
+                 el rótulo «Mover a» y nada debajo es un callejón. -->
+            <DropdownMenu v-if="tarjeta.transiciones.length > 0 || tarjeta.descartable">
                 <DropdownMenuTrigger as-child>
                     <Button variant="ghost" size="icon-xs" :aria-label="`Mover «${tarjeta.titulo}»`">
                         <EllipsisVerticalIcon class="size-4" />

@@ -5,7 +5,7 @@ paths:
 
 # Los tests que no hay que acordarse de ampliar
 
-Nueve tests **descubren** en vez de enumerar, así que cubren solos lo que traiga el módulo siguiente.
+Diez tests **descubren** en vez de enumerar, así que cubren solos lo que traiga el módulo siguiente.
 Nacieron de fallos que ya habían mordido o estaban a punto:
 
 | Test | Qué convierte en rojo |
@@ -18,9 +18,10 @@ Nacieron de fallos que ya habían mordido o estaban a punto:
 | `Panel/AlertasTest` | Un registro con `alertas()` que no esté en `AlertasDelPanel::FUENTES`. Recorre `app/Domain/` en vez de enumerar módulos, porque olvidar uno **no rompe nada**: su pestaña del panel deja de marcarse, que es el fallo que el punto existe para cerrar. Y si su `glob` deja de encontrar nada se pone rojo, que es la lección de `FactoriesSinOrganizacionTest`. |
 | `Organizacion/ConsultasDeUsuarioAcotadasTest` | Un `User::query()` sin `organizacion_id` en las cinco líneas siguientes. Llegó con el § 4.16 y encontró **doce** repartidos por seis módulos: `User` es el único modelo de datos propios fuera de las tres capas, así que aquí no hay esquema que interrogar —la fuga no está en la base, está en la consulta—. Salta las líneas de comentario, porque un docblock que explica por qué ahí no hace falta acotar no es una infracción. |
 | `Calendario/CalendarioTest` (los dos de tono) | Una `Fuente` que gaste el rojo sin estar vencida, o que estando vencida no lo gaste. Recorren `Fuente::cases()` sembrando una de cada: con siete fuentes, enumerar es cómo se cuela una. Un caso nuevo sin sembrar revienta el `match` **con su nombre**, que es lo que obliga a ampliar el sembrador. |
+| `Cuentas/AlcanceDelAuditorTest` (el primero) | Un modelo de `app/Domain/*/Models/` cuya tabla tenga `sistema_id` y que no use `AcotadoPorAlcance`. Llegó con el § 4.19: olvidarlo no rompe nada, deja al auditor externo viendo el registro de un sistema que no audita. Pregunta al esquema con `Schema::hasColumn` en vez de enumerar modelos, y lleva declarada su única excepción, `CuentaSistema`, que es la tabla que define el alcance. |
 | `Avisos/VencimientosTest` (el del recuento) | Una `Fuente` que `Vencimientos::pasados()` no sume. Es el fallo más silencioso del calendario: el asunto del correo diría «3 pasadas de fecha» habiendo 9, y no falla nadie. |
 
-Los tres últimos tienen algo en común con los seis primeros y conviene decirlo: **no comprueban una
+Los tres de fuentes y avisos tienen algo en común con los demás y conviene decirlo: **no comprueban una
 regla, comprueban que nadie se olvide de una regla**. Por eso recorren `cases()` o el árbol de ficheros
 en vez de llevar una lista, y por eso el mensaje de fallo nombra lo que falta.
 

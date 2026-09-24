@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Sistema\Models;
 
+use App\Domain\Autorizacion\Concerns\AcotadoPorAlcance;
 use App\Domain\Catalogo\Enums\CategoriaEns;
 use App\Domain\Catalogo\Models\Marco;
 use App\Domain\Catalogo\Models\PerfilCumplimiento;
@@ -13,6 +14,7 @@ use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
 use App\Domain\Sistema\Enums\EstadoSistema;
 use App\Domain\Traza\Concerns\RegistraTraza;
 use Database\Factories\SistemaFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -36,11 +38,25 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Sistema extends Model
 {
+    use AcotadoPorAlcance;
+
     /** @use HasFactory<SistemaFactory> */
     use HasFactory;
 
     use PerteneceAOrganizacion;
     use RegistraTraza;
+
+    /**
+     * Un sistema está en el alcance si es uno de los del alcance: aquí no hay
+     * columna `sistema_id`, el sistema es la propia fila.
+     *
+     * @param  Builder<static>  $consulta
+     * @param  list<int>  $sistemas
+     */
+    public function acotarAlAlcance(Builder $consulta, array $sistemas): void
+    {
+        $consulta->whereIn($this->qualifyColumn('id'), $sistemas);
+    }
 
     protected $table = 'sistemas';
 

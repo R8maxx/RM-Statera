@@ -39,6 +39,10 @@
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
+        <!-- Apagado en la suite: muchos tests viajan en el tiempo entre dos
+             peticiones de la misma sesión, y el bloqueo los echaría. Lo
+             enciende a mano InactividadTest. -->
+        <env name="INACTIVIDAD_MINUTOS" value="0"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>

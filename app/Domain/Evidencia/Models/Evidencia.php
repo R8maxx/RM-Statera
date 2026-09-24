@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Evidencia\Models;
 
+use App\Domain\Autorizacion\Concerns\AcotadoPorAlcance;
 use App\Domain\Evidencia\Enums\PeriodicidadRenovacion;
 use App\Domain\Evidencia\Enums\TipoEvidencia;
 use App\Domain\Implantacion\Models\Implantacion;
@@ -49,11 +50,27 @@ use Illuminate\Support\Carbon;
  */
 class Evidencia extends Model
 {
+    use AcotadoPorAlcance;
+
     /** @use HasFactory<EvidenciaFactory> */
     use HasFactory;
 
     use PerteneceAOrganizacion;
     use RegistraTraza;
+
+    /**
+     * Una evidencia prueba implantaciones, y cada implantación es de un
+     * sistema. Una evidencia puede probar a la vez un control de ISO y tres
+     * medidas del ENS (invariante 6): basta con que una de ellas esté en el
+     * alcance para que el auditor la vea.
+     *
+     * @param  Builder<static>  $consulta
+     * @param  list<int>  $sistemas
+     */
+    public function acotarAlAlcance(Builder $consulta, array $sistemas): void
+    {
+        $consulta->whereHas('implantaciones');
+    }
 
     protected $table = 'evidencias';
 

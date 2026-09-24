@@ -39,12 +39,21 @@ export interface EvidenciaVinculada {
  * una recarga parcial, porque el repositorio puede tener cientos y aquí se
  * enseñan tres.
  */
-const props = defineProps<{
-    implantacionId: number;
-    evidencias: EvidenciaVinculada[];
-    /** Llega sólo cuando se pide: prop opcional de Inertia. */
-    disponibles?: Opcion[];
-}>();
+const props = withDefaults(
+    defineProps<{
+        implantacionId: number;
+        evidencias: EvidenciaVinculada[];
+        /** Llega sólo cuando se pide: prop opcional de Inertia. */
+        disponibles?: Opcion[];
+        /**
+         * Si quien mira puede adjuntar y desvincular (§ 4.19). El auditor y el
+         * técnico ante una implantación ajena ven las pruebas y no los
+         * botones: `EscribeLoSuyo` y la ruta los rechazarían.
+         */
+        editable?: boolean;
+    }>(),
+    { editable: true },
+);
 
 const abierto = ref(false);
 const cargando = ref(false);
@@ -112,7 +121,7 @@ const fecha = (valor: string): string => formatoFecha.format(new Date(valor));
                     <p v-if="evidencia.nota" class="mt-1 text-sm">{{ evidencia.nota }}</p>
                 </div>
 
-                <Button variant="ghost" size="sm" @click="desvincular(evidencia.id)">Desvincular</Button>
+                <Button v-if="editable" variant="ghost" size="sm" @click="desvincular(evidencia.id)">Desvincular</Button>
             </li>
         </TransitionGroup>
 
@@ -121,7 +130,7 @@ const fecha = (valor: string): string => formatoFecha.format(new Date(valor));
             ante un auditor no se puede demostrar.
         </p>
 
-        <div class="flex flex-wrap gap-2">
+        <div v-if="editable" class="flex flex-wrap gap-2">
             <Button variant="outline" @click="abrir">Adjuntar una evidencia</Button>
             <Button as-child variant="ghost">
                 <Link href="/evidencias/crear">Registrar una nueva</Link>

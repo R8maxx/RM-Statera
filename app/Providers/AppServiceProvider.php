@@ -8,6 +8,11 @@ use App\Domain\Documento\Render\ClienteGotenberg;
 use App\Domain\Documento\Render\GotenbergHttp;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Riesgo\MetodologiaVigente;
+use App\Domain\Usuario\Listeners\RegistrarSesion;
+use Illuminate\Auth\Events\Failed;
+use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Events\Logout;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -64,6 +69,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        /*
+         * El registro de sesiones del § 6. A mano porque el listener vive en su
+         * dominio y el descubrimiento automático sólo mira `app/Listeners`.
+         */
+        Event::listen(Login::class, [RegistrarSesion::class, 'alEntrar']);
+        Event::listen(Logout::class, [RegistrarSesion::class, 'alSalir']);
+        Event::listen(Failed::class, [RegistrarSesion::class, 'alFallar']);
     }
 }

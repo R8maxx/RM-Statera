@@ -239,6 +239,21 @@ enum Permiso: string
     case OrganizacionGestionar = 'organizacion.gestionar';
 
     /*
+     * Las cuentas de la organización (§ 4.19): invitar, cambiar el rol, acotar
+     * el alcance del auditor y desactivar.
+     *
+     * **Un solo verbo y sin `.ver`**, por lo mismo que `organizacion.gestionar`:
+     * un `cuentas.ver` se lo daría al auditor por `RolesTest`, y la lista de
+     * quién entra en la herramienta, con su último acceso, no es algo que tenga
+     * que leer quien viene de fuera. Queda fuera del técnico y del auditor por
+     * construcción.
+     *
+     * Es la familia de los verbos de supervisión aunque no se llame así: dar un
+     * rol es decidir quién puede firmar.
+     */
+    case CuentasGestionar = 'cuentas.gestionar';
+
+    /*
      * El calendario de obligaciones del § 4.16, y **el único módulo con un verbo
      * de lectura que no es el de su propia tabla**: `calendario.ver` abre una
      * rejilla que enseña vencimientos de seis registros distintos.
@@ -309,6 +324,7 @@ enum Permiso: string
             self::DocumentosRedactar => 'Redactar los textos de un documento',
             self::DocumentosPlantillas => 'Definir los textos base de la organización',
             self::OrganizacionGestionar => 'Mantener la ficha de la organización y la base de las etiquetas',
+            self::CuentasGestionar => 'Invitar cuentas, darles rol, acotar al auditor y desactivarlas',
             self::CalendarioVer => 'Ver el calendario de vencimientos',
             self::ObligacionesVer => 'Ver las obligaciones periódicas y su histórico de cumplimiento',
             self::ObligacionesGestionar => 'Asumir obligaciones, retirarlas y registrar cumplimientos',

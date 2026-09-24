@@ -8,6 +8,7 @@ use App\Domain\Activo\Enums\Clasificacion;
 use App\Domain\Activo\Enums\EstadoCicloVida;
 use App\Domain\Activo\Enums\EstadoControl;
 use App\Domain\Activo\Enums\TipoActivo;
+use App\Domain\Autorizacion\Concerns\AcotadoPorAlcance;
 use App\Domain\Catalogo\Enums\CategoriaEns;
 use App\Domain\Catalogo\Enums\Dimension;
 use App\Domain\Categorizacion\ValoracionDimensiones;
@@ -69,11 +70,27 @@ use Illuminate\Support\Carbon;
  */
 class Activo extends Model
 {
+    use AcotadoPorAlcance;
+
     /** @use HasFactory<ActivoFactory> */
     use HasFactory;
 
     use PerteneceAOrganizacion;
     use RegistraTraza;
+
+    /**
+     * Un activo es de los sistemas a los que da soporte, que es un N:M. El
+     * `whereHas` no repite la lista: la consulta de `sistemas()` ya pasa por
+     * este mismo scope en `Sistema`. Un activo que no soporta ningún sistema
+     * queda fuera del alcance, porque no está en lo que se audita.
+     *
+     * @param  Builder<static>  $consulta
+     * @param  list<int>  $sistemas
+     */
+    public function acotarAlAlcance(Builder $consulta, array $sistemas): void
+    {
+        $consulta->whereHas('sistemas');
+    }
 
     protected $table = 'activos';
 

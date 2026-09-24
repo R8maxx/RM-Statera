@@ -142,6 +142,7 @@ use App\Domain\Tarea\Enums\OrigenTarea;
 use App\Domain\Tarea\Enums\PrioridadTarea;
 use App\Domain\Tarea\GuardarSubtareas;
 use App\Domain\Tarea\Models\Tarea;
+use App\Domain\Usuario\Models\CuentaSistema;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Seeder;
@@ -216,6 +217,24 @@ class DesarrolloSeeder extends Seeder
                 'alcance_declarado' => 'Servicios internos alojados en la nube corporativa.',
             ],
         );
+
+        /*
+         * El auditor externo audita este sistema durante tres meses (§ 4.19).
+         * Con un solo sistema sembrado el filtro no esconde nada, pero la ficha
+         * de su cuenta enseña el alcance y la fecha, y la cuenta caduca sola.
+         */
+        $auditor = User::query()
+            ->where('organizacion_id', $organizacion->id)
+            ->where('email', 'auditor@statera.test')
+            ->first();
+
+        if ($auditor !== null) {
+            CuentaSistema::query()->firstOrCreate(['user_id' => $auditor->id, 'sistema_id' => $sistema->id]);
+
+            if ($auditor->acceso_hasta === null) {
+                $auditor->forceFill(['acceso_hasta' => today()->addMonths(3)])->save();
+            }
+        }
 
         /*
          * Cinco dimensiones en bajo: categoría básica, que es el objetivo de la
@@ -2224,6 +2243,13 @@ class DesarrolloSeeder extends Seeder
                 'organizacion_id' => $organizacion->id,
             ],
         );
+
+        // Las cuentas sembradas llevan contraseña conocida, así que nacen
+        // activas: sin `activada_en` serían invitaciones pendientes y
+        // `CuentaVigente` las echaría en la primera petición.
+        if ($usuario->activada_en === null) {
+            $usuario->forceFill(['activada_en' => now()])->save();
+        }
 
         $usuario->syncRoles([$rol->value]);
     }

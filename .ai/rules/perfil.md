@@ -158,8 +158,9 @@ no abre ninguna ruta de escritura — quién tiene qué rol es el § 4.19.
   añadirla es tocar el `Dockerfile`. Una foto hecha de lado con el móvil se
   guarda de lado; se gira antes de subirla.
 - **No da de alta cuentas, ni asigna roles, ni deja ver el perfil de otro.** Eso
-  es el § 4.19, que sigue sin pantalla: existen los enums, el seeder y las
-  políticas, y ninguna interfaz.
+  vive en `/cuentas` desde el punto 28, con sus reglas en `cuentas.md`. Aquí decía
+  que existían «las políticas», y no existía ninguna: la autorización es por
+  permiso en la ruta (`can:`) y no hay una sola clase `Policy` en el repositorio.
 - **La foto es de la cuenta y no de la persona.** `personas` no tiene retrato, así
   que el organigrama de `/puestos/organigrama/grafo-personas` sigue sin caras —
   y ponerlas sería ampliar el § 4.8, no esto.

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Persona\Models;
 
+use App\Domain\Autorizacion\Concerns\AcotadoPorAlcance;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
 use App\Domain\Persona\Enums\RolEns;
 use App\Domain\Sistema\Models\Sistema;
@@ -40,6 +41,8 @@ use Illuminate\Support\Carbon;
  */
 class DesignacionRol extends Model
 {
+    use AcotadoPorAlcance;
+
     /** @use HasFactory<DesignacionRolFactory> */
     use HasFactory;
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Incidente\Models;
 
 use App\Domain\Activo\Models\Activo;
+use App\Domain\Autorizacion\Concerns\AcotadoPorAlcance;
 use App\Domain\Incidente\Enums\ClasificacionIncidente;
 use App\Domain\Incidente\Enums\EstadoIncidente;
 use App\Domain\Incidente\Enums\PeligrosidadIncidente;
@@ -59,11 +60,28 @@ use Illuminate\Support\Carbon;
  */
 class Incidente extends Model
 {
+    use AcotadoPorAlcance;
+
     /** @use HasFactory<IncidenteFactory> */
     use HasFactory;
 
     use PerteneceAOrganizacion;
     use RegistraTraza;
+
+    /**
+     * Un incidente sin sistema no se ha atribuido a ninguno, y ocultárselo al
+     * auditor sería esconder justo lo que está sin clasificar. Se acota lo
+     * atribuido a otro sistema.
+     *
+     * @param  Builder<static>  $consulta
+     * @param  list<int>  $sistemas
+     */
+    public function acotarAlAlcance(Builder $consulta, array $sistemas): void
+    {
+        $columna = $this->qualifyColumn('sistema_id');
+
+        $consulta->where(fn (Builder $dentro) => $dentro->whereNull($columna)->orWhereIn($columna, $sistemas));
+    }
 
     /**
      * Las cinco dimensiones del Anexo I, en su orden, y la columna que las

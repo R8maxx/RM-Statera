@@ -10,6 +10,7 @@ Before planning or editing, find the row whose globs match the file's path and r
 | app/Domain/Auditoria/**, resources/js/pages/auditorias/** | .ai/rules/auditorias.md |
 | app/Domain/Catalogo/**, app/Domain/Categorizacion/**, catalogo/** | .ai/rules/catalogo.md |
 | app/Domain/Conformidad/**, resources/js/pages/conformidad/**, resources/js/components/conformidad/**, app/Domain/Documento/Contenido/DeclaracionConformidadEns.php | .ai/rules/conformidad.md |
+| resources/js/pages/cuentas/**, resources/js/pages/auth/AceptarInvitacion.vue, app/Domain/Usuario/**, app/Http/Controllers/CuentaController.php, app/Http/Controllers/InvitacionController.php, app/Http/Middleware/CuentaVigente.php, app/Http/Middleware/BloqueoPorInactividad.php, app/Http/Middleware/EscribeLoSuyo.php, app/Domain/Autorizacion/EscrituraPropia.php, app/Domain/Autorizacion/Concerns/AcotadoPorAlcance.php | .ai/rules/cuentas.md |
 | app/Domain/Contexto/**, resources/js/pages/contexto/**, resources/js/pages/partes-interesadas/**, resources/js/components/contexto/** | .ai/rules/contexto.md |
 | app/Domain/Continuidad/**, resources/js/pages/continuidad/**, resources/js/components/continuidad/** | .ai/rules/continuidad.md |
 | resources/css/**, resources/js/components/ui/** | .ai/rules/diseno.md |

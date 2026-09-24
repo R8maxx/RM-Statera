@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Aviso from '@/components/Aviso.vue';
 import FilaCampos from '@/components/formulario/FilaCampos.vue';
 import { ArrowLeftIcon } from '@lucide/vue';
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
@@ -59,6 +60,8 @@ const props = defineProps<{
     correspondencias: Correspondencia[];
     responsables: Opcion[];
     niveles: Opcion[];
+    puedeEscribir: boolean;
+    aCargoDeOtro: string | null;
 }>();
 
 interface TareaVinculada {
@@ -122,6 +125,11 @@ function cambiarEstado(): void {
             </template>
         </CabeceraPagina>
 
+        <Aviso v-if="aCargoDeOtro" titulo="A cargo de otra persona">
+            La tiene {{ aCargoDeOtro }}. Puedes verla entera; la mueve quien la tiene asignada o el
+            responsable de seguridad.
+        </Aviso>
+
         <motion.div
             :variants="variantesEntrada"
             initial="oculto"
@@ -139,6 +147,7 @@ function cambiarEstado(): void {
                     <CardContent class="space-y-5">
                         <div v-if="exigencia.excluibleAMano" class="space-y-3">
                             <CampoSwitch
+                                :deshabilitado="!puedeEscribir"
                                 v-model="gestion.aplica"
                                 nombre="aplica"
                                 etiqueta="Este requisito aplica al sistema"
@@ -147,6 +156,7 @@ function cambiarEstado(): void {
                             />
 
                             <CampoTextarea
+                                :deshabilitado="!puedeEscribir"
                                 v-if="!gestion.aplica"
                                 v-model="gestion.justificacion"
                                 nombre="justificacion"
@@ -176,6 +186,7 @@ function cambiarEstado(): void {
 
                         <FilaCampos>
                             <CampoSelect
+                                :deshabilitado="!puedeEscribir"
                                 v-model="gestion.responsable_id"
                                 nombre="responsable_id"
                                 etiqueta="Responsable"
@@ -184,6 +195,7 @@ function cambiarEstado(): void {
                             />
 
                             <CampoTexto
+                                :deshabilitado="!puedeEscribir"
                                 v-model="gestion.fecha_objetivo"
                                 nombre="fecha_objetivo"
                                 etiqueta="Fecha objetivo"
@@ -193,6 +205,7 @@ function cambiarEstado(): void {
                         </FilaCampos>
 
                         <CampoSelect
+                            :deshabilitado="!puedeEscribir"
                             v-model="gestion.nivel_madurez"
                             nombre="nivel_madurez"
                             etiqueta="Nivel de madurez"
@@ -202,6 +215,7 @@ function cambiarEstado(): void {
                         />
 
                         <CampoTextarea
+                            :deshabilitado="!puedeEscribir"
                             v-model="gestion.notas"
                             nombre="notas"
                             etiqueta="Notas"
@@ -211,7 +225,7 @@ function cambiarEstado(): void {
                         />
                     </CardContent>
 
-                    <CardFooter class="justify-end">
+                    <CardFooter v-if="puedeEscribir" class="justify-end">
                         <Button variant="outline" :disabled="gestion.processing" @click="guardar">
                             {{ gestion.processing ? 'Guardando…' : 'Guardar' }}
                         </Button>
@@ -232,6 +246,7 @@ function cambiarEstado(): void {
                             :implantacion-id="implantacion.id"
                             :evidencias="evidencias"
                             :disponibles="evidenciasDisponibles"
+                            :editable="puedeEscribir"
                         />
                     </CardContent>
                 </Card>
@@ -343,6 +358,7 @@ function cambiarEstado(): void {
 
                         <template v-if="transicionesPermitidas.length > 0">
                             <CampoSelect
+                                :deshabilitado="!puedeEscribir"
                                 v-model="transicion.estado"
                                 nombre="estado"
                                 etiqueta="Pasar a"
@@ -352,6 +368,7 @@ function cambiarEstado(): void {
                             />
 
                             <CampoTextarea
+                                :deshabilitado="!puedeEscribir"
                                 v-model="transicion.nota"
                                 nombre="nota"
                                 etiqueta="Nota"
@@ -367,7 +384,7 @@ function cambiarEstado(): void {
                         </p>
                     </CardContent>
 
-                    <CardFooter v-if="transicionesPermitidas.length > 0" class="justify-end">
+                    <CardFooter v-if="puedeEscribir && transicionesPermitidas.length > 0" class="justify-end">
                         <Button
                             :disabled="transicion.processing || !transicion.estado"
                             @click="cambiarEstado"
