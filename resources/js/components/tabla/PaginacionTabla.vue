@@ -8,6 +8,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { ChevronLeftIcon, ChevronRightIcon, ChevronsLeftIcon, ChevronsRightIcon } from '@lucide/vue';
+import { computed } from 'vue';
 
 type MetaTabla = App.Http.Resources.Definicion.MetaTabla;
 
@@ -18,7 +19,16 @@ type MetaTabla = App.Http.Resources.Definicion.MetaTabla;
  * valor de una lista cerrada es lo que hace un select, y así llega también el
  * teclado y el estado marcado, que el menú no daba.
  */
-defineProps<{ meta: MetaTabla; tamanos: number[] }>();
+const props = defineProps<{ meta: MetaTabla; tamanos: number[] }>();
+
+/*
+ * Con una sola página, los cuatro botones deshabilitados y un «1 / 1» no dicen
+ * nada que no diga ya el recuento: se quitan. El selector de tamaño se queda
+ * mientras sirva para algo —si hay más filas que el tamaño más pequeño, cambiar
+ * de tamaño cambia lo que se ve—.
+ */
+const variasPaginas = computed(() => props.meta.ultimaPagina > 1);
+const sirveElTamano = computed(() => props.meta.total > Math.min(...props.tamanos));
 
 const emit = defineEmits<{ pagina: [numero: number]; tamano: [numero: number] }>();
 </script>
@@ -28,16 +38,21 @@ const emit = defineEmits<{ pagina: [numero: number]; tamano: [numero: number] }>
         <!-- Filtrar no mueve el foco, así que sin `aria-live` nadie que use
              lector de pantalla se entera de cuántas filas quedan. -->
         <p class="text-muted-foreground" aria-live="polite">
-            <template v-if="meta.total > 0">
-                <span class="cifra text-foreground">{{ meta.desde }}-{{ meta.hasta }}</span>
+            <template v-if="meta.total > 0 && variasPaginas">
+                <span class="cifra text-foreground">{{ meta.desde }}–{{ meta.hasta }}</span>
                 de
                 <span class="cifra text-foreground">{{ meta.total }}</span>
+            </template>
+            <template v-else-if="meta.total > 0">
+                <span class="cifra text-foreground">{{ meta.total }}</span>
+                {{ meta.total === 1 ? 'resultado' : 'resultados' }}
             </template>
             <template v-else>Sin resultados</template>
         </p>
 
-        <div class="flex items-center gap-3">
+        <div v-if="sirveElTamano || variasPaginas" class="flex flex-wrap items-center gap-3">
             <Select
+                v-if="sirveElTamano"
                 :model-value="String(meta.porPagina)"
                 @update:model-value="emit('tamano', Number($event))"
             >
@@ -54,7 +69,7 @@ const emit = defineEmits<{ pagina: [numero: number]; tamano: [numero: number] }>
                 </SelectContent>
             </Select>
 
-            <div class="flex items-center gap-1">
+            <div v-if="variasPaginas" class="flex items-center gap-1">
                 <Button
                     variant="outline"
                     size="icon-sm"

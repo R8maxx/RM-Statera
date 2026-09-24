@@ -78,8 +78,8 @@ final class ResumenPlanDeAccion
     public function pendientesDeCompletar(): array
     {
         return [
-            $this->indicador('sin_responsable', 'responsable', 'sinResponsable', 'no_iniciado'),
-            $this->indicador('sin_plazo', 'fecha límite', 'sinPlazo', 'no_iniciado'),
+            $this->indicador('sin_responsable', 'Sin responsable', 'sinResponsable', 'no_iniciado'),
+            $this->indicador('sin_plazo', 'Sin fecha límite', 'sinPlazo', 'no_iniciado'),
         ];
     }
 

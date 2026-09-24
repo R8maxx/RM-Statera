@@ -23,6 +23,13 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  *
  * El `tono` es un nombre de estado del dominio, nunca un color: los colores
  * viven en `app.css`.
+ *
+ * La `etiqueta` es **una frase de estado completa**, con mayúscula inicial
+ * —«Sin propietario», «Pendientes de firma», «Vence en 90 días»—, y se pinta
+ * tal cual delante de la cifra. Tres registros mandaban un sustantivo suelto
+ * («propietario») para una plantilla que lo completaba con «falta … en», y
+ * los otros doce mandaban estados: con la misma plantilla, en /riesgos se leía
+ * «falta Sin valorar en 1».
  */
 #[TypeScript]
 final class Indicador

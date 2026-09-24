@@ -94,9 +94,9 @@ final class ResumenInventario
     public function pendientesDeCompletar(): array
     {
         return [
-            $this->indicador('sin_propietario', 'propietario', 'sinPropietario', 'en_progreso'),
-            $this->indicador('sin_identificador', 'nº de serie', 'sinIdentificador', 'en_progreso'),
-            $this->indicador('sin_ubicacion', 'ubicación', 'sinUbicacion', 'en_progreso'),
+            $this->indicador('sin_propietario', 'Sin propietario', 'sinPropietario', 'en_progreso'),
+            $this->indicador('sin_identificador', 'Sin nº de serie', 'sinIdentificador', 'en_progreso'),
+            $this->indicador('sin_ubicacion', 'Sin ubicación', 'sinUbicacion', 'en_progreso'),
         ];
     }
 

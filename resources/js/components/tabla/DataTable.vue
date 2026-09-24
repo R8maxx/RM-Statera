@@ -7,6 +7,7 @@ import FiltroAgrupado from '@/components/tabla/FiltroAgrupado.vue';
 import FiltroColumna from '@/components/tabla/FiltroColumna.vue';
 import IconoAccion from '@/components/tabla/IconoAccion.vue';
 import MenuColumna from '@/components/tabla/MenuColumna.vue';
+import HiloCarga from '@/components/HiloCarga.vue';
 import PaginacionTabla from '@/components/tabla/PaginacionTabla.vue';
 import SelectorColumnas from '@/components/tabla/SelectorColumnas.vue';
 import CeldaValor from '@/components/tabla/celdas/CeldaValor.vue';
@@ -765,7 +766,7 @@ const claseFiltro = 'sticky top-10 z-20 border-b bg-card/95 px-2 py-1.5 backdrop
             />
             <div v-else class="sm:flex-1" />
 
-            <div class="flex shrink-0 items-center justify-end gap-2">
+            <div class="flex flex-wrap items-center justify-end gap-2 sm:shrink-0">
                 <Tooltip v-if="hayFiltrosDeColumna">
                     <TooltipTrigger as-child>
                         <Button
@@ -838,16 +839,19 @@ const claseFiltro = 'sticky top-10 z-20 border-b bg-card/95 px-2 py-1.5 backdrop
                     array: declarar «Etiquetas QR» antes o después de «Nuevo
                     activo» no debería cambiar cuál manda en la pantalla.
                 -->
-                <Link
+                <Button
                     v-for="accion in accionesGeneralesOrdenadas"
                     :key="accion.clave"
-                    :href="accion.url"
+                    as-child
+                    size="sm"
+                    class="h-9 gap-1.5"
+                    :variant="accion.secundaria ? 'outline' : 'default'"
                 >
-                    <Button size="sm" class="h-9 gap-1.5" :variant="accion.secundaria ? 'outline' : 'default'">
+                    <Link :href="accion.url">
                         <IconoAccion :nombre="accion.icono" />
                         {{ accion.etiqueta }}
-                    </Button>
-                </Link>
+                    </Link>
+                </Button>
             </div>
         </header>
 
@@ -893,13 +897,7 @@ const claseFiltro = 'sticky top-10 z-20 border-b bg-card/95 px-2 py-1.5 backdrop
         <div class="relative overflow-hidden rounded-xl bg-card shadow-xs ring-1 ring-foreground/10">
             <!-- Filtrar es una consulta de servidor: sin este hilo, escribir en
                  un filtro deja la tabla quieta y parece que no ha pasado nada. -->
-            <div
-                v-if="cargando && filas.length > 0"
-                class="absolute inset-x-0 top-0 z-40 h-0.5 overflow-hidden bg-primary/10"
-                aria-hidden="true"
-            >
-                <div :class="reducido ? 'h-full w-full bg-primary/40' : 'h-full w-1/3 bg-primary hilo-de-carga'" />
-            </div>
+            <HiloCarga :activo="cargando && filas.length > 0" />
 
             <!-- `max-h` + cabecera pegajosa: con cien requisitos en pantalla,
                  perder los nombres de columna al bajar deja la tabla ilegible. -->

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
+import HiloCarga from '@/components/HiloCarga.vue';
 import EstadoVacio from '@/components/EstadoVacio.vue';
 import IconoTipo from '@/components/IconoTipo.vue';
 import FiltroFuentes from '@/components/calendario/FiltroFuentes.vue';
@@ -13,6 +14,7 @@ import { tono } from '@/lib/tonos';
 import { Link } from '@inertiajs/vue3';
 import { CalendarDaysIcon, ChevronLeftIcon, ChevronRightIcon } from '@lucide/vue';
 import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
+import { curva, duracion } from '@/lib/motion';
 import { motion } from 'motion-v';
 import { computed, toRef } from 'vue';
 
@@ -54,6 +56,7 @@ const cabeceras = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
  * recarga: sin esto, filtrar te manda al mes de hoy.
  */
 const {
+    cargando,
     filtros: valores,
     hayFiltrosActivos,
     aplicarFiltro,
@@ -250,23 +253,23 @@ const entradaRejilla = computed(() => {
         />
 
         <div class="flex flex-wrap items-center gap-2">
-            <Link :href="`/calendario?mes=${rejilla.anterior}`">
-                <Button variant="outline" size="icon-sm" aria-label="Mes anterior">
+            <Button as-child variant="outline" size="icon-sm" aria-label="Mes anterior">
+                <Link :href="`/calendario?mes=${rejilla.anterior}`">
                     <ChevronLeftIcon class="size-4" />
-                </Button>
-            </Link>
+                </Link>
+            </Button>
 
             <h2 class="min-w-48 text-base font-medium">{{ rejilla.etiqueta }}</h2>
 
-            <Link :href="`/calendario?mes=${rejilla.siguiente}`">
-                <Button variant="outline" size="icon-sm" aria-label="Mes siguiente">
+            <Button as-child variant="outline" size="icon-sm" aria-label="Mes siguiente">
+                <Link :href="`/calendario?mes=${rejilla.siguiente}`">
                     <ChevronRightIcon class="size-4" />
-                </Button>
-            </Link>
+                </Link>
+            </Button>
 
-            <Link href="/calendario" class="ml-1">
-                <Button variant="ghost" size="sm">Hoy</Button>
-            </Link>
+            <Button as-child variant="ghost" size="sm" class="ml-1">
+                <Link href="/calendario">Hoy</Link>
+            </Button>
 
             <BarraFiltros
                 v-if="filtros.length > 0"
@@ -307,12 +310,15 @@ const entradaRejilla = computed(() => {
             La rejilla desde `md`. Siete columnas a 400 px no se leen: por debajo
             va la agenda, que es la misma información en la forma que cabe.
         -->
-        <div v-else class="hidden md:block">
+        <div v-else class="relative hidden md:block" :aria-busy="cargando">
+            <!-- Filtrar es una consulta de servidor: sin el hilo, la rejilla se
+                 quedaba quieta y parecía que el filtro no había hecho nada. -->
+            <HiloCarga :activo="cargando" />
             <motion.div
                 class="grid grid-cols-7 gap-px overflow-hidden rounded-xl border bg-border"
                 :initial="entradaRejilla"
                 :animate="{ opacity: 1, x: 0 }"
-                :transition="{ duration: reducido ? 0 : 0.22, ease: [0.16, 1, 0.3, 1] }"
+                :transition="{ duration: reducido ? 0 : duracion.normal, ease: curva }"
             >
                 <div
                     v-for="(inicial, indice) in cabeceras"
@@ -405,7 +411,8 @@ const entradaRejilla = computed(() => {
         </div>
 
         <!-- La agenda: la misma información, en la forma que cabe en un móvil. -->
-        <div v-if="vencimientos.length > 0" class="md:hidden">
+        <div v-if="vencimientos.length > 0" class="relative md:hidden" :aria-busy="cargando">
+            <HiloCarga :activo="cargando" />
             <ol class="space-y-4">
                 <li v-for="dia in agenda" :key="dia.dia">
                     <h3 class="mb-1.5 text-sm font-medium" :class="dia.esHoy ? 'text-primary' : ''">

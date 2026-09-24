@@ -28,7 +28,7 @@ type Indicador = App.Http.Resources.Panel.Indicador;
  * Lo que sí se conserva es lo mejor que tenía: **cada cifra lleva a su lista**.
  * Un número que no se puede accionar sólo se mira.
  */
-const props = defineProps<{
+const props = withDefaults(defineProps<{
     alertas: Indicador[];
     pendientes: Indicador[];
     /** Sobre cuántas filas se cuenta todo lo de arriba. */
@@ -37,7 +37,14 @@ const props = defineProps<{
     denominadorEtiqueta: string;
     /** Los filtros aplicados ahora mismo, para marcar el indicador activo. */
     filtros: Record<string, string | string[]>;
-}>();
+    /**
+     * Si el registro tiene alertas por diseño. Mejoras no las tiene —una idea
+     * sin hacer no incumple nada—, y sin esto la tira decía «Sin incidencias
+     * abiertas» encima de su propia línea de pendientes: un visto bueno que no
+     * comprobaba nada.
+     */
+    conAlertas?: boolean;
+}>(), { conAlertas: true });
 
 const tonos: Record<string, string> = {
     caducada: 'text-destructive',
@@ -63,7 +70,7 @@ const escalonado = variantesEscalonado(0.04);
 </script>
 
 <template>
-    <section :aria-label="`Lo que pide acción: ${denominadorEtiqueta}`">
+    <section v-if="conAlertas || porCompletar.length > 0" :aria-label="`Lo que pide acción: ${denominadorEtiqueta}`">
         <motion.ul
             v-if="abiertas.length > 0"
             class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
@@ -74,7 +81,7 @@ const escalonado = variantesEscalonado(0.04);
             <motion.li v-for="alerta in abiertas" :key="alerta.clave" :variants="variantesEntrada">
                 <Link
                     :href="`${alerta.base}?${alerta.filtro}`"
-                    class="block h-full rounded-xl border bg-superficie px-3.5 py-3 transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                    class="block h-full rounded-xl border bg-superficie px-3.5 py-3 transition-colors hover:bg-accent"
                     :class="activos.has(alerta.clave) ? 'border-primary ring-1 ring-primary/25' : ''"
                     :title="alerta.ayuda ?? undefined"
                 >
@@ -101,7 +108,7 @@ const escalonado = variantesEscalonado(0.04);
             obligar a comprobar nueve casillas para llegar a la misma conclusión.
         -->
         <p
-            v-else
+            v-else-if="conAlertas"
             class="flex items-center gap-2 rounded-xl border border-estado-implantado/40 bg-estado-implantado/5 px-3.5 py-2.5 text-sm text-estado-implantado"
         >
             <CheckCircle2Icon class="size-4 shrink-0" aria-hidden="true" />
@@ -114,14 +121,27 @@ const escalonado = variantesEscalonado(0.04);
             Lo que falta por rellenar va en una línea de texto y no en tarjetas:
             es otra clase de deuda —la ficha está a medias, no hay nada roto— y
             en tarjetas competía en peso con lo que sí arde.
+
+            **La etiqueta se pinta tal cual llega**: es una frase de estado
+            completa —«Sin valorar», «Sin propietario»— y la cifra va detrás.
+            La plantilla anterior era «falta {etiqueta} en {n}», que sólo
+            cuadraba con sustantivos, y doce de los quince registros mandaban
+            estados: en /riesgos se leía «falta Sin valorar en 1». Y el rótulo es
+            «Por atender» y no «Fichas incompletas», porque no todo lo que llega
+            aquí es un dato que falta: «Abiertas» o «Vence en 90 días» también.
         -->
-        <p v-if="porCompletar.length > 0" class="mt-2.5 text-xs text-muted-foreground">
-            Fichas incompletas:
+        <p v-if="porCompletar.length > 0" :class="conAlertas && 'mt-2.5'" class="flex flex-wrap gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
+            <span>Por atender:</span>
             <template v-for="(pendiente, indice) in porCompletar" :key="pendiente.clave">
-                <Link :href="`${pendiente.base}?${pendiente.filtro}`" class="underline-offset-4 hover:underline">
-                    falta {{ pendiente.etiqueta }} en
+                <Link
+                    :href="`${pendiente.base}?${pendiente.filtro}`"
+                    class="rounded underline-offset-4 hover:underline"
+                    :title="pendiente.ayuda ?? undefined"
+                >
+                    {{ pendiente.etiqueta }}
                     <Cifra class="font-medium text-foreground" :valor="pendiente.valor" />
-                </Link><span v-if="indice < porCompletar.length - 1">, </span><span v-else>.</span>
+                </Link>
+                <span v-if="indice < porCompletar.length - 1" aria-hidden="true">·</span>
             </template>
         </p>
     </section>

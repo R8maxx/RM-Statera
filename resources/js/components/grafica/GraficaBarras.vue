@@ -48,7 +48,7 @@ const filas = computed(() =>
             <div class="flex items-baseline justify-between gap-4">
                 <p class="min-w-0 truncate text-sm font-medium" :title="fila.etiqueta">{{ fila.etiqueta }}</p>
                 <p class="shrink-0 text-sm text-muted-foreground">
-                    <Cifra class="font-medium text-foreground" :valor="fila.porcentaje" sufijo="%" />
+                    <Cifra class="font-medium text-foreground" :valor="fila.porcentaje" :sufijo="'\u202F%'" />
                     <!-- La fracción real siempre debajo de la cifra: un
                          porcentaje sin denominador no es un dato que un auditor
                          pueda contrastar. -->
@@ -62,7 +62,7 @@ const filas = computed(() =>
                 :aria-label="`${fila.etiqueta}: ${fila.valor} de ${fila.de}, ${fila.porcentaje} por ciento`"
             >
                 <div
-                    class="h-full rounded-full transition-[width] duration-500 ease-marca"
+                    class="h-full rounded-full transition-[width] duration-(--duracion-lenta) ease-marca"
                     :class="fila.fondo"
                     :style="{ width: `${Math.min(Math.max(fila.porcentaje, 0), 100)}%` }"
                 />

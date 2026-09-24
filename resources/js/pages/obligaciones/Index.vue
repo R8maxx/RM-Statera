@@ -65,9 +65,9 @@ function asumirTodas(): void {
             :descripcion="recurso.etiquetas.descripcion"
         >
             <template #acciones>
-                <Link href="/calendario">
-                    <Button variant="outline" size="sm">Ver en el calendario</Button>
-                </Link>
+                <Button as-child variant="outline" size="sm">
+                    <Link href="/calendario">Ver en el calendario</Link>
+                </Button>
             </template>
         </CabeceraPagina>
 
@@ -119,7 +119,7 @@ function asumirTodas(): void {
             en una tarjeta: es un recordatorio, no la acción principal de la
             pantalla.
         -->
-        <p v-if="!vacio && sinAsumir.length > 0" class="mt-4 text-xs text-muted-foreground">
+        <p v-if="!vacio && sinAsumir.length > 0" class="text-xs text-muted-foreground">
             El catálogo propone
             {{ sinAsumir.length === 1 ? 'una obligación más' : `${sinAsumir.length} obligaciones más` }}
             para esta organización.

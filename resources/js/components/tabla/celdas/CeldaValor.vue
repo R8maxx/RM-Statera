@@ -80,11 +80,11 @@ const progreso = computed<ValorProgreso | null>(() => progresoDe(props.valor));
             :aria-label="`${progreso.porcentaje} por ciento`"
         >
             <div
-                class="h-full rounded-full bg-primary transition-[width] duration-500 ease-marca"
+                class="h-full rounded-full bg-primary transition-[width] duration-(--duracion-lenta) ease-marca"
                 :style="{ width: `${Math.min(Math.max(progreso.porcentaje, 0), 100)}%` }"
             />
         </div>
-        <span class="cifra w-9 shrink-0 text-right text-xs">{{ progreso.porcentaje }}%</span>
+        <span class="cifra w-11 shrink-0 text-right text-xs">{{ progreso.porcentaje }}&#8239;%</span>
         <span v-if="progreso.de !== null" class="cifra shrink-0 text-xs text-muted-foreground">
             {{ progreso.hechas }}/{{ progreso.de }}
         </span>
@@ -102,7 +102,19 @@ const progreso = computed<ValorProgreso | null>(() => progresoDe(props.valor));
         {{ fecha ? formatoFechaHora.format(fecha) : valor }}
     </span>
 
-    <span v-else class="block truncate" :title="String(valor)">
+    <!--
+        `truncate` sólo recorta si algo le pone ancho, y con `table-layout:auto`
+        nadie se lo ponía: un título largo se extendía entero en una línea y la
+        tabla de riesgos, con cuatro filas, sacaba barra horizontal. El tope de
+        24 rem es el techo por omisión; una `Columna` con `->ancho()` manda sobre
+        él, porque entonces el ancho lo fija la cabecera.
+    -->
+    <span
+        v-else
+        class="block truncate"
+        :class="columna.ancho ? '' : 'max-w-[24rem]'"
+        :title="String(valor)"
+    >
         <TextoResaltado :texto="String(valor)" :terminos="terminos" />
     </span>
 </template>

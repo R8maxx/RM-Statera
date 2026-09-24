@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
+import HiloCarga from '@/components/HiloCarga.vue';
 import ColumnaTablero, { type Columna } from '@/components/tarea/ColumnaTablero.vue';
 import ConmutadorVista from '@/components/tarea/ConmutadorVista.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
@@ -34,6 +35,7 @@ const props = defineProps<{
  * al desplegable.
  */
 const {
+    cargando,
     filtros: valores,
     hayFiltrosActivos,
     aplicarFiltro,
@@ -179,25 +181,32 @@ function confirmarDescarte(): void {
             Por debajo de `lg`, una columna por fila: cuatro columnas a 400 px no
             son un tablero, son cuatro listas estrechas.
         -->
-        <div
-            class="grid gap-3 lg:h-[calc(100vh-15rem)] lg:grid-cols-4"
-            role="group"
-            aria-label="Columnas del tablero"
-        >
-            <ColumnaTablero
-                v-for="columna in columnas"
-                :key="columna.estado"
-                :columna="columna"
-                :etiquetas="etiquetas"
-                @mover="mover"
-                @descartar="descartar"
-            />
-        </div>
+        <!-- El tablero y su nota van juntos: la nota explica la columna «Hecha»
+             y con el ritmo de la página quedaba a 32 px, suelta. -->
+        <div class="space-y-3">
+            <div
+                class="relative grid gap-3 lg:h-[calc(100dvh-15rem)] lg:grid-cols-4"
+                role="group"
+                aria-label="Columnas del tablero"
+                :aria-busy="cargando"
+            >
+                <!-- Filtrar el tablero es una consulta de servidor, como en la tabla. -->
+                <HiloCarga :activo="cargando" />
+                <ColumnaTablero
+                    v-for="columna in columnas"
+                    :key="columna.estado"
+                    :columna="columna"
+                    :etiquetas="etiquetas"
+                    @mover="mover"
+                    @descartar="descartar"
+                />
+            </div>
 
-        <p class="mt-3 text-xs text-muted-foreground">
-            En «Hecha» sólo se ven las cerradas en los últimos {{ recientes }} días. El resto está en la
-            tabla, junto con las descartadas.
-        </p>
+            <p class="text-xs text-muted-foreground">
+                En «Hecha» sólo se ven las cerradas en los últimos {{ recientes }} días. El resto está en la
+                tabla, junto con las descartadas.
+            </p>
+        </div>
 
         <Dialog :open="descartando !== null" @update:open="(abierto) => !abierto && (descartando = null)">
             <DialogContent>

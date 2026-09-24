@@ -33,6 +33,7 @@ const props = defineProps<{
 
         <TiraIndicadores
             :alertas="[]"
+            :con-alertas="false"
             :pendientes="pendientes"
             :denominador="total"
             denominador-etiqueta="mejoras registradas"

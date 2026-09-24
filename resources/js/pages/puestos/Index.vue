@@ -37,14 +37,16 @@ defineProps<{
                     <Cifra class="font-semibold text-foreground" :valor="total" />
                     {{ total === 1 ? 'puesto registrado' : 'puestos registrados' }}
                 </p>
-                <p class="text-muted-foreground">
+                <!-- Sólo lo que no está a cero, como en `TiraIndicadores`: un
+                     «0 sin ocupar» enseña a no leer la línea. -->
+                <p v-if="sinCaracterizar > 0" class="text-muted-foreground">
                     <Cifra class="font-semibold text-foreground" :valor="sinCaracterizar" />
                     sin decir qué competencia piden
                     <span class="cifra">(mp.per.1)</span>
                 </p>
-                <p class="text-muted-foreground">
+                <p v-if="vacantes > 0" class="text-muted-foreground">
                     <Cifra class="font-semibold text-foreground" :valor="vacantes" />
-                    {{ vacantes === 1 ? 'sin ocupar' : 'sin ocupar' }}
+                    sin ocupar
                 </p>
             </CardContent>
         </Card>
