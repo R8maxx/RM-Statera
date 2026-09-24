@@ -53,7 +53,7 @@ function alternar(valor: string): void {
             :key="opcion.valor"
             type="button"
             :aria-pressed="activa(opcion.valor)"
-            class="inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 text-xs transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-8"
+            class="inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 text-xs transition-colors sm:min-h-8"
             :class="
                 activa(opcion.valor)
                     ? 'border-transparent bg-accent text-accent-foreground'

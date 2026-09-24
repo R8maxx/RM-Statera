@@ -56,3 +56,25 @@ it('devuelve un 404 —no un 403— al pedir un sistema de otra organización', 
         ->assertStatus(404)
         ->assertInertia(fn (AssertableInertia $pagina) => $pagina->component('Error')->where('estado', 404));
 });
+
+it('una ruta inexistente conserva la sesión: a quien ya entró no lo manda al acceso', function (): void {
+    comoOrganizacion();
+    $usuario = usuarioCon();
+
+    /*
+     * La página de error decide su salida por `auth.usuario`. Fuera del grupo
+     * `web` ese prop no llegaba y el 404 ofrecía «Ir a la pantalla de acceso» a
+     * quien tenía la sesión abierta. `Route::fallback` lo arregla.
+     */
+    $this->actingAs($usuario)
+        ->get('/esto-no-es-ninguna-pantalla')
+        ->assertStatus(404)
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->component('Error')
+            ->where('auth.usuario.nombre', $usuario->name)
+        );
+});
+
+it('sin sesión, una ruta inexistente sigue siendo un 404 y no una redirección al acceso', function (): void {
+    $this->get('/esto-tampoco')->assertStatus(404);
+});

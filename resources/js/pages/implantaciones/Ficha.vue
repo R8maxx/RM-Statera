@@ -158,7 +158,7 @@ function cambiarEstado(): void {
                             />
                         </div>
 
-                        <div v-else class="border-l-2 border-primary pl-4">
+                        <div v-else class="border-l-2 border-border pl-4">
                             <p class="text-sm font-medium">La exigencia de esta medida se deriva</p>
                             <p class="mt-1 text-sm text-muted-foreground">
                                 {{ exigencia.origen }}. Deja de exigirse cambiando la valoración de las dimensiones

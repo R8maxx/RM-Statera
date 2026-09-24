@@ -35,7 +35,7 @@ const claseDe = (vencimiento: Vencimiento): string => tono(vencimiento.estadoTon
 <template>
     <Popover>
         <PopoverTrigger
-            class="mt-1 rounded-sm px-1 text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            class="mt-1 rounded-sm px-1 text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
         >
             y {{ ocultos }} más
         </PopoverTrigger>

@@ -31,7 +31,7 @@ const vistas = [
             :key="opcion.clave"
             :href="opcion.href"
             :aria-current="vista === opcion.clave ? 'page' : undefined"
-            class="flex min-h-11 items-center gap-1.5 rounded-sm px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-8"
+            class="flex min-h-11 items-center gap-1.5 rounded-sm px-3 text-sm font-medium transition-colors sm:min-h-8"
             :class="
                 vista === opcion.clave
                     ? 'bg-accent text-accent-foreground'

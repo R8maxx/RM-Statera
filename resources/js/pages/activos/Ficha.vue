@@ -161,7 +161,6 @@ function retirar(dependenciaId: number): void {
 
         <motion.div :variants="variantesEntrada" initial="oculto" animate="visible" class="space-y-6">
             <div class="flex flex-wrap items-center gap-2">
-                <span class="cifra text-sm text-muted-foreground">{{ activo.codigo }}</span>
                 <CeldaBadge
                     :valor="{
                         valor: activo.tipo,

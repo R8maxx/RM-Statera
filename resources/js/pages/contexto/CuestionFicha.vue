@@ -297,7 +297,7 @@ function desvincularTarea(id: number): void {
                             <select
                                 id="riesgo"
                                 v-model="riesgoElegido"
-                                class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
                             >
                                 <option value="">Elige un riesgo…</option>
                                 <option v-for="opcion in riesgosDisponibles" :key="opcion.valor" :value="opcion.valor">
@@ -382,7 +382,7 @@ function desvincularTarea(id: number): void {
                             <select
                                 id="tarea"
                                 v-model="tareaElegida"
-                                class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
                             >
                                 <option value="">Elige una tarea…</option>
                                 <option v-for="opcion in tareasDisponibles" :key="opcion.valor" :value="opcion.valor">
@@ -416,7 +416,7 @@ function desvincularTarea(id: number): void {
                         id="motivo"
                         v-model="motivo"
                         rows="3"
-                        class="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                        class="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
                     />
                 </div>
 
@@ -445,7 +445,7 @@ function desvincularTarea(id: number): void {
                             id="tarea-titulo"
                             v-model="tarea.titulo"
                             type="text"
-                            class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
                         />
                     </div>
 
@@ -455,7 +455,7 @@ function desvincularTarea(id: number): void {
                             id="tarea-descripcion"
                             v-model="tarea.descripcion"
                             rows="3"
-                            class="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            class="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
                         />
                     </div>
 
@@ -464,7 +464,7 @@ function desvincularTarea(id: number): void {
                         <select
                             id="tarea-prioridad"
                             v-model="tarea.prioridad"
-                            class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
                         >
                             <option v-for="opcion in prioridades" :key="opcion.valor" :value="opcion.valor">
                                 {{ opcion.etiqueta }}
@@ -478,7 +478,7 @@ function desvincularTarea(id: number): void {
                             id="tarea-fecha"
                             v-model="tarea.fecha_limite"
                             type="date"
-                            class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
                         />
                     </div>
                 </div>

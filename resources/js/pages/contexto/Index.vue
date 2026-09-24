@@ -347,7 +347,7 @@ const climaTexto = computed(() => {
                             id="fecha-analisis"
                             v-model="fecha"
                             type="date"
-                            class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
                         />
                     </div>
 
@@ -356,7 +356,7 @@ const climaTexto = computed(() => {
                         <select
                             id="clima"
                             v-model="clima"
-                            class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
                         >
                             <option value="">Sin contestar</option>
                             <option value="si">Sí, es pertinente</option>
@@ -374,7 +374,7 @@ const climaTexto = computed(() => {
                             id="clima-justificacion"
                             v-model="climaJustificacion"
                             rows="3"
-                            class="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            class="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
                         />
                     </div>
 
@@ -384,7 +384,7 @@ const climaTexto = computed(() => {
                             id="nota-analisis"
                             v-model="nota"
                             rows="3"
-                            class="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            class="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
                         />
                         <p class="text-xs text-muted-foreground">
                             Quién participó, qué fuentes se miraron. Es lo que el auditor pregunta

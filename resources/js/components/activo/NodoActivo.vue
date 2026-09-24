@@ -46,7 +46,7 @@ const nivel = computed(() => tono(activo.value.nivelTono));
 
         <Link
             :href="`/activos/${activo.id}`"
-            class="line-clamp-2 text-sm leading-snug font-medium underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            class="line-clamp-2 text-sm leading-snug font-medium underline-offset-4 hover:underline"
         >
             {{ activo.nombre }}
         </Link>

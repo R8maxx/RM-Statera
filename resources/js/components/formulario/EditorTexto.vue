@@ -129,7 +129,7 @@ const herramientas = [
 </script>
 
 <template>
-    <div class="overflow-hidden rounded-md border border-input bg-transparent focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+    <div class="overflow-hidden rounded-md border border-input bg-transparent shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 dark:bg-input/30">
         <div
             role="toolbar"
             aria-label="Formato del texto"

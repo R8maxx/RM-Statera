@@ -32,7 +32,7 @@ const actual = computed(() => new URL(pagina.url, 'http://localhost').pathname);
             :key="vista.href"
             :href="vista.href"
             :aria-current="actual === vista.href ? 'page' : undefined"
-            class="flex min-h-11 items-center gap-1.5 rounded-sm px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-8"
+            class="flex min-h-11 items-center gap-1.5 rounded-sm px-3 text-sm font-medium transition-colors sm:min-h-8"
             :class="
                 actual === vista.href
                     ? 'bg-accent text-accent-foreground'

@@ -381,7 +381,7 @@ const metricas = computed(() => [
                             <li v-for="sistema in sistemas" :key="sistema.id">
                                 <Link
                                     :href="`/sistemas/${sistema.id}/editar`"
-                                    class="group flex items-center gap-4 rounded-md px-2 py-3.5 transition-colors hover:bg-muted/60"
+                                    class="group flex items-center gap-4 rounded-md px-2 py-3.5 transition-colors hover:bg-fila-hover"
                                 >
                                     <div class="min-w-0 flex-1">
                                         <p class="truncate text-sm font-medium">

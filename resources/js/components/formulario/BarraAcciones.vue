@@ -96,18 +96,23 @@ onUnmounted(() => window.removeEventListener('beforeunload', alDescargar));
     <div
         class="sticky bottom-0 z-(--z-barra-acciones) mt-8 border-t bg-background/90 py-3 backdrop-blur-sm"
     >
-        <div class="flex flex-wrap items-center gap-2">
-            <div class="min-w-0 flex-1 basis-48 text-sm text-muted-foreground">
+        <!-- Los dos botones van juntos, siempre: a 375 px el envío caía solo a
+             una segunda línea, lejos de «Cancelar». Lo que parte línea es la
+             nota, que por debajo de `sm` ocupa la fila entera. -->
+        <div class="flex flex-wrap items-center gap-x-2 gap-y-2">
+            <div class="min-w-0 basis-full text-sm text-muted-foreground empty:hidden sm:flex-1 sm:basis-auto">
                 <slot name="nota" />
             </div>
 
-            <span @click.capture="alCancelar">
-                <Button as-child variant="ghost">
-                    <Link :href="urlCancelar">{{ etiquetaCancelar ?? 'Cancelar' }}</Link>
-                </Button>
-            </span>
+            <div class="ml-auto flex items-center gap-2">
+                <span @click.capture="alCancelar">
+                    <Button as-child variant="ghost">
+                        <Link :href="urlCancelar">{{ etiquetaCancelar ?? 'Cancelar' }}</Link>
+                    </Button>
+                </span>
 
-            <slot />
+                <slot />
+            </div>
         </div>
     </div>
 

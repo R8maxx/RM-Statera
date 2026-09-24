@@ -282,10 +282,6 @@ function retirar(): void {
                 <CardContent>
                     <dl class="grid gap-3 text-sm">
                         <div>
-                            <dt class="text-xs text-muted-foreground">Código</dt>
-                            <dd class="cifra">{{ compromiso.codigo }}</dd>
-                        </div>
-                        <div>
                             <dt class="text-xs text-muted-foreground">Cadencia</dt>
                             <dd>{{ compromiso.cadencia }}</dd>
                         </div>

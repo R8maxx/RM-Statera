@@ -1619,3 +1619,20 @@ Route::middleware('auth')->group(function (): void {
             ->name('organizacion.marca.borrar');
     });
 });
+
+/*
+|--------------------------------------------------------------------------
+| Lo que no existe
+|--------------------------------------------------------------------------
+|
+| Sin esto, una dirección que no corresponde a ninguna ruta respondía 404 fuera
+| del grupo `web`: sin sesión y sin los props compartidos. La página de error
+| no sabía que había alguien dentro y le ofrecía «Ir a la pantalla de acceso»
+| como acción principal a quien ya había entrado. Con la ruta de reserva, el 404
+| pasa por la sesión como cualquier otra pantalla y lleva de vuelta al panel.
+|
+| Sin `auth`: a quien no ha entrado también se le responde 404, no se le manda
+| al acceso. Una redirección diría que la dirección existe detrás del login.
+*/
+
+Route::fallback(fn () => abort(404));

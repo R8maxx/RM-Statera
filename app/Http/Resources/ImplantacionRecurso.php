@@ -89,7 +89,13 @@ final class ImplantacionRecurso extends Recurso
                     $fila->estado->tono(),
                     $fila->estado->icono(),
                 )),
-            Columna::booleano('aplica', 'Aplica')->ordenable(),
+            /*
+             * Oculta por defecto, no quitada: «Exigencia» ya dice «No aplica»
+             * cuando no aplica, y con el filtro de siempre la columna eran
+             * cincuenta palomitas iguales. Sigue en el selector de columnas, y
+             * su filtro baja al desplegable «Filtros».
+             */
+            Columna::booleano('aplica', 'Aplica')->ordenable()->oculta(),
             Columna::badge('exigencia', 'Exigencia')
                 ->ordenable('exigencia_calculada')
                 ->ayuda('Lo calcula el motor de categorización; no se escribe a mano.')

@@ -131,8 +131,15 @@ onBeforeUnmount(() => limpiar?.());
                     />
                 </AnimatePresence>
 
+                <!-- Dice qué falta, no «nada aquí». «Hecha» sólo enseña las
+                     cerradas hace poco, y el vacío tiene que decirlo: si no, se
+                     lee como que nunca se ha cerrado ninguna. -->
                 <p v-if="columna.tarjetas.length === 0" class="px-1 py-6 text-center text-xs text-muted-foreground">
-                    Nada aquí.
+                    {{
+                        columna.estado === 'hecha'
+                            ? 'Ninguna tarea cerrada estos días'
+                            : `Ninguna tarea ${columna.etiqueta.toLowerCase()}`
+                    }}
                 </p>
 
                 <!--

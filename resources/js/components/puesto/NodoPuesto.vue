@@ -40,7 +40,7 @@ const deMas = computed(() => Math.max(0, puesto.value.ocupantes.length - OCUPANT
 
         <Link
             :href="`/puestos/${puesto.id}`"
-            class="text-sm leading-snug font-medium underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            class="text-sm leading-snug font-medium underline-offset-4 hover:underline"
         >
             {{ puesto.titulo }}
         </Link>
@@ -64,7 +64,7 @@ const deMas = computed(() => Math.max(0, puesto.value.ocupantes.length - OCUPANT
                     <UserIcon class="size-3 shrink-0" aria-hidden="true" />
                     <Link
                         :href="`/personas/${ocupante.id}`"
-                        class="truncate underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                        class="truncate underline-offset-4 hover:underline"
                     >
                         {{ ocupante.nombre }}
                     </Link>

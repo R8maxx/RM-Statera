@@ -347,10 +347,6 @@ const kb = (bytes: number | null | undefined): string =>
                     <CardTitle>Ficha</CardTitle>
                 </CardHeader>
                 <CardContent class="flex flex-col gap-3 text-sm">
-                    <div>
-                        <div class="text-muted-foreground">Código</div>
-                        <div class="cifra">{{ documento.codigo }}</div>
-                    </div>
                     <!--
                         Un documento redactado —política, norma, procedimiento,
                         plan de continuidad— es de la organización entera y

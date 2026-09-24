@@ -653,6 +653,23 @@
     }
 
     /*
+     * Lo que pinta el navegador y no el producto: la selección, el cursor de
+     * escritura, las casillas y fechas nativas, y las barras de desplazamiento.
+     * Con sus valores por defecto salían en el azul del sistema operativo, que
+     * es justo el de `estado-planificado`. Van con el teal de marca y los
+     * neutros, y se adaptan al tema solos porque leen los roles.
+     */
+    ::selection {
+        background-color: color-mix(in oklch, var(--primary) 24%, transparent);
+    }
+
+    html {
+        caret-color: var(--primary);
+        accent-color: var(--primary);
+        scrollbar-color: color-mix(in oklch, var(--muted-foreground) 45%, transparent) transparent;
+    }
+
+    /*
      * El foco visible no es negociable: la herramienta se recorre con teclado y
      * el anillo de marca es lo que dice dónde estás.
      */

@@ -38,7 +38,7 @@ const actual = computed(() => new URL(pagina.url, 'http://localhost').pathname);
             :key="pestana.href"
             :href="pestana.href"
             :aria-current="actual.startsWith(pestana.href) ? 'page' : undefined"
-            class="flex min-h-11 flex-1 items-center justify-center rounded-sm px-4 text-sm font-medium whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-8 sm:flex-none"
+            class="flex min-h-11 flex-1 items-center justify-center rounded-sm px-4 text-sm font-medium whitespace-nowrap transition-colors sm:min-h-8 sm:flex-none"
             :class="
                 actual.startsWith(pestana.href)
                     ? 'bg-accent text-accent-foreground'

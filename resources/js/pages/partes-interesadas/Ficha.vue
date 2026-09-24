@@ -379,7 +379,7 @@ function desvincular(requisitoId: number, implantacionId: number): void {
                                 :id="`descripcion-${indice}`"
                                 v-model="linea.descripcion"
                                 rows="2"
-                                class="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                class="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
                             />
                         </div>
 
@@ -389,7 +389,7 @@ function desvincular(requisitoId: number, implantacionId: number): void {
                                 <select
                                     :id="`naturaleza-${indice}`"
                                     v-model="linea.naturaleza"
-                                    class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                    class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
                                 >
                                     <option v-for="opcion in naturalezas" :key="opcion.valor" :value="opcion.valor">
                                         {{ opcion.etiqueta }}
@@ -404,7 +404,7 @@ function desvincular(requisitoId: number, implantacionId: number): void {
                                     v-model="linea.referencia"
                                     type="text"
                                     placeholder="RD 311/2022, anexo II"
-                                    class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                    class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
                                 />
                             </div>
                         </div>
@@ -415,7 +415,7 @@ function desvincular(requisitoId: number, implantacionId: number): void {
                                 :id="`atiende-${indice}`"
                                 v-model="linea.como_se_atiende"
                                 rows="2"
-                                class="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                class="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
                             />
                         </div>
 
@@ -454,7 +454,7 @@ function desvincular(requisitoId: number, implantacionId: number): void {
                     <select
                         id="implantacion"
                         v-model="implantacionElegida"
-                        class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                        class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
                     >
                         <option value="">Elige una medida…</option>
                         <option
@@ -491,7 +491,7 @@ function desvincular(requisitoId: number, implantacionId: number): void {
                         id="motivo-parte"
                         v-model="motivo"
                         rows="3"
-                        class="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                        class="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
                     />
                 </div>
 

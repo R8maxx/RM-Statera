@@ -183,7 +183,7 @@ const descripcion = computed(() =>
                         <li v-for="cuestion in visibles(tipo.valor)" :key="cuestion.id">
                             <Link
                                 :href="`/contexto/cuestiones/${cuestion.id}`"
-                                class="block rounded-md px-2 py-1.5 transition-colors hover:bg-fila-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                class="block rounded-md px-2 py-1.5 transition-colors hover:bg-fila-hover"
                             >
                                 <span class="flex items-baseline gap-2">
                                     <span class="cifra shrink-0 text-xs text-muted-foreground">{{ cuestion.codigo }}</span>
