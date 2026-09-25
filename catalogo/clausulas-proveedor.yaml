@@ -1,0 +1,126 @@
+# Catálogo de cláusulas de seguridad con proveedores — § 4.9
+#
+# Lo que se comprueba en el contrato de un proveedor cada vez que se le evalúa.
+# Lo piden ISO/IEC 27001:2022 en A.5.19 a A.5.23 —relación con proveedores,
+# acuerdos, cadena de suministro TIC, seguimiento y servicios en la nube— y el
+# ENS en `op.ext.1` a `op.ext.3` y `op.nub.1`.
+#
+# Es **datos y no código** (invariante 3): la lista crece sin migración, y una
+# cláusula que desaparece de una revisión no se borra, se retira, porque hay
+# evaluaciones firmadas que la comprobaron y el auditor pregunta por ellas.
+#
+# ---------------------------------------------------------------------------
+# QUÉ HAY AQUÍ Y QUÉ NO
+#
+# Las descripciones están REDACTADAS PARA STATERA, no copiadas de ISO 27002 ni de
+# ninguna guía CCN-STIC: es la misma disciplina que con los controles, cuya
+# redacción íntegra no se vuelca al repositorio. Basta con que dos personas
+# distintas ante el mismo contrato marquen lo mismo.
+#
+# `referencias` dice qué requisitos del catálogo sostiene cada cláusula, por clave
+# natural `(marco, requisito)` y nunca por id. El importador rechaza una
+# referencia que no exista: una cláusula que dice probar un control que no está es
+# una cita inventada.
+#
+# No va nada del RGPD que no sea el encargo de tratamiento (art. 28): la
+# evaluación de un proveedor no es una evaluación de impacto.
+#
+# ---------------------------------------------------------------------------
+# POR QUÉ `revisado: false`
+#
+# El reparto de referencias está hecho por criterio y **no contrastado contra la
+# ISO 27002 ni contra la guía CCN-STIC 804**. Es razonable y sirve para decir qué
+# mira cada cláusula, pero no para afirmar ante un auditor que una evaluación
+# completa cubre un control entero. Hasta contrastarlo, la ficha de un requisito
+# no se da por probada por una evaluación de proveedor: la evaluación es una
+# evidencia más, que hay que vincular.
+
+fuente: 'ISO/IEC 27001:2022 Anexo A (A.5.19 a A.5.23); Real Decreto 311/2022, Anexo II (op.ext, op.nub); Reglamento (UE) 2016/679, art. 28'
+revisado: false
+
+clausulas:
+
+  - codigo: CLA-01
+    titulo: Confidencialidad
+    descripcion: El contrato obliga al proveedor y a su personal a guardar secreto sobre la información a la que accedan, también después de terminar el servicio.
+    referencias:
+      - {marco: ISO27001-2022, requisito: A.5.20}
+      - {marco: ENS-RD311-2022, requisito: op.ext.1}
+
+  - codigo: CLA-02
+    titulo: Aviso de incidentes
+    descripcion: El proveedor se compromete a comunicar sin demora, y por un canal acordado, cualquier incidente que afecte a la información o al servicio de la organización.
+    referencias:
+      - {marco: ISO27001-2022, requisito: A.5.20}
+      - {marco: ENS-RD311-2022, requisito: op.ext.2}
+
+  - codigo: CLA-03
+    titulo: Subcontratación
+    descripcion: Subcontratar parte del servicio necesita autorización previa, y las obligaciones de seguridad pasan al subcontratista por escrito.
+    referencias:
+      - {marco: ISO27001-2022, requisito: A.5.21}
+      - {marco: ENS-RD311-2022, requisito: op.ext.3}
+
+  - codigo: CLA-04
+    titulo: Derecho de auditoría
+    descripcion: La organización puede comprobar, directamente o por un tercero, que el proveedor cumple lo acordado, o recibir a cambio un informe de auditoría independiente.
+    referencias:
+      - {marco: ISO27001-2022, requisito: A.5.20}
+      - {marco: ISO27001-2022, requisito: A.5.22}
+      - {marco: ENS-RD311-2022, requisito: op.ext.2}
+
+  - codigo: CLA-05
+    titulo: Devolución y borrado al terminar
+    descripcion: Al acabar el contrato el proveedor devuelve la información en un formato utilizable y borra sus copias de forma segura, y lo acredita.
+    referencias:
+      - {marco: ISO27001-2022, requisito: A.5.20}
+      - {marco: ISO27001-2022, requisito: A.5.23}
+
+  - codigo: CLA-06
+    titulo: Ubicación de los datos
+    descripcion: El contrato dice dónde se tratan y se almacenan los datos, y exige autorización para trasladarlos fuera de la Unión Europea o del Espacio Económico Europeo.
+    referencias:
+      - {marco: ISO27001-2022, requisito: A.5.23}
+      - {marco: ENS-RD311-2022, requisito: op.nub.1}
+
+  - codigo: CLA-07
+    titulo: Acuerdo de nivel de servicio
+    descripcion: Hay niveles de servicio medibles —disponibilidad, tiempos de respuesta y de resolución— y lo que pasa cuando no se cumplen.
+    referencias:
+      - {marco: ISO27001-2022, requisito: A.5.20}
+      - {marco: ENS-RD311-2022, requisito: op.ext.1}
+
+  - codigo: CLA-08
+    titulo: Continuidad del servicio
+    descripcion: El proveedor tiene previsto cómo seguir prestando el servicio, o cómo recuperarlo, ante una interrupción grave, y lo prueba.
+    referencias:
+      - {marco: ISO27001-2022, requisito: A.5.20}
+      - {marco: ISO27001-2022, requisito: A.5.23}
+
+  - codigo: CLA-09
+    titulo: Conformidad con el ENS
+    descripcion: Cuando el servicio forma parte de un sistema sujeto al ENS, el proveedor acredita la conformidad de su servicio en una categoría igual o superior a la del sistema.
+    referencias:
+      - {marco: ISO27001-2022, requisito: A.5.19}
+      - {marco: ENS-RD311-2022, requisito: op.ext.1}
+      - {marco: ENS-RD311-2022, requisito: op.nub.1}
+
+  - codigo: CLA-10
+    titulo: Encargo de tratamiento
+    descripcion: Si el proveedor trata datos personales por cuenta de la organización, hay un contrato de encargo con el contenido que pide el artículo 28 del RGPD.
+    referencias:
+      - {marco: ISO27001-2022, requisito: A.5.20}
+
+  - codigo: CLA-11
+    titulo: Seguimiento y cambios del servicio
+    descripcion: Hay un seguimiento periódico del servicio con el proveedor, y los cambios que puedan afectar a la seguridad se comunican antes de hacerse.
+    referencias:
+      - {marco: ISO27001-2022, requisito: A.5.22}
+      - {marco: ENS-RD311-2022, requisito: op.ext.2}
+
+  - codigo: CLA-12
+    titulo: Acceso a los sistemas de la organización
+    descripcion: Si el proveedor accede a sistemas o redes de la organización, el acceso es nominal, con el mínimo privilegio, y se retira al terminar el servicio.
+    referencias:
+      - {marco: ISO27001-2022, requisito: A.5.19}
+      - {marco: ENS-RD311-2022, requisito: op.ext.4}

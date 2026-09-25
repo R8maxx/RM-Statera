@@ -51,6 +51,12 @@ class GuardarFichaOrganizacionRequest extends FormRequest
 
             'sujeto_obligado_ens' => ['required', 'boolean'],
             'proveedor_sector_publico' => ['required', 'boolean'],
+
+            // La política de reevaluación de proveedores (§ 4.9), en meses.
+            // El mismo intervalo que el `CHECK`: un mes a diez años.
+            'reevaluacion_proveedor_alta_meses' => ['required', 'integer', 'between:1,120'],
+            'reevaluacion_proveedor_media_meses' => ['required', 'integer', 'between:1,120'],
+            'reevaluacion_proveedor_baja_meses' => ['required', 'integer', 'between:1,120'],
         ];
     }
 
@@ -91,6 +97,9 @@ class GuardarFichaOrganizacionRequest extends FormRequest
             'nombre' => 'nombre comercial',
             'razon_social' => 'razón social',
             'url_base_etiquetas' => 'dirección base de las etiquetas',
+            'reevaluacion_proveedor_alta_meses' => 'reevaluación de criticidad alta',
+            'reevaluacion_proveedor_media_meses' => 'reevaluación de criticidad media',
+            'reevaluacion_proveedor_baja_meses' => 'reevaluación de criticidad baja',
         ];
     }
 }

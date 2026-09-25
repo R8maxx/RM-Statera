@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Organizacion;
 
 use App\Domain\Organizacion\Models\Organizacion;
+use App\Domain\Proveedor\RecalcularReevaluacion;
 
 /**
  * Escribe la ficha de la organización.
@@ -57,6 +58,19 @@ final readonly class GuardarFichaOrganizacion
         }
 
         $organizacion->update($datos);
+
+        /*
+         * Cambiar los meses mueve la próxima evaluación de todos sus
+         * proveedores, que es una copia derivada: sin esto el calendario
+         * seguiría con los plazos de la política anterior.
+         */
+        if ($organizacion->wasChanged([
+            'reevaluacion_proveedor_alta_meses',
+            'reevaluacion_proveedor_media_meses',
+            'reevaluacion_proveedor_baja_meses',
+        ])) {
+            app(RecalcularReevaluacion::class)->todos();
+        }
 
         return $organizacion;
     }

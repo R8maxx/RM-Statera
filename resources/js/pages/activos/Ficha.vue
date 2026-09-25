@@ -53,6 +53,7 @@ const props = defineProps<{
         custodio: string | null;
         departamento: string | null;
         ubicacion: string | null;
+        proveedor: { id: number; codigo: string; nombre: string } | null;
         fin_garantia: string | null;
         estado_ciclo_vida: string;
         estadoEtiqueta: string;
@@ -346,6 +347,14 @@ function retirar(dependenciaId: number): void {
                             <div>
                                 <dt class="text-xs text-muted-foreground">Ubicación</dt>
                                 <dd>{{ activo.ubicacion ?? '—' }}</dd>
+                            </div>
+                            <div v-if="activo.proveedor">
+                                <dt class="text-xs text-muted-foreground">Lo presta</dt>
+                                <dd>
+                                    <Link :href="`/proveedores/${activo.proveedor.id}`" class="underline underline-offset-4">
+                                        {{ activo.proveedor.nombre }}
+                                    </Link>
+                                </dd>
                             </div>
                             <div>
                                 <dt class="text-xs text-muted-foreground">Alta</dt>

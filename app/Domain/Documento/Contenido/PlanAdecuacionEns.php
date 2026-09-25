@@ -148,12 +148,16 @@ final class PlanAdecuacionEns extends DocumentoCalculado
                  *
                  * **Y reescrita otra vez con el § 4.11**, que la volvió falsa
                  * por segunda vez: las pruebas de continuidad ya entran en el
-                 * calendario. De lo que faltaba sólo queda un módulo.
+                 * calendario.
+                 *
+                 * **Y una tercera con el § 4.9**: la reevaluación de proveedores
+                 * ya entra. Lo que queda es lo que este documento puede
+                 * sostener: qué recoge el calendario de las medidas del plan,
+                 * sin prometer nada de los demás registros.
                  */
                 'El **calendario de obligaciones** (§ 4.16) recoge la fecha objetivo de cada medida '
                 .'pendiente, así que lo que aquí figura como fuera de plazo aparece también en el '
-                .'aviso diario y en la vista de mes. Lo que ese calendario **todavía no recoge** es '
-                .'la reevaluación de proveedores (§ 4.9), cuyo módulo no existe.',
+                .'aviso diario y en la vista de mes.',
 
                 ...$this->limitacionesBase($version, $filas),
             ],

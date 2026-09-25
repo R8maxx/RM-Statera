@@ -114,7 +114,7 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
 
 - **`retirado` y `dado_de_baja` no son lo mismo, y por eso son dos estados.** Retirado es que ya no presta servicio; dado de baja es que además hay constancia de que se borró o destruyó lo que contenía, que es lo que exige `mp.si.5`. Un disco retirado que sigue en un cajón con los datos dentro es un hallazgo, no un activo cerrado, y `Activo::esperaBorradoSeguro()` es lo que lo señala. El `FormRequest` no deja dar de baja sin esa fecha.
 
-- **`proveedor_id` no está en `activos`, a propósito.** El módulo de proveedores (§ 4.9) no existe y no se declara una clave foránea contra una tabla que no está. Se añade con ese módulo, igual que la importación desde CSV y los importadores automáticos de § 4.2.
+- **`proveedor_id` llegó con el § 4.9**, y no antes a propósito: no se declara una clave foránea contra una tabla que no está. Es `nullOnDelete` —un activo sobrevive a su proveedor— y **mueve la criticidad del proveedor**: `Activo::booted()` avisa a `CriticidadProveedor` cuando un activo cambia de proveedor o de valoración, para que no haya camino que guarde el activo y se olvide del mínimo derivado. La importación desde CSV y los importadores automáticos de § 4.2 siguen sin hacerse.
 
 - **«Por confirmar» no es «No», y por eso `EstadoControl` tiene cuatro casos.** Un export de AWS informa del cifrado de los volúmenes pero no dice nada de las copias de los EC2; con tres valores, esas instancias figuran como incumplimiento y alguien se pasa una semana «arreglando» copias que ya existían. La ausencia de dato es una pregunta abierta y se cuenta aparte. `NoAplica` tampoco es `No`: un router no cifra en reposo porque no almacena nada.
 

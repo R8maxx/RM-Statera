@@ -16,6 +16,7 @@ use App\Domain\NoConformidad\RegistroNoConformidades;
 use App\Domain\Objetivo\RegistroObjetivos;
 use App\Domain\Obligacion\RegistroObligaciones;
 use App\Domain\Persona\RegistroPersonas;
+use App\Domain\Proveedor\RegistroProveedores;
 use App\Domain\Riesgo\RegistroRiesgos;
 use App\Domain\Tarea\ResumenPlanDeAccion;
 use App\Http\Resources\Panel\Indicador;
@@ -92,6 +93,8 @@ final readonly class AlertasDelPanel
         [Permiso::ObligacionesVer, RegistroObligaciones::class],
         [Permiso::IncidentesVer, RegistroIncidentes::class],
         [Permiso::ContinuidadVer, RegistroContinuidad::class],
+        // Una reevaluación y un certificado caducan solos, como una evidencia.
+        [Permiso::ProveedoresVer, RegistroProveedores::class],
         [Permiso::RiesgosVer, RegistroRiesgos::class],
         [Permiso::NoConformidadesVer, RegistroNoConformidades::class],
         [Permiso::ObjetivosVer, RegistroObjetivos::class],

@@ -96,7 +96,7 @@ No usar paquetes de multi-tenancy de terceros: es la frontera de seguridad princ
 
 ## Los módulos
 
-Veintiocho puntos, y el orden importa: el catálogo y el motor son la parte más
+Veintinueve puntos, y el orden importa: el catálogo y el motor son la parte más
 específica del dominio y la que más se estropea si se improvisa; el resto es CRUD con
 reglas de negocio encima. **El porqué de cada uno —qué problema abrió, qué decisión se
 tomó y qué dejó declarado que no hace— está en su fichero de reglas**, y la bitácora
@@ -132,6 +132,7 @@ completa con el razonamiento del orden, en `.ai/rules/orden-de-arranque.md`.
 | 26 | Conformidad con el ENS, categoría básica | 4.17 | `conformidad.md` |
 | 27 | Informes y exportación: informe de auditoría e informe de estado | 4.18 | `documentos.md`, `auditorias.md` |
 | 28 | Cuentas, roles y el alcance del auditor externo | 4.19 | `cuentas.md` |
+| 29 | Proveedores y terceros | 4.9 | `proveedores.md` |
 
 **La fase 3 está cerrada.** Con continuidad (§ 4.11) dentro —el BIA por servicio,
 el plan como documento y las pruebas que lo contrastan— el ciclo vivo se recorre
@@ -152,15 +153,18 @@ se invita, se da rol, se desactiva y se registra quién entra. El auditor extern
 ve sólo los sistemas que audita y hasta una fecha, y el técnico lee todo y
 escribe lo suyo.
 
-Lo que queda: proveedores (§ 4.9) y el registro de vulnerabilidades del
-invariante 8.
+Con el punto 29 están los proveedores: el mínimo de criticidad sale de lo que
+prestan, el contrato se evalúa contra un catálogo de cláusulas y la reevaluación
+entra en el calendario.
+
+Lo que queda: el registro de vulnerabilidades del invariante 8.
 
 ## El catálogo
 
 Vive en `catalogo/*.yaml`, versionado en el repositorio, y se carga con un comando idempotente:
 
 ```sh
-php artisan catalogo:importar                    # importa los cinco ficheros
+php artisan catalogo:importar                    # importa los seis ficheros
 php artisan catalogo:importar --dry-run          # muestra el diff sin escribir
 php artisan catalogo:importar catalogo/ens-rd311-2022.yaml
 ```
@@ -180,7 +184,7 @@ Lo demás va dentro. Con `app` basta para todo lo de PHP; `vite` es el de Node:
 
 ```sh
 docker compose exec app php artisan migrate
-docker compose exec app php artisan catalogo:importar       # ISO, ENS, mapeos, amenazas de MAGERIT y obligaciones periódicas
+docker compose exec app php artisan catalogo:importar       # ISO, ENS, mapeos, amenazas de MAGERIT, obligaciones periódicas y cláusulas de proveedor
 docker compose exec app php artisan db:seed                 # organización, usuarios, sistema, inventario, tareas, riesgos, personas y puestos (sintéticos)
 docker compose exec app php artisan avisos:enviar --dry-run # lo que saldría por correo, sin enviarlo
 docker compose exec app php artisan indicadores:medir --dry-run # la cifra que se sellaría, sin escribirla
@@ -240,7 +244,7 @@ sobre el directorio pilla lo que un encaje de ruta se deja.
 | `interfaz.md` | `resources/js/**` | `lib/tonos.ts` y `lib/navegacion.ts` como mapas únicos; los tres canales de un estado; qué librería entró, cuál no y por qué |
 | `tests.md` | `tests/**` | Los diez tests que descubren en vez de enumerar |
 | `infraestructura.md` | `docker-compose.yml`, `docker/**`, `.env.example` | Los dos endpoints de MinIO, `quay.io`, el `ARG UID`, `predis` |
-| `orden-de-arranque.md` | este fichero, `README.md`, `PRODUCT.md` | La bitácora de los 28 puntos, con el razonamiento del orden |
+| `orden-de-arranque.md` | este fichero, `README.md`, `PRODUCT.md` | La bitácora de los 29 puntos, con el razonamiento del orden |
 
 ### Por módulo
 
@@ -271,6 +275,7 @@ sobre el directorio pilla lo que un encaje de ruta se deja.
 | `organizacion.md` | `app/Domain/Organizacion/**` y la ficha del tenant |
 | `perfil.md` | `pages/perfil/**`, `app/Domain/Autorizacion/**` |
 | `cuentas.md` | `pages/cuentas/**`, `app/Domain/Usuario/**`, la invitación, los middlewares de cuenta y sesión |
+| `proveedores.md` | `app/Domain/Proveedor/**`, sus pantallas y `catalogo/clausulas-proveedor.yaml` |
 
 **Un módulo nuevo entra con su fichero y su `paths:`**, y no tocando este mapa: lo que
 hace que se cargue es el glob, no la fila de esta tabla. La tabla es para leerla un

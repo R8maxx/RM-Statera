@@ -226,8 +226,9 @@ El orden importa: el catálogo y el motor son la parte más específica del domi
     Lo que lo hace barato de crecer es que las obligaciones son **datos**: siete
     casos de `Fuente` y no once, porque el informe INES, la renovación de
     conformidad y la auditoría de seguimiento son filas de `catalogo/obligaciones.yaml`
-    y no casos de un enum. Añadir la reevaluación de proveedores el día que llegue
-    el § 4.9 es una línea de YAML.
+    y no casos de un enum. La reevaluación de proveedores, que aquí se daba por
+    «una línea de YAML», acabó siendo una `Fuente` cuando llegó el § 4.9: sale de
+    un registro, y lo que no sale de ninguno es justo lo que va al catálogo.
 
     **Y entró con once fallos de comportamiento dentro**, con la suite verde y
     Larastan limpio. Están enumerados en `obligaciones.md`; dos perdían datos o
@@ -355,4 +356,23 @@ El orden importa: el catálogo y el motor son la parte más específica del domi
     Y un hallazgo de paso: las fichas de tarea e implantación le pintaban al auditor
     botones que le respondían 403. Ahora las dos reciben quién puede escribir, y lo
     dicen cuando es otra persona.
+
+29. ✅ Proveedores y terceros (§ 4.9). **Muerde hoy**: `op.nub.1` es exigible en
+    categoría básica y A.5.19 a A.5.23 en ISO, aunque `op.ext.*` no lo sea hasta
+    media. Cerró cuatro enganches puestos desde hacía módulos:
+    `activos.proveedor_id`, la frase impresa del plan de adecuación, la exclusión
+    escrita en `catalogo/obligaciones.yaml` y el hueco del grupo «Organización» del
+    menú.
+
+    Tres decisiones, las tres de César y las tres en la línea de lo que ya había.
+    **La criticidad tiene un mínimo derivado** de lo que presta —subirla es
+    libre, bajarla se justifica—, que es el invariante 4 aplicado a un tercero.
+    **Lo que se comprueba es catálogo**, un sexto fichero YAML con su importador
+    idempotente, y no un enum (invariante 3). **La reevaluación es política de
+    la organización**, como su metodología de riesgos, porque ni ISO ni el ENS
+    fijan el plazo.
+
+    Y una más que no se eligió: **el estado lo pone la evaluación**, no un
+    desplegable. Homologar sin evaluar sería exactamente lo que el módulo existe
+    para impedir.
 

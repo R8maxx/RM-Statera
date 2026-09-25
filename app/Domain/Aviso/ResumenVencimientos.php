@@ -12,6 +12,7 @@ use App\Domain\Implantacion\Models\Implantacion;
 use App\Domain\Metrica\Models\Indicador;
 use App\Domain\Obligacion\Models\Compromiso;
 use App\Domain\Persona\Models\Persona;
+use App\Domain\Proveedor\Models\Proveedor;
 use App\Domain\Tarea\Models\Tarea;
 use Illuminate\Support\Carbon;
 
@@ -95,6 +96,7 @@ final readonly class ResumenVencimientos
             Fuente::Obligacion => $this->calendario->deObligaciones(Compromiso::query()->vencidos()),
             Fuente::PruebaContinuidad => $this->calendario->dePruebas(PruebaContinuidad::query()->vencidas()),
             Fuente::Bia => $this->calendario->deBias(BiaServicio::query()->revisionVencida()),
+            Fuente::Proveedor => $this->calendario->deProveedores(Proveedor::query()->reevaluacionVencida()),
         };
     }
 
@@ -123,6 +125,7 @@ final readonly class ResumenVencimientos
             Fuente::Obligacion => $this->calendario->deObligaciones(Compromiso::query()->proximaEntre($hoy, $hasta)),
             Fuente::PruebaContinuidad => $this->calendario->dePruebas(PruebaContinuidad::query()->porVencer($dias)),
             Fuente::Bia => $this->calendario->deBias(BiaServicio::query()->revisionPorVencer($dias)),
+            Fuente::Proveedor => $this->calendario->deProveedores(Proveedor::query()->reevaluacionPorVencer($dias)),
         };
     }
 }

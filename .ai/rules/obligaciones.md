@@ -327,9 +327,8 @@ tests que descubren cubren los olvidos de forma; para lo demás hace falta mirar
 
 ## Lo que este módulo declara que no hace todavía
 
-- **No recoge la reevaluación de proveedores (§ 4.9)**, cuyo módulo no existe. No entra en el catálogo
-  todavía, porque la § 2.2 ya declara `proveedores.fecha_evaluacion` y `proxima_evaluacion` y crear el
-  compromiso ahora obligaría a migrarlo. **La continuidad dejó de estar en esta lista con el § 4.11**:
+- **La reevaluación de proveedores dejó de estar en esta lista con el § 4.9**: es `Fuente::Proveedor`, y
+  no una fila del catálogo, porque sale de un registro. **La continuidad salió antes, con el § 4.11**:
   las pruebas y la revisión del BIA son dos `Fuente`, y la obligación anual de probar los planes se
   propone por su requisito, `op.cont.3`, y ya no por `categoria_minima: media` —que exigía de más: la
   proponía a sistemas media y alta cuya Disponibilidad no llega a alto—.

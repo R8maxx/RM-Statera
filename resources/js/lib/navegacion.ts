@@ -23,6 +23,7 @@ import {
     ServerIcon,
     ShieldAlertIcon,
     TargetIcon,
+    TruckIcon,
     UserRoundCheckIcon,
     UserRoundCogIcon,
     UsersIcon,
@@ -381,10 +382,10 @@ export const navegacion: GrupoNavegacion[] = [
     },
     {
         /*
-         * El grupo nació con una sola entrada esperando a personas (§ 4.8), que
-         * ya está, y a proveedores (§ 4.9), que sigue sin estar. Son de la
-         * organización y no del cumplimiento ni del alcance. Las cuentas (§ 4.19)
-         * van aquí también, sólo para quien las gestiona.
+         * El grupo nació con una sola entrada esperando a personas (§ 4.8) y a
+         * proveedores (§ 4.9), y ya están las dos. Son de la organización y no
+         * del cumplimiento ni del alcance. Las cuentas (§ 4.19) van aquí
+         * también, sólo para quien las gestiona.
          */
         titulo: 'Organización',
         entradas: [
@@ -431,6 +432,18 @@ export const navegacion: GrupoNavegacion[] = [
                  * asistencias exige su pantalla.
                  */
                 alias: ['concienciación', 'asistencia', 'curso', 'mp.per.3', 'mp.per.4'],
+            },
+            {
+                titulo: 'Proveedores',
+                href: '/proveedores',
+                icono: TruckIcon,
+                /*
+                 * § 4.9: con quién se trabaja y cuándo se comprobó su contrato.
+                 * `op.ext` y `op.nub` son lo que se teclea sabiendo de qué va;
+                 * «terceros», «nube» y «subencargado» lo que se busca sin
+                 * acordarse de la medida.
+                 */
+                alias: ['terceros', 'contratos', 'nube', 'subencargado', 'homologación', 'op.ext', 'op.nub', 'a.5.19'],
             },
             {
                 titulo: 'Cuentas',

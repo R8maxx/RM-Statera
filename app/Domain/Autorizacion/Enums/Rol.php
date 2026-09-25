@@ -170,6 +170,12 @@ enum Rol: string
                 Permiso::IncidentesVer,
                 Permiso::IncidentesGestionar,
                 /*
+                 * Los proveedores los mantiene y **no los evalúa**: homologar a
+                 * un tercero es decidir con quién trabaja la organización.
+                 */
+                Permiso::ProveedoresVer,
+                Permiso::ProveedoresGestionar,
+                /*
                  * El BIA de un servicio: lo registra, lo edita y planifica y
                  * ejecuta sus pruebas —Permiso::ContinuidadGestionar—, pero
                  * **no aprueba el RTO**: aceptar un RTO es aceptar un riesgo,
@@ -225,6 +231,7 @@ enum Rol: string
                 Permiso::ObjetivosVer,
                 Permiso::PersonasVer,
                 Permiso::IncidentesVer,
+                Permiso::ProveedoresVer,
                 Permiso::ContinuidadVer,
                 // La conformidad es lo primero que un auditor externo mira.
                 Permiso::ConformidadVer,

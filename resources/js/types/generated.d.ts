@@ -18,12 +18,12 @@ export type TipoHallazgo = 'nc_mayor' | 'nc_menor' | 'observacion' | 'oportunida
 }
 namespace Autorizacion {
 namespace Enums {
-export type Permiso = 'panel.ver' | 'contexto.ver' | 'contexto.gestionar' | 'contexto.aprobar' | 'sistemas.ver' | 'sistemas.gestionar' | 'sistemas.valorar' | 'implantaciones.ver' | 'implantaciones.gestionar' | 'evidencias.ver' | 'evidencias.gestionar' | 'activos.ver' | 'activos.gestionar' | 'riesgos.ver' | 'riesgos.gestionar' | 'riesgos.aceptar' | 'tareas.ver' | 'tareas.gestionar' | 'auditorias.ver' | 'auditorias.gestionar' | 'no_conformidades.ver' | 'no_conformidades.gestionar' | 'no_conformidades.verificar' | 'mejoras.ver' | 'mejoras.gestionar' | 'indicadores.ver' | 'indicadores.gestionar' | 'objetivos.ver' | 'objetivos.gestionar' | 'objetivos.aprobar' | 'personas.ver' | 'personas.gestionar' | 'personas.designar' | 'incidentes.ver' | 'incidentes.gestionar' | 'continuidad.ver' | 'continuidad.gestionar' | 'continuidad.aprobar' | 'conformidad.ver' | 'conformidad.gestionar' | 'revision_direccion.ver' | 'revision_direccion.gestionar' | 'revision_direccion.aprobar' | 'documentos.ver' | 'documentos.generar' | 'documentos.aprobar' | 'documentos.redactar' | 'documentos.plantillas' | 'organizacion.gestionar' | 'cuentas.gestionar' | 'calendario.ver' | 'obligaciones.ver' | 'obligaciones.gestionar';
+export type Permiso = 'panel.ver' | 'contexto.ver' | 'contexto.gestionar' | 'contexto.aprobar' | 'sistemas.ver' | 'sistemas.gestionar' | 'sistemas.valorar' | 'implantaciones.ver' | 'implantaciones.gestionar' | 'evidencias.ver' | 'evidencias.gestionar' | 'activos.ver' | 'activos.gestionar' | 'riesgos.ver' | 'riesgos.gestionar' | 'riesgos.aceptar' | 'tareas.ver' | 'tareas.gestionar' | 'auditorias.ver' | 'auditorias.gestionar' | 'no_conformidades.ver' | 'no_conformidades.gestionar' | 'no_conformidades.verificar' | 'mejoras.ver' | 'mejoras.gestionar' | 'indicadores.ver' | 'indicadores.gestionar' | 'objetivos.ver' | 'objetivos.gestionar' | 'objetivos.aprobar' | 'personas.ver' | 'personas.gestionar' | 'personas.designar' | 'incidentes.ver' | 'incidentes.gestionar' | 'proveedores.ver' | 'proveedores.gestionar' | 'proveedores.evaluar' | 'continuidad.ver' | 'continuidad.gestionar' | 'continuidad.aprobar' | 'conformidad.ver' | 'conformidad.gestionar' | 'revision_direccion.ver' | 'revision_direccion.gestionar' | 'revision_direccion.aprobar' | 'documentos.ver' | 'documentos.generar' | 'documentos.aprobar' | 'documentos.redactar' | 'documentos.plantillas' | 'organizacion.gestionar' | 'cuentas.gestionar' | 'calendario.ver' | 'obligaciones.ver' | 'obligaciones.gestionar';
 export type Rol = 'responsable_seguridad' | 'tecnico' | 'auditor';
 }
 }
 namespace Aviso {
-export type Fuente = 'tarea' | 'evidencia' | 'documento' | 'formacion' | 'indicador' | 'implantacion' | 'obligacion' | 'prueba_continuidad' | 'bia';
+export type Fuente = 'tarea' | 'evidencia' | 'documento' | 'formacion' | 'indicador' | 'implantacion' | 'obligacion' | 'prueba_continuidad' | 'bia' | 'proveedor';
 export type Vencimiento = {
 readonly url: string,
 readonly icono: string,
@@ -161,6 +161,17 @@ export type TipoAccionFormativa = 'formacion' | 'concienciacion';
 export type TipoPasoPersona = 'alta' | 'baja';
 }
 }
+namespace Proveedor {
+namespace Enums {
+export type Criticidad = 'baja' | 'media' | 'alta';
+export type EstadoProveedor = 'en_evaluacion' | 'homologado' | 'condicionado' | 'rechazado' | 'retirado';
+export type ModeloNube = 'iaas' | 'paas' | 'saas';
+export type ResultadoClausula = 'cumple' | 'no_cumple' | 'no_aplica';
+export type ResultadoEvaluacion = 'apto' | 'apto_con_condiciones' | 'no_apto';
+export type TipoCertificacion = 'iso27001' | 'ens' | 'otra';
+export type UbicacionDatos = 'ue_eee' | 'tercer_pais' | 'desconocida';
+}
+}
 namespace RevisionDireccion {
 namespace Enums {
 export type EstadoRevision = 'planificada' | 'en_curso' | 'aprobada';
@@ -181,7 +192,7 @@ export type EstadoSistema = 'borrador' | 'activo' | 'archivado';
 namespace Tarea {
 namespace Enums {
 export type EstadoTarea = 'pendiente' | 'en_curso' | 'bloqueada' | 'hecha' | 'descartada';
-export type OrigenTarea = 'hallazgo' | 'no_conformidad' | 'mejora' | 'riesgo' | 'brecha_implantacion' | 'contexto' | 'objetivo' | 'incidente' | 'revision_direccion' | 'continuidad' | 'propia';
+export type OrigenTarea = 'hallazgo' | 'no_conformidad' | 'mejora' | 'riesgo' | 'brecha_implantacion' | 'contexto' | 'objetivo' | 'incidente' | 'revision_direccion' | 'continuidad' | 'proveedor' | 'propia';
 export type PrioridadTarea = 'baja' | 'media' | 'alta' | 'critica';
 }
 }

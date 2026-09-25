@@ -50,6 +50,9 @@ function fichaCompleta(array $cambios = []): array
         'url_base_etiquetas' => 'https://sgsi.merino.example',
         'sujeto_obligado_ens' => false,
         'proveedor_sector_publico' => true,
+        'reevaluacion_proveedor_alta_meses' => 12,
+        'reevaluacion_proveedor_media_meses' => 24,
+        'reevaluacion_proveedor_baja_meses' => 36,
         ...$cambios,
     ];
 }

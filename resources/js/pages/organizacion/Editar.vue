@@ -22,6 +22,9 @@ interface Organizacion {
     url_base_etiquetas: string | null;
     sujeto_obligado_ens: boolean;
     proveedor_sector_publico: boolean;
+    reevaluacion_proveedor_alta_meses: number;
+    reevaluacion_proveedor_media_meses: number;
+    reevaluacion_proveedor_baja_meses: number;
 }
 
 const props = defineProps<{
@@ -194,6 +197,41 @@ const cambioLaBase = computed(
                     Sin ninguno de los dos motivos, al ENS no se le da cobertura legal aquí. Los sistemas del
                     ENS que ya existan siguen funcionando: esto declara el porqué, no lo que se exige.
                 </Aviso>
+            </SeccionFormulario>
+
+            <SeccionFormulario
+                titulo="Reevaluación de proveedores"
+                ayuda="Cada cuántos meses se vuelve a comprobar el contrato de un proveedor, según su criticidad. Ni ISO 27001 ni el ENS fijan el plazo: es una decisión de la organización, y de aquí sale la fecha que avisa el calendario."
+            >
+                <FilaCampos>
+                    <CampoTexto
+                        nombre="reevaluacion_proveedor_alta_meses"
+                        etiqueta="Criticidad alta"
+                        tipo="number"
+                        :valor-inicial="String(organizacion.reevaluacion_proveedor_alta_meses)"
+                        :error="errors.reevaluacion_proveedor_alta_meses"
+                        ayuda="En meses."
+                        requerido
+                    />
+                    <CampoTexto
+                        nombre="reevaluacion_proveedor_media_meses"
+                        etiqueta="Criticidad media"
+                        tipo="number"
+                        :valor-inicial="String(organizacion.reevaluacion_proveedor_media_meses)"
+                        :error="errors.reevaluacion_proveedor_media_meses"
+                        ayuda="En meses."
+                        requerido
+                    />
+                    <CampoTexto
+                        nombre="reevaluacion_proveedor_baja_meses"
+                        etiqueta="Criticidad baja"
+                        tipo="number"
+                        :valor-inicial="String(organizacion.reevaluacion_proveedor_baja_meses)"
+                        :error="errors.reevaluacion_proveedor_baja_meses"
+                        ayuda="En meses."
+                        requerido
+                    />
+                </FilaCampos>
             </SeccionFormulario>
 
             <SeccionFormulario

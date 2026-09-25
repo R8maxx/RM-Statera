@@ -7,6 +7,7 @@ namespace App\Domain\Tarea\Models;
 use App\Domain\Continuidad\Models\PruebaContinuidad;
 use App\Domain\Implantacion\Models\Implantacion;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
+use App\Domain\Proveedor\Models\Proveedor;
 use App\Domain\Tarea\Enums\EstadoTarea;
 use App\Domain\Tarea\Enums\OrigenTarea;
 use App\Domain\Tarea\Enums\PrioridadTarea;
@@ -95,6 +96,17 @@ class Tarea extends Model
     public function pruebasContinuidad(): BelongsToMany
     {
         return $this->belongsToMany(PruebaContinuidad::class, 'prueba_continuidad_tarea')
+            ->withPivot(['vinculada_por_id', 'created_at']);
+    }
+
+    /**
+     * De qué proveedor sale, cuando sale de uno (§ 4.9).
+     *
+     * @return BelongsToMany<Proveedor, $this>
+     */
+    public function proveedores(): BelongsToMany
+    {
+        return $this->belongsToMany(Proveedor::class, 'proveedor_tarea')
             ->withPivot(['vinculada_por_id', 'created_at']);
     }
 

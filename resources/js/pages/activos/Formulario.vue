@@ -31,6 +31,7 @@ interface Activo {
     custodio_id: number | null;
     departamento: string | null;
     ubicacion: string | null;
+    proveedor_id: number | null;
     fin_garantia: string | null;
     estado_ciclo_vida: string;
     clasificacion: string;
@@ -79,12 +80,14 @@ const props = defineProps<{
     sistemasOperativos: Record<string, string | null>;
     personas: Opcion[];
     sistemas: Opcion[];
+    proveedores: Opcion[];
 }>();
 
 const edicion = props.activo !== null;
 
 const propietarios = conOpcionVacia(props.personas, 'Sin propietario');
 const custodios = conOpcionVacia(props.personas, 'Sin custodio');
+const proveedores = conOpcionVacia(props.proveedores, 'Nadie de fuera: es propio');
 
 /** Los SO conocidos, más «otro» para lo que no esté en la lista. */
 const sistemasOperativos = conOpcionVacia(
@@ -235,13 +238,24 @@ const variantesBaja = computed(() =>
                     />
                 </FilaCampos>
 
-                <CampoTexto
-                    nombre="ubicacion"
-                    etiqueta="Ubicación"
-                    :valor-inicial="activo?.ubicacion ?? ''"
-                    :error="errors.ubicacion"
-                    ayuda="Dónde está físicamente o en qué proveedor. Es lo primero que se pregunta cuando hay un incidente."
-                />
+                <FilaCampos>
+                    <CampoTexto
+                        nombre="ubicacion"
+                        etiqueta="Ubicación"
+                        :valor-inicial="activo?.ubicacion ?? ''"
+                        :error="errors.ubicacion"
+                        ayuda="Dónde está físicamente. Es lo primero que se pregunta cuando hay un incidente."
+                    />
+
+                    <CampoSelect
+                        nombre="proveedor_id"
+                        etiqueta="Lo presta"
+                        :opciones="proveedores"
+                        :valor-inicial="activo?.proveedor_id ? String(activo.proveedor_id) : undefined"
+                        :error="errors.proveedor_id"
+                        ayuda="El proveedor que lo presta, si viene de fuera. Su valoración sube el mínimo de criticidad de ese proveedor."
+                    />
+                </FilaCampos>
             </SeccionFormulario>
 
             <!--

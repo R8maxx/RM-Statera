@@ -101,6 +101,18 @@ enum Fuente: string
     case Bia = 'bia';
 
     /**
+     * La reevaluación de un proveedor: § 4.9 y § 4.16.
+     *
+     * **Una `Fuente` y no una fila de `catalogo/obligaciones.yaml`**, que es lo
+     * que el propio YAML dejó dicho: lo que vence sale de un registro —la última
+     * evaluación y los meses que la organización fija por criticidad—, y una
+     * obligación del catálogo es justo lo que no sale de ninguno. Sólo los que no
+     * están retirados y ya tienen una evaluación: sin ella no hay fecha, y lo que
+     * falta no es reevaluar sino evaluar por primera vez.
+     */
+    case Proveedor = 'proveedor';
+
+    /**
      * Las fuentes que esta cuenta puede ver.
      *
      * **La rejilla enseña nueve registros con una sola llave**, así que el
@@ -131,6 +143,7 @@ enum Fuente: string
             self::Implantacion => Permiso::ImplantacionesVer,
             self::Obligacion => Permiso::ObligacionesVer,
             self::PruebaContinuidad, self::Bia => Permiso::ContinuidadVer,
+            self::Proveedor => Permiso::ProveedoresVer,
         };
     }
 
@@ -146,6 +159,7 @@ enum Fuente: string
             self::Obligacion => 'Obligación',
             self::PruebaContinuidad => 'Prueba de continuidad',
             self::Bia => 'BIA',
+            self::Proveedor => 'Proveedor',
         };
     }
 
@@ -177,6 +191,9 @@ enum Fuente: string
      * calendario un `Target` sólo puede ser una medida, porque los objetivos están
      * declarados fuera de él —tienen tareas detrás y sus plazos ya pintan chip—.
      *
+     * `Proveedor` coincide con su entrada del sidebar, `Truck`: no se parece a
+     * ninguna de las otras nueve.
+     *
      * `PruebaContinuidad` y `Bia` tampoco coinciden con su módulo: el sidebar
      * lleva **una sola** entrada, «Continuidad», con `LifeBuoyIcon`, porque BIA
      * y pruebas comparten pantalla de arranque —lo mismo que ya pasa con
@@ -203,6 +220,7 @@ enum Fuente: string
             self::Obligacion => 'Repeat',
             self::PruebaContinuidad => 'FlaskConical',
             self::Bia => 'Timer',
+            self::Proveedor => 'Truck',
         };
     }
 
@@ -218,6 +236,7 @@ enum Fuente: string
             self::Obligacion => "/obligaciones/{$id}",
             self::PruebaContinuidad => "/continuidad/pruebas/{$id}",
             self::Bia => "/continuidad/bia/{$id}",
+            self::Proveedor => "/proveedores/{$id}",
         };
     }
 
@@ -237,6 +256,7 @@ enum Fuente: string
             self::Obligacion => 'Obligaciones fuera de plazo',
             self::PruebaContinuidad => 'Pruebas de continuidad sin realizar',
             self::Bia => 'BIA sin revisar a tiempo',
+            self::Proveedor => 'Proveedores sin reevaluar a tiempo',
         };
     }
 
@@ -253,6 +273,7 @@ enum Fuente: string
             self::Obligacion => 'Obligaciones que tocan',
             self::PruebaContinuidad => 'Pruebas de continuidad previstas',
             self::Bia => 'BIA por revisar',
+            self::Proveedor => 'Proveedores por reevaluar',
         };
     }
 
@@ -262,7 +283,7 @@ enum Fuente: string
         return match ($this) {
             self::Evidencia, self::Formacion => 'caduca',
             self::Documento => 'toca revisarlo',
-            self::Indicador, self::Obligacion, self::PruebaContinuidad, self::Bia => 'toca',
+            self::Indicador, self::Obligacion, self::PruebaContinuidad, self::Bia, self::Proveedor => 'toca',
             self::Tarea, self::Implantacion => 'vence',
         };
     }
@@ -272,7 +293,7 @@ enum Fuente: string
         return match ($this) {
             self::Evidencia, self::Formacion => 'caducó',
             self::Documento => 'tocaba revisarlo',
-            self::Indicador, self::Obligacion, self::PruebaContinuidad, self::Bia => 'tocaba',
+            self::Indicador, self::Obligacion, self::PruebaContinuidad, self::Bia, self::Proveedor => 'tocaba',
             self::Tarea, self::Implantacion => 'venció',
         };
     }

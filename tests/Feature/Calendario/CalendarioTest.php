@@ -20,6 +20,8 @@ use App\Domain\Obligacion\Models\Compromiso;
 use App\Domain\Organizacion\Models\Organizacion;
 use App\Domain\Persona\Models\AccionFormativa;
 use App\Domain\Persona\Models\Persona;
+use App\Domain\Proveedor\Enums\EstadoProveedor;
+use App\Domain\Proveedor\Models\Proveedor;
 use App\Domain\Tarea\Enums\EstadoTarea;
 use App\Domain\Tarea\Models\Tarea;
 use Illuminate\Support\Carbon;
@@ -366,6 +368,13 @@ function sembrarVencimiento(Fuente $fuente, bool $pasado): void
         Fuente::Bia => BiaServicio::factory()
             ->enEstado(EstadoBia::Aprobado)
             ->create(['fecha_revision' => $fecha]),
+
+        // La fecha es una copia derivada; aquí se pone a mano porque lo que se
+        // prueba es el calendario y no `RecalcularReevaluacion`.
+        Fuente::Proveedor => Proveedor::factory()->create([
+            'estado' => EstadoProveedor::Homologado->value,
+            'proxima_evaluacion' => $fecha,
+        ]),
     };
 }
 

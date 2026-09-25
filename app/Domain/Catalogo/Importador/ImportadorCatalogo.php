@@ -15,6 +15,7 @@ use App\Domain\Catalogo\Models\Requisito;
 use App\Domain\Obligacion\Enums\ReferenciaCumplimiento;
 use App\Domain\Obligacion\Models\Obligacion;
 use App\Domain\Organizacion\ContextoOrganizacion;
+use App\Domain\Proveedor\Models\ClausulaContractual;
 use App\Domain\Riesgo\Enums\GrupoAmenaza;
 use App\Domain\Riesgo\Models\Amenaza;
 use Illuminate\Support\Carbon;
@@ -52,17 +53,18 @@ final class ImportadorCatalogo
      *
      * @var list<string>
      */
-    private const RAICES = ['amenazas', 'mapeos', 'marco', 'obligaciones'];
+    private const RAICES = ['amenazas', 'clausulas', 'mapeos', 'marco', 'obligaciones'];
 
-    private const ERROR_RAIZ = 'Falta la clave raíz. Se esperaba `marco`, `mapeos`, `amenazas` u `obligaciones`.';
+    private const ERROR_RAIZ = 'Falta la clave raíz. Se esperaba `marco`, `mapeos`, `amenazas`, `obligaciones` o `clausulas`.';
 
     /**
      * Ficheros de un directorio en orden seguro de importación.
      *
      * **El orden no es alfabético, aunque lo parezca con los nombres de hoy.**
      * Primero las amenazas, que no referencian nada; después los que definen
-     * marcos; luego las obligaciones, que apuntan a un marco por su código; y al
-     * final los mapeos, que necesitan que ambos extremos existan.
+     * marcos; luego las obligaciones y las cláusulas de proveedor, que apuntan a
+     * requisitos por su código; y al final los mapeos, que necesitan que ambos
+     * extremos existan.
      *
      * @return list<string>
      */
@@ -71,7 +73,7 @@ final class ImportadorCatalogo
         $ficheros = glob(rtrim($directorio, '/').'/*.{yaml,yml}', GLOB_BRACE) ?: [];
         sort($ficheros);
 
-        $porTipo = ['amenazas' => [], 'marco' => [], 'obligaciones' => [], 'mapeos' => []];
+        $porTipo = ['amenazas' => [], 'marco' => [], 'obligaciones' => [], 'clausulas' => [], 'mapeos' => []];
 
         foreach ($ficheros as $fichero) {
             $tipo = $this->tipoDe($fichero);
@@ -82,7 +84,13 @@ final class ImportadorCatalogo
             $porTipo[array_key_exists($tipo, $porTipo) ? $tipo : 'marco'][] = $fichero;
         }
 
-        return [...$porTipo['amenazas'], ...$porTipo['marco'], ...$porTipo['obligaciones'], ...$porTipo['mapeos']];
+        return [
+            ...$porTipo['amenazas'],
+            ...$porTipo['marco'],
+            ...$porTipo['obligaciones'],
+            ...$porTipo['clausulas'],
+            ...$porTipo['mapeos'],
+        ];
     }
 
     public function importar(string $fichero, bool $simulacion = false): ResultadoImportacion
@@ -105,6 +113,7 @@ final class ImportadorCatalogo
             $resultado = match (true) {
                 array_key_exists('amenazas', $documento) => $this->importarAmenazas($fichero, $documento, $simulacion),
                 array_key_exists('obligaciones', $documento) => $this->importarObligaciones($fichero, $documento, $simulacion),
+                array_key_exists('clausulas', $documento) => $this->importarClausulas($fichero, $documento, $simulacion),
                 array_key_exists('mapeos', $documento) => $this->importarMapeos($fichero, $documento, $simulacion),
                 array_key_exists('marco', $documento) => $this->importarMarco($fichero, $documento, $simulacion),
                 default => throw new CatalogoInvalido($fichero, [self::ERROR_RAIZ]),
@@ -734,6 +743,182 @@ final class ImportadorCatalogo
         $resultado->riesgosAfectados = $this->contarRiesgosAfectados($resultado->retirados, $existentes);
 
         return $resultado;
+    }
+
+    /**
+     * El catálogo de cláusulas de seguridad con proveedores del § 4.9.
+     *
+     * El mismo contrato que las amenazas: clave natural `codigo`, huella para
+     * distinguir lo modificado, y **retirada por marca**, porque hay
+     * evaluaciones firmadas que comprobaron la cláusula.
+     *
+     * Lo propio suyo son las `referencias`, que llegan por clave natural
+     * `(marco, requisito)` y se comprueban contra el catálogo: una cláusula que
+     * dice sostener un control que no existe es una cita inventada, y eso es un
+     * error de importación y no un aviso.
+     *
+     * @param  array<string, mixed>  $documento
+     */
+    private function importarClausulas(string $fichero, array $documento, bool $simulacion): ResultadoImportacion
+    {
+        $crudas = $documento['clausulas'] ?? null;
+
+        if (! is_array($crudas) || $crudas === []) {
+            throw new CatalogoInvalido($fichero, ['clausulas: se esperaba una lista no vacía.']);
+        }
+
+        $errores = [];
+        $planas = [];
+        $vistos = [];
+
+        foreach (array_values($crudas) as $indice => $clausula) {
+            $donde = "clausulas[{$indice}]";
+
+            if (! is_array($clausula)) {
+                $errores[] = "{$donde}: se esperaba un mapa.";
+
+                continue;
+            }
+
+            $validador = Validator::make($clausula, [
+                'codigo' => ['required', 'string', 'max:255'],
+                'titulo' => ['required', 'string', 'max:255'],
+                'descripcion' => ['nullable', 'string'],
+                'referencias' => ['nullable', 'array'],
+                'referencias.*.marco' => ['required', 'string'],
+                'referencias.*.requisito' => ['required', 'string'],
+                'orden' => ['nullable', 'integer', 'min:0'],
+            ]);
+
+            if ($validador->fails()) {
+                foreach ($validador->errors()->all() as $error) {
+                    $errores[] = "{$donde}: {$error}";
+                }
+
+                continue;
+            }
+
+            $codigo = (string) $clausula['codigo'];
+
+            if (isset($vistos[$codigo])) {
+                $errores[] = "clausulas: código duplicado [{$codigo}].";
+            }
+
+            $vistos[$codigo] = true;
+
+            $referencias = [];
+
+            foreach ($clausula['referencias'] ?? [] as $referencia) {
+                $marco = (string) $referencia['marco'];
+                $requisito = (string) $referencia['requisito'];
+
+                if ($this->requisitoPorCodigo($marco, $requisito) === null) {
+                    $errores[] = "{$donde}: la referencia [{$marco} {$requisito}] no existe en el catálogo.";
+                }
+
+                $referencias[] = ['marco' => $marco, 'requisito' => $requisito];
+            }
+
+            // Ordenadas antes de la huella: reordenarlas en el YAML no es un
+            // cambio del catálogo.
+            usort($referencias, static fn (array $a, array $b): int => [$a['marco'], $a['requisito']] <=> [$b['marco'], $b['requisito']]);
+
+            $planas[] = [
+                'codigo' => $codigo,
+                'titulo' => (string) $clausula['titulo'],
+                'descripcion' => isset($clausula['descripcion']) ? (string) $clausula['descripcion'] : null,
+                'referencias' => $referencias,
+                'orden' => isset($clausula['orden']) ? (int) $clausula['orden'] : $indice + 1,
+            ];
+        }
+
+        if ($errores !== []) {
+            throw new CatalogoInvalido($fichero, $errores);
+        }
+
+        $resultado = new ResultadoImportacion($fichero, 'clausulas', $simulacion);
+
+        /** @var array<string, ClausulaContractual> $existentes */
+        $existentes = ClausulaContractual::query()->get()->keyBy('codigo')->all();
+
+        $importadas = [];
+
+        foreach ($planas as $plana) {
+            $codigo = $plana['codigo'];
+            $huella = hash('sha256', (string) json_encode($plana, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+            $atributos = [...$plana, 'huella' => $huella];
+            $existente = $existentes[$codigo] ?? null;
+
+            if ($existente === null) {
+                ClausulaContractual::query()->create([...$atributos, 'vigente' => true, 'retirado_en' => null]);
+                $resultado->nuevos[] = $codigo;
+            } else {
+                if ($existente->huella === $huella && $existente->vigente) {
+                    $resultado->sinCambios++;
+                } else {
+                    if (! $existente->vigente) {
+                        $resultado->reactivados[] = $codigo;
+                    }
+
+                    if ($existente->huella !== $huella) {
+                        $resultado->modificados[] = [
+                            'codigo' => $codigo,
+                            'cambios' => $this->cambiosEnClausula($existente, $atributos),
+                        ];
+                    }
+                }
+
+                $existente->fill([...$atributos, 'vigente' => true, 'retirado_en' => null])->save();
+            }
+
+            $importadas[$codigo] = true;
+        }
+
+        foreach (array_diff(array_keys($existentes), array_keys($importadas)) as $codigo) {
+            $clausula = $existentes[$codigo];
+
+            if (! $clausula->vigente) {
+                continue;
+            }
+
+            $clausula->update(['vigente' => false, 'retirado_en' => Carbon::now()]);
+            $resultado->retirados[] = $codigo;
+        }
+
+        /*
+         * Cruza organizaciones por definición: cuántas evaluaciones de todos los
+         * clientes comprobaron lo que se retira. Es uno de los recuentos que
+         * `CLAUDE.md` nombra como uso legítimo de `comoMantenimiento()`.
+         */
+        if ($resultado->retirados !== []) {
+            $ids = array_map(static fn (string $codigo): int => $existentes[$codigo]->id, $resultado->retirados);
+
+            $resultado->evaluacionesAfectadas = (int) app(ContextoOrganizacion::class)->comoMantenimiento(
+                static fn (): int => DB::table('proveedor_evaluacion_clausulas')
+                    ->whereIn('clausula_id', $ids)
+                    ->distinct()
+                    ->count('evaluacion_id'),
+            );
+        }
+
+        return $resultado;
+    }
+
+    /**
+     * @param  array<string, mixed>  $nuevos
+     * @return list<string>
+     */
+    private function cambiosEnClausula(ClausulaContractual $existente, array $nuevos): array
+    {
+        $cambios = [];
+
+        foreach (['titulo', 'descripcion', 'referencias', 'orden'] as $campo) {
+            if ($existente->{$campo} != $nuevos[$campo]) {
+                $cambios[] = $campo;
+            }
+        }
+
+        return $cambios;
     }
 
     /**

@@ -33,6 +33,7 @@ Before planning or editing, find the row whose globs match the file's path and r
 | resources/js/pages/perfil/**, app/Domain/Autorizacion/**, app/Domain/Usuario/** | .ai/rules/perfil.md |
 | app/Domain/Persona/**, resources/js/pages/personas/**, resources/js/pages/puestos/**, resources/js/pages/formacion/**, resources/js/components/persona/**, resources/js/components/puesto/**, resources/js/lib/organigrama.ts | .ai/rules/personas.md |
 | app/Http/Resources/**, app/Http/Controllers/**, resources/js/components/tabla/**, resources/js/components/formulario/**, resources/js/composables/**, resources/js/lib/filtros.ts, resources/js/lib/celdas.ts, resources/js/lib/csv.ts, resources/js/lib/formularios.ts | .ai/rules/recursos.md |
+| app/Domain/Proveedor/**, resources/js/pages/proveedores/**, app/Http/Controllers/ProveedorController.php, app/Http/Resources/ProveedorRecurso.php, catalogo/clausulas-proveedor.yaml | .ai/rules/proveedores.md |
 | app/Domain/RevisionDireccion/**, resources/js/pages/revision-direccion/**, resources/js/components/revision/** | .ai/rules/revision-direccion.md |
 | app/Domain/Riesgo/**, resources/js/pages/riesgos/**, resources/js/components/riesgo/** | .ai/rules/riesgos.md |
 | routes/** | .ai/rules/routing.md |

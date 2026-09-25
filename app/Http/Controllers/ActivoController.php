@@ -21,6 +21,8 @@ use App\Domain\Catalogo\Enums\Dimension;
 use App\Domain\Categorizacion\Enums\NivelDimension;
 use App\Domain\Categorizacion\ValoracionDimensiones;
 use App\Domain\Organizacion\ContextoOrganizacion;
+use App\Domain\Proveedor\Enums\EstadoProveedor;
+use App\Domain\Proveedor\Models\Proveedor;
 use App\Domain\Riesgo\Models\Riesgo;
 use App\Domain\Sistema\Models\Sistema;
 use App\Http\Requests\GuardarActivoRequest;
@@ -96,7 +98,7 @@ class ActivoController extends Controller
         Obsolescencia $obsolescencia,
         GeneradorEtiquetas $generador,
     ): Response {
-        $activo->load(['propietario', 'custodio', 'sistemas']);
+        $activo->load(['propietario', 'custodio', 'sistemas', 'proveedor']);
 
         $valoracionEfectiva = $efectiva->de($activo);
 
@@ -354,6 +356,12 @@ class ActivoController extends Controller
             'custodio' => $activo->custodio?->name,
             'departamento' => $activo->departamento,
             'ubicacion' => $activo->ubicacion,
+            'proveedor_id' => $activo->proveedor_id,
+            'proveedor' => $activo->proveedor === null ? null : [
+                'id' => $activo->proveedor->id,
+                'codigo' => $activo->proveedor->codigo,
+                'nombre' => $activo->proveedor->nombre,
+            ],
             'fin_garantia' => $activo->fin_garantia?->toDateString(),
             'estado_ciclo_vida' => $activo->estado_ciclo_vida->value,
             'estadoEtiqueta' => $activo->estado_ciclo_vida->etiqueta(),
@@ -611,6 +619,17 @@ class ActivoController extends Controller
                 ->map(fn (Sistema $sistema): array => [
                     'valor' => (string) $sistema->id,
                     'etiqueta' => "{$sistema->codigo} — {$sistema->nombre}",
+                ])
+                ->all(),
+            // Los retirados no se ofrecen: un activo nuevo no lo presta quien ya
+            // no trabaja con la organización.
+            'proveedores' => Proveedor::query()
+                ->where('estado', '<>', EstadoProveedor::Retirado->value)
+                ->orderBy('nombre')
+                ->get(['id', 'codigo', 'nombre'])
+                ->map(fn (Proveedor $proveedor): array => [
+                    'valor' => (string) $proveedor->id,
+                    'etiqueta' => "{$proveedor->codigo} — {$proveedor->nombre}",
                 ])
                 ->all(),
         ];

@@ -62,6 +62,12 @@ namespace App\Domain\Tarea\Enums;
  * abrir ninguna. A diferencia de `Incidente`, aquí sí hay un vínculo de verdad
  * —la pivote `prueba_continuidad_tarea`—, porque `op.cont.3` necesita poder
  * contar cuánto trabajo dejó cada prueba y no sólo la etiqueta.
+ *
+ * **`Proveedor` es el sexto, y llega con el § 4.9.** Lo que una evaluación apta
+ * con condiciones deja pendiente —firmar el encargo de tratamiento, pedir el
+ * informe de auditoría del proveedor— es trabajo con responsable y plazo, y no es
+ * ninguna de las demás. Como `Continuidad`, lleva vínculo de verdad: la pivote
+ * `proveedor_tarea`.
  */
 enum OrigenTarea: string
 {
@@ -75,6 +81,7 @@ enum OrigenTarea: string
     case Incidente = 'incidente';
     case RevisionDireccion = 'revision_direccion';
     case Continuidad = 'continuidad';
+    case Proveedor = 'proveedor';
     case Propia = 'propia';
 
     public function etiqueta(): string
@@ -90,6 +97,7 @@ enum OrigenTarea: string
             self::Incidente => 'Incidente',
             self::RevisionDireccion => 'Revisión por la dirección',
             self::Continuidad => 'Prueba de continuidad',
+            self::Proveedor => 'Proveedor',
             self::Propia => 'Iniciativa propia',
         };
     }
@@ -105,7 +113,7 @@ enum OrigenTarea: string
     {
         return match ($this) {
             self::BrechaImplantacion, self::Continuidad, self::Contexto, self::Incidente, self::Mejora,
-            self::NoConformidad, self::Objetivo, self::Propia, self::RevisionDireccion,
+            self::NoConformidad, self::Objetivo, self::Propia, self::Proveedor, self::RevisionDireccion,
             self::Riesgo => true,
             /*
              * `Hallazgo` sigue sin ofrecerse, y desde el § 4.13 **por otro
@@ -163,7 +171,8 @@ enum OrigenTarea: string
     {
         return match ($this) {
             self::Hallazgo, self::NoConformidad, self::Incidente, self::Continuidad => 'en_progreso',
-            self::BrechaImplantacion, self::Riesgo, self::Contexto, self::Objetivo, self::Mejora, self::RevisionDireccion => 'planificado',
+            self::BrechaImplantacion, self::Riesgo, self::Contexto, self::Objetivo, self::Mejora, self::RevisionDireccion,
+            self::Proveedor => 'planificado',
             self::Propia => 'no_iniciado',
         };
     }

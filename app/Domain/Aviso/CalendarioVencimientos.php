@@ -12,6 +12,7 @@ use App\Domain\Implantacion\Models\Implantacion;
 use App\Domain\Metrica\Models\Indicador;
 use App\Domain\Obligacion\Models\Compromiso;
 use App\Domain\Persona\Models\Persona;
+use App\Domain\Proveedor\Models\Proveedor;
 use App\Domain\Tarea\Enums\EstadoTarea;
 use App\Domain\Tarea\Models\Tarea;
 use Illuminate\Database\Eloquent\Builder;
@@ -133,6 +134,11 @@ final readonly class CalendarioVencimientos
             Fuente::Bia => $this->deBias($filtros->acotar(
                 BiaServicio::query()->revisionEntre($desde, $hasta),
                 'fecha_revision',
+            )),
+
+            Fuente::Proveedor => $this->deProveedores($filtros->acotar(
+                Proveedor::query()->reevaluacionEntre($desde, $hasta),
+                'proxima_evaluacion',
             )),
         };
     }
@@ -485,6 +491,46 @@ final readonly class CalendarioVencimientos
                      */
                     estadoTono: $dias < 0 ? 'caducada' : 'implantado',
                     estadoEtiqueta: $dias < 0 ? 'Revisión vencida' : 'Vigente',
+                );
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Los proveedores cuya reevaluación toca, o ya tocaba: § 4.9.
+     *
+     * Un proveedor homologado cuya reevaluación se pasó sigue homologado: lo
+     * vencido es la comprobación, no la relación. Mismo criterio que
+     * `deBias()` y `deDocumentos()`.
+     *
+     * @param  Builder<Proveedor>  $consulta
+     * @return list<Vencimiento>
+     */
+    public function deProveedores(Builder $consulta): array
+    {
+        $hoy = Carbon::today();
+
+        return $consulta
+            ->with('responsable:id,name')
+            ->orderBy('proveedores.proxima_evaluacion')
+            ->get()
+            ->map(function (Proveedor $proveedor) use ($hoy): Vencimiento {
+                /** @var Carbon $fecha */
+                $fecha = $proveedor->proxima_evaluacion;
+                $dias = (int) $hoy->diffInDays($fecha, false);
+
+                return new Vencimiento(
+                    id: $proveedor->id,
+                    fuente: Fuente::Proveedor,
+                    titulo: "Reevaluar — {$proveedor->nombre}",
+                    dia: $fecha->toDateString(),
+                    fecha: $fecha->format('d/m/Y'),
+                    dias: $dias,
+                    responsable: $proveedor->responsable?->name,
+                    tono: $this->tono($dias),
+                    estadoTono: $dias < 0 ? 'caducada' : $proveedor->estado->tono(),
+                    estadoEtiqueta: $dias < 0 ? 'Reevaluación vencida' : $proveedor->estado->etiqueta(),
                 );
             })
             ->values()

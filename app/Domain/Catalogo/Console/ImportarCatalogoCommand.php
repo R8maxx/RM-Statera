@@ -108,6 +108,12 @@ final class ImportarCatalogoCommand extends Command
             return;
         }
 
+        if ($resultado->tipo === 'clausulas') {
+            $this->presentarClausulas($resultado);
+
+            return;
+        }
+
         $resumen = $resultado->resumen();
 
         $this->components->twoColumnDetail('Requisitos nuevos', (string) $resumen['nuevos']);
@@ -217,6 +223,39 @@ final class ImportarCatalogoCommand extends Command
             ));
 
             $this->components->twoColumnDetail('Compromisos afectados', (string) $resultado->compromisosAfectados);
+        }
+    }
+
+    /**
+     * El diff del catálogo de cláusulas de proveedor del § 4.9. Lo que arrastra
+     * retirar una son las evaluaciones que la comprobaron.
+     */
+    private function presentarClausulas(ResultadoImportacion $resultado): void
+    {
+        $resumen = $resultado->resumen();
+
+        $this->components->twoColumnDetail('Cláusulas nuevas', (string) $resumen['nuevos']);
+        $this->components->twoColumnDetail('Cláusulas modificadas', (string) $resumen['modificados']);
+        $this->components->twoColumnDetail('Cláusulas retiradas', (string) $resumen['retirados']);
+
+        if ($resumen['reactivados'] > 0) {
+            $this->components->twoColumnDetail('Cláusulas reactivadas', (string) $resumen['reactivados']);
+        }
+
+        $this->components->twoColumnDetail('Sin cambios', (string) $resumen['sin_cambios']);
+
+        if ($this->option('diff')) {
+            $this->detallar($resultado);
+        }
+
+        if ($resultado->retirados !== []) {
+            $this->newLine();
+            $this->components->warn(sprintf(
+                '%d cláusula(s) ya no aparecen en el fichero. No se han borrado: quedan marcadas como no vigentes.',
+                count($resultado->retirados),
+            ));
+
+            $this->components->twoColumnDetail('Evaluaciones afectadas', (string) $resultado->evaluacionesAfectadas);
         }
     }
 

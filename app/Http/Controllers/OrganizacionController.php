@@ -49,6 +49,9 @@ class OrganizacionController extends Controller
                 'url_base_etiquetas' => $organizacion->url_base_etiquetas,
                 'sujeto_obligado_ens' => $organizacion->sujeto_obligado_ens,
                 'proveedor_sector_publico' => $organizacion->proveedor_sector_publico,
+                'reevaluacion_proveedor_alta_meses' => $organizacion->reevaluacion_proveedor_alta_meses,
+                'reevaluacion_proveedor_media_meses' => $organizacion->reevaluacion_proveedor_media_meses,
+                'reevaluacion_proveedor_baja_meses' => $organizacion->reevaluacion_proveedor_baja_meses,
             ],
 
             /*

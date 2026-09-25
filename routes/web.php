@@ -33,6 +33,7 @@ use App\Http\Controllers\PerfilFotoController;
 use App\Http\Controllers\PersonaController;
 use App\Http\Controllers\PlanContinuidadServicioController;
 use App\Http\Controllers\PlantillaDocumentoController;
+use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\PruebaContinuidadController;
 use App\Http\Controllers\PuestoController;
 use App\Http\Controllers\RevisionDireccionController;
@@ -1202,6 +1203,61 @@ Route::middleware('auth')->group(function (): void {
             Route::post('/incidentes/{incidente}/notificaciones', [IncidenteController::class, 'notificar'])
                 ->name('incidentes.notificar');
         });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Proveedores y terceros (§ 4.9, A.5.19 a A.5.23, op.ext, op.nub)
+    |--------------------------------------------------------------------------
+    |
+    | **Tres permisos, y evaluar es de supervisión**: registrar la evaluación
+    | homologa o rechaza al proveedor, que es decidir con quién trabaja la
+    | organización. Lo demás —alta, certificados, retirada— es `gestionar`.
+    |
+    | Las certificaciones cuelgan del proveedor con `scopeBindings()` y el
+    | binding escrito a mano en `Proveedor::resolveChildRouteBinding()`.
+    |
+    */
+
+    Route::middleware('can:proveedores.ver')->group(function (): void {
+        Route::get('/proveedores', [ProveedorController::class, 'index'])->name('proveedores.index');
+
+        Route::get('/proveedores/crear', [ProveedorController::class, 'create'])
+            ->middleware(['can:proveedores.gestionar', ExigirDosFactores::class])
+            ->name('proveedores.create');
+
+        Route::get('/proveedores/{proveedor}', [ProveedorController::class, 'show'])->name('proveedores.show');
+    });
+
+    Route::middleware(['can:proveedores.gestionar', ExigirDosFactores::class])
+        ->scopeBindings()
+        ->group(function (): void {
+            Route::post('/proveedores', [ProveedorController::class, 'store'])->name('proveedores.store');
+            Route::get('/proveedores/{proveedor}/editar', [ProveedorController::class, 'edit'])->name('proveedores.edit');
+            Route::put('/proveedores/{proveedor}', [ProveedorController::class, 'update'])->name('proveedores.update');
+
+            Route::post('/proveedores/{proveedor}/retirar', [ProveedorController::class, 'retirar'])
+                ->name('proveedores.retirar');
+            Route::post('/proveedores/{proveedor}/reactivar', [ProveedorController::class, 'reactivar'])
+                ->name('proveedores.reactivar');
+
+            Route::post('/proveedores/{proveedor}/certificaciones', [ProveedorController::class, 'guardarCertificacion'])
+                ->name('proveedores.certificaciones.store');
+            Route::delete('/proveedores/{proveedor}/certificaciones/{certificacion}', [ProveedorController::class, 'borrarCertificacion'])
+                ->name('proveedores.certificaciones.destroy');
+        });
+
+    Route::middleware(['can:proveedores.evaluar', ExigirDosFactores::class])->group(function (): void {
+        Route::get('/proveedores/{proveedor}/evaluar', [ProveedorController::class, 'formularioEvaluacion'])
+            ->name('proveedores.evaluacion');
+        Route::post('/proveedores/{proveedor}/evaluaciones', [ProveedorController::class, 'evaluar'])
+            ->name('proveedores.evaluar');
+    });
+
+    // Abrir una tarea es escribir en el plan de acción: su permiso, no el del proveedor.
+    Route::middleware(['can:tareas.gestionar', ExigirDosFactores::class])->group(function (): void {
+        Route::post('/proveedores/{proveedor}/tareas', [ProveedorController::class, 'derivarTarea'])
+            ->name('proveedores.tareas');
+    });
 
     /*
     |--------------------------------------------------------------------------

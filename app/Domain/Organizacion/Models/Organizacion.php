@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Organizacion\Models;
 
 use App\Domain\Organizacion\Marca\PiezaDeMarca;
+use App\Domain\Proveedor\Enums\Criticidad;
 use App\Domain\Sistema\Models\Sistema;
 use App\Domain\Traza\RegistroTraza;
 use Database\Factories\OrganizacionFactory;
@@ -35,6 +36,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property bool $sujeto_obligado_ens
  * @property bool $proveedor_sector_publico
  * @property bool $activa
+ * @property int $reevaluacion_proveedor_alta_meses
+ * @property int $reevaluacion_proveedor_media_meses
+ * @property int $reevaluacion_proveedor_baja_meses
  */
 class Organizacion extends Model
 {
@@ -78,7 +82,25 @@ class Organizacion extends Model
         'sujeto_obligado_ens',
         'proveedor_sector_publico',
         'activa',
+        'reevaluacion_proveedor_alta_meses',
+        'reevaluacion_proveedor_media_meses',
+        'reevaluacion_proveedor_baja_meses',
     ];
+
+    /**
+     * Cada cuántos meses se reevalúa un proveedor de esta criticidad (§ 4.9).
+     *
+     * Es política de la organización y no una constante: ni ISO ni el ENS fijan
+     * el plazo, así que cada cliente decide el suyo en su ficha.
+     */
+    public function mesesReevaluacion(Criticidad $criticidad): int
+    {
+        return (int) match ($criticidad) {
+            Criticidad::Alta => $this->reevaluacion_proveedor_alta_meses,
+            Criticidad::Media => $this->reevaluacion_proveedor_media_meses,
+            Criticidad::Baja => $this->reevaluacion_proveedor_baja_meses,
+        };
+    }
 
     /**
      * Con qué nombre se identifica en un documento entregable.
@@ -159,6 +181,9 @@ class Organizacion extends Model
             'sujeto_obligado_ens' => 'boolean',
             'proveedor_sector_publico' => 'boolean',
             'activa' => 'boolean',
+            'reevaluacion_proveedor_alta_meses' => 'integer',
+            'reevaluacion_proveedor_media_meses' => 'integer',
+            'reevaluacion_proveedor_baja_meses' => 'integer',
         ];
     }
 

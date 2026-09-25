@@ -13,6 +13,8 @@ use App\Domain\Catalogo\Enums\CategoriaEns;
 use App\Domain\Catalogo\Enums\Dimension;
 use App\Domain\Categorizacion\ValoracionDimensiones;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
+use App\Domain\Proveedor\CriticidadProveedor;
+use App\Domain\Proveedor\Models\Proveedor;
 use App\Domain\Riesgo\Models\Riesgo;
 use App\Domain\Sistema\Models\Sistema;
 use App\Domain\Traza\Concerns\RegistraTraza;
@@ -58,6 +60,7 @@ use Illuminate\Support\Carbon;
  * @property ?Carbon $ultima_revision
  * @property ?Carbon $etiquetado_en
  * @property ?string $observaciones
+ * @property ?int $proveedor_id
  * @property string $valor_c
  * @property string $valor_i
  * @property string $valor_d
@@ -110,6 +113,7 @@ class Activo extends Model
         'custodio_id',
         'departamento',
         'ubicacion',
+        'proveedor_id',
         'fin_garantia',
         'estado_ciclo_vida',
         'clasificacion',
@@ -171,6 +175,44 @@ class Activo extends Model
     public function custodio(): BelongsTo
     {
         return $this->belongsTo(User::class, 'custodio_id');
+    }
+
+    /**
+     * Un activo que cambia de proveedor, o de valoración, mueve el mínimo de
+     * criticidad del proveedor de antes y del de ahora (§ 4.9). Se engancha
+     * aquí para que no haya un camino —formulario, importador, seeder— que
+     * guarde el activo y se olvide del proveedor.
+     */
+    protected static function booted(): void
+    {
+        static::saved(static function (self $activo): void {
+            $cambia = $activo->wasRecentlyCreated
+                || $activo->wasChanged(['proveedor_id', ...array_values(self::columnasDeValoracion())]);
+
+            if ($cambia && ($activo->proveedor_id !== null || $activo->getOriginal('proveedor_id') !== null)) {
+                app(CriticidadProveedor::class)->trasCambioDeActivo($activo);
+            }
+        });
+
+        static::deleted(static function (self $activo): void {
+            if ($activo->proveedor_id !== null) {
+                app(CriticidadProveedor::class)->trasCambioDeActivo($activo);
+            }
+        });
+    }
+
+    /**
+     * Quién lo presta, si viene de fuera (§ 4.9).
+     *
+     * La columna se aplazó desde el § 4.2 hasta que hubiera tabla a la que
+     * apuntar. Es también de donde sale el mínimo de criticidad del proveedor:
+     * la valoración más alta de lo que presta.
+     *
+     * @return BelongsTo<Proveedor, $this>
+     */
+    public function proveedor(): BelongsTo
+    {
+        return $this->belongsTo(Proveedor::class);
     }
 
     /**

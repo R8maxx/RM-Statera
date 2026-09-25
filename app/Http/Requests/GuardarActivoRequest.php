@@ -74,6 +74,8 @@ class GuardarActivoRequest extends FormRequest
                 'integer',
                 Rule::exists('users', 'id')->where('organizacion_id', $this->user()?->organizacion_id),
             ],
+            // RLS: un proveedor de otra organización no existe para esta consulta.
+            'proveedor_id' => ['nullable', 'integer', Rule::exists('proveedores', 'id')],
             'fecha_alta' => ['nullable', 'date'],
             'fin_garantia' => ['nullable', 'date'],
             'ultima_revision' => ['nullable', 'date', 'before_or_equal:today'],
@@ -132,6 +134,7 @@ class GuardarActivoRequest extends FormRequest
             'copia_seguridad' => 'copia de seguridad',
             'propietario_id' => 'propietario',
             'custodio_id' => 'custodio',
+            'proveedor_id' => 'proveedor',
             'ubicacion' => 'ubicación',
             'sistema_operativo' => 'sistema operativo',
             'fin_soporte_so' => 'fin de soporte del sistema operativo',
@@ -158,7 +161,7 @@ class GuardarActivoRequest extends FormRequest
      */
     protected function seleccionesOpcionales(): array
     {
-        return ['propietario_id', 'custodio_id'];
+        return ['propietario_id', 'custodio_id', 'proveedor_id'];
     }
 
     /**

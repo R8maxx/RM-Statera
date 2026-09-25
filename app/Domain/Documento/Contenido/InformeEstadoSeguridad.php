@@ -22,6 +22,7 @@ use App\Domain\Objetivo\RegistroObjetivos;
 use App\Domain\Obligacion\RegistroObligaciones;
 use App\Domain\Persona\RegistroFormacion;
 use App\Domain\Persona\RegistroPersonas;
+use App\Domain\Proveedor\RegistroProveedores;
 use App\Domain\Riesgo\RegistroRiesgos;
 use App\Domain\Tarea\ResumenPlanDeAccion;
 use App\Http\Resources\Panel\AvanceMarco;
@@ -73,6 +74,7 @@ final class InformeEstadoSeguridad implements GeneradorDocumento
         private readonly RegistroPersonas $personas,
         private readonly RegistroFormacion $formacion,
         private readonly RegistroContinuidad $continuidad,
+        private readonly RegistroProveedores $proveedores,
     ) {}
 
     public function tipo(): TipoDocumento
@@ -181,6 +183,7 @@ final class InformeEstadoSeguridad implements GeneradorDocumento
             // «falta el resultado» es de una prueba, y juntos no se sabe de qué.
             $this->registro('Continuidad: análisis de impacto', null, $this->continuidad->alertasDeBia(), [], $this->continuidad->pendientesDeBia(), 'Falta '),
             $this->registro('Continuidad: pruebas', null, $this->continuidad->alertasDePruebas(), [], $this->continuidad->pendientesDePruebas(), 'Falta '),
+            $this->registro('Proveedores', $this->proveedores->total(), $this->proveedores->alertas(), $this->proveedores->pendientes()),
         ];
     }
 

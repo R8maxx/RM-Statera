@@ -17,11 +17,10 @@
 # compromiso. Sin recuento en esta frase, a propósito: el de `Fuente` ya envejeció
 # una vez por llevarlo.
 #
-# Tampoco va la **reevaluación de proveedores**, que la § 4.16 sí lista: el § 4.9
-# no existe, la § 2.2 ya declara `proveedores.fecha_evaluacion` y
-# `proxima_evaluacion`, y crear el compromiso ahora obligaría a migrarlo cuando
-# llegue ese módulo. Queda dicho, que es lo que este proyecto hace con lo que aún
-# no puede afirmar.
+# Tampoco va la **reevaluación de proveedores**, que la § 4.16 sí lista, y desde el
+# § 4.9 por el motivo que este catálogo existe para respetar: sale de un registro.
+# La próxima evaluación se deriva de la última y de la política de la
+# organización, y entra en el calendario como `Fuente::Proveedor`.
 #
 # `periodicidad_meses` es **la sugerida**. Lo que manda es la que la organización
 # asume al aceptar la obligación, que puede ser más estricta: el catálogo propone

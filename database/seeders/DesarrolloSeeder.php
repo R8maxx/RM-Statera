@@ -122,6 +122,17 @@ use App\Domain\Persona\Models\DesignacionRol;
 use App\Domain\Persona\Models\Persona;
 use App\Domain\Persona\Models\Puesto;
 use App\Domain\Persona\RegistrarAsistencia;
+use App\Domain\Proveedor\CambiarEstadoProveedor;
+use App\Domain\Proveedor\Enums\Criticidad;
+use App\Domain\Proveedor\Enums\EstadoProveedor;
+use App\Domain\Proveedor\Enums\ModeloNube;
+use App\Domain\Proveedor\Enums\ResultadoClausula;
+use App\Domain\Proveedor\Enums\ResultadoEvaluacion;
+use App\Domain\Proveedor\Enums\TipoCertificacion;
+use App\Domain\Proveedor\Enums\UbicacionDatos;
+use App\Domain\Proveedor\Models\ClausulaContractual;
+use App\Domain\Proveedor\Models\Proveedor;
+use App\Domain\Proveedor\RegistrarEvaluacion;
 use App\Domain\RevisionDireccion\AbrirDecision;
 use App\Domain\RevisionDireccion\AprobarRevision;
 use App\Domain\RevisionDireccion\CambiarEstadoRevision;
@@ -307,6 +318,8 @@ class DesarrolloSeeder extends Seeder
         // Detrás de los documentos, porque el plan de continuidad es uno, y del
         // inventario, porque el BIA se hace sobre sus servicios.
         $this->continuidadDeEjemplo();
+        // Detrás del inventario, porque la criticidad sale de lo que presta.
+        $this->proveedoresDeEjemplo();
         // Detrás de las auditorías, porque se apoya en una autoevaluación
         // cerrada, y de los documentos, porque prepara la serie de la DdC.
         $this->conformidadDeEjemplo($sistema);
@@ -2127,6 +2140,89 @@ class DesarrolloSeeder extends Seeder
      * saltos por encima, y conserva su «medio» propio en confidencialidad. Ese
      * es exactamente el activo que una hoja de cálculo deja infravalorado.
      */
+    /**
+     * Tres proveedores sintéticos (§ 4.9), uno en cada situación que la
+     * pantalla tiene que saber enseñar.
+     *
+     * - La nube, que presta la sede electrónica y la base de datos: su
+     *   criticidad sale de ellas —alta, por la disponibilidad del servicio— y
+     *   está evaluada y homologada, con su siguiente fecha.
+     * - Una gestoría que no presta ningún activo, con la criticidad declarada y
+     *   sin evaluar todavía: lo que el panel cuenta como pendiente.
+     * - Un proveedor retirado, que ya no se reevalúa.
+     *
+     * Idempotente, como el resto del seeder: por código.
+     */
+    private function proveedoresDeEjemplo(): void
+    {
+        $nube = Proveedor::query()->firstOrCreate(['codigo' => 'PRV-001'], [
+            'nombre' => 'Nube corporativa sintética',
+            'servicio_prestado' => 'Infraestructura en la nube donde se alojan la sede electrónica y la base de datos de expedientes.',
+            'criticidad_declarada' => null,
+            'criticidad_derivada' => Criticidad::Baja->value,
+            'es_nube' => true,
+            'modelo_nube' => ModeloNube::Iaas->value,
+            'ubicacion_datos' => UbicacionDatos::UeEee->value,
+            'ubicacion_detalle' => 'Irlanda',
+            'es_subencargado_rgpd' => true,
+        ]);
+
+        // Al asignarle los activos, `Activo::booted()` le deriva la criticidad.
+        Activo::query()->whereIn('codigo', ['SRV-0001', 'BBDD-0001'])->get()
+            ->each(fn (Activo $activo) => $activo->update(['proveedor_id' => $nube->id]));
+
+        $responsable = User::query()
+            ->where('organizacion_id', $nube->organizacion_id)
+            ->where('email', 'responsable@statera.test')
+            ->first();
+
+        $clausulas = ClausulaContractual::query()->vigentes()->pluck('id');
+
+        if ($responsable !== null && $clausulas->isNotEmpty() && ! $nube->evaluaciones()->exists()) {
+            $respuestas = $clausulas->mapWithKeys(fn (int $id): array => [$id => [
+                'resultado' => ResultadoClausula::Cumple,
+                'nota' => null,
+            ]])->all();
+
+            app(RegistrarEvaluacion::class)(
+                $nube->refresh(),
+                $responsable,
+                Carbon::today()->subMonths(4),
+                ResultadoEvaluacion::Apto,
+                'Contrato revisado con el anexo de seguridad firmado. Certificación ISO 27001 vigente.',
+                $respuestas,
+            );
+        }
+
+        if (! $nube->certificaciones()->exists()) {
+            $nube->certificaciones()->create([
+                'tipo' => TipoCertificacion::Iso27001->value,
+                'entidad_emisora' => 'Entidad certificadora sintética',
+                'emitida_en' => Carbon::today()->subYear()->toDateString(),
+                'caduca_en' => Carbon::today()->addYears(2)->toDateString(),
+            ]);
+        }
+
+        Proveedor::query()->firstOrCreate(['codigo' => 'PRV-002'], [
+            'nombre' => 'Gestoría laboral sintética',
+            'servicio_prestado' => 'Nóminas y seguros sociales de la plantilla.',
+            'criticidad_declarada' => Criticidad::Media->value,
+            'ubicacion_datos' => UbicacionDatos::Desconocida->value,
+            'es_subencargado_rgpd' => true,
+        ]);
+
+        $retirado = Proveedor::query()->firstOrCreate(['codigo' => 'PRV-003'], [
+            'nombre' => 'Mensajería sintética',
+            'servicio_prestado' => 'Envío de documentación en papel entre sedes.',
+            'criticidad_declarada' => Criticidad::Baja->value,
+            'ubicacion_datos' => UbicacionDatos::UeEee->value,
+        ]);
+
+        if ($responsable !== null && $retirado->estado !== EstadoProveedor::Retirado) {
+            app(CambiarEstadoProveedor::class)->retirar($retirado, $responsable, 'Se dejó de enviar documentación en papel.');
+        }
+    }
+
     private function inventarioDeEjemplo(Sistema $sistema): void
     {
         $servicio = $this->activo('SRV-0001', 'Sede electrónica interna', TipoActivo::Servicios, [

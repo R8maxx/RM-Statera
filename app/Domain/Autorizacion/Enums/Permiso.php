@@ -187,6 +187,20 @@ enum Permiso: string
     case IncidentesGestionar = 'incidentes.gestionar';
 
     /**
+     * Los proveedores y terceros: § 4.9, A.5.19 a A.5.23 y `op.ext`, `op.nub`.
+     *
+     * **Tres verbos, y el tercero es de supervisión.** Dar de alta un proveedor,
+     * registrar sus certificados y declarar qué presta es trabajo de quien lo
+     * gestiona; **evaluarlo es decidir si la organización trabaja con él**, y
+     * el resultado lo homologa o lo rechaza. Es la línea que ya separa
+     * `riesgos.aceptar` de `riesgos.gestionar`: quien conoce el servicio no es
+     * necesariamente quien compromete a la organización con un tercero.
+     */
+    case ProveedoresVer = 'proveedores.ver';
+    case ProveedoresGestionar = 'proveedores.gestionar';
+    case ProveedoresEvaluar = 'proveedores.evaluar';
+
+    /**
      * La continuidad de negocio: § 4.11. **Tres verbos, y el tercero es de
      * supervisión.** Registrar un BIA, calcular su umbral tolerable y declarar
      * un RTO es trabajo técnico; aprobarlo es otra cosa, y por eso lleva su
@@ -310,6 +324,9 @@ enum Permiso: string
             self::PersonasDesignar => 'Designar y revocar los roles ENS de un sistema',
             self::IncidentesVer => 'Ver el registro de incidentes',
             self::IncidentesGestionar => 'Registrar incidentes, tratarlos y anotar su notificación',
+            self::ProveedoresVer => 'Ver los proveedores, sus evaluaciones y sus certificados',
+            self::ProveedoresGestionar => 'Dar de alta proveedores, registrar certificados y retirarlos',
+            self::ProveedoresEvaluar => 'Evaluar el contrato de un proveedor y homologarlo o rechazarlo',
             self::ContinuidadVer => 'Ver el análisis de impacto en el negocio de los servicios',
             self::ContinuidadGestionar => 'Registrar y editar el BIA de un servicio, y mover su ciclo salvo la aprobación',
             self::ContinuidadAprobar => 'Aprobar el BIA de un servicio y el RTO que declara',

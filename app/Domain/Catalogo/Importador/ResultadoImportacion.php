@@ -51,6 +51,14 @@ final class ResultadoImportacion
      */
     public int $compromisosAfectados = 0;
 
+    /**
+     * Cuántas evaluaciones de proveedor comprobaron una cláusula que se retira.
+     * El equivalente para el fichero del § 4.9: esas evaluaciones siguen
+     * diciendo lo que se vio, y la cláusula tiene que seguir existiendo para
+     * que lo digan.
+     */
+    public int $evaluacionesAfectadas = 0;
+
     public function __construct(
         public readonly string $fichero,
         public readonly string $tipo,
