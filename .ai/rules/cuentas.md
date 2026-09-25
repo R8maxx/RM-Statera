@@ -176,6 +176,23 @@ y no 404, porque la tarea existe y se ve.
   limpia los filtros es una tabla que no se puede ver entera. No es una
   restricción, es un punto de partida.
 
+## A quién se le puede encargar algo
+
+**`CuentasAsignables` decide quién sale en el desplegable de «Responsable»**:
+quien tiene el permiso de gestionar el módulo, no está desactivado y no tiene el
+acceso caducado. Lo destapó el recorrido del técnico por vulnerabilidades: la
+lista eran todas las cuentas de la organización, y ofrecía al auditor externo
+como responsable de remediar, que no puede escribir y que no debe, porque audita
+lo que se hace. El `FormRequest` lo comprueba con la misma clase, así que no se
+cuela por la petición.
+
+**El responsable que ya estaba se conserva** aunque haya dejado de cumplirlo:
+sin él, editar la ficha vaciaría el campo en silencio.
+
+**Sólo lo usan vulnerabilidades y proveedores.** Hay otros veintiún controladores
+con su `User::query()` propio —la mayoría sin excluir tampoco a los desactivados—
+y no se han tocado: es una decisión de alcance pendiente, no un olvido.
+
 ## La sesión
 
 `BloqueoPorInactividad`, con `seguridad.inactividad_minutos` (30 por defecto,

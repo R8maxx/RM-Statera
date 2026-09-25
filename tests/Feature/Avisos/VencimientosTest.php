@@ -25,6 +25,7 @@ use App\Domain\Proveedor\Enums\EstadoProveedor;
 use App\Domain\Proveedor\Models\Proveedor;
 use App\Domain\Tarea\Enums\EstadoTarea;
 use App\Domain\Tarea\Models\Tarea;
+use App\Domain\Vulnerabilidad\Models\Vulnerabilidad;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
 
@@ -459,5 +460,8 @@ function sembrarPasadoDe(Fuente $fuente): void
             'estado' => EstadoProveedor::Homologado->value,
             'proxima_evaluacion' => $fecha,
         ]),
+
+        // Igual que el proveedor: la fecha es una copia derivada, puesta a mano.
+        Fuente::Vulnerabilidad => Vulnerabilidad::factory()->create(['fecha_limite' => $fecha]),
     };
 }

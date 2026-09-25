@@ -376,3 +376,31 @@ El orden importa: el catálogo y el motor son la parte más específica del domi
     desplegable. Homologar sin evaluar sería exactamente lo que el módulo existe
     para impedir.
 
+30. ✅ Vulnerabilidades (invariante 8, A.8.8, `op.exp.4`). **El último de los
+    tres, y el que desmentía una frase de `CLAUDE.md`**: el invariante 8 decía que
+    la herramienta contiene las vulnerabilidades y llevaba una nota debajo
+    diciendo que no. Lo que había era `riesgos.vulnerabilidad`, la condición de un
+    escenario de MAGERIT, y no un hallazgo con severidad, activos y plazo. La nota
+    se ha quitado.
+
+    Cuatro decisiones, las cuatro en la línea de lo que ya había. **La severidad
+    se deriva del CVSS** cuando lo hay, con los tramos de FIRST, y la impone un
+    `CHECK`, que es el invariante 4 aplicado a un hallazgo. **El plazo es política
+    de la organización**, como la reevaluación de un proveedor, porque ninguna de
+    las dos normas fija un número. **Aceptar es de supervisión**, como aceptar un
+    riesgo. Y **cerrar exige verificación escrita**, que es la distancia entre
+    mitigada y cerrada y la parte de la 10.2 que más se olvida.
+
+    Cerró dos enganches: el aviso de fuera de soporte de la ficha del activo, que
+    ahora ofrece registrarlo como vulnerabilidad, y `ClasificacionIncidente::Vulnerable`,
+    que ya tiene el registro al que apuntar desde el otro lado.
+
+    **Y la lección, otra vez**: con la suite en verde, el recorrido encontró que el
+    rojo de vulnerabilidades se contaba y no marcaba ninguna pestaña del panel.
+    No era de este punto: `PanelController` llevaba escrito a mano qué módulo
+    cae en qué pestaña, y obligaciones y proveedores ya se habían quedado fuera.
+    Ahora es `AlertasDelPanel::VISTAS`, con un test que pregunta a cada fuente, y
+    proveedores y vulnerabilidades tienen tarjeta donde explicar su rojo.
+
+    **Con él no queda ningún punto de la lista.** Lo que falta son los huecos que
+    `PRODUCT.md` anota, que no son módulos.

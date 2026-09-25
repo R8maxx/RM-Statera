@@ -161,7 +161,11 @@ class GuardarActivoRequest extends FormRequest
      */
     protected function seleccionesOpcionales(): array
     {
-        return ['propietario_id', 'custodio_id', 'proveedor_id'];
+        // `sistema_operativo` también: su desplegable ofrece «ninguno» con el
+        // centinela, y sin normalizarlo se guardaba `__ninguno__` en la columna
+        // de cualquier activo editado sin sistema operativo. Lo destapó el
+        // recorrido del § 4.9, al editar un servicio para asignarle proveedor.
+        return ['propietario_id', 'custodio_id', 'proveedor_id', 'sistema_operativo'];
     }
 
     /**

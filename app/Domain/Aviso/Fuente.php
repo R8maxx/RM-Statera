@@ -113,6 +113,15 @@ enum Fuente: string
     case Proveedor = 'proveedor';
 
     /**
+     * El plazo de remediación de una vulnerabilidad: invariante 8 y `op.exp.4`.
+     *
+     * Sólo las que siguen sin arreglo —abiertas o en remediación—: una mitigada
+     * ya cumplió el plazo, aunque le falte la verificación, y ésa la cuenta el
+     * panel aparte.
+     */
+    case Vulnerabilidad = 'vulnerabilidad';
+
+    /**
      * Las fuentes que esta cuenta puede ver.
      *
      * **La rejilla enseña nueve registros con una sola llave**, así que el
@@ -144,6 +153,7 @@ enum Fuente: string
             self::Obligacion => Permiso::ObligacionesVer,
             self::PruebaContinuidad, self::Bia => Permiso::ContinuidadVer,
             self::Proveedor => Permiso::ProveedoresVer,
+            self::Vulnerabilidad => Permiso::VulnerabilidadesVer,
         };
     }
 
@@ -160,6 +170,7 @@ enum Fuente: string
             self::PruebaContinuidad => 'Prueba de continuidad',
             self::Bia => 'BIA',
             self::Proveedor => 'Proveedor',
+            self::Vulnerabilidad => 'Vulnerabilidad',
         };
     }
 
@@ -191,8 +202,8 @@ enum Fuente: string
      * calendario un `Target` sólo puede ser una medida, porque los objetivos están
      * declarados fuera de él —tienen tareas detrás y sus plazos ya pintan chip—.
      *
-     * `Proveedor` coincide con su entrada del sidebar, `Truck`: no se parece a
-     * ninguna de las otras nueve.
+     * `Proveedor` y `Vulnerabilidad` coinciden con su entrada del sidebar,
+     * `Truck` y `Bug`: no se parecen a ninguna de las demás.
      *
      * `PruebaContinuidad` y `Bia` tampoco coinciden con su módulo: el sidebar
      * lleva **una sola** entrada, «Continuidad», con `LifeBuoyIcon`, porque BIA
@@ -221,6 +232,7 @@ enum Fuente: string
             self::PruebaContinuidad => 'FlaskConical',
             self::Bia => 'Timer',
             self::Proveedor => 'Truck',
+            self::Vulnerabilidad => 'Bug',
         };
     }
 
@@ -237,6 +249,7 @@ enum Fuente: string
             self::PruebaContinuidad => "/continuidad/pruebas/{$id}",
             self::Bia => "/continuidad/bia/{$id}",
             self::Proveedor => "/proveedores/{$id}",
+            self::Vulnerabilidad => "/vulnerabilidades/{$id}",
         };
     }
 
@@ -257,6 +270,7 @@ enum Fuente: string
             self::PruebaContinuidad => 'Pruebas de continuidad sin realizar',
             self::Bia => 'BIA sin revisar a tiempo',
             self::Proveedor => 'Proveedores sin reevaluar a tiempo',
+            self::Vulnerabilidad => 'Vulnerabilidades fuera de plazo',
         };
     }
 
@@ -274,6 +288,7 @@ enum Fuente: string
             self::PruebaContinuidad => 'Pruebas de continuidad previstas',
             self::Bia => 'BIA por revisar',
             self::Proveedor => 'Proveedores por reevaluar',
+            self::Vulnerabilidad => 'Vulnerabilidades por remediar',
         };
     }
 
@@ -284,7 +299,7 @@ enum Fuente: string
             self::Evidencia, self::Formacion => 'caduca',
             self::Documento => 'toca revisarlo',
             self::Indicador, self::Obligacion, self::PruebaContinuidad, self::Bia, self::Proveedor => 'toca',
-            self::Tarea, self::Implantacion => 'vence',
+            self::Tarea, self::Implantacion, self::Vulnerabilidad => 'vence',
         };
     }
 
@@ -294,7 +309,7 @@ enum Fuente: string
             self::Evidencia, self::Formacion => 'caducó',
             self::Documento => 'tocaba revisarlo',
             self::Indicador, self::Obligacion, self::PruebaContinuidad, self::Bia, self::Proveedor => 'tocaba',
-            self::Tarea, self::Implantacion => 'venció',
+            self::Tarea, self::Implantacion, self::Vulnerabilidad => 'venció',
         };
     }
 }

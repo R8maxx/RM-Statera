@@ -1,15 +1,4 @@
-import {
-    computed,
-    inject,
-    onUnmounted,
-    provide,
-    ref,
-    useId,
-    watch,
-    type ComputedRef,
-    type InjectionKey,
-    type Ref,
-} from 'vue';
+import { computed, type ComputedRef, inject, type InjectionKey, onMounted, onUnmounted, provide, ref, type Ref, useId, watch } from 'vue';
 
 /**
  * Qué campos obligatorios quedan por rellenar, en vivo.
@@ -121,6 +110,17 @@ export function proveerObligatorios(formulario: Ref<HTMLFormElement | null>): {
     /*
      * El listener va en el formulario y no en cada campo: `input` y `change`
      * burbujean, así que uno solo ve los veintiocho.
+     *
+     * **Y `click` y `keyup` en el documento, sólo para recontar.** El
+     * desplegable, las opciones y el interruptor de Reka son botones: el valor
+     * viaja en un campo oculto que cambia por código, y eso no dispara ni
+     * `input` ni `change`. Sin esto, la evaluación de un proveedor decía «Faltan
+     * 13 campos obligatorios» con las doce cláusulas contestadas. En el
+     * documento y no en el formulario porque las opciones del desplegable se
+     * pintan en `body`, fuera del `<form>`. No marcan el formulario como
+     * modificado —un clic en un pliegue no es un cambio— y no lanzan ningún
+     * evento, que es lo que se probó antes y colgó la pestaña en un bucle con
+     * Reka.
      */
     const parar = watch(
         formulario,
@@ -137,7 +137,33 @@ export function proveerObligatorios(formulario: Ref<HTMLFormElement | null>): {
         { immediate: true },
     );
 
+    /*
+     * En captura y en la tarea siguiente, y las dos cosas hacen falta: Reka
+     * corta la propagación del clic en sus opciones, así que en burbujeo el
+     * documento no se entera; y en captura el oyente corre **antes** de que
+     * Reka cambie el valor, así que una microtarea leería el anterior.
+     * `setTimeout` espera a que termine el evento y a que Vue repinte.
+     *
+     * `pointerup` además de `click`: el desplegable elige la opción al soltar
+     * el puntero y desmonta la lista en ese mismo instante, así que el `click`
+     * que vendría después no llega a dispararse.
+     *
+     * En `onMounted` y no aquí: en servidor no hay `document`.
+     */
+    function recalcularTrasElEvento(): void {
+        setTimeout(recalcular, 0);
+    }
+
+    onMounted(() => {
+        document.addEventListener('click', recalcularTrasElEvento, true);
+        document.addEventListener('pointerup', recalcularTrasElEvento, true);
+        document.addEventListener('keyup', recalcularTrasElEvento, true);
+    });
+
     onUnmounted(() => {
+        document.removeEventListener('click', recalcularTrasElEvento, true);
+        document.removeEventListener('pointerup', recalcularTrasElEvento, true);
+        document.removeEventListener('keyup', recalcularTrasElEvento, true);
         parar();
         formulario.value?.removeEventListener('input', alCambiar);
         formulario.value?.removeEventListener('change', alCambiar);

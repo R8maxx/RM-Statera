@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace App\Domain\Proveedor;
 
+use App\Domain\Proveedor\Enums\Criticidad;
 use App\Domain\Proveedor\Enums\EstadoProveedor;
 use App\Domain\Proveedor\Models\Proveedor;
 use App\Http\Resources\Panel\Indicador;
+use App\Http\Resources\Panel\Reparto;
+use App\Http\Resources\Panel\ResumenProveedoresPanel;
 
 /**
  * Las cifras de proveedores que suben al panel y al informe de estado (§ 4.9).
@@ -66,6 +69,45 @@ final readonly class RegistroProveedores
                 'La última evaluación fue apta con condiciones: hay algo pendiente de resolver.',
             ),
         ];
+    }
+
+    public function paraElPanel(): ResumenProveedoresPanel
+    {
+        return new ResumenProveedoresPanel(
+            total: $this->total(),
+            reevaluacionVencida: Proveedor::query()->reevaluacionVencida()->count(),
+            certificacionCaducada: Proveedor::query()->conCertificacionCaducada()->count(),
+            sinEvaluar: Proveedor::query()->sinEvaluar()->count(),
+            condicionados: Proveedor::query()->condicionados()->count(),
+            porCriticidad: $this->porCriticidad(),
+        );
+    }
+
+    /**
+     * Los que no están retirados, por la criticidad que manda.
+     *
+     * Se cuenta en PHP y no en SQL porque la que manda es la declarada si la
+     * hay y si no la derivada, y esa regla vive en `Proveedor::criticidad()`:
+     * repetirla en un `coalesce` sería tenerla dos veces.
+     *
+     * @return list<Reparto>
+     */
+    public function porCriticidad(): array
+    {
+        $cuentas = Proveedor::query()
+            ->where('estado', '<>', EstadoProveedor::Retirado->value)
+            ->get(['id', 'criticidad_derivada', 'criticidad_declarada'])
+            ->countBy(static fn (Proveedor $proveedor): string => $proveedor->criticidad()->value);
+
+        return array_map(
+            static fn (Criticidad $criticidad): Reparto => new Reparto(
+                clave: $criticidad->value,
+                etiqueta: $criticidad->etiqueta(),
+                valor: (int) ($cuentas[$criticidad->value] ?? 0),
+                tono: $criticidad->tono(),
+            ),
+            array_reverse(Criticidad::cases()),
+        );
     }
 
     private function indicador(string $clave, string $etiqueta, string $scope, string $tono, string $ayuda): Indicador

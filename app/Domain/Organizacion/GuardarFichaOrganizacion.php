@@ -6,6 +6,7 @@ namespace App\Domain\Organizacion;
 
 use App\Domain\Organizacion\Models\Organizacion;
 use App\Domain\Proveedor\RecalcularReevaluacion;
+use App\Domain\Vulnerabilidad\PlazoRemediacion;
 
 /**
  * Escribe la ficha de la organización.
@@ -70,6 +71,16 @@ final readonly class GuardarFichaOrganizacion
             'reevaluacion_proveedor_baja_meses',
         ])) {
             app(RecalcularReevaluacion::class)->todos();
+        }
+
+        // Lo mismo con el plazo de remediación de las vulnerabilidades.
+        if ($organizacion->wasChanged([
+            'plazo_vulnerabilidad_critica_dias',
+            'plazo_vulnerabilidad_alta_dias',
+            'plazo_vulnerabilidad_media_dias',
+            'plazo_vulnerabilidad_baja_dias',
+        ])) {
+            app(PlazoRemediacion::class)->todas();
         }
 
         return $organizacion;

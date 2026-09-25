@@ -57,6 +57,12 @@ class GuardarFichaOrganizacionRequest extends FormRequest
             'reevaluacion_proveedor_alta_meses' => ['required', 'integer', 'between:1,120'],
             'reevaluacion_proveedor_media_meses' => ['required', 'integer', 'between:1,120'],
             'reevaluacion_proveedor_baja_meses' => ['required', 'integer', 'between:1,120'],
+
+            // El plazo de remediación de vulnerabilidades, en días por severidad.
+            'plazo_vulnerabilidad_critica_dias' => ['required', 'integer', 'between:1,730'],
+            'plazo_vulnerabilidad_alta_dias' => ['required', 'integer', 'between:1,730'],
+            'plazo_vulnerabilidad_media_dias' => ['required', 'integer', 'between:1,730'],
+            'plazo_vulnerabilidad_baja_dias' => ['required', 'integer', 'between:1,730'],
         ];
     }
 
@@ -100,6 +106,10 @@ class GuardarFichaOrganizacionRequest extends FormRequest
             'reevaluacion_proveedor_alta_meses' => 'reevaluación de criticidad alta',
             'reevaluacion_proveedor_media_meses' => 'reevaluación de criticidad media',
             'reevaluacion_proveedor_baja_meses' => 'reevaluación de criticidad baja',
+            'plazo_vulnerabilidad_critica_dias' => 'plazo de una vulnerabilidad crítica',
+            'plazo_vulnerabilidad_alta_dias' => 'plazo de una vulnerabilidad alta',
+            'plazo_vulnerabilidad_media_dias' => 'plazo de una vulnerabilidad media',
+            'plazo_vulnerabilidad_baja_dias' => 'plazo de una vulnerabilidad baja',
         ];
     }
 }

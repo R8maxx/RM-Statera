@@ -42,6 +42,7 @@ use App\Http\Controllers\RiesgoController;
 use App\Http\Controllers\SistemaController;
 use App\Http\Controllers\TareaController;
 use App\Http\Controllers\ValoracionSistemaController;
+use App\Http\Controllers\VulnerabilidadController;
 use App\Http\Middleware\EscribeLoSuyo;
 use App\Http\Middleware\ExigirDosFactores;
 use App\Models\User;
@@ -1257,6 +1258,41 @@ Route::middleware('auth')->group(function (): void {
     Route::middleware(['can:tareas.gestionar', ExigirDosFactores::class])->group(function (): void {
         Route::post('/proveedores/{proveedor}/tareas', [ProveedorController::class, 'derivarTarea'])
             ->name('proveedores.tareas');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Vulnerabilidades (invariante 8, A.8.8, op.exp.4)
+    |--------------------------------------------------------------------------
+    |
+    | **Tres permisos, y aceptar es de supervisión**, pero no tiene ruta
+    | propia: es una transición más, y `CambiarEstadoVulnerabilidad` comprueba
+    | `vulnerabilidades.aceptar` antes de dejarla pasar. Sin borrado: una
+    | vulnerabilidad que no lo era es un falso positivo, con su motivo.
+    |
+    */
+
+    Route::middleware('can:vulnerabilidades.ver')->group(function (): void {
+        Route::get('/vulnerabilidades', [VulnerabilidadController::class, 'index'])->name('vulnerabilidades.index');
+
+        Route::get('/vulnerabilidades/crear', [VulnerabilidadController::class, 'create'])
+            ->middleware(['can:vulnerabilidades.gestionar', ExigirDosFactores::class])
+            ->name('vulnerabilidades.create');
+
+        Route::get('/vulnerabilidades/{vulnerabilidad}', [VulnerabilidadController::class, 'show'])->name('vulnerabilidades.show');
+    });
+
+    Route::middleware(['can:vulnerabilidades.gestionar', ExigirDosFactores::class])->group(function (): void {
+        Route::post('/vulnerabilidades', [VulnerabilidadController::class, 'store'])->name('vulnerabilidades.store');
+        Route::get('/vulnerabilidades/{vulnerabilidad}/editar', [VulnerabilidadController::class, 'edit'])->name('vulnerabilidades.edit');
+        Route::put('/vulnerabilidades/{vulnerabilidad}', [VulnerabilidadController::class, 'update'])->name('vulnerabilidades.update');
+        Route::post('/vulnerabilidades/{vulnerabilidad}/estado', [VulnerabilidadController::class, 'transicion'])
+            ->name('vulnerabilidades.transicion');
+    });
+
+    Route::middleware(['can:tareas.gestionar', ExigirDosFactores::class])->group(function (): void {
+        Route::post('/vulnerabilidades/{vulnerabilidad}/tareas', [VulnerabilidadController::class, 'derivarTarea'])
+            ->name('vulnerabilidades.tareas');
     });
 
     /*

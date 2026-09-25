@@ -7,7 +7,6 @@ namespace App\Http\Controllers;
 use App\Domain\Activo\Models\Activo;
 use App\Domain\Autorizacion\Enums\Permiso;
 use App\Domain\Evidencia\Models\Evidencia;
-use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Organizacion\Models\Organizacion;
 use App\Domain\Proveedor\CambiarEstadoProveedor;
 use App\Domain\Proveedor\CodigoProveedor;
@@ -32,6 +31,7 @@ use App\Domain\Proveedor\RegistrarEvaluacion;
 use App\Domain\Proveedor\RegistroProveedores;
 use App\Domain\Tarea\Enums\PrioridadTarea;
 use App\Domain\Tarea\Models\Tarea;
+use App\Domain\Usuario\CuentasAsignables;
 use App\Http\Requests\DerivarTareaDeProveedorRequest;
 use App\Http\Requests\GuardarCertificacionProveedorRequest;
 use App\Http\Requests\GuardarProveedorRequest;
@@ -172,7 +172,7 @@ class ProveedorController extends Controller
                 ->get(['id', 'titulo'])
                 ->map(fn (Evidencia $evidencia): array => ['valor' => (string) $evidencia->id, 'etiqueta' => $evidencia->titulo])
                 ->values()->all(),
-            'responsables' => $this->responsables(),
+            'responsables' => app(CuentasAsignables::class)->opciones(Permiso::TareasGestionar),
             'prioridades' => array_map(
                 static fn (PrioridadTarea $prioridad): array => ['valor' => $prioridad->value, 'etiqueta' => $prioridad->etiqueta()],
                 PrioridadTarea::cases(),
@@ -192,7 +192,7 @@ class ProveedorController extends Controller
                 'valor' => $proveedor->criticidad_derivada->value,
                 'etiqueta' => $proveedor->criticidad_derivada->etiqueta(),
             ],
-            ...$this->opciones(),
+            ...$this->opciones($proveedor->responsable_id),
         ]);
     }
 
@@ -459,7 +459,7 @@ class ProveedorController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function opciones(): array
+    private function opciones(?int $responsableActual = null): array
     {
         return [
             'criticidades' => array_map(
@@ -478,20 +478,7 @@ class ProveedorController extends Controller
                 static fn (ResultadoEvaluacion $resultado): array => ['valor' => $resultado->value, 'etiqueta' => $resultado->etiqueta()],
                 ResultadoEvaluacion::cases(),
             ),
-            'responsables' => $this->responsables(),
+            'responsables' => app(CuentasAsignables::class)->opciones(Permiso::ProveedoresGestionar, $responsableActual),
         ];
-    }
-
-    /** @return list<array{valor: string, etiqueta: string}> */
-    private function responsables(): array
-    {
-        return User::query()
-            ->where('organizacion_id', app(ContextoOrganizacion::class)->idObligatorio())
-            ->whereNull('desactivada_en')
-            ->orderBy('name')
-            ->get(['id', 'name'])
-            ->map(fn (User $usuario): array => ['valor' => (string) $usuario->id, 'etiqueta' => $usuario->name])
-            ->values()
-            ->all();
     }
 }

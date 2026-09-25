@@ -15,7 +15,9 @@ use App\Domain\Objetivo\RegistroObjetivos;
 use App\Domain\Obligacion\RegistroObligaciones;
 use App\Domain\Panel\AlertasDelPanel;
 use App\Domain\Persona\RegistroPersonas;
+use App\Domain\Proveedor\RegistroProveedores;
 use App\Domain\Tarea\ResumenPlanDeAccion;
+use App\Domain\Vulnerabilidad\RegistroVulnerabilidades;
 use App\Http\Resources\Panel\ResumenEvidencias;
 use App\Http\Resources\Panel\ResumenPanel;
 use App\Http\Resources\Panel\SistemaResumido;
@@ -104,6 +106,7 @@ class PanelController extends Controller
         RegistroIndicadores $indicadores,
         RegistroObjetivos $objetivos,
         RegistroObligaciones $obligaciones,
+        RegistroVulnerabilidades $vulnerabilidades,
         AlertasDelPanel $alertas,
     ): Response {
         return Inertia::render('panel/Ciclo', [
@@ -134,6 +137,10 @@ class PanelController extends Controller
             'obligaciones' => $this->puede(Permiso::ObligacionesVer)
                 ? $obligaciones->paraElPanel()
                 : null,
+            // Detrás de los incidentes: lo que puede llegar a pasar.
+            'vulnerabilidades' => $this->puede(Permiso::VulnerabilidadesVer)
+                ? $vulnerabilidades->paraElPanel()
+                : null,
         ]);
     }
 
@@ -149,6 +156,7 @@ class PanelController extends Controller
         RegistroContexto $contexto,
         RegistroPersonas $personas,
         ResumenInventario $inventario,
+        RegistroProveedores $proveedores,
         AlertasDelPanel $alertas,
     ): Response {
         return Inertia::render('panel/Organizacion', [
@@ -160,6 +168,10 @@ class PanelController extends Controller
                 ? $personas->paraElPanel()
                 : null,
             'inventario' => $inventario->paraElPanel(),
+            // Detrás del inventario: de quién depende lo que hay dentro.
+            'proveedores' => $this->puede(Permiso::ProveedoresVer)
+                ? $proveedores->paraElPanel()
+                : null,
         ]);
     }
 
@@ -178,12 +190,7 @@ class PanelController extends Controller
         $usuario = request()->user();
         $porBase = $alertas->porBase($usuario);
 
-        /** Qué rutas de módulo cuelgan de cada vista, para el punto de su pestaña. */
-        $reparto = [
-            'cumplimiento' => ['/evidencias', '/implantaciones', '/documentos', '/sistemas'],
-            'ciclo' => ['/tareas', '/no-conformidades', '/incidentes', '/indicadores', '/objetivos', '/auditorias'],
-            'organizacion' => ['/contexto', '/personas', '/activos', '/riesgos'],
-        ];
+        $reparto = AlertasDelPanel::VISTAS;
 
         $cuenta = static fn (string $clave): int => array_sum(array_map(
             static fn (string $base): int => $porBase[$base] ?? 0,

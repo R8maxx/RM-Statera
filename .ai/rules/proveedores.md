@@ -104,7 +104,10 @@ tampoco tiene.
 - **Dos rojos en el panel** (`RegistroProveedores::alertas()`): la reevaluación
   vencida y la certificación caducada de un proveedor no retirado. Los dos
   caducan solos, como una evidencia. Sin evaluar y condicionado son trabajo
-  pendiente, no alarma.
+  pendiente, no alarma. La tarjeta va en «La organización», detrás del
+  inventario, con el reparto por la criticidad que manda. **Hasta el recorrido de
+  vulnerabilidades el módulo declaraba que no tenía tarjeta, y el rojo tampoco
+  marcaba ninguna pestaña**: estaba en `FUENTES` y no en `VISTAS`. Ver `panel.md`.
 - **El informe de estado** lo imprime como un registro más.
 - **El certificado es una evidencia**: `proveedor_certificaciones.evidencia_id`.
   Es donde ya viven los ficheros con caducidad, y así también puede probar
@@ -136,7 +139,5 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
 - **No se comprueba que la categoría ENS del certificado sea la del sistema.** La
   cláusula CLA-09 lo pide y se contesta a mano. Cruzarlo exigiría saber a qué
   sistema presta servicio el proveedor, y eso hoy sale de sus activos solamente.
-- **El panel no tiene tarjeta propia de proveedores**: sube a la tira de rojos y
-  al informe de estado, y nada más.
 - **La ficha de una tarea no enseña de qué proveedor viene**: la pivote existe y
   la ficha del proveedor la lista, pero el camino inverso no está pintado.

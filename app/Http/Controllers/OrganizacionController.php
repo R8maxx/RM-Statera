@@ -52,6 +52,10 @@ class OrganizacionController extends Controller
                 'reevaluacion_proveedor_alta_meses' => $organizacion->reevaluacion_proveedor_alta_meses,
                 'reevaluacion_proveedor_media_meses' => $organizacion->reevaluacion_proveedor_media_meses,
                 'reevaluacion_proveedor_baja_meses' => $organizacion->reevaluacion_proveedor_baja_meses,
+                'plazo_vulnerabilidad_critica_dias' => $organizacion->plazo_vulnerabilidad_critica_dias,
+                'plazo_vulnerabilidad_alta_dias' => $organizacion->plazo_vulnerabilidad_alta_dias,
+                'plazo_vulnerabilidad_media_dias' => $organizacion->plazo_vulnerabilidad_media_dias,
+                'plazo_vulnerabilidad_baja_dias' => $organizacion->plazo_vulnerabilidad_baja_dias,
             ],
 
             /*

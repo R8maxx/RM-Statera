@@ -4,6 +4,7 @@ import CabeceraPanel from '@/components/panel/CabeceraPanel.vue';
 import ResumenContextoPanel from '@/components/contexto/ResumenContextoPanel.vue';
 import ResumenInventarioPanelCard from '@/components/activo/ResumenInventarioPanel.vue';
 import ResumenPersonasPanel from '@/components/persona/ResumenPersonasPanel.vue';
+import ResumenProveedoresPanel from '@/components/proveedor/ResumenProveedoresPanel.vue';
 import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { CompassIcon } from '@lucide/vue';
@@ -26,6 +27,7 @@ const props = defineProps<{
     contexto: App.Http.Resources.Panel.ResumenContextoPanel | null;
     personas: App.Http.Resources.Panel.ResumenPersonasPanel | null;
     inventario: App.Http.Resources.Panel.ResumenInventarioPanel;
+    proveedores: App.Http.Resources.Panel.ResumenProveedoresPanel | null;
 }>();
 
 const { variantesEntrada, variantesEscalonado } = useMovimientoReducido();
@@ -36,7 +38,8 @@ const vacia = computed(
     () =>
         (props.contexto?.cuestiones ?? 0) === 0 &&
         (props.personas?.total ?? 0) === 0 &&
-        props.inventario.vigentes === 0,
+        props.inventario.vigentes === 0 &&
+        (props.proveedores?.total ?? 0) === 0,
 );
 </script>
 
@@ -99,6 +102,16 @@ const vacia = computed(
             -->
             <motion.section v-if="inventario.vigentes > 0" :variants="variantesEntrada">
                 <ResumenInventarioPanelCard :inventario="inventario" />
+            </motion.section>
+
+            <!-- ── Proveedores ────────────────────────────────────────────── -->
+            <!--
+                Detrás del inventario, porque es de quien depende: un activo que
+                presta un tercero sube la criticidad de ese tercero. Con el
+                registro vacío no se pinta, como las demás.
+            -->
+            <motion.section v-if="proveedores && proveedores.total > 0" :variants="variantesEntrada">
+                <ResumenProveedoresPanel :resumen="proveedores" />
             </motion.section>
 
         </motion.div>

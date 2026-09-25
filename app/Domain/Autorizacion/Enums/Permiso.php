@@ -201,6 +201,18 @@ enum Permiso: string
     case ProveedoresEvaluar = 'proveedores.evaluar';
 
     /**
+     * Las vulnerabilidades: invariante 8, A.8.8 y `op.exp.4`.
+     *
+     * **Tres verbos, y aceptar es de supervisión.** Registrar una vulnerabilidad,
+     * moverla por la remediación y verificar el cierre es trabajo técnico;
+     * **decidir no corregirla es asumir un riesgo**, y va en la misma línea que
+     * `riesgos.aceptar`.
+     */
+    case VulnerabilidadesVer = 'vulnerabilidades.ver';
+    case VulnerabilidadesGestionar = 'vulnerabilidades.gestionar';
+    case VulnerabilidadesAceptar = 'vulnerabilidades.aceptar';
+
+    /**
      * La continuidad de negocio: § 4.11. **Tres verbos, y el tercero es de
      * supervisión.** Registrar un BIA, calcular su umbral tolerable y declarar
      * un RTO es trabajo técnico; aprobarlo es otra cosa, y por eso lleva su
@@ -327,6 +339,9 @@ enum Permiso: string
             self::ProveedoresVer => 'Ver los proveedores, sus evaluaciones y sus certificados',
             self::ProveedoresGestionar => 'Dar de alta proveedores, registrar certificados y retirarlos',
             self::ProveedoresEvaluar => 'Evaluar el contrato de un proveedor y homologarlo o rechazarlo',
+            self::VulnerabilidadesVer => 'Ver el registro de vulnerabilidades y su histórico',
+            self::VulnerabilidadesGestionar => 'Registrar vulnerabilidades, remediarlas y verificar su cierre',
+            self::VulnerabilidadesAceptar => 'Aceptar una vulnerabilidad sin corregirla',
             self::ContinuidadVer => 'Ver el análisis de impacto en el negocio de los servicios',
             self::ContinuidadGestionar => 'Registrar y editar el BIA de un servicio, y mover su ciclo salvo la aprobación',
             self::ContinuidadAprobar => 'Aprobar el BIA de un servicio y el RTO que declara',

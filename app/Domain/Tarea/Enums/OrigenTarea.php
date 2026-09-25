@@ -68,6 +68,11 @@ namespace App\Domain\Tarea\Enums;
  * informe de auditoría del proveedor— es trabajo con responsable y plazo, y no es
  * ninguna de las demás. Como `Continuidad`, lleva vínculo de verdad: la pivote
  * `proveedor_tarea`.
+ *
+ * **`Vulnerabilidad` es el séptimo, con el registro del invariante 8.** Aplicar
+ * un parche o sustituir un equipo sin soporte es trabajo con responsable y plazo
+ * —el de remediación, que la tarea hereda—, con su pivote
+ * `vulnerabilidad_tarea`.
  */
 enum OrigenTarea: string
 {
@@ -82,6 +87,7 @@ enum OrigenTarea: string
     case RevisionDireccion = 'revision_direccion';
     case Continuidad = 'continuidad';
     case Proveedor = 'proveedor';
+    case Vulnerabilidad = 'vulnerabilidad';
     case Propia = 'propia';
 
     public function etiqueta(): string
@@ -98,6 +104,7 @@ enum OrigenTarea: string
             self::RevisionDireccion => 'Revisión por la dirección',
             self::Continuidad => 'Prueba de continuidad',
             self::Proveedor => 'Proveedor',
+            self::Vulnerabilidad => 'Vulnerabilidad',
             self::Propia => 'Iniciativa propia',
         };
     }
@@ -113,7 +120,7 @@ enum OrigenTarea: string
     {
         return match ($this) {
             self::BrechaImplantacion, self::Continuidad, self::Contexto, self::Incidente, self::Mejora,
-            self::NoConformidad, self::Objetivo, self::Propia, self::Proveedor, self::RevisionDireccion,
+            self::NoConformidad, self::Objetivo, self::Propia, self::Proveedor, self::RevisionDireccion, self::Vulnerabilidad,
             self::Riesgo => true,
             /*
              * `Hallazgo` sigue sin ofrecerse, y desde el § 4.13 **por otro
@@ -170,7 +177,7 @@ enum OrigenTarea: string
     public function tono(): string
     {
         return match ($this) {
-            self::Hallazgo, self::NoConformidad, self::Incidente, self::Continuidad => 'en_progreso',
+            self::Hallazgo, self::NoConformidad, self::Incidente, self::Continuidad, self::Vulnerabilidad => 'en_progreso',
             self::BrechaImplantacion, self::Riesgo, self::Contexto, self::Objetivo, self::Mejora, self::RevisionDireccion,
             self::Proveedor => 'planificado',
             self::Propia => 'no_iniciado',

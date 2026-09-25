@@ -1,6 +1,7 @@
 import {
     BadgeCheckIcon,
     BoxesIcon,
+    BugIcon,
     CalendarDaysIcon,
     ClipboardCheckIcon,
     ClipboardListIcon,
@@ -237,6 +238,18 @@ export const navegacion: GrupoNavegacion[] = [
                  * «revisión».
                  */
                 alias: ['op.exp.7', 'brecha', 'aepd', 'ccn-cert', 'ransomware', 'phishing', '72 horas'],
+            },
+            {
+                titulo: 'Vulnerabilidades',
+                href: '/vulnerabilidades',
+                icono: BugIcon,
+                /*
+                 * El registro del invariante 8. `op.exp.4` y `A.8.8` son lo que
+                 * se teclea sabiendo de qué va; «parche», «CVE» y «CVSS» lo que
+                 * se busca con el boletín delante. Detrás de Incidentes: una
+                 * vulnerabilidad explotada es un incidente, y al revés no.
+                 */
+                alias: ['parche', 'cve', 'cvss', 'remediación', 'op.exp.4', 'a.8.8', 'fallo'],
             },
             /*
              * La continuidad de negocio: § 4.11. **Una sola entrada para el BIA

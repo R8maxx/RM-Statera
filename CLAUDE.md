@@ -39,8 +39,6 @@ Romper cualquiera de estos obliga a rehacer el modelo más adelante. No son pref
 7. **Los estados llevan histórico.** El auditor no pregunta "¿está implantado?", pregunta "¿desde cuándo?". Toda transición se registra con fecha y autor, en su tabla.
 8. **La herramienta entra en el alcance del propio SGSI.** Contiene el inventario, las vulnerabilidades y las evidencias. 2FA, cifrado en reposo, backups verificados y traza inmutable no son aplazables.
 
-   > **Del invariante 8, las vulnerabilidades todavía no están.** No hay registro: `riesgos.vulnerabilidad` es una columna de texto libre del escenario MAGERIT —la condición que hace creíble la amenaza—, que no es lo mismo que un hallazgo técnico con severidad, activo afectado y plazo de remediación (A.8.8 de ISO, `op.exp.4` del ENS). El invariante se queda como está porque es el objetivo declarado, y esta nota existe para que la frase no se lea como una afirmación de estado. Se construye con el módulo de vulnerabilidades; hasta entonces, queda dicho.
-
 Y dos reglas operativas que se derivan de lo anterior:
 
 - **Prohibido `withoutGlobalScopes()`** fuera de comandos de mantenimiento explícitos. Hay tres capas de aislamiento (`organizacion_id`, global scope de Eloquent, Row Level Security en PostgreSQL) y quitar la del medio filtra datos de un cliente a otro. La única puerta que atraviesa las tres es `ContextoOrganizacion::comoMantenimiento()`, y sólo la usa código sin petición ni usuario: los recuentos de afectados del importador del catálogo, que por definición cruzan organizaciones; `documentos:generar` e `implantaciones:generar`, para localizar su fila antes de fijar la organización; y las migraciones que mueven o borran filas de tablas con RLS, casi siempre en su `down()`.
@@ -96,7 +94,7 @@ No usar paquetes de multi-tenancy de terceros: es la frontera de seguridad princ
 
 ## Los módulos
 
-Veintinueve puntos, y el orden importa: el catálogo y el motor son la parte más
+Treinta puntos, y el orden importa: el catálogo y el motor son la parte más
 específica del dominio y la que más se estropea si se improvisa; el resto es CRUD con
 reglas de negocio encima. **El porqué de cada uno —qué problema abrió, qué decisión se
 tomó y qué dejó declarado que no hace— está en su fichero de reglas**, y la bitácora
@@ -133,6 +131,7 @@ completa con el razonamiento del orden, en `.ai/rules/orden-de-arranque.md`.
 | 27 | Informes y exportación: informe de auditoría e informe de estado | 4.18 | `documentos.md`, `auditorias.md` |
 | 28 | Cuentas, roles y el alcance del auditor externo | 4.19 | `cuentas.md` |
 | 29 | Proveedores y terceros | 4.9 | `proveedores.md` |
+| 30 | Vulnerabilidades técnicas | — | `vulnerabilidades.md` |
 
 **La fase 3 está cerrada.** Con continuidad (§ 4.11) dentro —el BIA por servicio,
 el plan como documento y las pruebas que lo contrastan— el ciclo vivo se recorre
@@ -157,7 +156,13 @@ Con el punto 29 están los proveedores: el mínimo de criticidad sale de lo que
 prestan, el contrato se evalúa contra un catálogo de cláusulas y la reevaluación
 entra en el calendario.
 
-Lo que queda: el registro de vulnerabilidades del invariante 8.
+Con el punto 30 el invariante 8 deja de tener nota al pie: las vulnerabilidades
+tienen registro propio, con la severidad derivada del CVSS, el plazo de
+remediación como política de la organización, la aceptación firmada por
+supervisión y el cierre con verificación escrita.
+
+No queda ningún punto de la lista. Lo pendiente son los huecos que anota
+`PRODUCT.md`, que no son módulos.
 
 ## El catálogo
 
@@ -244,7 +249,7 @@ sobre el directorio pilla lo que un encaje de ruta se deja.
 | `interfaz.md` | `resources/js/**` | `lib/tonos.ts` y `lib/navegacion.ts` como mapas únicos; los tres canales de un estado; qué librería entró, cuál no y por qué |
 | `tests.md` | `tests/**` | Los diez tests que descubren en vez de enumerar |
 | `infraestructura.md` | `docker-compose.yml`, `docker/**`, `.env.example` | Los dos endpoints de MinIO, `quay.io`, el `ARG UID`, `predis` |
-| `orden-de-arranque.md` | este fichero, `README.md`, `PRODUCT.md` | La bitácora de los 29 puntos, con el razonamiento del orden |
+| `orden-de-arranque.md` | este fichero, `README.md`, `PRODUCT.md` | La bitácora de los 30 puntos, con el razonamiento del orden |
 
 ### Por módulo
 
@@ -276,6 +281,7 @@ sobre el directorio pilla lo que un encaje de ruta se deja.
 | `perfil.md` | `pages/perfil/**`, `app/Domain/Autorizacion/**` |
 | `cuentas.md` | `pages/cuentas/**`, `app/Domain/Usuario/**`, la invitación, los middlewares de cuenta y sesión |
 | `proveedores.md` | `app/Domain/Proveedor/**`, sus pantallas y `catalogo/clausulas-proveedor.yaml` |
+| `vulnerabilidades.md` | `app/Domain/Vulnerabilidad/**` y sus pantallas |
 
 **Un módulo nuevo entra con su fichero y su `paths:`**, y no tocando este mapa: lo que
 hace que se cargue es el glob, no la fila de esta tabla. La tabla es para leerla un

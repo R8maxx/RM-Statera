@@ -18,12 +18,12 @@ export type TipoHallazgo = 'nc_mayor' | 'nc_menor' | 'observacion' | 'oportunida
 }
 namespace Autorizacion {
 namespace Enums {
-export type Permiso = 'panel.ver' | 'contexto.ver' | 'contexto.gestionar' | 'contexto.aprobar' | 'sistemas.ver' | 'sistemas.gestionar' | 'sistemas.valorar' | 'implantaciones.ver' | 'implantaciones.gestionar' | 'evidencias.ver' | 'evidencias.gestionar' | 'activos.ver' | 'activos.gestionar' | 'riesgos.ver' | 'riesgos.gestionar' | 'riesgos.aceptar' | 'tareas.ver' | 'tareas.gestionar' | 'auditorias.ver' | 'auditorias.gestionar' | 'no_conformidades.ver' | 'no_conformidades.gestionar' | 'no_conformidades.verificar' | 'mejoras.ver' | 'mejoras.gestionar' | 'indicadores.ver' | 'indicadores.gestionar' | 'objetivos.ver' | 'objetivos.gestionar' | 'objetivos.aprobar' | 'personas.ver' | 'personas.gestionar' | 'personas.designar' | 'incidentes.ver' | 'incidentes.gestionar' | 'proveedores.ver' | 'proveedores.gestionar' | 'proveedores.evaluar' | 'continuidad.ver' | 'continuidad.gestionar' | 'continuidad.aprobar' | 'conformidad.ver' | 'conformidad.gestionar' | 'revision_direccion.ver' | 'revision_direccion.gestionar' | 'revision_direccion.aprobar' | 'documentos.ver' | 'documentos.generar' | 'documentos.aprobar' | 'documentos.redactar' | 'documentos.plantillas' | 'organizacion.gestionar' | 'cuentas.gestionar' | 'calendario.ver' | 'obligaciones.ver' | 'obligaciones.gestionar';
+export type Permiso = 'panel.ver' | 'contexto.ver' | 'contexto.gestionar' | 'contexto.aprobar' | 'sistemas.ver' | 'sistemas.gestionar' | 'sistemas.valorar' | 'implantaciones.ver' | 'implantaciones.gestionar' | 'evidencias.ver' | 'evidencias.gestionar' | 'activos.ver' | 'activos.gestionar' | 'riesgos.ver' | 'riesgos.gestionar' | 'riesgos.aceptar' | 'tareas.ver' | 'tareas.gestionar' | 'auditorias.ver' | 'auditorias.gestionar' | 'no_conformidades.ver' | 'no_conformidades.gestionar' | 'no_conformidades.verificar' | 'mejoras.ver' | 'mejoras.gestionar' | 'indicadores.ver' | 'indicadores.gestionar' | 'objetivos.ver' | 'objetivos.gestionar' | 'objetivos.aprobar' | 'personas.ver' | 'personas.gestionar' | 'personas.designar' | 'incidentes.ver' | 'incidentes.gestionar' | 'proveedores.ver' | 'proveedores.gestionar' | 'proveedores.evaluar' | 'vulnerabilidades.ver' | 'vulnerabilidades.gestionar' | 'vulnerabilidades.aceptar' | 'continuidad.ver' | 'continuidad.gestionar' | 'continuidad.aprobar' | 'conformidad.ver' | 'conformidad.gestionar' | 'revision_direccion.ver' | 'revision_direccion.gestionar' | 'revision_direccion.aprobar' | 'documentos.ver' | 'documentos.generar' | 'documentos.aprobar' | 'documentos.redactar' | 'documentos.plantillas' | 'organizacion.gestionar' | 'cuentas.gestionar' | 'calendario.ver' | 'obligaciones.ver' | 'obligaciones.gestionar';
 export type Rol = 'responsable_seguridad' | 'tecnico' | 'auditor';
 }
 }
 namespace Aviso {
-export type Fuente = 'tarea' | 'evidencia' | 'documento' | 'formacion' | 'indicador' | 'implantacion' | 'obligacion' | 'prueba_continuidad' | 'bia' | 'proveedor';
+export type Fuente = 'tarea' | 'evidencia' | 'documento' | 'formacion' | 'indicador' | 'implantacion' | 'obligacion' | 'prueba_continuidad' | 'bia' | 'proveedor' | 'vulnerabilidad';
 export type Vencimiento = {
 readonly url: string,
 readonly icono: string,
@@ -192,7 +192,7 @@ export type EstadoSistema = 'borrador' | 'activo' | 'archivado';
 namespace Tarea {
 namespace Enums {
 export type EstadoTarea = 'pendiente' | 'en_curso' | 'bloqueada' | 'hecha' | 'descartada';
-export type OrigenTarea = 'hallazgo' | 'no_conformidad' | 'mejora' | 'riesgo' | 'brecha_implantacion' | 'contexto' | 'objetivo' | 'incidente' | 'revision_direccion' | 'continuidad' | 'proveedor' | 'propia';
+export type OrigenTarea = 'hallazgo' | 'no_conformidad' | 'mejora' | 'riesgo' | 'brecha_implantacion' | 'contexto' | 'objetivo' | 'incidente' | 'revision_direccion' | 'continuidad' | 'proveedor' | 'vulnerabilidad' | 'propia';
 export type PrioridadTarea = 'baja' | 'media' | 'alta' | 'critica';
 }
 }
@@ -204,6 +204,13 @@ export type AccionAuditada = 'creado' | 'actualizado' | 'eliminado' | 'rol_cambi
 namespace Usuario {
 namespace Enums {
 export type EstadoCuenta = 'invitada' | 'activa' | 'caducada' | 'desactivada';
+}
+}
+namespace Vulnerabilidad {
+namespace Enums {
+export type EstadoVulnerabilidad = 'abierta' | 'en_remediacion' | 'mitigada' | 'cerrada' | 'aceptada' | 'falso_positivo';
+export type OrigenVulnerabilidad = 'escaneo' | 'aviso' | 'fabricante' | 'auditoria' | 'pentest' | 'interna';
+export type Severidad = 'informativa' | 'baja' | 'media' | 'alta' | 'critica';
 }
 }
 }
@@ -464,6 +471,23 @@ readonly sinResponsable: number,
 readonly porEstado: App.Http.Resources.Panel.Reparto[],
 readonly porPrioridad: App.Http.Resources.Panel.Reparto[],
 readonly porOrigen: App.Http.Resources.Panel.Reparto[],
+};
+export type ResumenProveedoresPanel = {
+readonly total: number,
+readonly reevaluacionVencida: number,
+readonly certificacionCaducada: number,
+readonly sinEvaluar: number,
+readonly condicionados: number,
+readonly porCriticidad: App.Http.Resources.Panel.Reparto[],
+};
+export type ResumenVulnerabilidadesPanel = {
+readonly total: number,
+readonly vivas: number,
+readonly fueraDePlazo: number,
+readonly criticasAbiertas: number,
+readonly sinVerificar: number,
+readonly aceptadas: number,
+readonly porSeveridad: App.Http.Resources.Panel.Reparto[],
 };
 export type SegmentoEstado = {
 readonly clave: string,

@@ -25,6 +25,7 @@ use App\Domain\Persona\RegistroPersonas;
 use App\Domain\Proveedor\RegistroProveedores;
 use App\Domain\Riesgo\RegistroRiesgos;
 use App\Domain\Tarea\ResumenPlanDeAccion;
+use App\Domain\Vulnerabilidad\RegistroVulnerabilidades;
 use App\Http\Resources\Panel\AvanceMarco;
 use App\Http\Resources\Panel\Indicador;
 use App\Http\Resources\Panel\SegmentoEstado;
@@ -75,6 +76,7 @@ final class InformeEstadoSeguridad implements GeneradorDocumento
         private readonly RegistroFormacion $formacion,
         private readonly RegistroContinuidad $continuidad,
         private readonly RegistroProveedores $proveedores,
+        private readonly RegistroVulnerabilidades $vulnerabilidades,
     ) {}
 
     public function tipo(): TipoDocumento
@@ -184,6 +186,7 @@ final class InformeEstadoSeguridad implements GeneradorDocumento
             $this->registro('Continuidad: análisis de impacto', null, $this->continuidad->alertasDeBia(), [], $this->continuidad->pendientesDeBia(), 'Falta '),
             $this->registro('Continuidad: pruebas', null, $this->continuidad->alertasDePruebas(), [], $this->continuidad->pendientesDePruebas(), 'Falta '),
             $this->registro('Proveedores', $this->proveedores->total(), $this->proveedores->alertas(), $this->proveedores->pendientes()),
+            $this->registro('Vulnerabilidades', $this->vulnerabilidades->total(), $this->vulnerabilidades->alertas(), $this->vulnerabilidades->pendientes()),
         ];
     }
 

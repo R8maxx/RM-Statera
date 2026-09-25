@@ -162,3 +162,37 @@ it('respeta los booleanos sueltos cuando no viene el array', function (): void {
 
     expect($incidente->fresh()?->afecta_disponibilidad)->toBeTrue();
 });
+
+it('no guarda el centinela como sistema operativo ni como proveedor', function (): void {
+    /*
+     * El desplegable del sistema operativo ofrece «ninguno» con el centinela y
+     * el request no lo normalizaba: todo activo editado sin sistema operativo
+     * acababa con `__ninguno__` en la columna, y la ficha lo pintaba tal cual.
+     */
+    $activo = Activo::factory()->de($this->organizacion)->create();
+
+    $this->actingAs($this->usuario)
+        ->put("/activos/{$activo->id}", [
+            'codigo' => $activo->codigo,
+            'nombre' => $activo->nombre,
+            'tipo' => TipoActivo::Servicios->value,
+            'estado_ciclo_vida' => EstadoCicloVida::EnProduccion->value,
+            'clasificacion' => Clasificacion::UsoInterno->value,
+            'cifrado' => EstadoControl::Si->value,
+            'copia_seguridad' => EstadoControl::PorConfirmar->value,
+            'propietario_id' => SeleccionVacia::VALOR,
+            'custodio_id' => SeleccionVacia::VALOR,
+            'proveedor_id' => SeleccionVacia::VALOR,
+            'sistema_operativo' => SeleccionVacia::VALOR,
+            'valor_c' => NivelDimension::Bajo->value,
+            'valor_i' => NivelDimension::Bajo->value,
+            'valor_d' => NivelDimension::Bajo->value,
+            'valor_a' => NivelDimension::Na->value,
+            'valor_t' => NivelDimension::Na->value,
+            'sistemas' => [''],
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($activo->fresh()?->sistema_operativo)->toBeNull()
+        ->and($activo->fresh()?->proveedor_id)->toBeNull();
+});

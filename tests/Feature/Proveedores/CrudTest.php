@@ -144,3 +144,16 @@ it('el técnico gestiona y no evalúa; el auditor sólo lee', function (): void 
     $this->actingAs($auditor)->get("/proveedores/{$proveedor->id}")->assertOk();
     $this->actingAs($auditor)->get("/proveedores/{$proveedor->id}/editar")->assertForbidden();
 });
+
+/** Ver `CuentasAsignables`: el auditor externo no lleva un proveedor. */
+it('no admite de responsable a quien no gestiona proveedores', function (): void {
+    $auditor = usuarioCon(Rol::Auditor);
+
+    $this->actingAs($this->responsable)
+        ->post('/proveedores', ($this->datos)(['responsable_id' => $auditor->id]))
+        ->assertSessionHasErrors('responsable_id');
+
+    $this->actingAs($this->responsable)
+        ->post('/proveedores', ($this->datos)(['responsable_id' => $this->responsable->id]))
+        ->assertSessionHasNoErrors();
+});

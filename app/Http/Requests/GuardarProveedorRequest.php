@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Domain\Autorizacion\Enums\Permiso;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Proveedor\Enums\Criticidad;
 use App\Domain\Proveedor\Enums\ModeloNube;
 use App\Domain\Proveedor\Enums\UbicacionDatos;
 use App\Domain\Proveedor\Models\Proveedor;
+use App\Domain\Usuario\CuentasAsignables;
 use App\Http\Requests\Concerns\NormalizaSeleccionVacia;
+use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -60,6 +63,14 @@ class GuardarProveedorRequest extends FormRequest
                 'nullable',
                 'integer',
                 Rule::exists('users', 'id')->where('organizacion_id', $this->user()?->organizacion_id),
+                // Ni un auditor ni una cuenta que ya no entra: ver `CuentasAsignables`.
+                function (string $atributo, mixed $valor, Closure $falla): void {
+                    $actual = $this->route('proveedor')?->responsable_id;
+
+                    if (! app(CuentasAsignables::class)->admite((int) $valor, Permiso::ProveedoresGestionar, $actual)) {
+                        $falla('Esa cuenta no puede llevarlo: no escribe en este módulo o ya no tiene acceso.');
+                    }
+                },
             ],
             'notas' => ['nullable', 'string', 'max:5000'],
         ];

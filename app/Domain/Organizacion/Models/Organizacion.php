@@ -8,6 +8,7 @@ use App\Domain\Organizacion\Marca\PiezaDeMarca;
 use App\Domain\Proveedor\Enums\Criticidad;
 use App\Domain\Sistema\Models\Sistema;
 use App\Domain\Traza\RegistroTraza;
+use App\Domain\Vulnerabilidad\Enums\Severidad;
 use Database\Factories\OrganizacionFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -39,6 +40,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $reevaluacion_proveedor_alta_meses
  * @property int $reevaluacion_proveedor_media_meses
  * @property int $reevaluacion_proveedor_baja_meses
+ * @property int $plazo_vulnerabilidad_critica_dias
+ * @property int $plazo_vulnerabilidad_alta_dias
+ * @property int $plazo_vulnerabilidad_media_dias
+ * @property int $plazo_vulnerabilidad_baja_dias
  */
 class Organizacion extends Model
 {
@@ -85,7 +90,27 @@ class Organizacion extends Model
         'reevaluacion_proveedor_alta_meses',
         'reevaluacion_proveedor_media_meses',
         'reevaluacion_proveedor_baja_meses',
+        'plazo_vulnerabilidad_critica_dias',
+        'plazo_vulnerabilidad_alta_dias',
+        'plazo_vulnerabilidad_media_dias',
+        'plazo_vulnerabilidad_baja_dias',
     ];
+
+    /**
+     * Cuántos días hay para remediar una vulnerabilidad de esta severidad, o nulo
+     * si no tiene plazo (la informativa). Política de la organización: ni ISO
+     * ni el ENS fijan el número.
+     */
+    public function diasRemediacion(Severidad $severidad): ?int
+    {
+        return match ($severidad) {
+            Severidad::Critica => (int) $this->plazo_vulnerabilidad_critica_dias,
+            Severidad::Alta => (int) $this->plazo_vulnerabilidad_alta_dias,
+            Severidad::Media => (int) $this->plazo_vulnerabilidad_media_dias,
+            Severidad::Baja => (int) $this->plazo_vulnerabilidad_baja_dias,
+            Severidad::Informativa => null,
+        };
+    }
 
     /**
      * Cada cuántos meses se reevalúa un proveedor de esta criticidad (§ 4.9).
@@ -184,6 +209,10 @@ class Organizacion extends Model
             'reevaluacion_proveedor_alta_meses' => 'integer',
             'reevaluacion_proveedor_media_meses' => 'integer',
             'reevaluacion_proveedor_baja_meses' => 'integer',
+            'plazo_vulnerabilidad_critica_dias' => 'integer',
+            'plazo_vulnerabilidad_alta_dias' => 'integer',
+            'plazo_vulnerabilidad_media_dias' => 'integer',
+            'plazo_vulnerabilidad_baja_dias' => 'integer',
         ];
     }
 

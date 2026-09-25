@@ -94,6 +94,13 @@ nota ya vive en las listas de la ficha, donde tiene sitio.
 - **No se recorre con el teclado**, por ser un lienzo. Las dos listas de la ficha
   sí, y lo dice la propia pantalla.
 
+## Quién puede tocar la ficha
+
+**`puedeGestionar` viaja con la ficha** y esconde Editar, Declarar dependencia y
+Retirar a quien no tiene `activos.gestionar`. Hasta el recorrido como auditor del
+punto 30 se pintaban siempre y le respondían 403: el mismo hallazgo que tareas e
+implantaciones tuvieron en el punto 28, que allí se arregló y aquí no se miró.
+
 ## Desvíos respecto al stack
 
 Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y por qué, para que nadie lo "arregle" sin contexto.
@@ -131,3 +138,9 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
 - **`retirado`, `en_stock`, `en_reparacion` y `prestado` cuentan como vigentes.** Un portátil en el armario o en el taller sigue teniendo los datos dentro y sigue siendo responsabilidad de alguien; sacarlo del inventario activo es exactamente cómo se pierde el rastro de un equipo. Sólo `retirado` y `dado_de_baja` salen del recuento.
 
 - **El fin de soporte del software base vive en `config/obsolescencia.php`, no en una tabla.** Son hechos del mundo, iguales para todos los clientes: meterlos en una tabla con `organizacion_id` sería duplicarlos por tenant y dejar que se desincronicen. Y no es catálogo normativo (invariante 3): son quince filas que se actualizan cuando sale una LTS. Las fechas son de soporte **estándar**, no extendido de pago: si el inventario contara ya el soporte extendido, la fecha nunca vencería y el aviso no saltaría nunca. Un sistema que no está en la lista **no** cuenta como obsoleto — eso convertiría cada macOS del parque en un falso positivo.
+
+- **`sistema_operativo` está en `seleccionesOpcionales()`**, y no estaba. Su desplegable ofrece
+  «ninguno» con el centinela, así que todo activo editado sin sistema operativo guardaba
+  `__ninguno__` en la columna, y la ficha lo pintaba tal cual. Lo destapó el recorrido del § 4.9 al
+  editar un servicio para asignarle proveedor; lo clava `CentinelaCasillasTest`.
+

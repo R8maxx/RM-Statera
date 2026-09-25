@@ -39,3 +39,4 @@ Before planning or editing, find the row whose globs match the file's path and r
 | routes/** | .ai/rules/routing.md |
 | app/Domain/Tarea/**, resources/js/pages/tareas/**, resources/js/components/tarea/** | .ai/rules/tareas.md |
 | tests/** | .ai/rules/tests.md |
+| app/Domain/Vulnerabilidad/**, resources/js/pages/vulnerabilidades/**, app/Http/Controllers/VulnerabilidadController.php, app/Http/Resources/VulnerabilidadRecurso.php | .ai/rules/vulnerabilidades.md |

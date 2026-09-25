@@ -89,6 +89,10 @@ const props = defineProps<{
     puedeVerRiesgos: boolean;
     riesgos: RiesgoDelActivo[];
     candidatos: Opcion[];
+    vulnerabilidades: { id: number; codigo: string; titulo: string; severidad: string; severidadTono: string; fueraDePlazo: boolean; aceptada: { etiqueta: string; tono: string; icono: string } | null }[];
+    puedeGestionar: boolean;
+    puedeVerVulnerabilidades: boolean;
+    puedeRegistrarVulnerabilidad: boolean;
 }>();
 
 const { variantesEntrada } = useMovimientoReducido();
@@ -153,7 +157,7 @@ function retirar(dependenciaId: number): void {
 <template>
     <AppLayout :titulo="`${activo.codigo} · ${activo.nombre}`">
         <CabeceraPagina :titulo="activo.nombre" :codigo="activo.codigo" :descripcion="activo.descripcion">
-            <template #acciones>
+            <template v-if="puedeGestionar" #acciones>
                 <Button as-child variant="outline">
                     <Link :href="`/activos/${activo.id}/editar`">Editar</Link>
                 </Button>
@@ -198,6 +202,13 @@ function retirar(dependenciaId: number): void {
             <Aviso v-if="avisoSoporte" tono="error" titulo="Fuera de soporte">
                 {{ avisoSoporte }} Un sistema que ya no recibe parches es op.exp.4 de la misma manera el día antes
                 y el día después de que salga el primer CVE sin arreglo.
+                <Link
+                    v-if="puedeRegistrarVulnerabilidad"
+                    :href="`/vulnerabilidades/crear?activo=${activo.id}`"
+                    class="mt-2 block font-medium underline underline-offset-4"
+                >
+                    Registrarlo como vulnerabilidad
+                </Link>
             </Aviso>
 
             <Aviso v-if="activo.esperaBorradoSeguro" tono="error" titulo="Sin constancia del borrado seguro">
@@ -249,7 +260,7 @@ function retirar(dependenciaId: number): void {
                                         Ver el grafo
                                     </Link>
                                 </Button>
-                                <Button variant="outline" size="sm" @click="abierto = true">
+                                <Button v-if="puedeGestionar" variant="outline" size="sm" @click="abierto = true">
                                     Declarar dependencia
                                 </Button>
                             </div>
@@ -259,7 +270,7 @@ function retirar(dependenciaId: number): void {
                             <GrafoDependencias
                                 :activos="dependeDe"
                                 :activo-id="activo.id"
-                                retirable
+                                :retirable="puedeGestionar"
                                 vacio="No depende de nada declarado. Si en realidad se apoya en un servidor, una red o una base de datos, decláralo: sin el grafo, la valoración no se propaga y el análisis de impacto se queda sin respuesta."
                                 @retirar="retirar"
                             />
@@ -299,6 +310,40 @@ function retirar(dependenciaId: number): void {
 
                         <CardContent>
                             <BloqueRiesgos :riesgos="riesgos" :activo-id="activo.id" />
+                        </CardContent>
+                    </Card>
+
+                    <Card v-if="puedeVerVulnerabilidades">
+                        <CardHeader>
+                            <CardTitle>Vulnerabilidades</CardTitle>
+                            <CardDescription>
+                                Las que siguen en este activo: sin arreglo, mitigadas sin verificar o aceptadas como
+                                riesgo asumido.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent class="space-y-3 text-sm">
+                            <p v-if="vulnerabilidades.length === 0" class="text-muted-foreground">
+                                Ninguna pendiente. Que no haya ninguna apuntada no significa que no las tenga.
+                            </p>
+                            <ul v-else class="grid gap-1">
+                                <li v-for="una in vulnerabilidades" :key="una.id" class="flex flex-wrap items-center gap-2">
+                                    <Link :href="`/vulnerabilidades/${una.id}`" class="underline underline-offset-4">
+                                        <span class="cifra">{{ una.codigo }}</span> · {{ una.titulo }}
+                                    </Link>
+                                    <CeldaBadge :valor="{ valor: una.severidad, etiqueta: una.severidad, tono: una.severidadTono }" />
+                                    <CeldaBadge
+                                        v-if="una.aceptada"
+                                        :valor="{ valor: 'aceptada', ...una.aceptada }"
+                                    />
+                                    <CeldaBadge
+                                        v-if="una.fueraDePlazo"
+                                        :valor="{ valor: 'fuera', etiqueta: 'Fuera de plazo', tono: 'caducada', icono: 'TriangleAlert' }"
+                                    />
+                                </li>
+                            </ul>
+                            <Button v-if="puedeRegistrarVulnerabilidad" as-child variant="outline" size="sm">
+                                <Link :href="`/vulnerabilidades/crear?activo=${activo.id}`">Registrar una</Link>
+                            </Button>
                         </CardContent>
                     </Card>
                 </div>

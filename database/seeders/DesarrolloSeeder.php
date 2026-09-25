@@ -154,6 +154,12 @@ use App\Domain\Tarea\Enums\PrioridadTarea;
 use App\Domain\Tarea\GuardarSubtareas;
 use App\Domain\Tarea\Models\Tarea;
 use App\Domain\Usuario\Models\CuentaSistema;
+use App\Domain\Vulnerabilidad\CambiarEstadoVulnerabilidad;
+use App\Domain\Vulnerabilidad\Enums\EstadoVulnerabilidad;
+use App\Domain\Vulnerabilidad\Enums\OrigenVulnerabilidad;
+use App\Domain\Vulnerabilidad\Enums\Severidad;
+use App\Domain\Vulnerabilidad\Models\Vulnerabilidad;
+use App\Domain\Vulnerabilidad\PlazoRemediacion;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Seeder;
@@ -320,6 +326,8 @@ class DesarrolloSeeder extends Seeder
         $this->continuidadDeEjemplo();
         // Detrás del inventario, porque la criticidad sale de lo que presta.
         $this->proveedoresDeEjemplo();
+        // Detrás del inventario y de los proveedores: una depende de uno.
+        $this->vulnerabilidadesDeEjemplo();
         // Detrás de las auditorías, porque se apoya en una autoevaluación
         // cerrada, y de los documentos, porque prepara la serie de la DdC.
         $this->conformidadDeEjemplo($sistema);
@@ -2220,6 +2228,65 @@ class DesarrolloSeeder extends Seeder
 
         if ($responsable !== null && $retirado->estado !== EstadoProveedor::Retirado) {
             app(CambiarEstadoProveedor::class)->retirar($retirado, $responsable, 'Se dejó de enviar documentación en papel.');
+        }
+    }
+
+    /**
+     * Dos vulnerabilidades sintéticas (invariante 8), ninguna con un CVE de
+     * verdad: los identificadores reales no se usan en datos de ejemplo.
+     *
+     * - Una crítica por CVSS en la sede electrónica, detectada hace dos semanas:
+     *   con el plazo de siete días por defecto, ya está fuera de plazo, que es
+     *   el único rojo del registro.
+     * - Una media declarada sin CVSS en la base de datos, en remediación y
+     *   dependiente del proveedor de nube.
+     *
+     * Idempotente, por código.
+     */
+    private function vulnerabilidadesDeEjemplo(): void
+    {
+        $plazo = app(PlazoRemediacion::class);
+
+        $critica = Vulnerabilidad::query()->firstOrCreate(['codigo' => 'VUL-EJ-01'], [
+            'titulo' => 'Ejecución remota en el servidor web de la sede',
+            'descripcion' => 'Hallazgo sintético de un escaneo: versión del servidor web con un fallo de ejecución remota conocido.',
+            'cvss_puntuacion' => '9.8',
+            'cvss_vector' => 'CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H',
+            'severidad' => Severidad::Critica->value,
+            'origen' => OrigenVulnerabilidad::Escaneo->value,
+            'fecha_deteccion' => Carbon::today()->subDays(14)->toDateString(),
+            'remediacion' => 'Actualizar el servidor web a la versión corregida.',
+        ]);
+
+        $media = Vulnerabilidad::query()->firstOrCreate(['codigo' => 'VUL-EJ-02'], [
+            'titulo' => 'Cifrado débil en la conexión a la base de datos',
+            'severidad' => Severidad::Media->value,
+            'origen' => OrigenVulnerabilidad::Auditoria->value,
+            'fecha_deteccion' => Carbon::today()->subDays(20)->toDateString(),
+            'proveedor_id' => Proveedor::query()->where('codigo', 'PRV-001')->value('id'),
+            'remediacion' => 'Forzar TLS 1.2 o superior en el servicio gestionado.',
+        ]);
+
+        foreach ([[$critica, 'SRV-0001'], [$media, 'BBDD-0001']] as [$vulnerabilidad, $codigoActivo]) {
+            $activo = Activo::query()->where('codigo', $codigoActivo)->first();
+
+            if ($activo !== null) {
+                $vulnerabilidad->activos()->syncWithoutDetaching([
+                    $activo->id => ['organizacion_id' => $vulnerabilidad->organizacion_id],
+                ]);
+            }
+
+            $plazo->recalcular($vulnerabilidad);
+        }
+
+        // Por la puerta de siempre, para que el histórico lo cuente (invariante 7).
+        $responsable = User::query()
+            ->where('organizacion_id', $media->organizacion_id)
+            ->where('email', 'responsable@statera.test')
+            ->first();
+
+        if ($responsable !== null && $media->estado === EstadoVulnerabilidad::Abierta) {
+            app(CambiarEstadoVulnerabilidad::class)($media, EstadoVulnerabilidad::EnRemediacion, $responsable);
         }
     }
 

@@ -25,6 +25,8 @@ use App\Domain\Proveedor\Enums\EstadoProveedor;
 use App\Domain\Proveedor\Models\Proveedor;
 use App\Domain\Riesgo\Models\Riesgo;
 use App\Domain\Sistema\Models\Sistema;
+use App\Domain\Vulnerabilidad\Enums\EstadoVulnerabilidad;
+use App\Domain\Vulnerabilidad\Models\Vulnerabilidad;
 use App\Http\Requests\GuardarActivoRequest;
 use App\Http\Requests\MarcarRevisadosRequest;
 use App\Http\Requests\VincularDependenciaRequest;
@@ -118,6 +120,44 @@ class ActivoController extends Controller
             'activo' => $this->serializar($activo),
             'etiqueta' => $this->etiqueta($activo, $request, $generador),
             'avisoSoporte' => $obsolescencia->aviso($activo),
+
+            /*
+             * Las vulnerabilidades que siguen en este activo (invariante 8): las
+             * vivas y **también las aceptadas**, que no se corrigen pero siguen
+             * ahí —es riesgo asumido, no arreglado—. Sin ellas, la ficha decía
+             * «ninguna» de un activo con una crítica aceptada encima.
+             *
+             * Vacío si quien mira no tiene `vulnerabilidades.ver`, igual que los
+             * riesgos: la ficha no es una puerta lateral al registro.
+             */
+            'vulnerabilidades' => ($request->user()?->can(Permiso::VulnerabilidadesVer->value) ?? false)
+                ? Vulnerabilidad::query()
+                    ->where(fn ($consulta) => $consulta->vivas()->orWhere(fn ($aceptadas) => $aceptadas->aceptadas()))
+                    ->whereHas('activos', fn ($consulta) => $consulta->whereKey($activo->id))
+                    ->orderByDesc('fecha_deteccion')
+                    ->get()
+                    ->map(fn (Vulnerabilidad $vulnerabilidad): array => [
+                        'id' => $vulnerabilidad->id,
+                        'codigo' => $vulnerabilidad->codigo,
+                        'titulo' => $vulnerabilidad->titulo,
+                        'severidad' => $vulnerabilidad->severidad->etiqueta(),
+                        'severidadTono' => $vulnerabilidad->severidad->tono(),
+                        'fueraDePlazo' => $vulnerabilidad->fueraDePlazo(),
+                        // El estado sólo viaja cuando es aceptada: es lo único que la distingue de las vivas.
+                        'aceptada' => $vulnerabilidad->estado === EstadoVulnerabilidad::Aceptada
+                            ? ['etiqueta' => $vulnerabilidad->estado->etiqueta(), 'tono' => $vulnerabilidad->estado->tono(), 'icono' => $vulnerabilidad->estado->icono()]
+                            : null,
+                    ])->values()->all()
+                : [],
+            /*
+             * Editar, declarar y retirar dependencias son `activos.gestionar`. Sin
+             * esto, al auditor se le pintaban tres botones que le respondían 403,
+             * que es el mismo hallazgo que tuvieron tareas e implantaciones en el
+             * punto 28.
+             */
+            'puedeGestionar' => $request->user()?->can(Permiso::ActivosGestionar->value) ?? false,
+            'puedeVerVulnerabilidades' => $request->user()?->can(Permiso::VulnerabilidadesVer->value) ?? false,
+            'puedeRegistrarVulnerabilidad' => $request->user()?->can(Permiso::VulnerabilidadesGestionar->value) ?? false,
             'valoracionPropia' => $this->serializarValoracion($activo->valoracion()),
             'valoracionEfectiva' => $this->serializarValoracion($valoracionEfectiva),
             // De dónde sale la diferencia. Sin esto, la cifra efectiva parece un

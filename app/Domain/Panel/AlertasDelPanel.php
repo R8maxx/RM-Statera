@@ -19,6 +19,7 @@ use App\Domain\Persona\RegistroPersonas;
 use App\Domain\Proveedor\RegistroProveedores;
 use App\Domain\Riesgo\RegistroRiesgos;
 use App\Domain\Tarea\ResumenPlanDeAccion;
+use App\Domain\Vulnerabilidad\RegistroVulnerabilidades;
 use App\Http\Resources\Panel\Indicador;
 use App\Models\User;
 
@@ -95,6 +96,8 @@ final readonly class AlertasDelPanel
         [Permiso::ContinuidadVer, RegistroContinuidad::class],
         // Una reevaluación y un certificado caducan solos, como una evidencia.
         [Permiso::ProveedoresVer, RegistroProveedores::class],
+        // Un plazo de remediación vence solo, como una tarea.
+        [Permiso::VulnerabilidadesVer, RegistroVulnerabilidades::class],
         [Permiso::RiesgosVer, RegistroRiesgos::class],
         [Permiso::NoConformidadesVer, RegistroNoConformidades::class],
         [Permiso::ObjetivosVer, RegistroObjetivos::class],
@@ -103,6 +106,30 @@ final readonly class AlertasDelPanel
         [Permiso::DocumentosVer, ResumenDocumental::class],
         [Permiso::ActivosVer, ResumenInventario::class],
         [Permiso::AuditoriasVer, RegistroAuditorias::class],
+    ];
+
+    /**
+     * Qué módulos cuelgan de cada vista, para el punto de su pestaña.
+     *
+     * **Por `base` del indicador, y completa.** Estaba escrita en el controlador,
+     * y obligaciones, proveedores y vulnerabilidades entraron en `FUENTES` sin
+     * entrar en ella: su rojo se contaba y no caía en ninguna pestaña, que es
+     * justo el fallo silencioso que el punto existe para cerrar. `AlertasTest` exige ahora que toda `base` de toda
+     * fuente esté en una vista y en una sola.
+     *
+     * @var array<string, list<string>>
+     */
+    public const VISTAS = [
+        'cumplimiento' => ['/evidencias', '/implantaciones', '/documentos', '/sistemas'],
+        'ciclo' => [
+            '/tareas', '/obligaciones', '/no-conformidades', '/mejoras', '/incidentes',
+            '/vulnerabilidades', '/continuidad/bia', '/continuidad/pruebas',
+            '/indicadores', '/objetivos', '/auditorias',
+        ],
+        'organizacion' => [
+            '/contexto', '/contexto/cuestiones', '/partes-interesadas', '/personas',
+            '/formacion', '/activos', '/riesgos', '/proveedores',
+        ],
     ];
 
     /**

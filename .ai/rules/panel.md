@@ -86,6 +86,28 @@ Es el sexto de la familia que descubre en vez de enumerar. Y su `glob` lleva la
 lección de `FactoriesSinOrganizacionTest`: si deja de encontrar nada, el test se
 pone rojo en vez de pasar dando por cubierto lo que no cubre.
 
+### El segundo eslabón: en qué pestaña cae cada rojo
+
+Estar en `FUENTES` hace que el rojo se cuente; **en qué pestaña cae lo decide
+`AlertasDelPanel::VISTAS`**, por la `base` del indicador. Esa lista vivía en
+`PanelController::comunes()` con los módulos que tenían tarjeta, y obligaciones
+(§ 4.16), proveedores (§ 4.9) y vulnerabilidades entraron en `FUENTES` sin
+entrar en ella: su rojo se contaba y no marcaba ninguna pestaña. Lo destapó el
+recorrido de vulnerabilidades en el navegador —una fuera de plazo y «El ciclo»
+seguía diciendo 6—, no la suite.
+
+Ahora está en el dominio, completa, y `AlertasTest` pregunta a cada fuente qué
+`base` llevan sus alertas —la llevan aunque valgan cero— y exige que cada una
+esté **en una vista y en una sola**. Un módulo nuevo que declare su rojo sin
+decir en qué pestaña cae pone el test en rojo.
+
+**Y cada rojo necesita una tarjeta donde explicarse**, porque el punto dice
+«mira aquí» y la pestaña tiene que contestar. Por eso vulnerabilidades entró en
+«El ciclo», pegada a incidentes —lo que pasó y lo que puede llegar a pasar—, y
+proveedores en «La organización», detrás del inventario del que dependen.
+**Continuidad sigue sin tarjeta**: su rojo cae en «El ciclo» y se explica en
+`/continuidad`, no en el panel. Es un hueco conocido.
+
 ### Los dos callejones sin salida que quedaban
 
 **Ninguna cifra de la tarjeta de pruebas llevaba a su lista.** «3 caducadas», y

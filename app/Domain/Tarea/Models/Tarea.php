@@ -12,6 +12,7 @@ use App\Domain\Tarea\Enums\EstadoTarea;
 use App\Domain\Tarea\Enums\OrigenTarea;
 use App\Domain\Tarea\Enums\PrioridadTarea;
 use App\Domain\Traza\Concerns\RegistraTraza;
+use App\Domain\Vulnerabilidad\Models\Vulnerabilidad;
 use App\Models\User;
 use Database\Factories\TareaFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -107,6 +108,17 @@ class Tarea extends Model
     public function proveedores(): BelongsToMany
     {
         return $this->belongsToMany(Proveedor::class, 'proveedor_tarea')
+            ->withPivot(['vinculada_por_id', 'created_at']);
+    }
+
+    /**
+     * De qué vulnerabilidad sale, cuando sale de una.
+     *
+     * @return BelongsToMany<Vulnerabilidad, $this>
+     */
+    public function vulnerabilidades(): BelongsToMany
+    {
+        return $this->belongsToMany(Vulnerabilidad::class, 'vulnerabilidad_tarea')
             ->withPivot(['vinculada_por_id', 'created_at']);
     }
 

@@ -14,6 +14,7 @@ use App\Domain\Obligacion\Models\Compromiso;
 use App\Domain\Persona\Models\Persona;
 use App\Domain\Proveedor\Models\Proveedor;
 use App\Domain\Tarea\Models\Tarea;
+use App\Domain\Vulnerabilidad\Models\Vulnerabilidad;
 use Illuminate\Support\Carbon;
 
 /**
@@ -97,6 +98,7 @@ final readonly class ResumenVencimientos
             Fuente::PruebaContinuidad => $this->calendario->dePruebas(PruebaContinuidad::query()->vencidas()),
             Fuente::Bia => $this->calendario->deBias(BiaServicio::query()->revisionVencida()),
             Fuente::Proveedor => $this->calendario->deProveedores(Proveedor::query()->reevaluacionVencida()),
+            Fuente::Vulnerabilidad => $this->calendario->deVulnerabilidades(Vulnerabilidad::query()->fueraDePlazo()),
         };
     }
 
@@ -126,6 +128,7 @@ final readonly class ResumenVencimientos
             Fuente::PruebaContinuidad => $this->calendario->dePruebas(PruebaContinuidad::query()->porVencer($dias)),
             Fuente::Bia => $this->calendario->deBias(BiaServicio::query()->revisionPorVencer($dias)),
             Fuente::Proveedor => $this->calendario->deProveedores(Proveedor::query()->reevaluacionPorVencer($dias)),
+            Fuente::Vulnerabilidad => $this->calendario->deVulnerabilidades(Vulnerabilidad::query()->plazoPorVencer($dias)),
         };
     }
 }

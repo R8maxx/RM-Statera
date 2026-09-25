@@ -71,3 +71,16 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
   necesitan las filas repetidas —los diez escalones de las dos escalas—, donde el título de la sección ya
   dice qué son y repetir «Etiqueta del escalón 3» en cada fila es ruido. El `<label>` sigue existiendo y
   asociado: quitarlo dejaría el control sin nombre accesible.
+
+- **El recuento de obligatorios escucha también `click`, `pointerup` y `keyup` en el documento, en
+  captura y recontando en la tarea siguiente** (`useCamposObligatorios`). El desplegable, las opciones y
+  el interruptor de Reka son botones y su valor viaja en un campo oculto que cambia por código, así que
+  no dispara `input` ni `change`: la evaluación de un proveedor decía «Faltan 13 campos obligatorios»
+  con todo contestado, y el alta de una cuenta arrastraba «1 sin rellenar» en el rol. **En el
+  documento** porque las opciones del desplegable se pintan en `body`; **en captura** porque Reka corta
+  la propagación del clic en sus opciones; **con `setTimeout`** porque en captura el oyente corre antes
+  de que cambie el valor; y **`pointerup`** porque el desplegable elige al soltar y desmonta la lista
+  antes de que llegue el `click`. Estos tres **sólo recuentan**: no marcan el formulario como
+  modificado. **No se lanza ningún evento sintético desde el campo oculto**: se probó y colgó la
+  pestaña en un bucle con Reka.
+

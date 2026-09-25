@@ -7,6 +7,7 @@ import ResumenNoConformidadesPanel from '@/components/no-conformidad/ResumenNoCo
 import ResumenObjetivosPanel from '@/components/objetivo/ResumenObjetivosPanel.vue';
 import ResumenObligacionesPanel from '@/components/obligacion/ResumenObligacionesPanel.vue';
 import ResumenPlanPanel from '@/components/tarea/ResumenPlanPanel.vue';
+import ResumenVulnerabilidadesPanel from '@/components/vulnerabilidad/ResumenVulnerabilidadesPanel.vue';
 import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { ListTodoIcon } from '@lucide/vue';
@@ -38,6 +39,7 @@ const props = defineProps<{
     desempeno: App.Http.Resources.Panel.ResumenMetricasPanel | null;
     objetivos: App.Http.Resources.Panel.ResumenObjetivosPanel | null;
     obligaciones: App.Http.Resources.Panel.ResumenObligacionesPanel | null;
+    vulnerabilidades: App.Http.Resources.Panel.ResumenVulnerabilidadesPanel | null;
 }>();
 
 const { variantesEntrada, variantesEscalonado } = useMovimientoReducido();
@@ -62,7 +64,8 @@ const vacia = computed(
          * siguiera a cero: una pestaña con una tarjeta suelta es peor que la
          * vacía explicada.
          */
-        (props.obligaciones?.total ?? 0) === 0,
+        (props.obligaciones?.total ?? 0) === 0 &&
+        (props.vulnerabilidades?.total ?? 0) === 0,
 );
 </script>
 
@@ -138,6 +141,19 @@ const vacia = computed(
             -->
             <motion.section v-if="incidentes && incidentes.total > 0" :variants="variantesEntrada">
                 <ResumenIncidentesPanel :resumen="incidentes" />
+            </motion.section>
+
+            <!-- ── Vulnerabilidades ───────────────────────────────────────── -->
+            <!--
+                Pegada a los incidentes, que es su otra mitad: aquello es lo que
+                pasó y esto lo que puede llegar a pasar. Con el registro vacío no
+                se pinta, como las demás.
+            -->
+            <motion.section
+                v-if="vulnerabilidades && vulnerabilidades.total > 0"
+                :variants="variantesEntrada"
+            >
+                <ResumenVulnerabilidadesPanel :resumen="vulnerabilidades" />
             </motion.section>
 
             <!-- ── Desempeño ──────────────────────────────────────────────── -->

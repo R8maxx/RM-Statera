@@ -25,6 +25,10 @@ interface Organizacion {
     reevaluacion_proveedor_alta_meses: number;
     reevaluacion_proveedor_media_meses: number;
     reevaluacion_proveedor_baja_meses: number;
+    plazo_vulnerabilidad_critica_dias: number;
+    plazo_vulnerabilidad_alta_dias: number;
+    plazo_vulnerabilidad_media_dias: number;
+    plazo_vulnerabilidad_baja_dias: number;
 }
 
 const props = defineProps<{
@@ -229,6 +233,50 @@ const cambioLaBase = computed(
                         :valor-inicial="String(organizacion.reevaluacion_proveedor_baja_meses)"
                         :error="errors.reevaluacion_proveedor_baja_meses"
                         ayuda="En meses."
+                        requerido
+                    />
+                </FilaCampos>
+            </SeccionFormulario>
+
+            <SeccionFormulario
+                titulo="Plazo de remediación de vulnerabilidades"
+                ayuda="Cuántos días hay para arreglar una vulnerabilidad desde que se detecta, según su severidad. Ni ISO 27001 ni el ENS fijan el número: es una decisión de la organización. Una informativa no tiene plazo."
+            >
+                <FilaCampos>
+                    <CampoTexto
+                        nombre="plazo_vulnerabilidad_critica_dias"
+                        etiqueta="Crítica"
+                        tipo="number"
+                        :valor-inicial="String(organizacion.plazo_vulnerabilidad_critica_dias)"
+                        :error="errors.plazo_vulnerabilidad_critica_dias"
+                        ayuda="En días."
+                        requerido
+                    />
+                    <CampoTexto
+                        nombre="plazo_vulnerabilidad_alta_dias"
+                        etiqueta="Alta"
+                        tipo="number"
+                        :valor-inicial="String(organizacion.plazo_vulnerabilidad_alta_dias)"
+                        :error="errors.plazo_vulnerabilidad_alta_dias"
+                        ayuda="En días."
+                        requerido
+                    />
+                    <CampoTexto
+                        nombre="plazo_vulnerabilidad_media_dias"
+                        etiqueta="Media"
+                        tipo="number"
+                        :valor-inicial="String(organizacion.plazo_vulnerabilidad_media_dias)"
+                        :error="errors.plazo_vulnerabilidad_media_dias"
+                        ayuda="En días."
+                        requerido
+                    />
+                    <CampoTexto
+                        nombre="plazo_vulnerabilidad_baja_dias"
+                        etiqueta="Baja"
+                        tipo="number"
+                        :valor-inicial="String(organizacion.plazo_vulnerabilidad_baja_dias)"
+                        :error="errors.plazo_vulnerabilidad_baja_dias"
+                        ayuda="En días."
                         requerido
                     />
                 </FilaCampos>

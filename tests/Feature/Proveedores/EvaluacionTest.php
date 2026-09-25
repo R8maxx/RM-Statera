@@ -109,6 +109,10 @@ it('cambiar la política de la organización mueve la próxima fecha', function 
         'reevaluacion_proveedor_alta_meses' => 6,
         'reevaluacion_proveedor_media_meses' => 24,
         'reevaluacion_proveedor_baja_meses' => 36,
+        'plazo_vulnerabilidad_critica_dias' => 7,
+        'plazo_vulnerabilidad_alta_dias' => 30,
+        'plazo_vulnerabilidad_media_dias' => 90,
+        'plazo_vulnerabilidad_baja_dias' => 180,
     ])->assertSessionHasNoErrors();
 
     expect($this->proveedor->fresh()?->proxima_evaluacion?->toDateString())->toBe('2027-03-01');

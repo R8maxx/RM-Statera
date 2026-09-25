@@ -176,6 +176,12 @@ enum Rol: string
                 Permiso::ProveedoresVer,
                 Permiso::ProveedoresGestionar,
                 /*
+                 * Las vulnerabilidades las registra, las remedia y verifica el
+                 * cierre, y **no las acepta**: no corregirla es asumir un riesgo.
+                 */
+                Permiso::VulnerabilidadesVer,
+                Permiso::VulnerabilidadesGestionar,
+                /*
                  * El BIA de un servicio: lo registra, lo edita y planifica y
                  * ejecuta sus pruebas —Permiso::ContinuidadGestionar—, pero
                  * **no aprueba el RTO**: aceptar un RTO es aceptar un riesgo,
@@ -232,6 +238,7 @@ enum Rol: string
                 Permiso::PersonasVer,
                 Permiso::IncidentesVer,
                 Permiso::ProveedoresVer,
+                Permiso::VulnerabilidadesVer,
                 Permiso::ContinuidadVer,
                 // La conformidad es lo primero que un auditor externo mira.
                 Permiso::ConformidadVer,

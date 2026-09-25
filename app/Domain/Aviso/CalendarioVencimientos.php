@@ -15,6 +15,7 @@ use App\Domain\Persona\Models\Persona;
 use App\Domain\Proveedor\Models\Proveedor;
 use App\Domain\Tarea\Enums\EstadoTarea;
 use App\Domain\Tarea\Models\Tarea;
+use App\Domain\Vulnerabilidad\Models\Vulnerabilidad;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
@@ -139,6 +140,11 @@ final readonly class CalendarioVencimientos
             Fuente::Proveedor => $this->deProveedores($filtros->acotar(
                 Proveedor::query()->reevaluacionEntre($desde, $hasta),
                 'proxima_evaluacion',
+            )),
+
+            Fuente::Vulnerabilidad => $this->deVulnerabilidades($filtros->acotar(
+                Vulnerabilidad::query()->plazoEntre($desde, $hasta),
+                'fecha_limite',
             )),
         };
     }
@@ -531,6 +537,43 @@ final readonly class CalendarioVencimientos
                     tono: $this->tono($dias),
                     estadoTono: $dias < 0 ? 'caducada' : $proveedor->estado->tono(),
                     estadoEtiqueta: $dias < 0 ? 'Reevaluación vencida' : $proveedor->estado->etiqueta(),
+                );
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Las vulnerabilidades sin arreglo cuyo plazo de remediación vence, o ya
+     * venció.
+     *
+     * @param  Builder<Vulnerabilidad>  $consulta
+     * @return list<Vencimiento>
+     */
+    public function deVulnerabilidades(Builder $consulta): array
+    {
+        $hoy = Carbon::today();
+
+        return $consulta
+            ->with('responsable:id,name')
+            ->orderBy('vulnerabilidades.fecha_limite')
+            ->get()
+            ->map(function (Vulnerabilidad $vulnerabilidad) use ($hoy): Vencimiento {
+                /** @var Carbon $fecha */
+                $fecha = $vulnerabilidad->fecha_limite;
+                $dias = (int) $hoy->diffInDays($fecha, false);
+
+                return new Vencimiento(
+                    id: $vulnerabilidad->id,
+                    fuente: Fuente::Vulnerabilidad,
+                    titulo: "{$vulnerabilidad->codigo} — {$vulnerabilidad->titulo}",
+                    dia: $fecha->toDateString(),
+                    fecha: $fecha->format('d/m/Y'),
+                    dias: $dias,
+                    responsable: $vulnerabilidad->responsable?->name,
+                    tono: $this->tono($dias),
+                    estadoTono: $dias < 0 ? 'caducada' : $vulnerabilidad->estado->tono(),
+                    estadoEtiqueta: $dias < 0 ? 'Fuera de plazo' : $vulnerabilidad->estado->etiqueta(),
                 );
             })
             ->values()

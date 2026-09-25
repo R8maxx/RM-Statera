@@ -8,6 +8,7 @@ use App\Domain\Incidente\Models\Incidente;
 use App\Domain\Panel\AlertasDelPanel;
 use App\Domain\Tarea\Enums\EstadoTarea;
 use App\Domain\Tarea\Models\Tarea;
+use App\Domain\Vulnerabilidad\Models\Vulnerabilidad;
 use App\Http\Resources\Panel\Indicador;
 use Illuminate\Support\Carbon;
 use Inertia\Testing\AssertableInertia;
@@ -200,4 +201,60 @@ it('no declara fuentes que no tengan alertas', function (): void {
     foreach (AlertasDelPanel::FUENTES as [, $registro]) {
         expect(method_exists($registro, 'alertas'))->toBeTrue("{$registro} está declarado y no tiene alertas().");
     }
+});
+
+/**
+ * **El segundo eslabón, que el anterior no cubría.** Estar en `FUENTES` hace que
+ * el rojo se cuente; que caiga en una pestaña lo decide `VISTAS`, y obligaciones,
+ * proveedores y vulnerabilidades entraron en lo primero sin entrar en lo
+ * segundo. Se contaban y no marcaban ninguna pestaña.
+ *
+ * El test no enumera módulos: pregunta a cada fuente qué `base` llevan sus
+ * alertas —la lleva aunque valgan cero— y exige que esté en una vista y en una
+ * sola.
+ */
+it('toda alerta de toda fuente cae en una pestaña y en una sola', function (): void {
+    $bases = [];
+
+    foreach (AlertasDelPanel::FUENTES as [, $registro]) {
+        foreach (app($registro)->alertas() as $alerta) {
+            $bases[$alerta->base] = $registro;
+        }
+    }
+
+    expect($bases)->not->toBeEmpty();
+
+    foreach ($bases as $base => $registro) {
+        $vistas = array_keys(array_filter(
+            AlertasDelPanel::VISTAS,
+            static fn (array $modulos): bool => in_array($base, $modulos, true),
+        ));
+
+        expect($vistas)->toHaveCount(
+            1,
+            "La alerta con base {$base} de {$registro} cae en ".count($vistas).' pestañas de AlertasDelPanel::VISTAS.',
+        );
+    }
+});
+
+it('marca «El ciclo» con una vulnerabilidad fuera de plazo', function (): void {
+    Vulnerabilidad::factory()->create([
+        'severidad' => 'critica',
+        'fecha_deteccion' => Carbon::today()->subDays(30),
+        'fecha_limite' => Carbon::today()->subDays(23),
+    ]);
+
+    $this->actingAs($this->usuario)
+        ->get('/panel/ciclo')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->where('vistas.1.clave', 'ciclo')
+            ->where('vistas.1.alertas', 1)
+            ->where('vulnerabilidades.fueraDePlazo', 1)
+            ->etc());
+});
+
+it('lleva los proveedores a «La organización»', function (): void {
+    $this->actingAs($this->usuario)
+        ->get('/panel/organizacion')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina->has('proveedores')->etc());
 });
