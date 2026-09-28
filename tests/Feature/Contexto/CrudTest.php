@@ -8,6 +8,7 @@ use App\Domain\Contexto\Enums\TipoCuestion;
 use App\Domain\Contexto\Models\CuestionContexto;
 use App\Domain\Contexto\Models\ParteInteresada;
 use App\Domain\Contexto\Models\RequisitoInteresado;
+use App\Domain\Organizacion\Models\Organizacion;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -204,4 +205,21 @@ it('lo de otra organización da 404 y no 403', function (): void {
         // Y RLS por debajo del scope: la capa que un `withoutGlobalScopes()`
         // se saltaría sigue devolviendo cero.
         ->and(DB::table('cuestiones_contexto')->count())->toBe(0);
+});
+
+it('no acepta de responsable la cuenta de otra organización', function (): void {
+    // `users` no tiene RLS: un `exists:users,id` a secas aceptaba este id.
+    $ajeno = usuarioCon(organizacion: Organizacion::factory()->create());
+
+    $this->actingAs($this->usuario)
+        ->post('/partes-interesadas', [
+            'codigo' => 'PI-09',
+            'nombre' => 'Centro Criptológico Nacional',
+            'tipo' => 'regulador',
+            'ambito' => 'externo',
+            'responsable_id' => $ajeno->id,
+        ])
+        ->assertSessionHasErrors('responsable_id');
+
+    expect(ParteInteresada::query()->where('codigo', 'PI-09')->exists())->toBeFalse();
 });

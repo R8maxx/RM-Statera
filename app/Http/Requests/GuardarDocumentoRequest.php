@@ -60,7 +60,11 @@ class GuardarDocumentoRequest extends FormRequest
             ],
             'titulo' => ['required', 'string', 'max:255'],
             'clasificacion' => ['required', Rule::enum(ClasificacionDocumental::class)],
-            'responsable_id' => ['nullable', 'integer', 'exists:users,id'],
+            'responsable_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('users', 'id')->where('organizacion_id', app(ContextoOrganizacion::class)->idObligatorio()),
+            ],
             'notas' => ['nullable', 'string', 'max:2000'],
 
             /*

@@ -91,7 +91,11 @@ class GuardarCompromisoRequest extends FormRequest
              */
             'computa_desde' => ['required', 'date', 'before_or_equal:today'],
             'sistema_id' => ['nullable', 'integer', 'exists:sistemas,id'],
-            'responsable_id' => ['nullable', 'integer', 'exists:users,id'],
+            'responsable_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('users', 'id')->where('organizacion_id', $this->user()?->organizacion_id),
+            ],
             'notas' => ['nullable', 'string', 'max:5000'],
         ];
     }

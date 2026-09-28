@@ -20,8 +20,8 @@ declare(strict_types=1);
 |
 | Este test es la capa que falta. Llegó cuando el § 4.16 fue a tocar el
 | desplegable del calendario y aparecieron **doce** consultas sin acotar en seis
-| módulos —controlador y recurso de cada uno—, mientras los otros diez sitios sí
-| lo hacían y uno de ellos lo llevaba comentado. Con diecisiete sitios repartidos
+| módulos —controlador y recurso de cada uno—, mientras los otros diecinueve sitios sí
+| lo hacían y uno de ellos lo llevaba comentado. Con treinta y un sitios repartidos
 | por dos capas, acordarse no es un mecanismo.
 |
 | Se acota con `->where('organizacion_id', …)`, y la organización se toma
@@ -109,3 +109,77 @@ it('acota por organización toda consulta de usuarios', function (string $ficher
         $linea,
     ));
 })->with(fn () => consultasDeUsuario());
+
+/**
+ * Cada regla de validación que comprueba que un id existe en `users`.
+ *
+ * La consulta no es la única puerta: `'exists:users,id'` acepta el id de una
+ * cuenta de **otro cliente** como responsable, y el registro se guarda
+ * apuntándola. Llegaron siete así con el punto 31, en seis `FormRequest` y un
+ * controlador, mientras veintitrés sitios ya usaban `Rule::exists()` con su
+ * `where`. El resto de `exists:` no necesita esto: las demás tablas de datos
+ * propios tienen RLS y la validación pasa por ella.
+ *
+ * Se buscan las dos formas —la cadena y `Rule::exists('users'`— y se mira la
+ * misma ventana de cinco líneas que para las consultas.
+ *
+ * @return list<array{0: string, 1: int}>
+ */
+function reglasExistsDeUsuario(): array
+{
+    $raiz = __DIR__.'/../../../app';
+
+    $iterador = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($raiz, FilesystemIterator::SKIP_DOTS),
+    );
+
+    $encontradas = [];
+
+    /** @var SplFileInfo $fichero */
+    foreach ($iterador as $fichero) {
+        if ($fichero->getExtension() !== 'php') {
+            continue;
+        }
+
+        $lineas = file($fichero->getPathname(), FILE_IGNORE_NEW_LINES) ?: [];
+
+        foreach ($lineas as $indice => $linea) {
+            $esRegla = str_contains($linea, 'exists:users')
+                || preg_match("/Rule::exists\\(\\s*['\"]users['\"]/", $linea) === 1;
+
+            if (! $esRegla || esComentario($linea)) {
+                continue;
+            }
+
+            $encontradas[] = [
+                str_replace($raiz.'/', 'app/', $fichero->getPathname()),
+                $indice + 1,
+            ];
+        }
+    }
+
+    sort($encontradas);
+
+    return $encontradas;
+}
+
+it('encuentra las reglas de existencia de usuarios que tiene que vigilar', function (): void {
+    // Si el patrón deja de encontrar nada, el test de abajo pasa sin mirar nada.
+    expect(count(reglasExistsDeUsuario()))->toBeGreaterThan(20);
+});
+
+it('acota por organización toda regla de existencia de usuarios', function (string $fichero, int $linea): void {
+    $ruta = __DIR__.'/../../../'.$fichero;
+    $lineas = file($ruta, FILE_IGNORE_NEW_LINES) ?: [];
+
+    $ventana = implode(' ', array_slice($lineas, $linea - 1, 6));
+
+    expect(! str_contains($ventana, 'exists:users') && str_contains($ventana, 'organizacion_id'))->toBeTrue(sprintf(
+        "%s:%d valida un id de `users` sin acotar por organización.\n"
+        .'`User` no tiene RLS, así que la regla acepta la cuenta de otro cliente como '
+        ."responsable.\n"
+        .'Usa `Rule::exists(\'users\', \'id\')->where(\'organizacion_id\', …)`.',
+        $fichero,
+        $linea,
+    ));
+})->with(fn () => reglasExistsDeUsuario());

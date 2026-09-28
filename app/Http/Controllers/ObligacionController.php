@@ -35,6 +35,7 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -113,7 +114,11 @@ class ObligacionController extends Controller
         $datos = $request->validate([
             'computa_desde' => ['nullable', 'date', 'before_or_equal:today'],
             'sistema_id' => ['nullable', 'integer', 'exists:sistemas,id'],
-            'responsable_id' => ['nullable', 'integer', 'exists:users,id'],
+            'responsable_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('users', 'id')->where('organizacion_id', app(ContextoOrganizacion::class)->idObligatorio()),
+            ],
             /*
              * La cadencia del catálogo es **la sugerida**, y quien asume puede ser
              * más estricto. `AsumirObligacion` lo admitía desde el principio y

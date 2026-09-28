@@ -55,7 +55,11 @@ class GuardarCuestionRequest extends FormRequest
             'descripcion' => ['nullable', 'string', 'max:5000'],
             'materia' => ['required', Rule::enum(MateriaCuestion::class)],
             'es_climatica' => ['boolean'],
-            'responsable_id' => ['nullable', 'integer', 'exists:users,id'],
+            'responsable_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('users', 'id')->where('organizacion_id', app(ContextoOrganizacion::class)->idObligatorio()),
+            ],
         ];
     }
 

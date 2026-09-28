@@ -48,7 +48,11 @@ class GuardarParteInteresadaRequest extends FormRequest
             'tipo' => ['required', Rule::enum(TipoParteInteresada::class)],
             'ambito' => ['required', Rule::enum(Ambito::class)],
             'descripcion' => ['nullable', 'string', 'max:5000'],
-            'responsable_id' => ['nullable', 'integer', 'exists:users,id'],
+            'responsable_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('users', 'id')->where('organizacion_id', app(ContextoOrganizacion::class)->idObligatorio()),
+            ],
         ];
     }
 

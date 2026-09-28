@@ -84,6 +84,13 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
   traga el mensaje como una segunda aguja, con lo que el test falla siempre y por el motivo
   equivocado. Pasó al escribirlo.
 
+- **La consulta no es la única puerta: también la validación.** `'exists:users,id'` a secas acepta
+  el id de una cuenta de otro cliente como responsable, y el registro se guarda apuntándola. Había
+  **siete** así —seis `FormRequest` y `ObligacionController::asumir()`— mientras veintitrés sitios ya
+  usaban `Rule::exists('users', 'id')->where('organizacion_id', …)`. El mismo test las busca ahora en
+  sus dos formas y exige el `where` en las cinco líneas siguientes. El resto de `exists:` no lo
+  necesita: las demás tablas de datos propios tienen RLS y la validación pasa por ella.
+
 - **Hay una cuarta capa, y no es de tenant: el alcance de la cuenta (§ 4.19).** El
   auditor externo ve sólo los sistemas que audita. Vive en
   `ContextoOrganizacion::acotarASistemas()`, la fija `EstablecerContextoOrganizacion`

@@ -59,7 +59,11 @@ class GuardarNoConformidadRequest extends FormRequest
             'correccion_inmediata' => ['nullable', 'string', 'max:5000'],
             'analisis_causa_raiz' => ['nullable', 'string', 'max:5000'],
 
-            'responsable_id' => ['nullable', 'integer', 'exists:users,id'],
+            'responsable_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('users', 'id')->where('organizacion_id', app(ContextoOrganizacion::class)->idObligatorio()),
+            ],
             'fecha_deteccion' => ['required', 'date'],
             'fecha_prevista' => ['nullable', 'date'],
         ];

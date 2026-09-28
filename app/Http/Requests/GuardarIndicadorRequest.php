@@ -58,7 +58,11 @@ class GuardarIndicadorRequest extends FormRequest
 
             'objetivo' => ['nullable', 'numeric', 'between:-9999999999,9999999999'],
 
-            'responsable_id' => ['nullable', 'integer', 'exists:users,id'],
+            'responsable_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('users', 'id')->where('organizacion_id', app(ContextoOrganizacion::class)->idObligatorio()),
+            ],
             'activo' => ['boolean'],
         ];
     }
