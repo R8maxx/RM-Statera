@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Vulnerabilidad\Models;
 
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
+use App\Domain\Traza\Concerns\RegistraTraza;
 use App\Domain\Vulnerabilidad\Enums\EstadoVulnerabilidad;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
@@ -25,6 +26,7 @@ use Illuminate\Support\Carbon;
 class VulnerabilidadTransicion extends Model
 {
     use PerteneceAOrganizacion;
+    use RegistraTraza;
 
     public const UPDATED_AT = null;
 

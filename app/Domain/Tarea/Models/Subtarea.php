@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Tarea\Models;
 
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
+use App\Domain\Traza\Concerns\RegistraTraza;
 use Database\Factories\SubtareaFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -31,6 +32,7 @@ class Subtarea extends Model
     use HasFactory;
 
     use PerteneceAOrganizacion;
+    use RegistraTraza;
 
     protected $table = 'subtareas';
 

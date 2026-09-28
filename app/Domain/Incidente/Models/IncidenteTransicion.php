@@ -6,6 +6,7 @@ namespace App\Domain\Incidente\Models;
 
 use App\Domain\Incidente\Enums\EstadoIncidente;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
+use App\Domain\Traza\Concerns\RegistraTraza;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -29,6 +30,7 @@ use Illuminate\Support\Carbon;
 class IncidenteTransicion extends Model
 {
     use PerteneceAOrganizacion;
+    use RegistraTraza;
 
     protected $table = 'incidente_transiciones';
 

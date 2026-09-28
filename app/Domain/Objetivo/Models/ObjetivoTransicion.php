@@ -6,6 +6,7 @@ namespace App\Domain\Objetivo\Models;
 
 use App\Domain\Objetivo\Enums\EstadoObjetivo;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
+use App\Domain\Traza\Concerns\RegistraTraza;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -34,6 +35,7 @@ use Illuminate\Support\Carbon;
 class ObjetivoTransicion extends Model
 {
     use PerteneceAOrganizacion;
+    use RegistraTraza;
 
     public $timestamps = false;
 

@@ -6,6 +6,7 @@ namespace App\Domain\Continuidad\Models;
 
 use App\Domain\Continuidad\Enums\EstadoBia;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
+use App\Domain\Traza\Concerns\RegistraTraza;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -19,8 +20,10 @@ use Illuminate\Support\Carbon;
  * borrador, también «¿qué decía la última vez que se aprobó?». Sin traza, esa
  * respuesta se pierde con la propia edición.
  *
- * Sin `RegistraTraza`, como `IncidenteTransicion`: la traza registra sobre el
- * histórico y no sobre sí misma.
+ * Con `RegistraTraza`, como todas sus hermanas desde el punto 32. El histórico
+ * contesta «¿desde cuándo?» y la traza contesta otra cosa: que esta fila no se
+ * ha tocado ni borrado después de escribirse. Son dos preguntas y la segunda
+ * no la contesta la propia tabla.
  *
  * @property int $id
  * @property int $organizacion_id
@@ -34,6 +37,7 @@ use Illuminate\Support\Carbon;
 class BiaServicioTransicion extends Model
 {
     use PerteneceAOrganizacion;
+    use RegistraTraza;
 
     protected $table = 'bia_servicio_transiciones';
 

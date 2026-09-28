@@ -6,6 +6,7 @@ namespace App\Domain\Conformidad\Models;
 
 use App\Domain\Conformidad\Enums\EstadoConformidad;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
+use App\Domain\Traza\Concerns\RegistraTraza;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -32,6 +33,7 @@ use Illuminate\Support\Carbon;
 class ConformidadTransicion extends Model
 {
     use PerteneceAOrganizacion;
+    use RegistraTraza;
 
     public $timestamps = false;
 

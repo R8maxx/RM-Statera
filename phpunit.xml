@@ -35,6 +35,8 @@
         <env name="DB_DATABASE" value="statera_test"/>
         <env name="DB_USERNAME" value="statera_app"/>
         <env name="DB_PASSWORD" value="statera"/>
+        <env name="DB_MIGRACIONES_USERNAME" value="statera_migrador"/>
+        <env name="DB_MIGRACIONES_PASSWORD" value="statera"/>
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>

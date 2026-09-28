@@ -404,3 +404,60 @@ El orden importa: el catálogo y el motor son la parte más específica del domi
 
     **Con él no queda ningún punto de la lista.** Lo que falta son los huecos que
     `PRODUCT.md` anota, que no son módulos.
+
+## Tramo «listo para producción»
+
+Con la lista de módulos terminada, lo que falta no es funcionalidad: es lo que el
+invariante 8 y el § 6 de la especificación exigen antes de que entre alguien de
+verdad. La herramienta guarda el inventario, las vulnerabilidades y las
+evidencias de su propio SGSI, y hasta aquí sólo cumplía tres de los siete
+requisitos no funcionales: el segundo factor, el registro de sesiones y el
+bloqueo por inactividad. El orden va de lo que ya es un fallo a lo que exige
+decidir algo: 31 validación, 32 traza, 33 horas, 34 copias, 35 cifrado en reposo
+y 36 retención RGPD.
+
+31. ✅ La validación de usuarios, acotada. **Era un fallo, y por eso va
+    primero.** Siete reglas `exists:users,id` —seis `FormRequest` y
+    `ObligacionController::asumir()`— aceptaban de responsable la cuenta de
+    otro cliente, mientras veintitrés sitios ya usaban `Rule::exists()` con su
+    `where`. `ConsultasDeUsuarioAcotadasTest` vigilaba las consultas y no la
+    validación, que es la otra puerta: `users` no tiene RLS y el resto de
+    `exists:` sí pasan por ella. Ahora vigila las dos, y encontró exactamente
+    esas siete.
+
+32. ✅ Traza completa e inmutable. **Completa, ya**: dieciocho modelos con
+    `organizacion_id` no dejaban traza —las once tablas de transiciones y siete
+    de detalle—, y la emisión de una versión, que es lo que más le importa al
+    auditor, iba por el query builder y tampoco. Las transiciones se quedaban
+    fuera a propósito («la traza registra sobre el histórico y no sobre sí
+    misma»), y César decidió que entren: el histórico contesta «¿desde
+    cuándo?» y la traza contesta que la fila no se ha tocado después. En
+    `CompromisoCumplimiento` había además un motivo de peso, porque se corrige
+    borrando y ese borrado no dejaba rastro. Tres borrados en bloque pasaron a
+    hacerse fila a fila para que no saliera media traza, y un undécimo test que
+    descubre exige el trait.
+
+    **E inmutable, que no lo era.** `statera_app` corría las migraciones y era
+    la cuenta de la aplicación, así que era dueña de las 113 tablas. Un dueño
+    puede devolverse cualquier privilegio: el `REVOKE` sobre
+    `eventos_auditoria` paraba al código distraído, pero unas credenciales
+    comprometidas lo deshacían con un `GRANT`, y con un `DISABLE TRIGGER`
+    apagaban los triggers de inmutabilidad. Ahora el esquema es de
+    `statera_migrador`, que sólo usan las migraciones, y la aplicación lee y
+    escribe filas y nada más. Los tests migran como dueño y corren como
+    aplicación (`RefrescaLaBase`), porque un test que corriera como dueño vería
+    salirle bien lo que hay que impedir.
+
+    **Lo que no cierra, y queda declarado:** RLS decide por dos variables de
+    sesión, `app.organizacion_actual` y `app.mantenimiento`, y cualquier rol
+    puede fijarlas con `set_config()`. La tercera capa para a una consulta mal
+    escrita, pero no a quien ya ejecuta SQL arbitrario con las credenciales de
+    la aplicación. Cerrarlo pide que la organización no la declare el propio
+    cliente de la base, y eso ya es otro diseño.
+
+    **La lección tiene un matiz nuevo.** El test que comprobaba el `GRANT` salió
+    rojo con la puerta ya cerrada: PostgreSQL no falla cuando alguien sin opción
+    de concesión hace un `GRANT`; avisa de que no concedió nada y sigue. Un test
+    que espera la excepción da por abierta una puerta cerrada, y en otro motor
+    daría por cerrada una abierta. Se comprueba el efecto, con
+    `has_table_privilege()`.

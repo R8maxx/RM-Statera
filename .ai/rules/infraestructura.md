@@ -82,6 +82,8 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
   bucket de MinIO llevaba desde el principio creándose a mano, y olvidarlo fallaba
   mucho después, al subir una evidencia.
 
+- **PostgreSQL tiene dos roles de aplicación, y no son intercambiables** (punto 32). `statera_migrador` es dueño del esquema y lo usan sólo las migraciones, por la conexión `pgsql_migraciones`; `statera_app` es la conexión de Statera y sólo lee y escribe filas. Los crea `docker/postgres/init/02-crear-rol-de-aplicacion.sql`, que es idempotente: en un volumen nuevo lo ejecuta el arranque de PostgreSQL, y **un volumen anterior al punto 32 se convierte una vez a mano** con la orden de su cabecera. El síntoma de no haberlo hecho es que el `migrate` del entrypoint muere porque el rol `statera_migrador` no existe; y un `migrate` a secas, sin `--database`, muere con «permission denied for schema public», que es lo correcto. El motivo, en `aislamiento.md`.
+
 - **Cliente de Redis: `predis`, no `phpredis`.** La máquina de desarrollo no tiene la extensión `phpredis` compilada y el stack no elige cliente. `predis` es PHP puro y no requiere extensión. Si en producción se instala `phpredis`, basta cambiar `REDIS_CLIENT` en el entorno.
 
 - **`laravel/passport` se retiró.** Venía en el esqueleto inicial junto con sus seis migraciones OAuth. No hay API pública que autenticar (§12 del stack descarta la SPA con API separada) y la autenticación va por Fortify. Si algún día hace falta OAuth para integraciones, se vuelve a valorar entonces.

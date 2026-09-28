@@ -23,9 +23,10 @@ use App\Domain\Organizacion\Models\Organizacion;
 use App\Domain\Sistema\AplicarValoracion;
 use App\Domain\Sistema\Models\Sistema;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Database\Eloquent\Model;
 use Inertia\Inertia;
 use Inertia\Testing\AssertableInertia;
+use Tests\Concerns\RefrescaLaBase;
 use Tests\TestCase;
 
 /*
@@ -39,7 +40,7 @@ use Tests\TestCase;
 */
 
 pest()->extend(TestCase::class)
-    ->use(RefreshDatabase::class)
+    ->use(RefrescaLaBase::class)
     ->beforeEach(function (): void {
         // Un test de HTTP no puede depender de que alguien haya compilado
         // JavaScript. Sin esto, la plantilla raíz resuelve `@vite` de verdad y
@@ -108,6 +109,31 @@ function uniforme(NivelDimension $nivel): ValoracionDimensiones
 | lista no se toca y el test sigue verde mintiendo. Aquí se descubren.
 |
 */
+
+/**
+ * Los modelos de `app/Domain/<Contexto>/Models/`, por clase.
+ *
+ * Vivía dentro de `AlcanceDelAuditorTest` y se mudó aquí cuando un segundo test
+ * —el de la traza— hizo la misma pregunta. Una función declarada en un fichero
+ * de test sólo existe si Pest carga ese fichero, así que ejecutar el otro a
+ * solas reventaba con «undefined function».
+ *
+ * @return list<class-string<Model>>
+ */
+function modelosDelDominio(): array
+{
+    $modelos = [];
+
+    foreach (glob(base_path('app/Domain/*/Models/*.php')) ?: [] as $ruta) {
+        $clase = 'App\\Domain\\'.str_replace('/', '\\', substr((string) strstr($ruta, 'Domain/'), 7, -4));
+
+        if (class_exists($clase) && is_subclass_of($clase, Model::class)) {
+            $modelos[] = $clase;
+        }
+    }
+
+    return $modelos;
+}
 
 /**
  * Los enums del dominio que declaran un método concreto.

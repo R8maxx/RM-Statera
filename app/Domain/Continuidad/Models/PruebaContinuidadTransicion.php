@@ -6,6 +6,7 @@ namespace App\Domain\Continuidad\Models;
 
 use App\Domain\Continuidad\Enums\EstadoPrueba;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
+use App\Domain\Traza\Concerns\RegistraTraza;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,8 +18,10 @@ use Illuminate\Support\Carbon;
  * Mismo papel que `BiaServicioTransicion` e `IncidenteTransicion`: la
  * pregunta del auditor no es «¿se probó?», es «¿cuándo, y con qué resultado?».
  *
- * Sin `RegistraTraza`, como sus dos hermanas: la traza registra sobre el
- * histórico y no sobre sí misma.
+ * Con `RegistraTraza`, como todas sus hermanas desde el punto 32. El histórico
+ * contesta «¿desde cuándo?» y la traza contesta otra cosa: que esta fila no se
+ * ha tocado ni borrado después de escribirse. Son dos preguntas y la segunda
+ * no la contesta la propia tabla.
  *
  * @property int $id
  * @property int $organizacion_id
@@ -32,6 +35,7 @@ use Illuminate\Support\Carbon;
 class PruebaContinuidadTransicion extends Model
 {
     use PerteneceAOrganizacion;
+    use RegistraTraza;
 
     protected $table = 'prueba_continuidad_transiciones';
 

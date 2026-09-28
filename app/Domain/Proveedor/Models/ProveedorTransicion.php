@@ -6,6 +6,7 @@ namespace App\Domain\Proveedor\Models;
 
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
 use App\Domain\Proveedor\Enums\EstadoProveedor;
+use App\Domain\Traza\Concerns\RegistraTraza;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -25,6 +26,7 @@ use Illuminate\Support\Carbon;
 class ProveedorTransicion extends Model
 {
     use PerteneceAOrganizacion;
+    use RegistraTraza;
 
     public const UPDATED_AT = null;
 

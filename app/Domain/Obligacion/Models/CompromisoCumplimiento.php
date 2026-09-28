@@ -11,6 +11,7 @@ use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Obligacion\Enums\ReferenciaCumplimiento;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
 use App\Domain\RevisionDireccion\Models\RevisionDireccion;
+use App\Domain\Traza\Concerns\RegistraTraza;
 use App\Models\User;
 use Database\Factories\Obligacion\CompromisoCumplimientoFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -30,10 +31,11 @@ use Illuminate\Support\Carbon;
  * fuera de plazo un cumplimiento de enero que en enero estaba al día — misma
  * familia que `documento_versiones.fecha_proxima_revision`.
  *
- * **Sin `updated_at` y sin `RegistraTraza`.** Esto es histórico y no se edita:
- * corregir un cumplimiento mal apuntado es borrarlo y registrar el bueno. Y no
- * lleva traza propia porque la fila **es** la traza; lo que sí registra es quién
- * la escribió, en `registrado_por_id`.
+ * **Sin `updated_at`, y con `RegistraTraza` desde el punto 32.** Esto es
+ * histórico y no se edita: corregir un cumplimiento mal apuntado es borrarlo y
+ * registrar el bueno. Durante un tiempo no llevó traza porque «la fila es la
+ * traza», y eso dejaba fuera justo el borrado: el cumplimiento que se quitaba
+ * desaparecía sin que constara quién ni cuándo.
  *
  * @property int $id
  * @property int $organizacion_id
@@ -55,6 +57,7 @@ class CompromisoCumplimiento extends Model
     use HasFactory;
 
     use PerteneceAOrganizacion;
+    use RegistraTraza;
 
     public const UPDATED_AT = null;
 

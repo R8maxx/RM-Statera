@@ -15,6 +15,7 @@ use App\Domain\Documento\Models\DocumentoVersion;
 use App\Domain\Documento\Render\ClienteGotenberg;
 use App\Domain\Implantacion\GeneradorImplantaciones;
 use App\Domain\Sistema\Models\Sistema;
+use App\Domain\Traza\Models\EventoAuditoria;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Storage;
@@ -122,6 +123,30 @@ it('jubila la versión anterior al aprobarse la siguiente', function (): void {
 
     // Y sólo una viva: lo impone el índice único parcial.
     expect($this->documento->versiones()->where('estado', EstadoDocumental::Aprobado->value)->count())->toBe(1);
+});
+
+/**
+ * Las dos escrituras de la emisión van por el query builder y no disparan los
+ * eventos del modelo. Hasta el punto 32, lo que más le importa al auditor —qué
+ * versión se entregó y cuál dejó de valer— era lo único que no quedaba en la traza.
+ */
+it('deja en la traza la entrega y la versión que jubila', function (): void {
+    $primera = ($this->entregar)();
+    $segunda = ($this->entregar)();
+
+    $eventos = fn (DocumentoVersion $version) => EventoAuditoria::query()
+        ->where('entidad', 'DocumentoVersion')
+        ->where('entidad_id', $version->id)
+        ->get();
+
+    $entrega = $eventos($segunda)->first(fn (EventoAuditoria $e): bool => ($e->valor_nuevo['numero'] ?? null) === 2);
+    $jubilacion = $eventos($primera)->first(fn (EventoAuditoria $e): bool => ($e->valor_nuevo['estado'] ?? null) === EstadoDocumental::Obsoleto->value);
+
+    expect($entrega)->not->toBeNull('La emisión de la v2 no dejó evento.')
+        ->and($entrega->valor_anterior['numero'])->toBeNull()
+        ->and($entrega->valor_nuevo['estado'])->toBe(EstadoDocumental::Aprobado->value)
+        ->and($jubilacion)->not->toBeNull('La jubilación de la v1 no dejó evento.')
+        ->and($jubilacion->valor_anterior['estado'])->toBe(EstadoDocumental::Aprobado->value);
 });
 
 it('mueve el PDF emitido al prefijo que en producción lleva Object Lock', function (): void {

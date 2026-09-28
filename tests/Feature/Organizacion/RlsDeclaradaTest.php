@@ -20,9 +20,10 @@ use Illuminate\Support\Facades\DB;
 | activa, **forzada** y con política. Cubre lo que ya existe y lo que traiga el
 | siguiente módulo sin que nadie se acuerde de nada.
 |
-| `FORCE` no es decorativo: sin él, el propietario de la tabla queda exento, y el
-| propietario del esquema es `statera_app`, que es justo con quien se conecta la
-| aplicación.
+| `FORCE` no es decorativo: sin él, el propietario de la tabla queda exento.
+| Hasta el punto 32 el propietario era `statera_app`, la conexión de la
+| aplicación; ahora es `statera_migrador`, que corre las migraciones —y las que
+| mueven filas lo hacen con `comoMantenimiento()`, así que también le aplica—.
 |
 */
 

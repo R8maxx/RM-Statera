@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Persona\Models;
 
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
+use App\Domain\Traza\Concerns\RegistraTraza;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
@@ -30,6 +31,7 @@ use Illuminate\Support\Carbon;
 class Asistencia extends Model
 {
     use PerteneceAOrganizacion;
+    use RegistraTraza;
 
     public $timestamps = false;
 

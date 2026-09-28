@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Persona\Models;
 
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
+use App\Domain\Traza\Concerns\RegistraTraza;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -31,6 +32,7 @@ use Illuminate\Support\Carbon;
 class AsignacionPuesto extends Model
 {
     use PerteneceAOrganizacion;
+    use RegistraTraza;
 
     protected $table = 'asignaciones_puesto';
 

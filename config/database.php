@@ -101,6 +101,28 @@ return [
             'sslmode' => env('DB_SSLMODE', 'prefer'),
         ],
 
+        /*
+         * La misma base con el rol que es DUEÑO de las tablas. Sólo la usan las
+         * migraciones —`migrate --database=pgsql_migraciones`— y la preparación
+         * de la base de tests. La aplicación se conecta con `pgsql`, cuyo rol
+         * lee y escribe filas y nada más, y por eso no puede devolverse el
+         * UPDATE que la traza le quita ni apagar un trigger de inmutabilidad.
+         */
+        'pgsql_migraciones' => [
+            'driver' => 'pgsql',
+            'url' => env('DB_MIGRACIONES_URL'),
+            'host' => env('DB_HOST', '127.0.0.1'),
+            'port' => env('DB_PORT', '5432'),
+            'database' => env('DB_DATABASE', 'laravel'),
+            'username' => env('DB_MIGRACIONES_USERNAME', 'statera_migrador'),
+            'password' => env('DB_MIGRACIONES_PASSWORD', ''),
+            'charset' => env('DB_CHARSET', 'utf8'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => 'public',
+            'sslmode' => env('DB_SSLMODE', 'prefer'),
+        ],
+
         'sqlsrv' => [
             'driver' => 'sqlsrv',
             'url' => env('DB_URL'),

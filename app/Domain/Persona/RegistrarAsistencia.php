@@ -57,7 +57,8 @@ final class RegistrarAsistencia
 
             // Quien sale de la lista deja de estar convocado, que no es lo mismo
             // que haber faltado: se borra la fila en vez de marcarla a `false`.
-            $accion->asistencias()->whereNotIn('persona_id', $validas === [] ? [0] : $validas)->delete();
+            // Una a una y no en bloque, para que cada baja deje su evento en la traza.
+            $accion->asistencias()->whereNotIn('persona_id', $validas === [] ? [0] : $validas)->get()->each->delete();
         });
     }
 }

@@ -63,8 +63,9 @@ final class GuardarSubtareas
                 $conservados[] = $subtarea->id;
             }
 
-            // Lo que no venía en la lista se ha quitado.
-            $tarea->subtareas()->whereNotIn('id', $conservados === [] ? [0] : $conservados)->delete();
+            // Lo que no venía en la lista se ha quitado. Una a una y no en bloque,
+            // para que cada baja deje su evento en la traza.
+            $tarea->subtareas()->whereNotIn('id', $conservados === [] ? [0] : $conservados)->get()->each->delete();
 
             return $tarea->subtareas()->get()->all();
         });

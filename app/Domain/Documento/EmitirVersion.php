@@ -7,6 +7,8 @@ namespace App\Domain\Documento;
 use App\Domain\Documento\Enums\EstadoDocumental;
 use App\Domain\Documento\Excepciones\VersionNoEmisible;
 use App\Domain\Documento\Models\DocumentoVersion;
+use App\Domain\Traza\Enums\AccionAuditada;
+use App\Domain\Traza\RegistroTraza;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -32,9 +34,16 @@ use Illuminate\Support\Facades\Storage;
  *
  * La huella no se recalcula: se comprueba. El PDF es byte a byte el mismo, y si
  * el hash del objeto movido no coincidiera, eso es justo lo que hay que saber.
+ *
+ * **La traza se escribe a mano**, porque las dos escrituras van por el query
+ * builder y no disparan los eventos del modelo. Sin esto, el acto que más le
+ * importa al auditor —qué versión se entregó, cuándo y cuál dejó de valer— era
+ * justo el que no quedaba en la traza.
  */
 final readonly class EmitirVersion
 {
+    public function __construct(private RegistroTraza $traza) {}
+
     public function __invoke(DocumentoVersion $version, ?string $motivo = null): DocumentoVersion
     {
         if (! $version->esEmisible()) {
@@ -58,6 +67,19 @@ final readonly class EmitirVersion
 
         $disco = Storage::disk(GenerarDocumento::DISCO);
         $disco->copy($origen, $destino);
+
+        $jubiladas = DocumentoVersion::query()
+            ->where('documento_id', $documento->id)
+            ->where('estado', EstadoDocumental::Aprobado->value)
+            ->get();
+
+        $anterior = [
+            'numero' => $version->getRawOriginal('numero'),
+            'estado' => $version->getRawOriginal('estado'),
+            'ruta' => $origen,
+            'motivo' => $version->getRawOriginal('motivo'),
+            'emitida_en' => $version->getRawOriginal('emitida_en'),
+        ];
 
         DB::transaction(function () use ($documento, $version, $numero, $destino, $motivo): void {
             /*
@@ -105,6 +127,25 @@ final readonly class EmitirVersion
         // uno nuevo. Así el índice único parcial sigue admitiendo un borrador.
         $disco->delete($origen);
 
-        return $version->fresh() ?? $version;
+        foreach ($jubiladas as $jubilada) {
+            $this->traza->evento(
+                $jubilada,
+                AccionAuditada::Actualizado,
+                ['estado' => $jubilada->getRawOriginal('estado'), 'obsoleta_en' => $jubilada->getRawOriginal('obsoleta_en')],
+                ['estado' => EstadoDocumental::Obsoleto->value, 'obsoleta_en' => Carbon::today()->toDateString()],
+            );
+        }
+
+        $emitida = $version->fresh() ?? $version;
+
+        $this->traza->evento($emitida, AccionAuditada::Actualizado, $anterior, [
+            'numero' => $emitida->getRawOriginal('numero'),
+            'estado' => $emitida->getRawOriginal('estado'),
+            'ruta' => $emitida->getRawOriginal('ruta'),
+            'motivo' => $emitida->getRawOriginal('motivo'),
+            'emitida_en' => $emitida->getRawOriginal('emitida_en'),
+        ]);
+
+        return $emitida;
     }
 }

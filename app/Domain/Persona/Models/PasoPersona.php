@@ -6,6 +6,7 @@ namespace App\Domain\Persona\Models;
 
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
 use App\Domain\Persona\Enums\TipoPasoPersona;
+use App\Domain\Traza\Concerns\RegistraTraza;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
@@ -31,6 +32,7 @@ use Illuminate\Support\Carbon;
 class PasoPersona extends Model
 {
     use PerteneceAOrganizacion;
+    use RegistraTraza;
 
     protected $table = 'pasos_persona';
 

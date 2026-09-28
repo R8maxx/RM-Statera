@@ -132,6 +132,8 @@ completa con el razonamiento del orden, en `.ai/rules/orden-de-arranque.md`.
 | 28 | Cuentas, roles y el alcance del auditor externo | 4.19 | `cuentas.md` |
 | 29 | Proveedores y terceros | 4.9 | `proveedores.md` |
 | 30 | Vulnerabilidades técnicas | — | `vulnerabilidades.md` |
+| 31 | La validación de usuarios, acotada — **abre el tramo «listo para producción»** | — | `aislamiento.md` |
+| 32 | Traza completa e inmutable | § 6 | `aislamiento.md` |
 
 **La fase 3 está cerrada.** Con continuidad (§ 4.11) dentro —el BIA por servicio,
 el plan como documento y las pruebas que lo contrastan— el ciclo vivo se recorre
@@ -161,8 +163,13 @@ tienen registro propio, con la severidad derivada del CVSS, el plazo de
 remediación como política de la organización, la aceptación firmada por
 supervisión y el cierre con verificación escrita.
 
-No queda ningún punto de la lista. Lo pendiente son los huecos que anota
-`PRODUCT.md`, que no son módulos.
+Con el punto 30 se acabó la lista de módulos. Lo que sigue es un **tramo sin
+módulos nuevos**, «listo para producción»: lo que el invariante 8 y el § 6
+de la especificación exigen antes de que entre un usuario real —traza completa e
+inmutable, horas bien escritas, copias con restauración probada, cifrado en
+reposo y retención RGPD de personas—. Se numera a partir del 31 y el porqué de
+cada punto está en la bitácora. Los demás huecos que anota `PRODUCT.md`
+vienen después.
 
 ## El catálogo
 
@@ -188,7 +195,7 @@ docker compose up -d --build        # levanta el producto entero
 Lo demás va dentro. Con `app` basta para todo lo de PHP; `vite` es el de Node:
 
 ```sh
-docker compose exec app php artisan migrate
+docker compose exec app php artisan migrate --database=pgsql_migraciones   # con el rol dueño de las tablas
 docker compose exec app php artisan catalogo:importar       # ISO, ENS, mapeos, amenazas de MAGERIT, obligaciones periódicas y cláusulas de proveedor
 docker compose exec app php artisan db:seed                 # organización, usuarios, sistema, inventario, tareas, riesgos, personas y puestos (sintéticos)
 docker compose exec app php artisan avisos:enviar --dry-run # lo que saldría por correo, sin enviarlo
@@ -217,7 +224,7 @@ Por orden, según dónde duele un fallo silencioso:
 4. **Importador del catálogo**, incluida la idempotencia y el diff.
 5. Resto de módulos: flujos principales.
 
-Y diez tests **descubren** en vez de enumerar, así que cubren solos lo que traiga el
+Y once tests **descubren** en vez de enumerar, así que cubren solos lo que traiga el
 módulo siguiente. Cuáles son y qué convierte en rojo cada uno, en `.ai/rules/tests.md`.
 
 ## Dónde está cada cosa
@@ -247,9 +254,9 @@ sobre el directorio pilla lo que un encaje de ruta se deja.
 | `migraciones.md` | `database/migrations/**` | `CREATE OR REPLACE FUNCTION`; el `CHECK` construido desde un enum que `migrate:fresh` no prueba |
 | `diseno.md` | `resources/css/**`, `components/ui/**` | La paleta: hue 196, `--acento` frente a `--accent`, los cuatro sitios del violeta, radios, contraste y protanopía |
 | `interfaz.md` | `resources/js/**` | `lib/tonos.ts` y `lib/navegacion.ts` como mapas únicos; los tres canales de un estado; qué librería entró, cuál no y por qué |
-| `tests.md` | `tests/**` | Los diez tests que descubren en vez de enumerar |
+| `tests.md` | `tests/**` | Los once tests que descubren en vez de enumerar |
 | `infraestructura.md` | `docker-compose.yml`, `docker/**`, `.env.example` | Los dos endpoints de MinIO, `quay.io`, el `ARG UID`, `predis` |
-| `orden-de-arranque.md` | este fichero, `README.md`, `PRODUCT.md` | La bitácora de los 30 puntos, con el razonamiento del orden |
+| `orden-de-arranque.md` | este fichero, `README.md`, `PRODUCT.md` | La bitácora de los 30 puntos y del tramo que sigue, con el razonamiento del orden |
 
 ### Por módulo
 

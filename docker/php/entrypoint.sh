@@ -75,8 +75,10 @@ if [ "$ARRANQUE" = 'completo' ]; then
     # mismo motivo por el que `composer test` limpia antes de correr.
     como_usuario php artisan config:clear
 
+    # Con el rol dueño de las tablas y no con el de la aplicación: `statera_app`
+    # sólo lee y escribe filas, así que no puede crear ni alterar nada.
     aviso 'aplicando migraciones'
-    como_usuario php artisan migrate --force
+    como_usuario php artisan migrate --force --database=pgsql_migraciones
 
     # Idempotente por diseño: empareja por clave natural `(marco, requisito)` y
     # nunca borra lo que desaparece de un fichero.

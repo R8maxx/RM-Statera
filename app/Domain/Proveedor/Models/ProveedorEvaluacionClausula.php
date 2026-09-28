@@ -6,6 +6,7 @@ namespace App\Domain\Proveedor\Models;
 
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
 use App\Domain\Proveedor\Enums\ResultadoClausula;
+use App\Domain\Traza\Concerns\RegistraTraza;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -21,6 +22,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ProveedorEvaluacionClausula extends Model
 {
     use PerteneceAOrganizacion;
+    use RegistraTraza;
 
     public $timestamps = false;
 

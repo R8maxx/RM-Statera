@@ -2,16 +2,22 @@
 
 declare(strict_types=1);
 
+use App\Domain\Auditoria\Models\AuditoriaPunto;
 use App\Domain\Catalogo\Models\Marco;
 use App\Domain\Implantacion\Enums\EstadoImplantacion;
 use App\Domain\Implantacion\Models\Implantacion;
 use App\Domain\Organizacion\Models\Organizacion;
 use App\Domain\Sistema\Enums\EstadoSistema;
 use App\Domain\Sistema\Models\Sistema;
+use App\Domain\Tarea\GuardarSubtareas;
+use App\Domain\Tarea\Models\Tarea;
+use App\Domain\Traza\Concerns\RegistraTraza;
 use App\Domain\Traza\Enums\AccionAuditada;
 use App\Domain\Traza\Models\EventoAuditoria;
+use App\Domain\Usuario\Models\CuentaSistema;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /*
 |--------------------------------------------------------------------------
@@ -173,6 +179,57 @@ it('PostgreSQL rechaza modificar la traza, no sólo Eloquent', function (): void
     expect(EventoAuditoria::query()->count())->toBe(1);
 });
 
+/*
+ * El REVOKE de arriba no vale nada si quien se conecta es el dueño de la tabla:
+ * un dueño puede devolverse cualquier privilegio y apagar cualquier trigger.
+ * Hasta el punto 32 `statera_app` lo era de las 113, porque corría también las
+ * migraciones. Éstos se ejecutan con la conexión de la aplicación y no con la
+ * del migrador, que es justo lo que hay que probar.
+ */
+it('la aplicación no es dueña de ninguna tabla', function (): void {
+    $propias = DB::table('pg_tables')
+        ->where('schemaname', 'public')
+        ->whereRaw('tableowner = current_user')
+        ->pluck('tablename')
+        ->all();
+
+    expect($propias)->toBe([]);
+});
+
+it('la aplicación no puede devolverse privilegios ni apagar triggers', function (): void {
+    $rechazado = function (string $sql): bool {
+        DB::beginTransaction();
+
+        try {
+            DB::statement($sql);
+            DB::rollBack();
+
+            return false;
+        } catch (QueryException) {
+            DB::rollBack();
+
+            return true;
+        }
+    };
+
+    // Un `GRANT` sin opción de concesión no falla: PostgreSQL avisa de que no
+    // concedió nada y sigue. Lo que se comprueba es el efecto.
+    DB::statement('GRANT UPDATE, DELETE ON eventos_auditoria TO CURRENT_USER');
+    $privilegio = fn (string $cual): bool => (bool) DB::selectOne(
+        "select has_table_privilege(current_user, 'eventos_auditoria', ?) as tiene",
+        [$cual],
+    )->tiene;
+
+    expect($privilegio('UPDATE'))->toBeFalse('statera_app pudo devolverse el UPDATE sobre la traza.')
+        ->and($privilegio('DELETE'))->toBeFalse('statera_app pudo devolverse el DELETE sobre la traza.')
+        ->and($rechazado('ALTER TABLE documento_versiones DISABLE TRIGGER ALL'))
+        ->toBeTrue('statera_app pudo apagar el trigger de inmutabilidad de las versiones.')
+        ->and($rechazado('TRUNCATE eventos_auditoria'))
+        ->toBeTrue('statera_app pudo vaciar la traza.')
+        ->and($rechazado('CREATE TABLE intrusa (id int)'))
+        ->toBeTrue('statera_app pudo crear una tabla.');
+});
+
 it('la traza de una organización no se ve desde otra', function (): void {
     Sistema::factory()->de($this->organizacion)->conMarco($this->marco)->create();
 
@@ -208,4 +265,63 @@ it('el cambio de estado de una implantación deja su evento además de su transi
     expect($evento->valor_anterior)->toBe(['estado' => 'no_iniciado'])
         ->and($evento->valor_nuevo)->toBe(['estado' => 'en_progreso'])
         ->and($evento->usuario_id)->toBe($this->usuario->id);
+
+    // Y la transición misma: el histórico dice «desde cuándo», la traza dice que
+    // esa fila no se tocó después de escribirse.
+    expect(EventoAuditoria::query()
+        ->where('entidad', 'ImplantacionTransicion')
+        ->where('accion', AccionAuditada::Creado->value)
+        ->count())->toBe(1);
+});
+
+/*
+ * Descubre en vez de enumerar: todo modelo del dominio cuya tabla tenga
+ * `organizacion_id` deja traza. Hasta el punto 32 no la dejaban las once tablas
+ * de transiciones ni siete de detalle, y ningún test lo notaba porque olvidar
+ * el trait no rompe nada: la fila se escribe igual y el evento no.
+ */
+it('todo modelo con organizacion_id deja traza', function (): void {
+    /*
+     * Las excepciones, cada una con su motivo escrito en el modelo:
+     *
+     * - `EventoAuditoria` es la traza; auditarse a sí misma es un bucle.
+     * - `AuditoriaPunto`: se actualiza en bloque al cerrar y la traza saldría a
+     *   medias (`auditorias.md`). Lo firma el auditor, no cada casilla.
+     * - `CuentaSistema`: el alcance se traza a mano sobre la cuenta, como
+     *   fotografía entera de antes y después (`AlcanceDeCuenta`).
+     */
+    $excepciones = [EventoAuditoria::class, AuditoriaPunto::class, CuentaSistema::class];
+
+    $modelos = modelosDelDominio();
+    expect($modelos)->not->toBeEmpty('El glob de modelos no encontró nada: el patrón dejó de casar.');
+
+    $sinTraza = collect($modelos)
+        ->reject(fn (string $clase): bool => in_array($clase, $excepciones, true))
+        ->filter(fn (string $clase): bool => Schema::hasColumn((new $clase)->getTable(), 'organizacion_id'))
+        ->reject(fn (string $clase): bool => in_array(RegistraTraza::class, class_uses_recursive($clase), true))
+        ->values()
+        ->all();
+
+    expect($sinTraza)->toBe([]);
+});
+
+it('quitar un paso de la lista deja su baja en la traza', function (): void {
+    $tarea = Tarea::factory()->create();
+    [$primera] = app(GuardarSubtareas::class)($tarea, [
+        ['titulo' => 'Revisar', 'hecha' => false],
+        ['titulo' => 'Firmar', 'hecha' => false],
+    ]);
+
+    // Se reenvía la lista sin el segundo: el borrado era en bloque y no disparaba
+    // eventos, así que el paso desaparecía sin constar.
+    app(GuardarSubtareas::class)($tarea, [
+        ['id' => $primera->id, 'titulo' => 'Revisar', 'hecha' => false],
+    ]);
+
+    $baja = EventoAuditoria::query()
+        ->where('entidad', 'Subtarea')
+        ->where('accion', AccionAuditada::Eliminado->value)
+        ->sole();
+
+    expect($baja->valor_anterior['titulo'])->toBe('Firmar');
 });

@@ -99,9 +99,12 @@ final class GuardarPasos
                 $orden++;
             }
 
+            // Una a una y no en bloque, para que cada baja deje su evento en la traza.
             $persona->pasos()
                 ->where('tipo', $tipo->value)
                 ->whereNotIn('id', $conservados === [] ? [0] : $conservados)
+                ->get()
+                ->each
                 ->delete();
         });
     }

@@ -12,7 +12,6 @@ use App\Domain\Incidente\Models\Incidente;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Sistema\Models\Sistema;
 use App\Domain\Usuario\Models\CuentaSistema;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Schema;
 
 /*
@@ -30,26 +29,6 @@ use Illuminate\Support\Facades\Schema;
 | deja al auditor viendo el registro de otro sistema, que es justo el fallo.
 |
 */
-
-/**
- * Los modelos de `app/Domain/**\/Models/`, por clase.
- *
- * @return list<class-string<Model>>
- */
-function modelosDelDominio(): array
-{
-    $modelos = [];
-
-    foreach (glob(base_path('app/Domain/*/Models/*.php')) ?: [] as $ruta) {
-        $clase = 'App\\Domain\\'.str_replace('/', '\\', substr((string) strstr($ruta, 'Domain/'), 7, -4));
-
-        if (class_exists($clase) && is_subclass_of($clase, Model::class)) {
-            $modelos[] = $clase;
-        }
-    }
-
-    return $modelos;
-}
 
 it('todo modelo con sistema_id se acota al alcance', function (): void {
     /*

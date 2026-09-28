@@ -52,7 +52,7 @@ La base de tests `statera_test` y el rol de aplicación `statera_app` se crean s
 Todo se ejecuta dentro del contenedor:
 
 ```sh
-docker compose exec app php artisan migrate
+docker compose exec app php artisan migrate --database=pgsql_migraciones   # con el rol dueño de las tablas
 docker compose exec app php artisan db:seed
 docker compose exec app php artisan catalogo:importar
 docker compose exec app composer test       # Pest, sobre PostgreSQL
