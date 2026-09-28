@@ -149,6 +149,27 @@ return [
             'report' => false,
         ],
 
+        /*
+         * Las copias de seguridad (punto 34): el volcado cifrado de la base, su
+         * manifiesto y el espejo de los otros tres discos. Nunca se sirve al
+         * navegador, así que no lleva `endpoint_publico`. En producción va en
+         * otra cuenta o región y con Object Lock: una copia que se borra con
+         * las mismas credenciales que lo que copia no protege de nada.
+         */
+        'copias' => [
+            'driver' => 's3',
+            'key' => env('AWS_ACCESS_KEY_ID'),
+            'secret' => env('AWS_SECRET_ACCESS_KEY'),
+            'region' => env('AWS_DEFAULT_REGION'),
+            'bucket' => env('AWS_BUCKET_COPIAS', 'statera-copias'),
+            'url' => env('AWS_URL'),
+            'endpoint' => env('AWS_ENDPOINT'),
+            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'visibility' => 'private',
+            'throw' => true,
+            'report' => false,
+        ],
+
     ],
 
     /*

@@ -461,3 +461,47 @@ y 36 retención RGPD.
     que espera la excepción da por abierta una puerta cerrada, y en otro motor
     daría por cerrada una abierta. Se comprueba el efecto, con
     `has_table_privilege()`.
+
+33. ✅ Los instantes con zona, bien guardados. `emitida_en` y otras cinco
+    columnas `timestamptz` guardaban un instante dos horas desplazado: Laravel
+    escribe la hora de Madrid sin desfase, y PostgreSQL la interpretaba en la
+    zona de la sesión, que era UTC. César pidió primero UTC de verdad y, visto
+    el alcance, eligió la vía pequeña. UTC habría supuesto convertir 192
+    columnas `timestamp`, añadir una zona de presentación para los formatos del
+    servidor, los PDF y los `datetime-local`, y dar un «hoy» de Madrid a los
+    vencimientos, porque entre las 00:00 y las 02:00 «hoy» sería ayer. La vía
+    elegida es **la sesión en la zona de la aplicación**: una línea en cada
+    conexión, una migración que recoloca lo ya escrito y el apaño en SQL de
+    `RegistrarDeclaracion` fuera. Si algún día la aplicación pasa a UTC, esto
+    sigue funcionando, porque la zona de la sesión sale de `APP_TIMEZONE`.
+
+    Dos cosas de la migración. **Apaga el trigger de inmutabilidad de
+    `documento_versiones`**, porque el instante era el mismo y lo que estaba
+    mal era cómo se había guardado. Sólo puede hacerlo el dueño de la tabla, que
+    desde el punto 32 es el migrador y no la aplicación. Y **su `down()` se
+    comprobó a mano** —`migrate:rollback` y vuelta sobre datos reales de
+    desarrollo, con el trigger encendido al terminar—, porque la suite sigue
+    sin ejecutar rollbacks.
+
+    Una frase de `documentos.md` decía «la aplicación trabaja en UTC». No era
+    verdad, y es justo la confusión que produjo el fallo.
+
+34. ✅ Copias cifradas con restauración probada. **No había ninguna copia de
+    nada**: ni un volcado, ni un espejo de los ficheros, ni un comando. Y el § 6
+    no pide copias, pide «restauración probada». Así que son dos comandos y los
+    dos van programados: `copias:hacer` cada noche y `copias:verificar` cada
+    semana. El segundo restaura en una base aparte, compara tabla a tabla y
+    fichero a fichero, y sale con error si algo no cuadra.
+
+    **Sin ninguna dependencia nueva**, y eso decidió medio diseño. El plan dejaba
+    abierto `spatie/laravel-backup`, pero `pg_dump` 17 ya estaba en la imagen
+    para `pg_isready`, y libsodium viene con PHP. Lo que quedó es poco y está
+    todo a la vista: una instantánea exportada que comparten los recuentos y el
+    volcado, un *secretstream* que detecta una copia truncada, un rol
+    `statera_copias` que lee todo y no escribe nada, y un espejo que nunca borra.
+
+    El recorrido sobre la base de desarrollo dio 113 tablas restauradas sin una
+    fila de diferencia y las dos versiones emitidas con su huella. Salió también
+    lo que no se comprueba: dos ficheros de adjuntos sin fila, el logo y las
+    fotos, que se copian pero no tienen huella con la que contrastarlos. Va
+    declarado en `copias.md`, junto con lo demás que no hace.

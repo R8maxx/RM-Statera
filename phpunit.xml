@@ -37,6 +37,9 @@
         <env name="DB_PASSWORD" value="statera"/>
         <env name="DB_MIGRACIONES_USERNAME" value="statera_migrador"/>
         <env name="DB_MIGRACIONES_PASSWORD" value="statera"/>
+        <env name="DB_COPIAS_USERNAME" value="statera_copias"/>
+        <env name="DB_COPIAS_PASSWORD" value="statera"/>
+        <env name="COPIAS_CLAVE" value="AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8="/>
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>

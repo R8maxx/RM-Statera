@@ -39,3 +39,19 @@ Schedule::command('avisos:enviar')->dailyAt('07:00')->onOneServer();
 | la vez, el correo se manda con las cifras de ayer y el panel enseña las de hoy.
 */
 Schedule::command('indicadores:medir')->dailyAt('07:30')->onOneServer();
+
+/*
+| Las copias de seguridad del § 6 (punto 34): «backups cifrados con
+| restauración probada y periodicidad documentada». Ésta es la periodicidad.
+|
+| **Cada noche, y fuera del horario de trabajo**, aunque el volcado sale de una
+| instantánea y no bloquea a nadie: el espejo de ficheros sí compite por el
+| ancho de banda con las subidas.
+|
+| **La verificación, cada semana**, y no cada noche: restaurar entera la base
+| cuesta más que copiarla, y lo que se prueba es que el procedimiento funciona,
+| no cada byte de cada día. Si falla, el comando sale con error y el
+| planificador lo cuenta como fallo.
+*/
+Schedule::command('copias:hacer')->dailyAt('02:00')->onOneServer();
+Schedule::command('copias:verificar')->weeklyOn(0, '04:00')->onOneServer();

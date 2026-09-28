@@ -18,6 +18,7 @@ use App\Domain\Sistema\Models\Sistema;
 use App\Domain\Traza\Models\EventoAuditoria;
 use App\Models\User;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Tests\Dobles\GotenbergFalso;
 
@@ -147,6 +148,24 @@ it('deja en la traza la entrega y la versión que jubila', function (): void {
         ->and($entrega->valor_nuevo['estado'])->toBe(EstadoDocumental::Aprobado->value)
         ->and($jubilacion)->not->toBeNull('La jubilación de la v1 no dejó evento.')
         ->and($jubilacion->valor_anterior['estado'])->toBe(EstadoDocumental::Aprobado->value);
+});
+
+/*
+ * `emitida_en` es `timestamptz` y el resto de fechas no. Con la sesión de
+ * PostgreSQL en UTC el instante se guardaba dos horas desplazado, y leída por
+ * Eloquent la versión quedaba emitida en el futuro (punto 33).
+ */
+it('la sesión de la base está en la zona de la aplicación', function (): void {
+    expect(DB::selectOne('show timezone')->TimeZone)->toBe(config('app.timezone'));
+});
+
+it('emitida_en dice el mismo instante que el resto de fechas', function (): void {
+    $antes = now()->subSecond();
+    $version = ($this->entregar)();
+
+    expect($version->emitida_en->greaterThanOrEqualTo($antes))->toBeTrue()
+        ->and($version->emitida_en->lessThanOrEqualTo(now()->addSecond()))
+        ->toBeTrue("emitida_en quedó en {$version->emitida_en->toIso8601String()} y ahora es ".now()->toIso8601String().'.');
 });
 
 it('mueve el PDF emitido al prefijo que en producción lleva Object Lock', function (): void {

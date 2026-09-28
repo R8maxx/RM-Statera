@@ -117,17 +117,14 @@ final class RegistrarDeclaracion
          * firmada esa misma mañana quedaría «antes» y se rechazaría la firma
          * correcta. `emitida_en` es el instante en que se numeró.
          *
-         * **Y se compara en SQL, no en PHP.** `emitida_en` es `timestamptz` y
-         * `created_at` no, y las dos se escriben con la hora de Madrid sin
-         * desfase: leídas por Eloquent, la primera vuelve como UTC y la segunda
-         * como hora local, y compararlas en PHP las separa dos horas. En la base
-         * las dos se leen igual, que es lo que hace también el desplegable del
-         * controlador.
+         * Se compara en PHP. Hasta el punto 33 tenía que ir en SQL: `emitida_en`
+         * es `timestamptz`, la sesión de PostgreSQL estaba en UTC y el instante
+         * se guardaba dos horas desplazado, así que leída por Eloquent quedaba
+         * por delante de cualquier `created_at`. Con la sesión en la zona de la
+         * aplicación las dos columnas dicen el mismo instante.
          */
-        $emitidaDespues = DocumentoVersion::query()
-            ->whereKey($version->id)
-            ->where('emitida_en', '>=', $conformidad->created_at)
-            ->exists();
+        $emitidaDespues = $version->emitida_en !== null
+            && $version->emitida_en->greaterThanOrEqualTo($conformidad->created_at);
 
         if (! $emitidaDespues) {
             throw ConformidadNoPermitida::versionNoValida(

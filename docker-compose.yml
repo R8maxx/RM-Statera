@@ -237,6 +237,7 @@ services:
       AWS_BUCKET: statera-evidencias
       AWS_BUCKET_DOCUMENTOS: statera-documentos
       AWS_BUCKET_ADJUNTOS: statera-adjuntos
+      AWS_BUCKET_COPIAS: statera-copias
     entrypoint: ["/bin/sh", "/init.sh"]
     volumes:
       - ./docker/minio/init.sh:/init.sh:ro

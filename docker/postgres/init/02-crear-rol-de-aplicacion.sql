@@ -18,6 +18,8 @@
 --   lo usan las migraciones (`--database=pgsql_migraciones`).
 -- - `statera_app` es con quien se conecta Statera. Lee y escribe filas, y nada
 --   más: ni DDL, ni TRUNCATE, ni conceder privilegios.
+-- - `statera_copias` lee todo, con BYPASSRLS, y no escribe nada. Lo usan
+--   `copias:hacer` y `copias:verificar` (punto 34).
 --
 -- `statera` se queda como rol administrativo para mantenimiento de la base.
 --
@@ -39,14 +41,34 @@ BEGIN
     IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'statera_migrador') THEN
         CREATE ROLE statera_migrador WITH LOGIN PASSWORD 'statera' NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
     END IF;
+
+    -- Las copias de seguridad (punto 34): leen todo y no escriben nada.
+    -- BYPASSRLS porque el volcado tiene que ver a todas las organizaciones; con
+    -- RLS, `pg_dump` se niega a volcar una tabla que filtraría. Es el único rol
+    -- que se salta la tercera capa, y por eso no puede escribir.
+    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'statera_copias') THEN
+        CREATE ROLE statera_copias WITH LOGIN PASSWORD 'statera' NOSUPERUSER NOCREATEDB NOCREATEROLE BYPASSRLS;
+    END IF;
 END
 $$;
+
+GRANT pg_read_all_data TO statera_copias;
+
+-- La base donde se restaura para comprobar una copia. Es del rol de copias,
+-- que la vacía entera en cada verificación, y no tiene nada que no esté ya en
+-- el volcado. `\gexec` porque `CREATE DATABASE` no admite `IF NOT EXISTS` ni
+-- puede ir dentro de un bloque `DO`.
+SELECT 'CREATE DATABASE statera_verificacion OWNER statera_copias'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'statera_verificacion')
+\gexec
 
 -- Conectar y tablas temporales; nada de crear esquemas.
 REVOKE ALL ON DATABASE statera FROM statera_app;
 REVOKE ALL ON DATABASE statera_test FROM statera_app;
 GRANT CONNECT, TEMPORARY ON DATABASE statera TO statera_app, statera_migrador;
 GRANT CONNECT, TEMPORARY ON DATABASE statera_test TO statera_app, statera_migrador;
+GRANT CONNECT ON DATABASE statera TO statera_copias;
+GRANT CONNECT ON DATABASE statera_test TO statera_copias;
 
 \connect statera
 

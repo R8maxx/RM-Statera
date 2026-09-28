@@ -74,13 +74,14 @@ exactamente la suya: tipo DdC, mismo sistema, emitida y vigente, y **emitida
 después de iniciar la declaración**. La fecha de la declaración es la de la firma
 (`aprobada_en`) y la vigencia se congela ahí, bienal, con `Obligacion\Cadencia`.
 
-**Esa última comprobación va en SQL y no en PHP, y no es un capricho.**
-`documento_versiones.emitida_en` es `timestamptz` y `conformidades.created_at` no;
-las dos se escriben con la hora de Madrid sin desfase, así que Eloquent devuelve
-la primera como UTC y la segunda como hora local, y en PHP quedan separadas dos
-horas. En la base se leen igual. El desplegable de versiones del controlador usa
-el mismo filtro. **Y no se compara con `aprobada_en`**, que es una fecha: una
-versión firmada la misma mañana en que se inició quedaría «antes».
+**Esa última comprobación fue en SQL hasta el punto 33.**
+`documento_versiones.emitida_en` es `timestamptz` y `conformidades.created_at` no,
+y con la sesión de PostgreSQL en UTC la primera se guardaba dos horas desplazada:
+comparadas en PHP quedaban separadas dos horas. Con la sesión en la zona de la
+aplicación dicen el mismo instante y la comparación vuelve a PHP. El desplegable
+de versiones del controlador sigue filtrando en la consulta, porque es una lista.
+**Y no se compara con `aprobada_en`**, que es una fecha: una versión firmada la
+misma mañana en que se inició quedaría «antes».
 
 **Registra además el cumplimiento de `ens.conformidad`** si la organización asumió
 esa obligación para el sistema, con `documento_id` apuntando a la serie de la DdC y

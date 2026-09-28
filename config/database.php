@@ -99,6 +99,14 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+            /*
+             * La sesión en la misma zona que la aplicación (punto 33). Laravel
+             * escribe las fechas sin desfase, y en una `timestamptz` PostgreSQL
+             * las interpreta en la zona de la sesión: con la sesión en UTC, lo
+             * escrito a las 16:00 de Madrid se guardaba como las 16:00 UTC, dos
+             * horas desplazado. Las columnas `timestamp` no se enteran.
+             */
+            'timezone' => env('APP_TIMEZONE', 'Europe/Madrid'),
         ],
 
         /*
@@ -121,6 +129,47 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+            'timezone' => env('APP_TIMEZONE', 'Europe/Madrid'),
+        ],
+
+        /*
+         * La copia de seguridad (punto 34). Un rol de sólo lectura
+         * —`pg_read_all_data`— con BYPASSRLS, porque el volcado tiene que ver
+         * a todas las organizaciones: con RLS, `pg_dump` se negaría o saldría
+         * vacío. No escribe nada, así que saltarse RLS no le deja tocar nada.
+         */
+        'pgsql_copias' => [
+            'driver' => 'pgsql',
+            'host' => env('DB_HOST', '127.0.0.1'),
+            'port' => env('DB_PORT', '5432'),
+            'database' => env('DB_DATABASE', 'laravel'),
+            'username' => env('DB_COPIAS_USERNAME', 'statera_copias'),
+            'password' => env('DB_COPIAS_PASSWORD', ''),
+            'charset' => env('DB_CHARSET', 'utf8'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => 'public',
+            'sslmode' => env('DB_SSLMODE', 'prefer'),
+            'timezone' => env('APP_TIMEZONE', 'Europe/Madrid'),
+        ],
+
+        /*
+         * El mismo rol contra la base donde se restaura para comprobar la
+         * copia. Es suya y es efímera: cada verificación la vacía entera.
+         */
+        'pgsql_verificacion' => [
+            'driver' => 'pgsql',
+            'host' => env('DB_HOST', '127.0.0.1'),
+            'port' => env('DB_PORT', '5432'),
+            'database' => env('DB_VERIFICACION_DATABASE', 'statera_verificacion'),
+            'username' => env('DB_COPIAS_USERNAME', 'statera_copias'),
+            'password' => env('DB_COPIAS_PASSWORD', ''),
+            'charset' => env('DB_CHARSET', 'utf8'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => 'public',
+            'sslmode' => env('DB_SSLMODE', 'prefer'),
+            'timezone' => env('APP_TIMEZONE', 'Europe/Madrid'),
         ],
 
         'sqlsrv' => [

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Domain\Aviso\Console\EnviarAvisosCommand;
 use App\Domain\Catalogo\Console\ImportarCatalogoCommand;
+use App\Domain\Copia\Console\HacerCopiaCommand;
+use App\Domain\Copia\Console\VerificarCopiaCommand;
 use App\Domain\Documento\Console\GenerarDocumentoCommand;
 use App\Domain\Implantacion\Console\GenerarImplantacionesCommand;
 use App\Domain\Metrica\Console\MedirIndicadoresCommand;
@@ -34,6 +36,8 @@ return Application::configure(basePath: dirname(__DIR__))
         GenerarDocumentoCommand::class,
         EnviarAvisosCommand::class,
         MedirIndicadoresCommand::class,
+        HacerCopiaCommand::class,
+        VerificarCopiaCommand::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         // El orden importa y no es el que sale por defecto.

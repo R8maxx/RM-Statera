@@ -126,7 +126,8 @@ completa con el razonamiento del orden, en `.ai/rules/orden-de-arranque.md`.
 | 22 | La ficha de la organización | — | `organizacion.md` |
 | 23 | La marca del cliente | — | `organizacion.md` |
 | 24 | El calendario de obligaciones | 4.16 | `obligaciones.md` |
-| 25 | Continuidad — **cierra la fase 3** | 4.11 | `continuidad.md` |
+| 25 | Continuidad — **cierra la fase 3** | 4.11 | `copias.md` | `app/Domain/Copia/**`, `config/copias.php` |
+| `continuidad.md` |
 | 26 | Conformidad con el ENS, categoría básica | 4.17 | `conformidad.md` |
 | 27 | Informes y exportación: informe de auditoría e informe de estado | 4.18 | `documentos.md`, `auditorias.md` |
 | 28 | Cuentas, roles y el alcance del auditor externo | 4.19 | `cuentas.md` |
@@ -134,6 +135,8 @@ completa con el razonamiento del orden, en `.ai/rules/orden-de-arranque.md`.
 | 30 | Vulnerabilidades técnicas | — | `vulnerabilidades.md` |
 | 31 | La validación de usuarios, acotada — **abre el tramo «listo para producción»** | — | `aislamiento.md` |
 | 32 | Traza completa e inmutable | § 6 | `aislamiento.md` |
+| 33 | Los instantes con zona, bien guardados | — | `documentos.md` |
+| 34 | Copias cifradas con restauración probada | § 6 | `copias.md` |
 
 **La fase 3 está cerrada.** Con continuidad (§ 4.11) dentro —el BIA por servicio,
 el plan como documento y las pruebas que lo contrastan— el ciclo vivo se recorre
@@ -200,6 +203,8 @@ docker compose exec app php artisan catalogo:importar       # ISO, ENS, mapeos, 
 docker compose exec app php artisan db:seed                 # organización, usuarios, sistema, inventario, tareas, riesgos, personas y puestos (sintéticos)
 docker compose exec app php artisan avisos:enviar --dry-run # lo que saldría por correo, sin enviarlo
 docker compose exec app php artisan indicadores:medir --dry-run # la cifra que se sellaría, sin escribirla
+docker compose exec app php artisan copias:hacer            # volcado cifrado de la base y espejo de los ficheros
+docker compose exec app php artisan copias:verificar        # restaura la última copia en otra base y la compara
 docker compose exec app composer test                       # Pest sobre PostgreSQL
 docker compose exec app composer analyse                    # Larastan nivel 6
 docker compose exec app composer lint                       # Pint
@@ -210,8 +215,8 @@ docker compose logs -f app queue vite
 ```
 
 Cinco servicios propios: `nginx` (el 8000), `app` (php-fpm), `queue` (Horizon),
-`vite` (el 5173) y `minio-init`, que crea los **tres** buckets —evidencias,
-documentos y adjuntos— y se apaga. Detrás siguen
+`vite` (el 5173) y `minio-init`, que crea los **cuatro** buckets —evidencias,
+documentos, adjuntos y copias— y se apaga. Detrás siguen
 `postgres`, `redis`, `gotenberg` y `minio`.
 
 ## Prioridad de cobertura de tests

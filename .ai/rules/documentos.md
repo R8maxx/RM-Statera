@@ -423,9 +423,17 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
   seis consultas. La versión en bloque resuelve todo en dos.
 
 - **La fecha de extracción del documento lleva la zona horaria escrita.** La aplicación trabaja en
-  UTC y quien lee el documento no tiene por qué: sin la marca, un documento generado a las 00:30 en
-  España aparece fechado el día anterior, y una fecha que no cuadra con su registro es un hallazgo
-  barato de encontrar.
+  hora de Madrid (`APP_TIMEZONE`) y quien lee el documento no tiene por qué saberlo: sin la marca, una
+  fecha no dice de qué reloj es, y una fecha que no cuadra con su registro es un hallazgo barato de
+  encontrar. Aquí ponía «trabaja en UTC», y no era verdad: lo que estaba en UTC era la sesión de
+  PostgreSQL, y ése fue el fallo del punto 33.
+
+- **`emitida_en` y las otras cinco `timestamptz` guardan el instante correcto desde el punto 33.** La
+  sesión de PostgreSQL va en la zona de la aplicación (`'timezone'` en `config/database.php`). Antes
+  estaba en UTC, y como Laravel escribe sin desfase, lo escrito a las 16:00 de Madrid se guardaba como
+  las 16:00 UTC. La migración `corregir_instantes_con_zona` recolocó lo ya escrito, con el trigger de
+  inmutabilidad apagado dentro de su transacción: el instante era el mismo y lo que estaba mal era su
+  representación. `InmutabilidadTest` comprueba la zona de la sesión.
 
 - **Guardar la plantilla sin tocarla no deja fila.** `GuardarPlantilla` borra la fila cuando el texto
   coincide con el de fábrica, y no es una optimización: sin eso bastaría con abrir la pantalla y darle
