@@ -137,32 +137,30 @@ const cambioLaBase = computed(
                     placeholder="Calle del Tinte, 14"
                 />
 
-                <div class="grid gap-5 sm:grid-cols-[8rem_1fr_1fr]">
-                    <FilaCampos :columnas="3">
-                        <CampoTexto
-                            nombre="codigo_postal"
-                            etiqueta="Código postal"
-                            :valor-inicial="organizacion.codigo_postal ?? ''"
-                            :error="errors.codigo_postal"
-                            inputmode="numeric"
-                            class="cifra"
-                        />
+                <FilaCampos :columnas="3">
+                    <CampoTexto
+                        nombre="codigo_postal"
+                        etiqueta="Código postal"
+                        :valor-inicial="organizacion.codigo_postal ?? ''"
+                        :error="errors.codigo_postal"
+                        inputmode="numeric"
+                        class="cifra"
+                    />
 
-                        <CampoTexto
-                            nombre="municipio"
-                            etiqueta="Municipio"
-                            :valor-inicial="organizacion.municipio ?? ''"
-                            :error="errors.municipio"
-                        />
+                    <CampoTexto
+                        nombre="municipio"
+                        etiqueta="Municipio"
+                        :valor-inicial="organizacion.municipio ?? ''"
+                        :error="errors.municipio"
+                    />
 
-                        <CampoTexto
-                            nombre="provincia"
-                            etiqueta="Provincia"
-                            :valor-inicial="organizacion.provincia ?? ''"
-                            :error="errors.provincia"
-                        />
-                    </FilaCampos>
-                </div>
+                    <CampoTexto
+                        nombre="provincia"
+                        etiqueta="Provincia"
+                        :valor-inicial="organizacion.provincia ?? ''"
+                        :error="errors.provincia"
+                    />
+                </FilaCampos>
             </SeccionFormulario>
 
             <SeccionFormulario
