@@ -137,6 +137,7 @@ completa con el razonamiento del orden, en `.ai/rules/orden-de-arranque.md`.
 | 32 | Traza completa e inmutable | § 6 | `aislamiento.md` |
 | 33 | Los instantes con zona, bien guardados | — | `documentos.md` |
 | 34 | Copias cifradas con restauración probada | § 6 | `copias.md` |
+| 35 | Cifrado en reposo: ficheros y datos personales | § 6 | `personas.md`, `infraestructura.md` |
 
 **La fase 3 está cerrada.** Con continuidad (§ 4.11) dentro —el BIA por servicio,
 el plan como documento y las pruebas que lo contrastan— el ciclo vivo se recorre

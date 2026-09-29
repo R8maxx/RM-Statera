@@ -268,6 +268,28 @@ impedir dar de alta a alguien que trabaja aquí. Y `RegistraTraza` guardará sus
 valores anteriores en `eventos_auditoria`: es correcto para la trazabilidad e
 implica que el log pasa a contener datos personales, y eso hay que saberlo antes.
 
+**Desde el punto 35 esos cinco datos van cifrados en reposo**, con `APP_KEY`:
+`encrypted` para NIF, teléfonos y domicilio, y `FechaCifrada` para la fecha de
+nacimiento, porque Laravel no combina `encrypted` con `date`. Tres consecuencias:
+
+- **La unicidad del NIF va sobre `nif_huella`**, un HMAC del NIF normalizado
+  (`HuellaNif`) con su propia clave, `CLAVE_INDICE_CIEGO`. Cifrado, el mismo NIF
+  da un texto distinto cada vez y el índice único no vería dos iguales. La
+  calcula el modelo al guardar, así que vale igual para el seeder y las
+  factories, y el formulario la consulta con una regla propia y no con
+  `Rule::unique`. Cambiar esa clave obliga a recalcular las huellas.
+- **La traza guarda lo cifrado**, porque `RegistroTraza` lee los valores tal
+  como van a la base. Lo que quedó en claro en `eventos_auditoria` antes de la
+  migración no se puede reescribir; es el punto 36.
+- **`FechaCifrada` implementa `ComparesCastableAttributes`.** Cifrar la misma
+  fecha da otro texto, y sin comparar descifrado cada guardado la daría por
+  cambiada: un evento de traza falso cada vez que alguien edita otra cosa. El
+  cast `encrypted` ya compara descifrado, **salvo que haya `APP_PREVIOUS_KEYS`**:
+  entonces Laravel da el campo siempre por cambiado, y durante una rotación de
+  clave cada guardado deja un evento de más.
+
+El correo no se cifra, porque con él se vincula la persona a una cuenta.
+
 ### La jerarquía vive en el puesto, no en la persona
 
 `puestos` —con `reporta_a_id`— y `asignaciones_puesto` entre medias. El

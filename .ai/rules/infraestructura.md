@@ -86,6 +86,10 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
 
 - **Hay un tercer rol y una cuarta base, los dos de las copias** (punto 34). `statera_copias` lee todo con BYPASSRLS y no escribe nada, y es dueño de `statera_verificacion`, donde `copias:verificar` restaura. Los crea el mismo script de roles. MinIO tiene un **cuarto bucket**, `statera-copias`, que crea `minio-init`; en un volumen de MinIO anterior basta con `docker compose up minio-init`. El motivo de cada cosa está en `copias.md`.
 
+- **MinIO cifra en reposo con su KMS interno** (punto 35). `MINIO_KMS_SECRET_KEY` va en el compose con una clave de desarrollo, **a propósito y en claro**: aquí sólo hay datos sintéticos. `minio-init` pone el cifrado por defecto en los cuatro buckets (`mc encrypt set sse-s3`), y además cada disco pide `ServerSideEncryption` en cada subida, porque el cifrado por defecto de un bucket se quita desde fuera sin que la aplicación se entere. Dos cosas que no se ven: **lo subido antes de activarlo sigue en claro**, y en un bucket versionado reescribirlo no basta, porque la versión antigua se queda; y **cambiar la clave deja ilegible todo lo guardado**. En producción no existe esta línea: el cifrado lo da el KMS del proveedor, y se activa antes del primer dato.
+
+- **La base no cifra el volumen**, y se deja a la infraestructura de producción (RDS cifrado, o disco cifrado del servidor). Lo que sí se cifra desde la aplicación son los datos personales de `personas` y el volcado de las copias.
+
 - **Cliente de Redis: `predis`, no `phpredis`.** La máquina de desarrollo no tiene la extensión `phpredis` compilada y el stack no elige cliente. `predis` es PHP puro y no requiere extensión. Si en producción se instala `phpredis`, basta cambiar `REDIS_CLIENT` en el entorno.
 
 - **`laravel/passport` se retiró.** Venía en el esqueleto inicial junto con sus seis migraciones OAuth. No hay API pública que autenticar (§12 del stack descarta la SPA con API separada) y la autenticación va por Fortify. Si algún día hace falta OAuth para integraciones, se vuelve a valorar entonces.

@@ -505,3 +505,24 @@ y 36 retención RGPD.
     lo que no se comprueba: dos ficheros de adjuntos sin fila, el logo y las
     fotos, que se copian pero no tienen huella con la que contrastarlos. Va
     declarado en `copias.md`, junto con lo demás que no hace.
+
+35. ✅ Cifrado en reposo. **Dos mitades, y cada una en su capa.** Los ficheros
+    los cifra el almacén: SSE con el KMS interno de MinIO en desarrollo y el del
+    proveedor en producción, pedido en cada subida y puesto también por defecto
+    en los cuatro buckets. Los datos personales de `personas` —NIF, teléfonos,
+    domicilio y fecha de nacimiento— los cifra la aplicación, con los casts de
+    Eloquent. El volumen de la base se deja a la infraestructura, y va declarado.
+
+    Lo que costó no fue cifrar, fue **lo que se rompe al cifrar**. El índice
+    único del NIF dejaba de ver dos iguales, porque cifrado da un texto
+    distinto cada vez, y pasó a una huella HMAC con su propia clave. La fecha
+    cifrada se daba por cambiada en cada guardado, lo que llenaba la traza de
+    eventos falsos, y su cast compara descifrado. De paso, la traza deja de
+    guardar esos datos en claro, aunque lo anterior sigue ahí: es el punto 36.
+
+    **Y el hueco H mordió por primera vez.** El `down()` de la migración reventaba
+    con una persona sin ningún dato personal: un `UPDATE` sin columnas. La suite
+    no ejecuta rollbacks, así que salió al hacer el viaje de ida y vuelta a mano
+    sobre la base de desarrollo. El error que se veía no era ése, sino el
+    `set_config()` del `finally` de `comoMantenimiento()` sobre una transacción
+    ya abortada: el síntoma apuntaba al contexto y la causa estaba en una fila.

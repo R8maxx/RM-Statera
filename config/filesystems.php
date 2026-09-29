@@ -97,6 +97,9 @@ return [
             // Un `put` que fallara en silencio dejaría una versión marcada como
             // «generada» sin fichero detrás, y el fallo aparecería semanas
             // después, al intentar descargarla delante del auditor.
+            // Cifrado en reposo del lado del servidor (punto 35). Ver la nota
+            // de `options` en el disco `evidencias`.
+            'options' => ['ServerSideEncryption' => 'AES256'],
             'throw' => true,
             'report' => false,
         ],
@@ -126,6 +129,9 @@ return [
             'endpoint_publico' => env('AWS_ENDPOINT_PUBLICO'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
             'visibility' => 'private',
+            // Cifrado en reposo del lado del servidor (punto 35). Ver la nota
+            // de `options` en el disco `evidencias`.
+            'options' => ['ServerSideEncryption' => 'AES256'],
             'throw' => true,
             'report' => false,
         ],
@@ -145,6 +151,14 @@ return [
             'endpoint_publico' => env('AWS_ENDPOINT_PUBLICO'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
             'visibility' => 'private',
+            /*
+             * Cifrado en reposo del lado del servidor (§ 6, punto 35): cada
+             * subida lo pide, y no se confía sólo en el cifrado por defecto del
+             * bucket, que se configura fuera del código y se puede quitar sin
+             * que la aplicación se entere. En MinIO lo sirve su KMS interno
+             * (`MINIO_KMS_SECRET_KEY`); en producción, el del proveedor.
+             */
+            'options' => ['ServerSideEncryption' => 'AES256'],
             'throw' => true,
             'report' => false,
         ],
@@ -166,6 +180,9 @@ return [
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
             'visibility' => 'private',
+            // Cifrado en reposo del lado del servidor (punto 35). Ver la nota
+            // de `options` en el disco `evidencias`.
+            'options' => ['ServerSideEncryption' => 'AES256'],
             'throw' => true,
             'report' => false,
         ],

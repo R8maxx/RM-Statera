@@ -19,5 +19,8 @@ done
 for bucket in "${AWS_BUCKET}" "${AWS_BUCKET_DOCUMENTOS}" "${AWS_BUCKET_ADJUNTOS}" "${AWS_BUCKET_COPIAS}"; do
     mc mb --ignore-existing "statera/${bucket}"
     mc version enable "statera/${bucket}"
+    # Cifrado por defecto del bucket, además del que pide cada subida: así
+    # también se cifra lo que suba otra herramienta que no lo pida.
+    mc encrypt set sse-s3 "statera/${bucket}"
     echo "[statera] bucket ${bucket} listo"
 done

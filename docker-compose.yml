@@ -209,6 +209,13 @@ services:
     environment:
       MINIO_ROOT_USER: statera
       MINIO_ROOT_PASSWORD: statera-secret
+      # Cifrado en reposo (§ 6, punto 35): el KMS interno de MinIO, con una
+      # sola clave, basta para que los objetos se guarden cifrados. **Es una
+      # clave de desarrollo y está en el repositorio a propósito**: aquí sólo
+      # hay datos sintéticos. En producción el cifrado lo da el KMS del
+      # proveedor y esta línea no existe. Cambiarla deja ilegible lo que ya
+      # esté guardado.
+      MINIO_KMS_SECRET_KEY: statera-desarrollo:VkCalmkVy1YVUb9PDeOElC2bESLOeqGr7XMbFZIfYQM=
     ports:
       - "127.0.0.1:9000:9000"
       - "127.0.0.1:9001:9001"

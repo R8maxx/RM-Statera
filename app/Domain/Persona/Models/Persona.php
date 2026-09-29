@@ -7,7 +7,9 @@ namespace App\Domain\Persona\Models;
 use App\Domain\Adjunto\Concerns\ConAdjuntos;
 use App\Domain\Adjunto\Concerns\TieneAdjuntos;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
+use App\Domain\Persona\Casts\FechaCifrada;
 use App\Domain\Persona\Enums\TipoPasoPersona;
+use App\Domain\Persona\HuellaNif;
 use App\Domain\Traza\Concerns\RegistraTraza;
 use App\Models\User;
 use Database\Factories\Persona\PersonaFactory;
@@ -40,11 +42,12 @@ use LogicException;
  * @property ?string $apellido1
  * @property ?string $apellido2
  * @property-read string $nombre el completo, que calcula PostgreSQL
- * @property ?string $nif
+ * @property ?string $nif cifrado en reposo
+ * @property ?string $nif_huella HMAC del NIF normalizado; lo pone el modelo al guardar
  * @property ?string $telefono
  * @property ?string $telefono_fijo
  * @property ?string $direccion
- * @property ?Carbon $fecha_nacimiento
+ * @property ?Carbon $fecha_nacimiento cifrada en reposo
  * @property ?string $email
  * @property ?int $user_id
  * @property Carbon $fecha_alta
@@ -117,6 +120,17 @@ class Persona extends Model implements ConAdjuntos
      */
     protected static function booted(): void
     {
+        /*
+         * La huella se calcula aquí y no en el formulario, porque vale igual
+         * para el seeder, las factories y un importador. Sin ella el índice
+         * único de NIF no ve nada: el NIF va cifrado y cambia en cada escritura.
+         */
+        static::saving(static function (self $persona): void {
+            if ($persona->isDirty('nif') || ($persona->nif_huella === null && $persona->nif !== null)) {
+                $persona->nif_huella = HuellaNif::de($persona->nif);
+            }
+        });
+
         static::created(static function (self $persona): void {
             $persona->refresh();
         });
@@ -451,10 +465,22 @@ class Persona extends Model implements ConAdjuntos
     /** @return array<string, string> */
     protected function casts(): array
     {
+        /*
+         * Los datos personales van cifrados en reposo (punto 35, § 6), con
+         * `APP_KEY`. Ninguno se busca ni se ordena —`personas.md` los dejó fuera
+         * de la búsqueda libre y del CSV desde el principio—, así que cifrarlos
+         * no quita nada. El NIF, que sí tiene que ser único, lleva además su
+         * huella en `nif_huella`. El correo no va cifrado: es con lo que se
+         * vincula a una cuenta.
+         */
         return [
             'fecha_alta' => 'date',
             'fecha_baja' => 'date',
-            'fecha_nacimiento' => 'date',
+            'nif' => 'encrypted',
+            'telefono' => 'encrypted',
+            'telefono_fijo' => 'encrypted',
+            'direccion' => 'encrypted',
+            'fecha_nacimiento' => FechaCifrada::class,
         ];
     }
 

@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Requests;
 
 use App\Domain\Organizacion\ContextoOrganizacion;
+use App\Domain\Persona\HuellaNif;
 use App\Domain\Persona\Models\Persona;
+use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -56,11 +58,24 @@ class GuardarPersonaRequest extends FormRequest
              * de alta a alguien que trabaja aquí. Lo único que se impone es que no
              * haya dos iguales en la misma organización.
              */
+            /*
+             * Contra la huella y no contra el NIF: desde el punto 35 el NIF va
+             * cifrado y un `unique` sobre la columna no vería nunca dos iguales.
+             * La consulta pasa por el scope de organización, así que la
+             * unicidad sigue siendo por organización.
+             */
             'nif' => [
                 'nullable', 'string', 'max:32',
-                Rule::unique('personas', 'nif')
-                    ->where('organizacion_id', app(ContextoOrganizacion::class)->idObligatorio())
-                    ->ignore($id),
+                static function (string $atributo, mixed $valor, Closure $fallar) use ($id): void {
+                    $repetido = Persona::query()
+                        ->where('nif_huella', HuellaNif::de((string) $valor))
+                        ->when($id !== null, static fn ($consulta) => $consulta->whereKeyNot($id))
+                        ->exists();
+
+                    if ($repetido) {
+                        $fallar('Ya hay otra persona con ese documento en la organización.');
+                    }
+                },
             ],
 
             'telefono' => ['nullable', 'string', 'max:32'],
@@ -110,7 +125,6 @@ class GuardarPersonaRequest extends FormRequest
         return [
             'fecha_baja.after_or_equal' => 'Nadie se va antes de entrar: revisa las dos fechas.',
             'user_id.unique' => 'Esa cuenta ya está vinculada a otra persona.',
-            'nif.unique' => 'Ya hay otra persona con ese documento en la organización.',
             'fecha_nacimiento.before' => 'La fecha de nacimiento tiene que ser anterior a hoy.',
         ];
     }

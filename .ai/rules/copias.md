@@ -53,8 +53,9 @@ esto no es infraestructura que se monta después: es un requisito del producto.
 
 ## Lo que no hace, y queda declarado
 
-- **El espejo de objetos no va cifrado por la aplicación**: lo protege el cifrado
-  en reposo del almacén, que es el punto 35. El volcado de la base sí va cifrado.
+- **El espejo de objetos no lo cifra la aplicación**, sino el cifrado en reposo
+  del almacén (SSE, punto 35), como a los otros tres discos. El volcado de la
+  base sí va cifrado por la aplicación, porque contiene todo.
 - **Los ficheros sin fila no se contrastan con ninguna huella**: el logo de la
   organización y las fotos de perfil se copian igual, pero la base no guarda su
   SHA-256.

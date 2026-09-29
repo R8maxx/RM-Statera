@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Domain\Persona\HuellaNif;
 use App\Domain\Persona\Models\Persona;
+use App\Domain\Traza\Enums\AccionAuditada;
+use App\Domain\Traza\Models\EventoAuditoria;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia;
@@ -222,4 +225,61 @@ it('ordena por el nombre completo', function (): void {
     $nombres = DB::table('personas')->orderBy('nombre')->pluck('nombre')->all();
 
     expect($nombres)->toBe(['Ana Zurita', 'Zoe Alonso']);
+});
+
+// --- Cifrado en reposo (punto 35) -------------------------------------------
+
+/*
+ * Lo que se lee por el modelo es el dato; lo que hay en la tabla, no. Se mira
+ * con el query builder, que no pasa por los casts: es lo que vería quien se
+ * llevara la base.
+ */
+it('guarda cifrados el documento, los teléfonos, el domicilio y la fecha de nacimiento', function (): void {
+    $persona = Persona::factory()->create([
+        'nif' => '44444444A',
+        'telefono' => '+34 600 444 444',
+        'telefono_fijo' => '960 444 444',
+        'direccion' => 'Calle Sintética 4',
+        'fecha_nacimiento' => '1990-05-04',
+    ]);
+
+    $fila = (array) DB::table('personas')->where('id', $persona->id)->first();
+    $enClaro = ['44444444A', '+34 600 444 444', '960 444 444', 'Calle Sintética 4', '1990-05-04'];
+
+    foreach (['nif', 'telefono', 'telefono_fijo', 'direccion', 'fecha_nacimiento'] as $columna) {
+        expect(in_array($fila[$columna], $enClaro, true))->toBeFalse("{$columna} está en claro en la tabla.");
+    }
+
+    $leida = Persona::query()->findOrFail($persona->id);
+
+    expect($leida->nif)->toBe('44444444A')
+        ->and($leida->direccion)->toBe('Calle Sintética 4')
+        ->and($leida->fecha_nacimiento?->toDateString())->toBe('1990-05-04')
+        ->and($fila['nif_huella'])->toBe(HuellaNif::de('44444444A'));
+});
+
+/*
+ * Cifrar lo mismo dos veces da dos textos distintos. Sin comparar descifrado,
+ * cambiar el teléfono dejaría en la traza un «cambio» de NIF y de fecha que
+ * nadie hizo.
+ */
+it('tocar otro campo no hace pasar por cambiados los cifrados', function (): void {
+    $persona = Persona::factory()->create(['nif' => '55555555B', 'fecha_nacimiento' => '1980-01-01']);
+
+    $persona->update(['notas' => 'Una nota']);
+
+    $evento = EventoAuditoria::query()
+        ->where('entidad', 'Persona')
+        ->where('accion', AccionAuditada::Actualizado->value)
+        ->sole();
+
+    expect(array_keys($evento->valor_nuevo ?? []))->toBe(['notas']);
+});
+
+it('la traza no guarda el documento en claro', function (): void {
+    Persona::factory()->create(['nif' => '66666666C']);
+
+    $alta = EventoAuditoria::query()->where('entidad', 'Persona')->sole();
+
+    expect(json_encode($alta->valor_nuevo))->not->toContain('66666666C');
 });
