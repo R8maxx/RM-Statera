@@ -462,6 +462,9 @@ it('quien no puede ver un módulo no ve sus chips', function (): void {
 
             expect($fuentes)->not->toContain('indicador');
 
+            // Y tampoco por la lista de lo arrastrado, que es otra consulta.
+            expect(array_column($pagina->toArray()['props']['vencidos'], 'fuente'))->not->toContain('indicador');
+
             $opciones = collect($pagina->toArray()['props']['filtros'])
                 ->firstWhere('clave', 'fuente')['opciones'];
 
@@ -481,4 +484,144 @@ it('la ruta vieja redirige conservando el mes', function (): void {
         ->assertStatus(302)
         ->assertRedirectContains('/calendario')
         ->assertRedirectContains('mes=2026-11');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Lo pasado de fecha, caiga en el mes que caiga
+|--------------------------------------------------------------------------
+|
+| La rejilla tiene casillas para seis semanas. Una tarea que venció en julio y
+| sigue abierta no cabe en la de septiembre, y pasar de mes la hacía
+| desaparecer: lo que más urge era justo lo que dejaba de verse.
+|
+*/
+
+/** Lo pasado de fecha que el calendario manda al mirar un mes. */
+function vencidosDe(string $mes, array $filtros = []): array
+{
+    $vencidos = [];
+
+    $query = collect($filtros)
+        ->map(fn (string $valor, string $clave): string => "filter[{$clave}]={$valor}")
+        ->implode('&');
+
+    test()->actingAs(test()->usuario)
+        ->get("/calendario?mes={$mes}".($query === '' ? '' : "&{$query}"))
+        ->assertOk()
+        ->assertInertia(function (AssertableInertia $pagina) use (&$vencidos): void {
+            $vencidos = $pagina->toArray()['props']['vencidos'];
+        });
+
+    return $vencidos;
+}
+
+it('arrastra lo vencido de meses anteriores aunque la rejilla no lo enseñe', function (): void {
+    Carbon::setTestNow('2026-09-29');
+
+    Tarea::factory()->paraElDia('2026-07-15')->create(['titulo' => 'De julio']);
+
+    expect(array_column(vencimientosDe('2026-09'), 'titulo'))->not->toContain('De julio')
+        ->and(array_column(vencidosDe('2026-09'), 'titulo'))->toBe(['De julio']);
+
+    Carbon::setTestNow();
+});
+
+/**
+ * «Pasado de fecha» se dice de hoy, no del mes que se mira: mirar diciembre
+ * para planificar no puede esconder lo que ya va tarde.
+ */
+it('lo vencido se ve mire el mes que se mire', function (string $mes): void {
+    Carbon::setTestNow('2026-09-29');
+
+    Tarea::factory()->paraElDia('2026-09-10')->create(['titulo' => 'Vencida']);
+
+    expect(array_column(vencidosDe($mes), 'titulo'))->toBe(['Vencida']);
+
+    Carbon::setTestNow();
+})->with(['2026-06', '2026-09', '2026-12']);
+
+it('no arrastra lo que vence hoy, lo que está en plazo ni lo cerrado', function (): void {
+    Carbon::setTestNow('2026-09-29');
+
+    Tarea::factory()->paraElDia('2026-09-29')->create(['titulo' => 'Vence hoy']);
+    Tarea::factory()->paraElDia('2026-10-05')->create(['titulo' => 'En plazo']);
+    Tarea::factory()->enEstado(EstadoTarea::Hecha)->paraElDia('2026-08-01')->create(['titulo' => 'Ya hecha']);
+
+    expect(vencidosDe('2026-09'))->toBeEmpty();
+
+    Carbon::setTestNow();
+});
+
+it('va del más antiguo al más reciente', function (): void {
+    Carbon::setTestNow('2026-09-29');
+
+    Tarea::factory()->paraElDia('2026-09-10')->create(['titulo' => 'Reciente']);
+    Evidencia::factory()->create(['fecha_obtencion' => '2025-05-02', 'fecha_caducidad' => '2026-05-02', 'titulo' => 'Antigua']);
+    Tarea::factory()->paraElDia('2026-07-20')->create(['titulo' => 'Intermedia']);
+
+    expect(array_column(vencidosDe('2026-09'), 'titulo'))->toBe(['Antigua', 'Intermedia', 'Reciente']);
+
+    Carbon::setTestNow();
+});
+
+/**
+ * Con los mismos filtros que la rejilla: filtrar por responsable y que la lista
+ * de arriba siguiera contando lo de todos sería el filtro mintiendo a medias.
+ */
+it('lo arrastrado respeta los filtros de fuente y de responsable', function (): void {
+    Carbon::setTestNow('2026-09-29');
+
+    $usuario = usuarioCon();
+
+    Tarea::factory()->de($usuario)->paraElDia('2026-07-10')->create(['titulo' => 'Tarea suya']);
+    Tarea::factory()->paraElDia('2026-07-11')->create(['titulo' => 'Tarea de nadie']);
+    Evidencia::factory()->create([
+        'fecha_obtencion' => '2025-07-12',
+        'fecha_caducidad' => '2026-07-12',
+        'titulo' => 'Evidencia suya',
+        'responsable_id' => $usuario->id,
+    ]);
+
+    expect(array_column(vencidosDe('2026-09', ['fuente' => 'evidencia']), 'titulo'))->toBe(['Evidencia suya'])
+        ->and(array_column(vencidosDe('2026-09', ['responsable_id' => (string) $usuario->id]), 'titulo'))
+        ->toBe(['Tarea suya', 'Evidencia suya']);
+
+    Carbon::setTestNow();
+});
+
+it('lo arrastrado no cruza la frontera de organización', function (): void {
+    Carbon::setTestNow('2026-09-29');
+
+    comoOrganizacion(Organizacion::factory()->create());
+    Tarea::factory()->paraElDia('2026-07-10')->create(['titulo' => 'De la otra organización']);
+
+    comoOrganizacion($this->organizacion);
+    Tarea::factory()->paraElDia('2026-07-10')->create(['titulo' => 'Propia']);
+
+    expect(array_column(vencidosDe('2026-09'), 'titulo'))->toBe(['Propia']);
+
+    Carbon::setTestNow();
+});
+
+/*
+ * Descubre en vez de enumerar: una `Fuente` nueva que no declare su scope de
+ * vencido en `pasadosDe()` revienta el `match`, y una que lo declare mal —que
+ * no devuelva nada— se pone roja aquí con su nombre.
+ */
+it('toda fuente pasada de fecha se arrastra', function (): void {
+    foreach (Fuente::cases() as $fuente) {
+        sembrarVencimiento($fuente, pasado: true);
+    }
+
+    $fuentes = array_map(
+        static fn ($vencimiento): string => $vencimiento->fuente->value,
+        app(CalendarioVencimientos::class)->pasados(),
+    );
+
+    foreach (Fuente::cases() as $fuente) {
+        expect(in_array($fuente->value, $fuentes, true))->toBeTrue(
+            "La fuente `{$fuente->value}` pasada de fecha no sale en lo arrastrado.",
+        );
+    }
 });

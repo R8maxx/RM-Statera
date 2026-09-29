@@ -69,6 +69,89 @@ final readonly class CalendarioVencimientos
     }
 
     /**
+     * Todo lo que hoy está pasado de fecha, caiga en el mes que caiga.
+     *
+     * **Es lo que la rejilla no puede enseñar.** Una tarea que venció en julio
+     * sigue abierta en septiembre, pero en la rejilla de septiembre no hay
+     * casilla para ella: pasar de mes la hacía desaparecer, y lo que más urge
+     * atender era justo lo que dejaba de verse. Esta lista no depende del mes
+     * que se mire, porque «pasado de fecha» se dice de hoy.
+     *
+     * Del más antiguo al más reciente: lo que lleva más tiempo sin atenderse es
+     * lo que un auditor pregunta primero.
+     *
+     * @return list<Vencimiento>
+     */
+    public function pasados(?FiltrosVencimiento $filtros = null): array
+    {
+        $filtros ??= FiltrosVencimiento::ninguno();
+
+        $vencimientos = [];
+
+        foreach (Fuente::cases() as $fuente) {
+            if (! $filtros->quiere($fuente)) {
+                continue;
+            }
+
+            $vencimientos = [...$vencimientos, ...$this->pasadosDe($fuente, $filtros)];
+        }
+
+        usort($vencimientos, static fn (Vencimiento $a, Vencimiento $b): int => [$a->dia, $a->titulo] <=> [$b->dia, $b->titulo]);
+
+        return $vencimientos;
+    }
+
+    /**
+     * Lo pasado de fecha de una fuente, **por el scope de su módulo dueño**.
+     *
+     * Vivía en `ResumenVencimientos`, y se mudó aquí cuando el calendario
+     * también tuvo que enseñarlo: con la condición escrita en dos sitios, el
+     * correo diría 9 y la pantalla 12. Ahora el correo pide esto mismo sin
+     * filtros.
+     *
+     * No mira `quiere()`: eso lo decide quien recorre las fuentes.
+     *
+     * @return list<Vencimiento>
+     */
+    public function pasadosDe(Fuente $fuente, ?FiltrosVencimiento $filtros = null): array
+    {
+        $filtros ??= FiltrosVencimiento::ninguno();
+
+        return match ($fuente) {
+            Fuente::Evidencia => $this->deEvidencias($filtros->acotar(Evidencia::query()->caducadas(), 'fecha_caducidad')),
+            Fuente::Tarea => $this->deTareas($filtros->acotar(Tarea::query()->vencidas(), 'fecha_limite')),
+            /*
+             * La revisión documental va en su propio par por lo mismo que
+             * evidencias y tareas van aparte: una revisión vencida no se arregla
+             * como una tarea que no se hizo — se arregla volviendo a mirar el
+             * documento y aprobándolo otra vez, y lo hace quien firma.
+             */
+            Fuente::Documento => $this->deDocumentos($filtros->acotar(
+                Documento::query()->revisionVencida(),
+                'fecha_proxima_revision',
+                'versionAprobada',
+            )),
+            Fuente::Formacion => $this->deFormacion($filtros->acotarCalculado(
+                Persona::query()->formacionCaducada(),
+                Persona::expresionRenovacionFormativa(),
+            )),
+            Fuente::Indicador => $this->deIndicadores(Carbon::today()->subYears(5), Carbon::today(), $filtros),
+            Fuente::Implantacion => $this->deImplantaciones($filtros->acotar(
+                Implantacion::query()->objetivoVencido(),
+                'implantaciones.fecha_objetivo',
+            )),
+            Fuente::Obligacion => $this->deObligaciones($filtros->acotarCalculado(
+                Compromiso::query()->vencidos(),
+                Compromiso::expresionProxima(),
+            )),
+            Fuente::PruebaContinuidad => $this->dePruebas($filtros->acotar(PruebaContinuidad::query()->vencidas(), 'fecha_prevista')),
+            Fuente::Bia => $this->deBias($filtros->acotar(BiaServicio::query()->revisionVencida(), 'fecha_revision')),
+            Fuente::Proveedor => $this->deProveedores($filtros->acotar(Proveedor::query()->reevaluacionVencida(), 'proxima_evaluacion')),
+            Fuente::Vulnerabilidad => $this->deVulnerabilidades($filtros->acotar(Vulnerabilidad::query()->fueraDePlazo(), 'fecha_limite')),
+        };
+    }
+
+    /**
      * La consulta de una fuente, acotada al tramo y a los filtros.
      *
      * El `match` es exhaustivo a propósito: un caso nuevo de `Fuente` que no se

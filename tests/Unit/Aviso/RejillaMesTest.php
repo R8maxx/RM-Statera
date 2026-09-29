@@ -111,3 +111,15 @@ it('un mes que no se entiende es el de hoy', function (string $basura): void {
 it('pone la inicial del mes en mayúscula', function (): void {
     expect(RejillaMes::de('2026-09')->etiqueta)->toBe('Septiembre de 2026');
 });
+
+it('numera cada fila con su semana ISO', function (): void {
+    expect(RejillaMes::de('2026-09')->semanas)->toBe([36, 37, 38, 39, 40, 41]);
+});
+
+/**
+ * 2026 tiene 53 semanas: la rejilla de enero de 2027 arranca el lunes 28 de
+ * diciembre, que es de la 53 y no de la 1 ni de la 52.
+ */
+it('cruza el cambio de año con la semana 53', function (): void {
+    expect(RejillaMes::de('2027-01')->semanas)->toBe([53, 1, 2, 3, 4, 5]);
+});

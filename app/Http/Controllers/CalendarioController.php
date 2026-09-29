@@ -53,6 +53,14 @@ class CalendarioController extends Controller
                 Carbon::parse($rejilla->ultimoDia),
                 $filtros,
             ),
+            /*
+             * Lo pasado de fecha, **caiga en el mes que caiga**. La rejilla sólo
+             * tiene casillas para seis semanas, y lo que venció antes seguía
+             * abierto sin que la pantalla lo enseñara: pasar de mes lo hacía
+             * desaparecer. Con los mismos filtros, para que filtrar por
+             * responsable no deje la lista contando otra cosa que la rejilla.
+             */
+            'vencidos' => $calendario->pasados($filtros),
             'filtros' => $this->filtros($request),
             'filtrosAplicados' => $this->aplicados($request),
             /*

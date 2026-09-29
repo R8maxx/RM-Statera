@@ -9,7 +9,6 @@ use App\Domain\Continuidad\Models\PruebaContinuidad;
 use App\Domain\Documento\Models\Documento;
 use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Implantacion\Models\Implantacion;
-use App\Domain\Metrica\Models\Indicador;
 use App\Domain\Obligacion\Models\Compromiso;
 use App\Domain\Persona\Models\Persona;
 use App\Domain\Proveedor\Models\Proveedor;
@@ -77,33 +76,15 @@ final readonly class ResumenVencimientos
     /**
      * Lo que ya se pasó de fecha, por el scope del módulo dueño.
      *
+     * **La decisión es de `CalendarioVencimientos::pasadosDe()`**, que es lo
+     * mismo que enseña el calendario sobre su rejilla. Aquí se pide sin filtros:
+     * el correo va a quien responde de todo.
+     *
      * @return list<Vencimiento>
      */
     private function pasados(Fuente $fuente): array
     {
-        return match ($fuente) {
-            Fuente::Evidencia => $this->calendario->deEvidencias(Evidencia::query()->caducadas()),
-            Fuente::Tarea => $this->calendario->deTareas(Tarea::query()->vencidas()),
-            /*
-             * La revisión documental va en su propio par por lo mismo que
-             * evidencias y tareas van aparte: una revisión vencida no se arregla
-             * como una tarea que no se hizo — se arregla volviendo a mirar el
-             * documento y aprobándolo otra vez, y lo hace quien firma.
-             */
-            Fuente::Documento => $this->calendario->deDocumentos(Documento::query()->revisionVencida()),
-            Fuente::Formacion => $this->calendario->deFormacion(Persona::query()->formacionCaducada()),
-            Fuente::Indicador => $this->calendario->deIndicadores(
-                Carbon::today()->subYears(5),
-                Carbon::today(),
-                FiltrosVencimiento::ninguno(),
-            ),
-            Fuente::Implantacion => $this->calendario->deImplantaciones(Implantacion::query()->objetivoVencido()),
-            Fuente::Obligacion => $this->calendario->deObligaciones(Compromiso::query()->vencidos()),
-            Fuente::PruebaContinuidad => $this->calendario->dePruebas(PruebaContinuidad::query()->vencidas()),
-            Fuente::Bia => $this->calendario->deBias(BiaServicio::query()->revisionVencida()),
-            Fuente::Proveedor => $this->calendario->deProveedores(Proveedor::query()->reevaluacionVencida()),
-            Fuente::Vulnerabilidad => $this->calendario->deVulnerabilidades(Vulnerabilidad::query()->fueraDePlazo()),
-        };
+        return $this->calendario->pasadosDe($fuente);
     }
 
     /**

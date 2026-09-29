@@ -213,10 +213,28 @@ normativo no se borra, se marca.
   es su clave — sin ocupar sitio extra, porque ya tenía que estar. Por eso `Opcion` lleva `icono` desde
   este módulo.
 
-- **El tope de tres por día abre un `PanelDia`, no un párrafo.** Era un `<p>` muerto —«y 4 más», sin
-  decir qué son y sin llevar a ninguna parte—, que además no era alcanzable con el tabulador: lo que el
-  tope escondía **no tenía ninguna otra puerta**. Mismo callejón sin salida que el panel cerró para sus
-  cifras.
+- **El tope es de tres filas por casilla, contando la salida**: con cuatro vencimientos o más se ven dos
+  y «+N más». La salida y el número del día abren `PanelDia`, **un panel no modal al lado de la
+  rejilla** y no un popover. Primero fue un `<p>` muerto —«y 4 más», sin puerta y sin tabulador—; luego
+  un popover, que tapaba la casilla y se cerraba al primer clic fuera, así que comparar dos días era
+  abrir, cerrar y volver a abrir. El panel se queda, se cambia de día pulsando otro número, Escape lo
+  cierra y **la página devuelve el foco a quien lo abrió**, porque al no ser modal nadie más lo hace.
+
+- **Lo pasado de fecha se arrastra, caiga en el mes que caiga** (`ResumenVencidos`, prop `vencidos`).
+  La rejilla sólo tiene seis semanas: una tarea que venció en julio y sigue abierta no tenía casilla en
+  septiembre, y pasar de mes la hacía desaparecer — lo más urgente era lo que dejaba de verse. La lista
+  no depende del mes, porque «pasado de fecha» se dice de hoy, y va con **los mismos filtros** que la
+  rejilla. **La decide `CalendarioVencimientos::pasadosDe()`**, con el scope de vencido de cada módulo
+  dueño; vivía en `ResumenVencimientos` y se mudó para que el correo y la pantalla no puedan
+  discrepar: el correo la pide sin filtros. Sin nada vencido la tarjeta no se pinta. Lo fija, entre
+  otros, «toda fuente pasada de fecha se arrastra», que recorre `Fuente::cases()`.
+
+- **En la rejilla, el fondo sólo lo gasta lo vencido.** Cada fila lleva el icono de su fuente con la
+  tinta de su estado (`Tono.texto` en `lib/tonos.ts`) y el estado en `sr-only`; antes cada chip llevaba
+  el fondo suave de su estado, y un mes normal era una pared de color donde el rojo no destacaba.
+
+- **El fin de semana va a 0,62 de ancho** y cada fila lleva su semana ISO, que calcula `RejillaMes`
+  (`semanas`) por lo mismo que la rejilla: la semana 53 es de las que se escriben mal deprisa.
 
 - **Los días se distinguen con cuatro fondos sólidos**, no con alfa. Antes eran `bg-muted/40` y
   `bg-muted/20` sobre `bg-card` —dos transparencias casi idénticas y las dos en el mismo atributo, así
@@ -360,9 +378,6 @@ negarla. Nada de esto rompe nada hoy:
   `<a><button>`, dos paradas de tabulación por control y un ancla sin nombre
   accesible. El patrón bueno —`<Button as-child><Link>`— está en 32 ficheros y aquí
   sólo se aplicó en la ficha.
-- **`text-muted-foreground/60`** en las iniciales de los días y en los números
-  fuera del mes: **2,4:1**, por debajo del 4,5:1 de § 11. Viene del fichero que se
-  mudó, y `PaletaTest` no lo caza porque mira tokens y no clases de plantilla.
 - **Objetivos táctiles de 32 px** en la navegación de mes (`size="icon-sm"`), que
   también se ve por debajo de `md`. `FiltroFuentes` y `ConmutadorVista` sí resuelven
   esto con `min-h-11 sm:min-h-8`.

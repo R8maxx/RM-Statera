@@ -27,6 +27,7 @@ final readonly class RejillaMes
 
     /**
      * @param  list<array{dia: string, numero: int, delMes: bool, esHoy: bool, finDeSemana: bool}>  $dias
+     * @param  list<int>  $semanas  el número ISO de cada fila, de arriba abajo
      */
     private function __construct(
         public string $mes,
@@ -36,6 +37,7 @@ final readonly class RejillaMes
         public string $primerDia,
         public string $ultimoDia,
         public array $dias,
+        public array $semanas,
     ) {}
 
     /**
@@ -74,6 +76,16 @@ final readonly class RejillaMes
             primerDia: $inicio->toDateString(),
             ultimoDia: $inicio->copy()->addDays(self::SEMANAS * 7 - 1)->toDateString(),
             dias: $dias,
+            /*
+             * La semana ISO, que es la que se usa aquí para citar plazos («para
+             * la 40»). Se calcula en el servidor por lo mismo que la rejilla: la
+             * semana 53 y la 1 que empieza en diciembre son justo lo que se
+             * escribe mal deprisa.
+             */
+            semanas: array_map(
+                static fn (int $fila): int => $inicio->copy()->addWeeks($fila)->isoWeek(),
+                range(0, self::SEMANAS - 1),
+            ),
         );
     }
 

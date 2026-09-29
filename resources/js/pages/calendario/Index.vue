@@ -5,6 +5,7 @@ import EstadoVacio from '@/components/EstadoVacio.vue';
 import IconoTipo from '@/components/IconoTipo.vue';
 import FiltroFuentes from '@/components/calendario/FiltroFuentes.vue';
 import PanelDia from '@/components/calendario/PanelDia.vue';
+import ResumenVencidos from '@/components/calendario/ResumenVencidos.vue';
 import BarraFiltros from '@/components/tabla/BarraFiltros.vue';
 import { Button } from '@/components/ui/button';
 import { useFiltrosServidor } from '@/composables/useFiltrosServidor';
@@ -14,9 +15,9 @@ import { tono } from '@/lib/tonos';
 import { Link } from '@inertiajs/vue3';
 import { CalendarDaysIcon, ChevronLeftIcon, ChevronRightIcon } from '@lucide/vue';
 import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
-import { curva, duracion } from '@/lib/motion';
-import { motion } from 'motion-v';
-import { computed, toRef } from 'vue';
+import { curva, duracion, transicionSalida } from '@/lib/motion';
+import { AnimatePresence, motion } from 'motion-v';
+import { computed, nextTick, ref, toRef } from 'vue';
 
 type Vencimiento = App.Domain.Aviso.Vencimiento;
 type Filtro = App.Http.Resources.Definicion.Filtro;
@@ -38,18 +39,27 @@ const props = defineProps<{
         primerDia: string;
         ultimoDia: string;
         dias: Dia[];
+        /** El número ISO de cada fila, de arriba abajo. */
+        semanas: number[];
     };
     vencimientos: Vencimiento[];
+    /** Lo pasado de fecha, caiga en el mes que caiga. */
+    vencidos: Vencimiento[];
     filtros: Filtro[];
     filtrosAplicados: Record<string, string | string[]>;
     /** Lo que el filtro de responsable deja fuera por no tener uno. */
     excluidasPorResponsable: string[];
 }>();
 
-/** Cuántos caben en una casilla antes de resumir el resto. */
-const POR_DIA = 3;
+/**
+ * Cuántas filas caben en una casilla, contando la salida.
+ *
+ * Con cuatro vencimientos o más se enseñan dos y «+N más»: la casilla tiene
+ * siempre el mismo alto, y un día cargado no estira la fila entera.
+ */
+const FILAS = 3;
 
-const cabeceras = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+const cabeceras = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
 /*
  * El mes viaja en la URL, así que hay que devolvérselo al servidor en cada
@@ -63,7 +73,7 @@ const {
     limpiarFiltros,
 } = useFiltrosServidor({
     aplicados: toRef(props, 'filtrosAplicados'),
-    only: ['vencimientos', 'filtrosAplicados'],
+    only: ['vencimientos', 'vencidos', 'filtrosAplicados'],
     extras: () => ({ mes: props.rejilla.mes }),
 });
 
@@ -75,6 +85,10 @@ const busqueda = computed<Filtro | null>(
  * El filtro de fuente sale de aquí: sube a la fila de chips, que es a la vez
  * filtro y leyenda. Calcularlo excluyéndolo —en vez de duplicar la lista— es lo
  * que impide que el control acabe viviendo en dos sitios.
+ *
+ * **Y la misma lista va a `todos`.** Sólo se excluía de `sueltos`, así que
+ * `chipsDe()` —que recorre `todos`— seguía pintando «Qué: Tarea» como chip
+ * descartable al lado de los chips de `FiltroFuentes`.
  */
 const filtroFuente = computed<Filtro | null>(
     () => props.filtros.find((filtro) => filtro.clave === 'fuente') ?? null,
@@ -83,13 +97,6 @@ const filtroFuente = computed<Filtro | null>(
 const sueltos = computed(() =>
     props.filtros.filter((filtro) => filtro.tipo !== 'busqueda' && filtro.clave !== 'fuente'),
 );
-
-/*
- * **Y la misma lista va a `todos`.** Sólo se excluía de `sueltos`, así que
- * `chipsDe()` —que recorre `todos`— seguía pintando «Qué: Tarea» como chip
- * descartable al lado de los chips de `FiltroFuentes`: el mismo control dos veces
- * en la misma pantalla, que es justo lo que el comentario de arriba dice evitar.
- */
 
 /** Lo que el servidor aplicó de verdad, que es lo que marcan los chips. */
 const fuentesActivas = computed<string[]>(() => {
@@ -121,39 +128,52 @@ const porDia = computed(() => {
 
 const del = (dia: string): Vencimiento[] => porDia.value.get(dia) ?? [];
 
+/** Lo que se enseña en la casilla: todo si cabe, y si no, una fila menos para la salida. */
+const visiblesDe = (dia: string): Vencimiento[] => {
+    const todos = del(dia);
+
+    return todos.length > FILAS ? todos.slice(0, FILAS - 1) : todos;
+};
+
+const ocultosDe = (dia: string): number => del(dia).length - visiblesDe(dia).length;
+
+/** La rejilla en filas, con su número de semana delante. */
+const semanas = computed(() =>
+    props.rejilla.semanas.map((numero, fila) => ({
+        numero,
+        dias: props.rejilla.dias.slice(fila * 7, fila * 7 + 7),
+    })),
+);
+
 /*
  * Cuatro escalones sólidos, sin alfa.
  *
  * Antes eran `bg-muted/40` y `bg-muted/20` sobre `bg-card`: dos transparencias
  * casi idénticas, y las dos en el mismo atributo, así que decidía el orden en
- * que Tailwind emite las clases y no el código. Es el mismo fallo que CLAUDE.md
- * documenta para las celdas ancladas de la tabla, y `app.css` ya trae la
- * escalera compuesta para no repetirlo.
+ * que Tailwind emite las clases y no el código. `app.css` ya trae la escalera
+ * compuesta para no repetirlo.
  */
-const fondos: Record<string, string> = {
-    normal: 'bg-card',
-    finDeSemana: 'bg-superficie',
-    fuera: 'bg-muted',
-    hoy: 'bg-accent',
-};
-
 function fondoDe(dia: Dia): string {
     if (dia.esHoy) {
-        return fondos.hoy;
+        return 'bg-accent';
     }
 
     if (!dia.delMes) {
-        return fondos.fuera;
+        return 'bg-muted';
     }
 
-    return dia.finDeSemana ? fondos.finDeSemana : fondos.normal;
+    return dia.finDeSemana ? 'bg-superficie' : 'bg-card';
 }
 
 /*
- * El color dice QUÉ es la cosa, y el rojo dice que se pasó de fecha. Las clases
- * salen de `lib/tonos.ts`, que es donde vive el vocabulario entero.
+ * **El icono dice qué es y su tinta dice cómo va.** Antes cada fila llevaba el
+ * fondo suave de su estado, y un mes normal era una pared de color donde el rojo
+ * de lo vencido no destacaba. Ahora el fondo sólo lo gasta lo vencido, que es lo
+ * único que § 3 deja en rojo.
  */
-const claseDe = (vencimiento: Vencimiento): string => tono(vencimiento.estadoTono).badge;
+const tintaDe = (vencimiento: Vencimiento): string => tono(vencimiento.estadoTono).texto ?? 'text-muted-foreground';
+
+const esVencido = (vencimiento: Vencimiento): boolean => vencimiento.estadoTono === 'caducada';
 
 /**
  * Lo que se lee en voz alta y lo que sale al pasar el ratón.
@@ -164,15 +184,43 @@ const claseDe = (vencimiento: Vencimiento): string => tono(vencimiento.estadoTon
 const descripcion = (vencimiento: Vencimiento): string =>
     `${vencimiento.titulo} · ${vencimiento.estadoEtiqueta} · ${vencimiento.fecha}`;
 
-/** Los tonos que hay de verdad este mes, para la leyenda. */
+/**
+ * Los tonos que hay de verdad este mes, para la leyenda.
+ *
+ * Un tono puede llevar etiquetas distintas según la fuente —el verde es
+ * «Vigente» en una evidencia y «Al día» en una obligación—, así que se juntan en
+ * vez de quedarse con la última que pasó.
+ */
 const leyenda = computed(() => {
-    const vistos = new Map<string, string>();
+    const vistos = new Map<string, Set<string>>();
 
     for (const vencimiento of props.vencimientos) {
-        vistos.set(vencimiento.estadoTono, vencimiento.estadoEtiqueta);
+        const etiquetas = vistos.get(vencimiento.estadoTono) ?? new Set<string>();
+
+        etiquetas.add(vencimiento.estadoEtiqueta);
+        vistos.set(vencimiento.estadoTono, etiquetas);
     }
 
-    return [...vistos].map(([tono, etiqueta]) => ({ tono, etiqueta }));
+    return [...vistos].map(([nombre, etiquetas]) => ({
+        tono: nombre,
+        etiqueta: [...etiquetas].join(' · '),
+    }));
+});
+
+/**
+ * Lo que viene, contado desde hoy. Sólo tiene sentido si hoy está en la
+ * rejilla: mirando diciembre, «hoy: 0» sería una cifra que no contesta nada.
+ */
+const proximos = computed(() => {
+    if (!props.rejilla.dias.some((dia) => dia.esHoy)) {
+        return null;
+    }
+
+    return {
+        hoy: props.vencimientos.filter((vencimiento) => vencimiento.dias === 0).length,
+        semana: props.vencimientos.filter((vencimiento) => vencimiento.dias >= 1 && vencimiento.dias <= 7).length,
+        despues: props.vencimientos.filter((vencimiento) => vencimiento.dias > 7).length,
+    };
 });
 
 /** Sólo los días con algo, para la agenda de móvil. */
@@ -183,6 +231,35 @@ const agenda = computed(() =>
 );
 
 const fechaLarga = (dia: string): string => formatoFecha.format(new Date(`${dia}T00:00:00`));
+
+const nombreDelDia = (dia: Dia): string => {
+    const cuantos = del(dia.dia).length;
+    const recuento = cuantos === 0 ? 'sin vencimientos' : cuantos === 1 ? '1 vencimiento' : `${cuantos} vencimientos`;
+
+    return `${fechaLarga(dia.dia)}, ${recuento}`;
+};
+
+/*
+ * ── El día abierto ─────────────────────────────────────────────────────────
+ *
+ * El panel no es modal, así que no hay foco atrapado que devolver solo: se
+ * recuerda quién lo abrió y se le devuelve al cerrar. Sin esto, cerrar con
+ * Escape dejaba el foco en `<body>` y el tabulador volvía al principio de la
+ * página.
+ */
+const diaAbierto = ref<string | null>(null);
+let abiertoDesde: HTMLElement | null = null;
+
+function abrir(dia: string, evento: Event): void {
+    abiertoDesde = evento.currentTarget instanceof HTMLElement ? evento.currentTarget : null;
+    diaAbierto.value = diaAbierto.value === dia ? null : dia;
+}
+
+async function cerrar(): Promise<void> {
+    diaAbierto.value = null;
+    await nextTick();
+    abiertoDesde?.focus();
+}
 
 /*
  * ── De qué lado viene el mes ───────────────────────────────────────────────
@@ -195,10 +272,6 @@ const fechaLarga = (dia: string): string => formatoFecha.format(new Date(`${dia}
  * estado que deba sobrevivir a una recarga. Si alguien llega al calendario
  * escribiendo la URL, no viene de ningún lado y la rejilla entra sin dirección,
  * que es exactamente lo correcto.
- *
- * Y la dirección no es adorno: la rejilla entera se repinta y sin ella no hay
- * forma de saber si se pulsó adelante o atrás — las seis semanas son siempre
- * seis, así que ni siquiera cambia de alto.
  */
 let mesVisitado: string | null = null;
 
@@ -238,13 +311,15 @@ const entradaRejilla = computed(() => {
 
     return { opacity: 0, x: desdeLaDerecha ? 24 : -24 };
 });
+
+const entradaPanel = computed(() => (reducido.value ? { opacity: 0 } : { opacity: 0, x: 16 }));
 </script>
 
 <template>
     <AppLayout ancho="completo" titulo="Calendario">
         <!--
             Sin conmutador de vistas: esto dejó de ser una de las tres formas de
-            mirar el plan de acción. Enseña vencimientos de siete registros
+            mirar el plan de acción. Enseña vencimientos de muchos registros
             distintos, y el conmutador habría seguido diciendo que es del plan.
         -->
         <CabeceraPagina
@@ -259,7 +334,7 @@ const entradaRejilla = computed(() => {
                 </Link>
             </Button>
 
-            <h2 class="min-w-48 text-base font-medium">{{ rejilla.etiqueta }}</h2>
+            <h2 class="min-w-52 text-center text-lg font-semibold tracking-tight">{{ rejilla.etiqueta }}</h2>
 
             <Button as-child variant="outline" size="icon-sm" aria-label="Mes siguiente">
                 <Link :href="`/calendario?mes=${rejilla.siguiente}`">
@@ -285,15 +360,48 @@ const entradaRejilla = computed(() => {
         </div>
 
         <!--
-            Filtro y leyenda a la vez. Ver `FiltroFuentes`: con siete fuentes el
-            icono es el único canal que las separa, y esta fila es su clave.
+            Antes que la rejilla, y fuera de ella: lo que venció en otro mes no
+            tiene casilla, y aquí es donde se sigue viendo.
         -->
-        <FiltroFuentes
-            v-if="filtroFuente"
-            :filtro="filtroFuente"
-            :seleccionadas="fuentesActivas"
-            @aplicar="aplicarFiltro"
+        <ResumenVencidos
+            v-if="vencidos.length > 0"
+            :vencidos="vencidos"
+            :primer-dia="rejilla.primerDia"
+            :ultimo-dia="rejilla.ultimoDia"
+            :proximos="proximos"
         />
+
+        <!--
+            Las dos claves en la misma fila: los chips dicen QUÉ es cada icono y
+            filtran; la leyenda dice CÓMO VA cada tinta. Ver `FiltroFuentes`.
+        -->
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
+            <FiltroFuentes
+                v-if="filtroFuente"
+                class="flex-1"
+                :filtro="filtroFuente"
+                :seleccionadas="fuentesActivas"
+                @aplicar="aplicarFiltro"
+            />
+
+            <!-- § 3: leyenda siempre que haya dos tonos o más. -->
+            <div v-if="leyenda.length > 1" class="flex shrink-0 flex-col gap-1.5 lg:max-w-md lg:pt-1.5">
+                <span class="text-xs font-medium text-muted-foreground">Cómo va</span>
+                <ul class="flex flex-wrap gap-x-4 gap-y-1">
+                    <li
+                        v-for="tramo in leyenda"
+                        :key="tramo.tono"
+                        class="flex items-center gap-1.5 text-xs text-secondary-foreground"
+                    >
+                        <IconoTipo
+                            :nombre="tono(tramo.tono).icono"
+                            :clase="`size-3.5 ${tono(tramo.tono).texto ?? 'text-muted-foreground'}`"
+                        />
+                        {{ tramo.etiqueta }}
+                    </li>
+                </ul>
+            </div>
+        </div>
 
         <EstadoVacio
             v-if="vencimientos.length === 0"
@@ -314,100 +422,123 @@ const entradaRejilla = computed(() => {
             <!-- Filtrar es una consulta de servidor: sin el hilo, la rejilla se
                  quedaba quieta y parecía que el filtro no había hecho nada. -->
             <HiloCarga :activo="cargando" />
+
+            <!--
+                El fin de semana, más estrecho: un plazo que cae en sábado casi
+                nunca es un plazo, y ese ancho lo aprovechan los títulos de lunes
+                a viernes, que es donde está todo.
+            -->
             <motion.div
-                class="grid grid-cols-7 gap-px overflow-hidden rounded-xl border bg-border"
+                class="grid grid-cols-[2.75rem_repeat(5,minmax(0,1fr))_repeat(2,minmax(0,0.62fr))] gap-px overflow-hidden rounded-xl border bg-border"
                 :initial="entradaRejilla"
                 :animate="{ opacity: 1, x: 0 }"
                 :transition="{ duration: reducido ? 0 : duracion.normal, ease: curva }"
             >
+                <div class="bg-background py-2 text-center text-xs font-medium text-muted-foreground">
+                    <abbr title="Semana" class="no-underline">Sem.</abbr>
+                </div>
                 <div
-                    v-for="(inicial, indice) in cabeceras"
-                    :key="inicial"
-                    class="bg-card py-2 text-center text-xs font-medium"
-                    :class="indice >= 5 ? 'text-muted-foreground/60' : 'text-muted-foreground'"
+                    v-for="(nombre, indice) in cabeceras"
+                    :key="nombre"
+                    class="px-2.5 py-2 text-xs font-medium text-muted-foreground"
+                    :class="indice >= 5 ? 'bg-superficie' : 'bg-card'"
                 >
-                    {{ inicial }}
+                    {{ nombre }}
                 </div>
 
-                <div
-                    v-for="dia in rejilla.dias"
-                    :key="dia.dia"
-                    class="relative min-h-28 p-2"
-                    :class="fondoDe(dia)"
-                >
-                    <!--
-                        La barra de hoy, el mismo gesto que marca el ítem activo
-                        del sidebar. El color por sí solo no bastaría: `accent`
-                        es un teal muy pálido.
-                    -->
-                    <span v-if="dia.esHoy" class="absolute inset-x-0 top-0 h-0.5 bg-primary" aria-hidden="true" />
+                <template v-for="semana in semanas" :key="semana.numero">
+                    <div class="cifra bg-background pt-3 text-center text-xs text-muted-foreground">
+                        <span class="sr-only">Semana </span>{{ semana.numero }}
+                    </div>
 
-                    <p class="mb-1.5 text-right text-xs">
-                        <span
-                            class="inline-flex size-5 items-center justify-center rounded-full"
-                            :class="[
-                                dia.esHoy ? 'bg-primary font-medium text-primary-foreground' : '',
-                                dia.delMes ? 'text-foreground' : 'text-muted-foreground/60',
-                            ]"
-                        >
-                            {{ dia.numero }}
-                        </span>
-                    </p>
+                    <div
+                        v-for="dia in semana.dias"
+                        :key="dia.dia"
+                        class="relative flex h-34 min-w-0 flex-col gap-0.5 p-1.5"
+                        :class="[fondoDe(dia), diaAbierto === dia.dia ? 'ring-2 ring-primary ring-inset' : '']"
+                    >
+                        <!--
+                            La barra de hoy, el mismo gesto que marca el ítem activo
+                            del sidebar. El color por sí solo no bastaría: `accent`
+                            es un teal muy pálido.
+                        -->
+                        <span v-if="dia.esHoy" class="absolute inset-x-0 top-0 h-0.5 bg-primary" aria-hidden="true" />
 
-                    <ul class="space-y-1">
-                        <li
-                            v-for="vencimiento in del(dia.dia).slice(0, POR_DIA)"
-                            :key="`${vencimiento.fuente}-${vencimiento.id}`"
-                        >
-                            <Link
-                                :href="vencimiento.url"
-                                class="flex items-center gap-1 rounded-md px-1.5 py-1 text-xs transition-opacity hover:opacity-80"
-                                :class="claseDe(vencimiento)"
-                                :title="descripcion(vencimiento)"
+                        <div class="flex h-7 items-center gap-1 pl-1">
+                            <span v-if="dia.esHoy" class="text-xs font-semibold text-primary">Hoy</span>
+                            <!--
+                                El número es la puerta al día entero. Es un botón y
+                                no un enlace porque no navega: abre el panel.
+                            -->
+                            <button
+                                type="button"
+                                class="ml-auto inline-flex size-7 items-center justify-center rounded-full text-[13px] transition-colors"
+                                :class="
+                                    dia.esHoy
+                                        ? 'bg-primary font-semibold text-primary-foreground'
+                                        : dia.delMes
+                                          ? 'font-medium text-foreground hover:bg-muted'
+                                          : 'text-muted-foreground hover:bg-card'
+                                "
+                                :aria-label="nombreDelDia(dia)"
+                                :aria-expanded="diaAbierto === dia.dia"
+                                @click="abrir(dia.dia, $event)"
                             >
-                                <IconoTipo :nombre="vencimiento.icono" />
-                                <span class="truncate">{{ vencimiento.titulo }}</span>
-                                <!-- El estado en texto, que es lo que § 11 pide
-                                     y lo que el color por sí solo no da. -->
-                                <span class="sr-only">· {{ vencimiento.estadoEtiqueta }}</span>
-                            </Link>
-                        </li>
-                    </ul>
+                                {{ dia.numero }}
+                            </button>
+                        </div>
 
-                    <!--
-                        Un tope por día, con su salida. Sin él, un día con doce
-                        vencimientos estira la fila entera y el mes deja de caber
-                        en la pantalla. La salida es un botón y no un párrafo: lo
-                        que esconde el tope tiene que tener puerta, y con el
-                        tabulador.
-                    -->
-                    <PanelDia
-                        v-if="del(dia.dia).length > POR_DIA"
-                        :dia="dia.dia"
-                        :vencimientos="del(dia.dia)"
-                        :ocultos="del(dia.dia).length - POR_DIA"
-                    />
-                </div>
+                        <ul class="flex min-w-0 flex-col gap-0.5">
+                            <li v-for="vencimiento in visiblesDe(dia.dia)" :key="`${vencimiento.fuente}-${vencimiento.id}`">
+                                <Link
+                                    :href="vencimiento.url"
+                                    class="flex h-6 min-w-0 items-center gap-1.5 rounded-md px-1.5 text-xs transition-colors"
+                                    :class="
+                                        esVencido(vencimiento)
+                                            ? 'bg-destructive/10 font-medium hover:bg-destructive/15'
+                                            : 'hover:bg-muted'
+                                    "
+                                    :title="descripcion(vencimiento)"
+                                >
+                                    <IconoTipo :nombre="vencimiento.icono" :clase="`size-3.5 shrink-0 ${tintaDe(vencimiento)}`" />
+                                    <span class="truncate">{{ vencimiento.titulo }}</span>
+                                    <!-- El estado en texto, que es lo que § 11 pide
+                                         y lo que la tinta por sí sola no da. -->
+                                    <span class="sr-only">· {{ vencimiento.estadoEtiqueta }}</span>
+                                </Link>
+                            </li>
+                        </ul>
+
+                        <!--
+                            Lo que el tope esconde tiene puerta, y con el tabulador.
+                            Abre el mismo panel que el número del día.
+                        -->
+                        <button
+                            v-if="ocultosDe(dia.dia) > 0"
+                            type="button"
+                            class="self-start rounded-md px-1.5 py-0.5 text-xs font-medium text-primary hover:underline"
+                            :aria-expanded="diaAbierto === dia.dia"
+                            @click="abrir(dia.dia, $event)"
+                        >
+                            +{{ ocultosDe(dia.dia) }} más
+                        </button>
+                    </div>
+                </template>
             </motion.div>
 
-            <!--
-                § 3: leyenda siempre que haya dos tonos o más. Con rótulo, porque
-                ahora hay dos filas de claves y la de arriba dice QUÉ es la cosa:
-                sin él, ésta parecería más de lo mismo.
-            -->
-            <div v-if="leyenda.length > 1" class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
-                <span class="text-xs font-medium text-muted-foreground">Cómo va</span>
-            <ul class="flex flex-wrap gap-x-4 gap-y-1.5">
-                <li
-                    v-for="tramo in leyenda"
-                    :key="tramo.tono"
-                    class="flex items-center gap-1.5 text-xs text-muted-foreground"
+            <AnimatePresence>
+                <motion.div
+                    v-if="diaAbierto"
+                    :key="diaAbierto"
+                    class="absolute top-3 right-3 bottom-3 z-(--z-pegajoso) flex items-start"
+                    :initial="entradaPanel"
+                    :animate="{ opacity: 1, x: 0 }"
+                    :exit="{ opacity: 0, transition: transicionSalida }"
+                    :transition="{ duration: reducido ? 0 : duracion.normal, ease: curva }"
                 >
-                    <span class="size-2.5 rounded-sm" :class="tono(tramo.tono).badge" />
-                    {{ tramo.etiqueta }}
-                </li>
-            </ul>
-            </div>
+                    <PanelDia :dia="diaAbierto" :vencimientos="del(diaAbierto)" @cerrar="cerrar" />
+                </motion.div>
+            </AnimatePresence>
         </div>
 
         <!-- La agenda: la misma información, en la forma que cabe en un móvil. -->
@@ -425,7 +556,7 @@ const entradaRejilla = computed(() => {
                             <Link
                                 :href="vencimiento.url"
                                 class="flex min-h-11 items-center gap-2 rounded-md px-3 text-sm"
-                                :class="claseDe(vencimiento)"
+                                :class="tono(vencimiento.estadoTono).badge"
                             >
                                 <IconoTipo :nombre="vencimiento.icono" />
                                 <span class="min-w-0 flex-1 truncate">{{ vencimiento.titulo }}</span>
@@ -441,8 +572,7 @@ const entradaRejilla = computed(() => {
             **Sin enumerar las fuentes.** El pie decía «se ven los plazos de las
             tareas abiertas y las caducidades de las evidencias» y llevaba siendo
             falso desde el § 4.5, sin que nadie lo notara. La enumeración la hace
-            la fila de chips, que se genera del enum: un recuento dentro de un
-            texto envejece cada vez que el producto crece.
+            la fila de chips, que se genera del enum.
         -->
         <p v-if="avisoDeExcluidas && vencimientos.length > 0" class="mt-4 text-xs text-muted-foreground">
             {{ avisoDeExcluidas.trim() }}

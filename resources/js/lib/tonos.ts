@@ -31,6 +31,15 @@ export interface Tono {
     tramo: string;
     /** El icono de respaldo, si el servidor no manda uno. */
     icono: string | null;
+    /**
+     * El color del tono como tinta, sin fondo: el icono de un vencimiento en la
+     * rejilla del calendario, donde el fondo suave de cada chip hacía de un mes
+     * normal una pared de color y el rojo de lo vencido dejaba de destacar.
+     *
+     * Sólo lo llevan los estados. Lo que no lo trae se pinta en
+     * `text-muted-foreground`, que es el color por defecto de un icono (§ 7).
+     */
+    texto?: string;
 }
 
 /*
@@ -45,6 +54,7 @@ const estados: Record<string, Tono> = {
         relleno: 'bg-estado-no-iniciado',
         tramo: 'bg-estado-no-iniciado/45',
         icono: 'Circle',
+        texto: 'text-estado-no-iniciado',
     },
     planificado: {
         badge: 'bg-estado-planificado-suave text-estado-planificado',
@@ -52,6 +62,7 @@ const estados: Record<string, Tono> = {
         relleno: 'bg-estado-planificado',
         tramo: 'bg-estado-planificado',
         icono: 'CalendarClock',
+        texto: 'text-estado-planificado',
     },
     en_progreso: {
         badge: 'bg-estado-en-progreso-suave text-estado-en-progreso',
@@ -59,6 +70,7 @@ const estados: Record<string, Tono> = {
         relleno: 'bg-estado-en-progreso',
         tramo: 'bg-estado-en-progreso',
         icono: 'CircleDotDashed',
+        texto: 'text-estado-en-progreso',
     },
     implantado: {
         badge: 'bg-estado-implantado-suave text-estado-implantado',
@@ -66,6 +78,7 @@ const estados: Record<string, Tono> = {
         relleno: 'bg-estado-implantado',
         tramo: 'bg-estado-implantado',
         icono: 'CircleCheck',
+        texto: 'text-estado-implantado',
     },
     no_aplica: {
         badge: 'bg-estado-no-aplica-suave text-estado-no-aplica',
@@ -73,6 +86,7 @@ const estados: Record<string, Tono> = {
         relleno: 'bg-estado-no-aplica',
         tramo: 'bg-estado-no-aplica/35',
         icono: 'CircleSlash',
+        texto: 'text-estado-no-aplica',
     },
 
     /*
@@ -87,6 +101,7 @@ const estados: Record<string, Tono> = {
         relleno: 'bg-estado-en-revision',
         tramo: 'bg-estado-en-revision',
         icono: 'Eye',
+        texto: 'text-estado-en-revision',
     },
 
     /*
@@ -100,6 +115,7 @@ const estados: Record<string, Tono> = {
         relleno: 'bg-destructive',
         tramo: 'bg-destructive',
         icono: 'TriangleAlert',
+        texto: 'text-destructive',
     },
 };
 
@@ -129,6 +145,7 @@ const propios: Record<string, Tono> = {
         relleno: 'bg-estado-no-aplica',
         tramo: 'bg-estado-no-aplica/60',
         icono: 'Archive',
+        texto: 'text-estado-no-aplica',
     },
 };
 
