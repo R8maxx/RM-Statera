@@ -2,6 +2,7 @@
 import IconoTipo from '@/components/IconoTipo.vue';
 import { tono } from '@/lib/tonos';
 import { Link } from '@inertiajs/vue3';
+import { Link2OffIcon, PlusIcon, ThermometerIcon } from '@lucide/vue';
 import { computed } from 'vue';
 
 /**
@@ -30,6 +31,18 @@ import { computed } from 'vue';
  * distingue «interno» de «externo». Y el badge conserva su icono, porque contra el
  * rojo de `destructive` el color no puede cargar solo.
  *
+ * ### Lo que pide acción se ve dentro del cuadrante
+ *
+ * Una debilidad o una amenaza sin riesgo detrás lleva el chip «Sin riesgo», y su
+ * cuadrante lo cuenta bajo el título. **Neutro, nunca rojo**: es una pregunta
+ * pendiente (ISO 6.1.1), no un incumplimiento, y el rojo tiene tres dueños. Qué
+ * cuestión está en ese caso lo dice el servidor con el mismo scope que la cifra
+ * del panel; aquí sólo se pinta.
+ *
+ * El «+» de cada cabecera abre el formulario con el tipo ya puesto, que es lo que
+ * `CuestionContextoController::create()` acepta por `?tipo=`. Sin él, añadir una
+ * fortaleza desde la matriz obligaba a pasar por la tabla.
+ *
  * El tono llega del servidor, nunca se deduce aquí: el mismo tono significa cosas
  * distintas según el módulo, y un segundo mapa tipo→color en este fichero sería la
  * copia que `lib/tonos.ts` existe para evitar.
@@ -48,6 +61,7 @@ interface Cuestion {
     responsable: string | null;
     riesgos: number;
     tareas: number;
+    sinRiesgo: boolean;
 }
 
 interface TipoEje {
@@ -79,8 +93,10 @@ const props = withDefaults(
          * matriz que no se ve entera deja de ser una matriz.
          */
         tope?: number;
+        /** Si se pinta el «+» de cada cuadrante: sólo con `contexto.gestionar`. */
+        puedeAnadir?: boolean;
     }>(),
-    { tope: 6 },
+    { tope: 6, puedeAnadir: false },
 );
 
 /** Los rótulos de la fila de cabecera: los signos, en el orden del primer ámbito. */
@@ -96,6 +112,14 @@ function visibles(tipo: string): Cuestion[] {
 
 function restantes(tipo: string): number {
     return Math.max(0, cuestionesDe(tipo).length - props.tope);
+}
+
+function sinRiesgoEn(tipo: string): number {
+    return cuestionesDe(tipo).filter((cuestion) => cuestion.sinRiesgo).length;
+}
+
+function cuantas(cifra: number, singular: string, plural: string): string {
+    return `${cifra} ${cifra === 1 ? singular : plural}`;
 }
 
 /**
@@ -146,7 +170,7 @@ const descripcion = computed(() =>
                     aria-hidden="true"
                 >
                     <span
-                        class="text-xs font-medium text-muted-foreground [writing-mode:vertical-rl] [text-orientation:mixed]"
+                        class="rotate-180 text-xs font-medium text-muted-foreground [writing-mode:vertical-rl] [text-orientation:mixed]"
                     >
                         {{ ambito.etiqueta }}
                     </span>
@@ -160,46 +184,64 @@ const descripcion = computed(() =>
                     <!-- El filete del cuadrante: fondo sólido, nunca alfa. -->
                     <div class="h-0.5 w-full" :class="tono(tipo.tono).relleno" aria-hidden="true" />
 
-                    <header class="flex flex-wrap items-center justify-between gap-2 px-4 pt-3 pb-2">
-                        <h3 class="flex items-center gap-1.5 text-sm font-semibold">
-                            <span
-                                class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium"
-                                :class="tono(tipo.tono).badge"
-                            >
-                                <IconoTipo :nombre="tipo.icono" />
-                                {{ tipo.etiqueta }}
-                            </span>
-                            <!-- Los dos ejes escritos: es lo que sobrevive al apilado. -->
-                            <span class="text-xs font-normal text-muted-foreground">
-                                {{ ambito.etiqueta }} · {{ tipo.signoEtiqueta }}
-                            </span>
-                        </h3>
-                        <span class="cifra text-xs text-muted-foreground">
-                            {{ cuestionesDe(tipo.valor).length }}
+                    <header class="flex items-center gap-3 py-3 pr-3 pl-4">
+                        <span
+                            class="flex size-8 shrink-0 items-center justify-center rounded-md"
+                            :class="tono(tipo.tono).badge"
+                            aria-hidden="true"
+                        >
+                            <IconoTipo :nombre="tipo.icono" clase="size-4.5" />
                         </span>
+                        <div class="min-w-0 flex-1">
+                            <h3 class="text-base font-semibold">{{ tipo.etiqueta }}</h3>
+                            <!-- Los dos ejes escritos: es lo que sobrevive al apilado. -->
+                            <p class="text-xs text-muted-foreground">
+                                {{ ambito.etiqueta }} · {{ tipo.signoEtiqueta }}<template v-if="sinRiesgoEn(tipo.valor) > 0">
+                                    · {{ sinRiesgoEn(tipo.valor) }} sin riesgo vinculado</template>
+                            </p>
+                        </div>
+                        <span class="cifra text-xl font-bold">{{ cuestionesDe(tipo.valor).length }}</span>
+                        <Link
+                            v-if="puedeAnadir"
+                            :href="`/contexto/cuestiones/crear?tipo=${tipo.valor}`"
+                            class="flex size-11 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:size-8"
+                            :aria-label="`Añadir: ${tipo.etiqueta.toLowerCase()}`"
+                        >
+                            <PlusIcon class="size-4" aria-hidden="true" />
+                        </Link>
                     </header>
 
-                    <ul v-if="cuestionesDe(tipo.valor).length > 0" class="flex-1 space-y-1 px-2 pb-2">
-                        <li v-for="cuestion in visibles(tipo.valor)" :key="cuestion.id">
+                    <ul v-if="cuestionesDe(tipo.valor).length > 0" class="flex-1">
+                        <li v-for="cuestion in visibles(tipo.valor)" :key="cuestion.id" class="border-t border-border/60">
                             <Link
                                 :href="`/contexto/cuestiones/${cuestion.id}`"
-                                class="block rounded-md px-2 py-1.5 transition-colors hover:bg-fila-hover"
+                                class="flex gap-3 px-4 py-2.5 transition-colors hover:bg-fila-hover"
                             >
-                                <span class="flex items-baseline gap-2">
-                                    <span class="cifra shrink-0 text-xs text-muted-foreground">{{ cuestion.codigo }}</span>
-                                    <span class="min-w-0 text-sm">{{ cuestion.titulo }}</span>
+                                <span class="cifra w-12 shrink-0 pt-0.5 text-xs text-muted-foreground">{{ cuestion.codigo }}</span>
+                                <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+                                    <span class="text-sm font-medium">{{ cuestion.titulo }}</span>
+                                    <span class="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                                        <span>{{ cuestion.materia }}</span>
+                                        <span v-if="cuestion.riesgos > 0">{{ cuantas(cuestion.riesgos, 'riesgo', 'riesgos') }}</span>
+                                        <span v-if="cuestion.tareas > 0">{{ cuantas(cuestion.tareas, 'tarea', 'tareas') }}</span>
+                                        <span v-if="cuestion.esClimatica" class="inline-flex items-center gap-0.5">
+                                            <ThermometerIcon class="size-3" aria-hidden="true" />
+                                            Climática
+                                        </span>
+                                    </span>
                                 </span>
-                                <span class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                                    <span>{{ cuestion.materia }}</span>
-                                    <span v-if="cuestion.riesgos > 0">· {{ cuestion.riesgos }} riesgo(s)</span>
-                                    <span v-if="cuestion.tareas > 0">· {{ cuestion.tareas }} tarea(s)</span>
-                                    <span v-if="cuestion.esClimatica">· clima</span>
+                                <span
+                                    v-if="cuestion.sinRiesgo"
+                                    class="inline-flex h-5 shrink-0 items-center gap-1 self-start rounded-full bg-muted px-2 text-xs font-medium whitespace-nowrap text-secondary-foreground"
+                                >
+                                    <Link2OffIcon class="size-3" aria-hidden="true" />
+                                    Sin riesgo
                                 </span>
                             </Link>
                         </li>
                     </ul>
 
-                    <p v-else class="flex-1 px-4 pb-4 text-sm text-muted-foreground">
+                    <p v-else class="flex-1 border-t border-border/60 px-4 py-3 text-sm text-muted-foreground">
                         Sin nada apuntado todavía.
                     </p>
 
@@ -210,7 +252,7 @@ const descripcion = computed(() =>
                     <Link
                         v-if="restantes(tipo.valor) > 0"
                         :href="`/contexto/cuestiones?filter[tipo]=${tipo.valor}&filter[vigentes]=1`"
-                        class="border-t border-border px-4 py-2 text-xs font-medium text-primary hover:underline"
+                        class="border-t border-border px-4 py-2.5 text-sm font-medium text-primary hover:underline"
                     >
                         y {{ restantes(tipo.valor) }} más
                     </Link>

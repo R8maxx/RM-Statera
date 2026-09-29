@@ -35,6 +35,33 @@ it('el panorama del contexto se abre con la matriz y el alcance', function (): v
             ->has('alcance'));
 });
 
+it('el panorama marca las adversas sin riesgo y dice qué le falta al borrador', function (): void {
+    $amenaza = CuestionContexto::factory()->deTipo(TipoCuestion::Amenaza)->create();
+    $fortaleza = CuestionContexto::factory()->deTipo(TipoCuestion::Fortaleza)->create();
+
+    $poca = ParteInteresada::factory()->create(['codigo' => 'PI-01']);
+    RequisitoInteresado::factory()->for($poca, 'parteInteresada')->create();
+    $mucha = ParteInteresada::factory()->create(['codigo' => 'PI-02']);
+    RequisitoInteresado::factory()->for($mucha, 'parteInteresada')->legal()->count(2)->create();
+
+    $this->actingAs($this->usuario)
+        ->get('/contexto')
+        ->assertOk()
+        ->assertInertia(fn ($pagina) => $pagina
+            ->component('contexto/Index')
+            ->where('dafo.amenaza.0.id', $amenaza->id)
+            ->where('dafo.amenaza.0.sinRiesgo', true)
+            ->where('dafo.fortaleza.0.id', $fortaleza->id)
+            ->where('dafo.fortaleza.0.sinRiesgo', false)
+            ->where('comprobaciones.0.clave', 'clima')
+            ->where('comprobaciones.0.cumplida', false)
+            ->where('comprobaciones.1.cumplida', true)
+            // Primero a quien más se le debe, no el primer código.
+            ->where('partes.0.codigo', 'PI-02')
+            ->where('partes.0.obligan', 2)
+            ->where('partes.1.obligan', 0));
+});
+
 it('la tabla de cuestiones trae sus indicadores', function (): void {
     CuestionContexto::factory()->deTipo(TipoCuestion::Amenaza)->create();
 

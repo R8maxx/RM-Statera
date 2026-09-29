@@ -115,6 +115,22 @@ requisito legal obliga más que uno contractual y ése más que una expectativa.
 caber a 375 px sin scroll horizontal. Los rótulos de los ejes viven **dentro** de la misma rejilla, y
 cada cuadrante los repite escritos para que al apilarse por debajo de `sm` no se pierdan.
 
+### Lo que la pantalla enseña antes de pulsar
+
+**La lista de lo que le falta al borrador la manda `AprobarAnalisis::comprobaciones()`**, que lee los
+mismos dos predicados privados que `__invoke()` usa para rechazar. Antes el único aviso era una frase
+gris y el resto se descubría al pulsar. El botón «Aprobar y congelar» **no se deshabilita**: la lista
+dice qué falta y, si se pulsa igual, el rechazo sale con su motivo.
+
+**Qué cuestión va sin riesgo lo dice el servidor con `CuestionContexto::sinRiesgo()`**, el mismo scope
+que cuenta la cifra de `resumen` y que filtra la tabla. Deducirlo en el `.vue` con `riesgos === 0`
+obligaría a repetir allí qué tipos son adversos. El chip es neutro, no rojo, por lo mismo que las
+alertas del registro están vacías.
+
+La columna lateral —«Lo que pide acción» y las cuatro partes con más requisitos que obligan— cuenta
+con las cifras que `resumen` ya traía, y cada fila enlaza a la lista filtrada que cuenta. El «+» de
+cada cuadrante es un enlace a `/contexto/cuestiones/crear?tipo=…`, que `create()` ya aceptaba.
+
 ### Los tres vínculos, que son lo que paga el módulo
 
 - **Cuestión ↔ riesgo**, N:M. Es lo que la cláusula 6.1.1 pide cuando dice que la apreciación de

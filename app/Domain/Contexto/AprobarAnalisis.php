@@ -31,7 +31,7 @@ use Illuminate\Support\Facades\DB;
  * `WHERE estado = 'aprobado'` deja uno como mucho: al revés, la inserción choca
  * con un error de índice que no menciona la palabra «vigente».
  *
- * Las tres comprobaciones viven aquí y no en el `FormRequest` porque valen igual
+ * Las tres comprobaciones viven aquí —y dos de ellas se enseñan antes de pulsar, con `comprobaciones()`— y no en el `FormRequest` porque valen igual
  * para un importador o para el seeder. La del clima la repite un `CHECK` de la
  * base, y eso es a propósito: la base es la que no se puede saltar y ésta es la que
  * sale por pantalla al lado del campo.
@@ -46,11 +46,11 @@ final class AprobarAnalisis
             throw AnalisisNoAprobable::porEstado($analisis->estado);
         }
 
-        if ($analisis->clima_pertinente === null || trim((string) $analisis->clima_justificacion) === '') {
+        if (! $this->climaDeterminado($analisis)) {
             throw AnalisisNoAprobable::porElClima();
         }
 
-        if (CuestionContexto::query()->vigentes()->doesntExist()) {
+        if (! $this->hayCuestiones()) {
             throw AnalisisNoAprobable::porEstarVacio();
         }
 
@@ -71,6 +71,47 @@ final class AprobarAnalisis
 
             return $analisis->refresh();
         });
+    }
+
+    /**
+     * Lo que le falta a un borrador para poder aprobarse, en el orden en que se
+     * comprueba.
+     *
+     * **Sale de los mismos dos predicados que `__invoke()`**, y por eso vive aquí y
+     * no en el controlador: la lista que se enseña en `/contexto` y el rechazo que
+     * devuelve el botón tienen que decir lo mismo. Con la condición escrita dos
+     * veces, el día que cambie una la pantalla da por cumplido algo que la
+     * aprobación rechaza. El estado no entra: la lista sólo se pinta sobre el
+     * borrador.
+     *
+     * @return list<array{clave: string, etiqueta: string, cumplida: bool, ayuda: string}>
+     */
+    public function comprobaciones(AnalisisContexto $analisis): array
+    {
+        return [
+            [
+                'clave' => 'clima',
+                'etiqueta' => 'Cambio climático determinado y razonado',
+                'cumplida' => $this->climaDeterminado($analisis),
+                'ayuda' => 'La enmienda 1:2024 obliga a decir si es una cuestión pertinente. «No es pertinente» vale si va razonado.',
+            ],
+            [
+                'clave' => 'cuestiones',
+                'etiqueta' => 'Al menos una cuestión vigente',
+                'cumplida' => $this->hayCuestiones(),
+                'ayuda' => 'Un análisis sin cuestiones no dice nada del entorno de la organización.',
+            ],
+        ];
+    }
+
+    private function climaDeterminado(AnalisisContexto $analisis): bool
+    {
+        return $analisis->clima_pertinente !== null && trim((string) $analisis->clima_justificacion) !== '';
+    }
+
+    private function hayCuestiones(): bool
+    {
+        return CuestionContexto::query()->vigentes()->exists();
     }
 
     /**

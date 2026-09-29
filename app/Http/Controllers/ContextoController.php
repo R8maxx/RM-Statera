@@ -14,6 +14,7 @@ use App\Domain\Contexto\Excepciones\AnalisisNoAprobable;
 use App\Domain\Contexto\Models\AnalisisContexto;
 use App\Domain\Contexto\Models\CuestionContexto;
 use App\Domain\Contexto\Models\ParteInteresada;
+use App\Domain\Contexto\Models\RequisitoInteresado;
 use App\Domain\Contexto\RegistroContexto;
 use App\Domain\Sistema\Enums\EstadoSistema;
 use App\Domain\Sistema\Models\Sistema;
@@ -21,6 +22,7 @@ use App\Http\Requests\GuardarAnalisisContextoRequest;
 use App\Http\Resources\AnalisisContextoRecurso;
 use App\Http\Resources\Concerns\RespondeConRecurso;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -45,7 +47,7 @@ class ContextoController extends Controller
 {
     use RespondeConRecurso;
 
-    public function index(AnalisisEnCurso $enCurso, RegistroContexto $registro): Response
+    public function index(AnalisisEnCurso $enCurso, RegistroContexto $registro, AprobarAnalisis $aprobar): Response
     {
         $vigente = $enCurso->vigente();
         $borrador = $enCurso->borrador();
@@ -53,8 +55,10 @@ class ContextoController extends Controller
         return Inertia::render('contexto/Index', [
             'vigente' => $vigente === null ? null : $this->serializarAnalisis($vigente),
             'borrador' => $borrador === null ? null : $this->serializarAnalisis($borrador),
+            'comprobaciones' => $borrador === null ? [] : $aprobar->comprobaciones($borrador),
             'dafo' => $this->dafo(),
             'ejes' => $this->ejes(),
+            'partes' => $this->partesDestacadas(),
             'alcance' => $this->alcance(),
             'resumen' => $registro->paraElPanel(),
             'puedeGestionar' => $this->puede(Permiso::ContextoGestionar),
@@ -145,6 +149,14 @@ class ContextoController extends Controller
             ->orderBy('codigo')
             ->get();
 
+        /*
+         * Del mismo scope que cuenta la cifra de «sin riesgo vinculado», y no de
+         * `riesgos_count === 0` aquí: esa condición también tendría que saber qué
+         * tipos son adversos, y dos copias de la regla acaban marcando una
+         * cuestión que la lista filtrada no enseña.
+         */
+        $sinRiesgo = CuestionContexto::query()->sinRiesgo()->pluck('id')->flip();
+
         $dafo = [];
 
         foreach (TipoCuestion::enOrdenDeMatriz() as $tipo) {
@@ -154,6 +166,7 @@ class ContextoController extends Controller
                     ...$this->resumirCuestion($cuestion),
                     'riesgos' => $cuestion->riesgos_count,
                     'tareas' => $cuestion->tareas_count,
+                    'sinRiesgo' => $sinRiesgo->has($cuestion->id),
                 ])
                 ->values()
                 ->all();
@@ -189,6 +202,34 @@ class ContextoController extends Controller
                 ], TipoCuestion::deAmbito($ambito)),
             ], Ambito::cases()),
         ];
+    }
+
+    /**
+     * Las partes interesadas que más exigen, para la columna lateral.
+     *
+     * **Ordenadas por requisitos que obligan** —legales y contractuales— y no por
+     * código: lo que esta vista tiene que contestar de un vistazo es a quién se le
+     * debe algo. La lista entera está en `/partes-interesadas`.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function partesDestacadas(): array
+    {
+        return ParteInteresada::query()
+            ->vigentes()
+            ->withCount(['requisitos as obligan_count' => static function (Builder $requisitos): void {
+                /** @var Builder<RequisitoInteresado> $requisitos */
+                $requisitos->queObligan();
+            }])
+            ->orderByDesc('obligan_count')
+            ->orderBy('codigo')
+            ->limit(4)
+            ->get()
+            ->map(fn (ParteInteresada $parte): array => [
+                ...$this->resumirParte($parte),
+                'obligan' => (int) $parte->getAttribute('obligan_count'),
+            ])
+            ->all();
     }
 
     /**

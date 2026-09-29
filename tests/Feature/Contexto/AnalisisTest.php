@@ -124,6 +124,29 @@ it('no se aprueba un análisis sin ninguna cuestión', function (): void {
         ->toThrow(AnalisisNoAprobable::class);
 });
 
+it('la lista de lo que falta dice lo mismo que la aprobación', function (): void {
+    $borrador = app(AnalisisEnCurso::class)->borradorObligatorio($this->usuario);
+    $pendientes = fn (): array => collect(app(AprobarAnalisis::class)->comprobaciones($borrador->refresh()))
+        ->mapWithKeys(fn (array $comprobacion): array => [$comprobacion['clave'] => $comprobacion['cumplida']])
+        ->all();
+
+    expect($pendientes())->toBe(['clima' => false, 'cuestiones' => false]);
+
+    ($this->registrar)();
+    expect($pendientes())->toBe(['clima' => false, 'cuestiones' => true]);
+
+    // Contestar sin razonar no basta, igual que para aprobar.
+    $borrador->update(['clima_pertinente' => false, 'clima_justificacion' => '  ']);
+    expect($pendientes())->toBe(['clima' => false, 'cuestiones' => true])
+        ->and(fn () => app(AprobarAnalisis::class)($borrador->refresh(), $this->usuario))
+        ->toThrow(AnalisisNoAprobable::class);
+
+    ($this->conClima)($borrador);
+    expect($pendientes())->toBe(['clima' => true, 'cuestiones' => true])
+        ->and(app(AprobarAnalisis::class)($borrador->refresh(), $this->usuario)->estado)
+        ->toBe(EstadoAnalisis::Aprobado);
+});
+
 // --- Lo que impone la base, un caso por `CHECK` -----------------------------
 
 it('la base no admite dos borradores a la vez', function (): void {
