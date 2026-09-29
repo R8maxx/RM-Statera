@@ -117,6 +117,7 @@ final readonly class RegistroContexto
                 valor: (int) $cuentas->get($tipo->value, 0),
                 tono: $tipo->tono(),
                 filtro: 'filter[tipo]='.$tipo->value,
+                icono: $tipo->icono(),
             );
         }
 

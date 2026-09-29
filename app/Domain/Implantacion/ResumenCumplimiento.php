@@ -8,10 +8,13 @@ use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Implantacion\Enums\EstadoImplantacion;
 use App\Domain\Implantacion\Models\Implantacion;
 use App\Domain\Sistema\Models\Sistema;
+use App\Http\Resources\Panel\AvanceDominio;
 use App\Http\Resources\Panel\AvanceMarco;
 use App\Http\Resources\Panel\SegmentoEstado;
 use App\Http\Resources\Panel\SistemaResumido;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Las cifras de cumplimiento de la organización activa.
@@ -115,6 +118,68 @@ final class ResumenCumplimiento
     }
 
     /**
+     * El avance por dominio de control, dentro de cada marco.
+     *
+     * El dominio es **la raíz de la jerarquía** del requisito —`op` para
+     * `op.acc.4`, `A.8` para `A.8.13`—, y se sube hasta ella con una CTE
+     * recursiva, que es lo que CLAUDE.md fija para la jerarquía del catálogo: la
+     * profundidad no es la misma en los dos marcos (tres niveles en el ENS, dos
+     * en el Anexo A) y no hay que suponerla.
+     *
+     * La CTE sólo lee `requisitos`, que es catálogo global y no lleva
+     * `organizacion_id`; las implantaciones siguen entrando por
+     * `Implantacion::query()`, con su scope.
+     *
+     * @return list<AvanceDominio>
+     */
+    public function porDominio(): array
+    {
+        $raices = DB::raw(<<<'SQL'
+            (
+                WITH RECURSIVE subida AS (
+                    SELECT id, id AS raiz_id
+                    FROM requisitos
+                    WHERE parent_id IS NULL
+
+                    UNION ALL
+
+                    SELECT hijo.id, subida.raiz_id
+                    FROM requisitos hijo
+                    INNER JOIN subida ON hijo.parent_id = subida.id
+                )
+                SELECT id, raiz_id FROM subida
+            ) AS raices
+            SQL);
+
+        $filas = Implantacion::query()
+            ->join($raices, 'raices.id', '=', 'implantaciones.requisito_id')
+            ->join('requisitos as raiz', 'raiz.id', '=', 'raices.raiz_id')
+            ->join('marcos', 'marcos.id', '=', 'raiz.marco_id')
+            ->where('implantaciones.aplica', true)
+            ->groupBy('marcos.codigo', 'raiz.id', 'raiz.codigo', 'raiz.titulo', 'raiz.orden')
+            ->orderBy('marcos.codigo')
+            ->orderBy('raiz.orden')
+            ->orderBy('raiz.codigo')
+            ->selectRaw('marcos.codigo as marco_codigo, raiz.codigo as dominio_codigo, raiz.titulo as dominio_titulo, count(*) as aplicables')
+            ->selectRaw(
+                'count(*) filter (where implantaciones.estado = ?) as implantadas',
+                [EstadoImplantacion::Implantado->value],
+            )
+            ->get();
+
+        return $filas
+            ->map(fn (Implantacion $fila): AvanceDominio => new AvanceDominio(
+                marco: (string) $fila->getAttribute('marco_codigo'),
+                codigo: (string) $fila->getAttribute('dominio_codigo'),
+                titulo: (string) $fila->getAttribute('dominio_titulo'),
+                aplicables: (int) $fila->getAttribute('aplicables'),
+                implantadas: (int) $fila->getAttribute('implantadas'),
+            ))
+            ->values()
+            ->all();
+    }
+
+    /**
      * Los sistemas con su avance, contados sobre lo exigible.
      *
      * Estaba en `PanelController`, y se mudó aquí con el informe de estado
@@ -137,6 +202,15 @@ final class ResumenCumplimiento
                 'implantaciones as implantadas' => fn (Builder $query) => $query
                     ->where('aplica', true)
                     ->where('estado', EstadoImplantacion::Implantado->value),
+                /*
+                 * Por el scope, como `implantadasSinEvidencia()`: la fila del
+                 * sistema enlaza a `/implantaciones` con ese filtro y el del
+                 * sistema, y tiene que enseñar exactamente esta cifra.
+                 */
+                'implantaciones as sin_prueba' => fn (Builder $query) => $query->whereIn(
+                    'implantaciones.id',
+                    Implantacion::query()->sinEvidencia()->select('implantaciones.id'),
+                ),
             ])
             ->orderBy('codigo')
             ->get()
@@ -150,6 +224,7 @@ final class ResumenCumplimiento
                 // leen por `getAttribute` y no como propiedad.
                 aplicables: (int) $sistema->getAttribute('aplicables'),
                 implantadas: (int) $sistema->getAttribute('implantadas'),
+                sinPrueba: (int) $sistema->getAttribute('sin_prueba'),
             ))
             ->values()
             ->all();
@@ -207,14 +282,21 @@ final class ResumenCumplimiento
      * sistemas y de varios marcos a la vez (invariante 6). Repartirla entre
      * sistemas la contaría dos veces o la dejaría fuera de uno de ellos.
      *
-     * @return array{total: int, caducadas: int, porCaducar: int}
+     * **Y la fecha de la próxima que caduca**, porque «5 caducan en 30 días» no
+     * dice si hay que correr esta semana o el mes que viene. Sale del mismo
+     * scope que la cifra, así que es la primera de esas cinco.
+     *
+     * @return array{total: int, caducadas: int, porCaducar: int, proximaCaducidad: ?string}
      */
     public function evidencias(): array
     {
+        $proxima = Evidencia::query()->porCaducar()->min('fecha_caducidad');
+
         return [
             'total' => Evidencia::query()->count(),
             'caducadas' => Evidencia::query()->caducadas()->count(),
             'porCaducar' => Evidencia::query()->porCaducar()->count(),
+            'proximaCaducidad' => $proxima === null ? null : Carbon::parse((string) $proxima)->toDateString(),
         ];
     }
 

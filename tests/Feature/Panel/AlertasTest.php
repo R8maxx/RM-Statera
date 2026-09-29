@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domain\Autorizacion\Enums\Rol;
+use App\Domain\Aviso\Fuente;
 use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Incidente\Models\Incidente;
 use App\Domain\Panel\AlertasDelPanel;
@@ -257,4 +258,24 @@ it('lleva los proveedores a «La organización»', function (): void {
     $this->actingAs($this->usuario)
         ->get('/panel/organizacion')
         ->assertInertia(fn (AssertableInertia $pagina) => $pagina->has('proveedores')->etc());
+});
+
+/*
+ * «Lo que vence» de cada pestaña elige sus fuentes por la `base` de cada una,
+ * preguntando a `VISTAS`. Una `Fuente` nueva cuya ruta no esté en ninguna vista
+ * no rompería nada: sus filas desaparecerían del panel en silencio, que es el
+ * mismo fallo que este fichero existe para cerrar. Recorre `cases()`.
+ */
+it('toda fuente de lo que vence cae en una pestaña y en una sola', function (): void {
+    foreach (Fuente::cases() as $fuente) {
+        $vistas = array_keys(array_filter(
+            AlertasDelPanel::VISTAS,
+            static fn (array $modulos): bool => in_array($fuente->base(), $modulos, true),
+        ));
+
+        expect($vistas)->toHaveCount(
+            1,
+            "Fuente::{$fuente->name} tiene base {$fuente->base()}, que cae en ".count($vistas).' pestañas de AlertasDelPanel::VISTAS.',
+        );
+    }
 });

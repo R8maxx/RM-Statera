@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import EstadoVacio from '@/components/EstadoVacio.vue';
 import CabeceraPanel from '@/components/panel/CabeceraPanel.vue';
+import ListaVencimientos from '@/components/panel/ListaVencimientos.vue';
 import ResumenIncidentesPanel from '@/components/incidente/ResumenIncidentesPanel.vue';
 import ResumenMetricasPanel from '@/components/metrica/ResumenMetricasPanel.vue';
 import ResumenNoConformidadesPanel from '@/components/no-conformidad/ResumenNoConformidadesPanel.vue';
@@ -8,6 +9,7 @@ import ResumenObjetivosPanel from '@/components/objetivo/ResumenObjetivosPanel.v
 import ResumenObligacionesPanel from '@/components/obligacion/ResumenObligacionesPanel.vue';
 import ResumenPlanPanel from '@/components/tarea/ResumenPlanPanel.vue';
 import ResumenVulnerabilidadesPanel from '@/components/vulnerabilidad/ResumenVulnerabilidadesPanel.vue';
+import { Card } from '@/components/ui/card';
 import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { ListTodoIcon } from '@lucide/vue';
@@ -17,15 +19,21 @@ import { computed } from 'vue';
 /**
  * «¿Qué está pasando y estamos mejorando?» — la segunda vista del panel.
  *
- * Las piezas del ciclo vivo, en el orden en que se recorren: lo que hay abierto,
- * lo que toca cada tanto, lo que se rompió, lo que pasó, lo que se mide y a qué
- * nos comprometimos. Antes estaban desperdigadas entre las trece tarjetas de una
- * sola pantalla, cada una con su rojo dentro.
+ * **Un solo elemento fuerte**, como en las otras dos: el plan de acción con la
+ * cifra grande y, en la misma tarjeta, «Lo que vence» de todos los registros de
+ * la pestaña. El plan dice cuánto hay abierto y la lista para cuándo; antes cada
+ * tarjeta decía sus vencidas por separado y la pregunta «qué vence esta semana»
+ * no tenía dónde contestarse.
  *
- * **Aquí no hay ningún rojo**, y es deliberado: todos subieron a la tira de la
- * cabecera, que se pinta también en esta vista. Lo que queda son los repartos y
- * las cifras de cabecera de cada registro, que es lo que se viene a mirar
- * cuando ya se sabe que no arde nada.
+ * Detrás, los registros en **dos grupos por la pregunta que contestan** y en
+ * tarjetas de tercio (`TarjetaRegistro`): lo que falló y cómo se trata —no
+ * conformidades, incidentes, vulnerabilidades— y si estamos mejorando
+ * —indicadores, objetivos, obligaciones periódicas—. Eran seis tarjetas a todo
+ * el ancho y del mismo peso apiladas, y no mandaba ninguna.
+ *
+ * **El rojo está al lado de su cifra**, dentro de la tarjeta del módulo que lo
+ * produce y en «Lo que vence», que es donde puede explicarse: el punto de la
+ * pestaña dice «mira aquí» y esta vista tiene que contestar.
  *
  * Los nulos los decide el servidor, no esta página: conectar dos módulos abre
  * una puerta lateral al registro del otro si el frontend es quien elige qué
@@ -34,6 +42,7 @@ import { computed } from 'vue';
 const props = defineProps<{
     vistas: App.Http.Resources.Panel.VistaPanel[];
     plan: App.Http.Resources.Panel.ResumenPlanPanel;
+    vencimientos: App.Http.Resources.Panel.VencimientosPanel;
     noConformidades: App.Http.Resources.Panel.ResumenNoConformidadesPanel | null;
     incidentes: App.Http.Resources.Panel.ResumenIncidentesPanel | null;
     desempeno: App.Http.Resources.Panel.ResumenMetricasPanel | null;
@@ -46,26 +55,33 @@ const { variantesEntrada, variantesEscalonado } = useMovimientoReducido();
 const escalonado = variantesEscalonado(0.05);
 
 /*
- * Una pestaña que no pinta nada es peor que una pestaña larga: parece rota.
- * Con los seis registros vacíos —que es el estado de una organización que
- * acaba de empezar— esta vista diría literalmente nada, así que dice por dónde
- * se empieza.
+ * Cada tarjeta se pinta sólo con su registro lleno: una tarjeta de ceros enseña
+ * a no mirar la tarjeta, y aquí el vacío es además el estado normal de quien
+ * todavía no ha auditado.
+ */
+const hay = {
+    noConformidades: computed(() => (props.noConformidades?.total ?? 0) > 0),
+    incidentes: computed(() => (props.incidentes?.total ?? 0) > 0),
+    vulnerabilidades: computed(() => (props.vulnerabilidades?.total ?? 0) > 0),
+    desempeno: computed(() => (props.desempeno?.total ?? 0) > 0),
+    objetivos: computed(() => (props.objetivos?.total ?? 0) > 0),
+    obligaciones: computed(() => (props.obligaciones?.total ?? 0) > 0),
+};
+
+const hayFallos = computed(() => hay.noConformidades.value || hay.incidentes.value || hay.vulnerabilidades.value);
+const hayMejora = computed(() => hay.desempeno.value || hay.objetivos.value || hay.obligaciones.value);
+
+/*
+ * Una pestaña que no pinta nada es peor que una pestaña larga: parece rota. Con
+ * todos los registros vacíos —el estado de quien acaba de empezar— dice por
+ * dónde se empieza.
  */
 const vacia = computed(
     () =>
         props.plan.total === 0 &&
-        (props.noConformidades?.total ?? 0) === 0 &&
-        (props.incidentes?.total ?? 0) === 0 &&
-        (props.desempeno?.total ?? 0) === 0 &&
-        (props.objetivos?.total ?? 0) === 0 &&
-        /*
-         * Y las obligaciones. Sin esta línea, la vista dejaría de pintar el
-         * estado vacío en cuanto existiera una sola obligación y el resto
-         * siguiera a cero: una pestaña con una tarjeta suelta es peor que la
-         * vacía explicada.
-         */
-        (props.obligaciones?.total ?? 0) === 0 &&
-        (props.vulnerabilidades?.total ?? 0) === 0,
+        props.vencimientos.pasados + props.vencimientos.proximos === 0 &&
+        !hayFallos.value &&
+        !hayMejora.value,
 );
 </script>
 
@@ -73,115 +89,58 @@ const vacia = computed(
     <AppLayout titulo="El ciclo">
         <CabeceraPanel :vistas="vistas" />
 
-        <!--
-            Un solo elemento fuerte (DESIGN.md §1): el plan de acción, a todo el
-            ancho y con su cifra grande, porque es lo único de la vista que habla
-            de lo que está pasando ahora mismo. Los otros cinco registros van
-            debajo, de dos en dos y con la cifra un escalón más baja. Antes eran
-            seis tarjetas iguales apiladas, cada una con un `text-3xl`, y no
-            mandaba ninguna.
-        -->
-        <motion.div
-            :variants="escalonado"
-            initial="oculto"
-            animate="visible"
-            class="grid grid-cols-1 gap-6 lg:grid-cols-2 [&>section>*]:h-full"
-        >
-            <motion.section v-if="vacia" :variants="variantesEntrada" class="lg:col-span-2">
+        <motion.div :variants="escalonado" initial="oculto" animate="visible" class="space-y-8">
+            <motion.section v-if="vacia" :variants="variantesEntrada">
                 <EstadoVacio
                     :icono="ListTodoIcon"
                     titulo="El ciclo todavía no ha empezado"
-                    descripcion="Aquí aparecen el trabajo abierto, lo que se rompió y cómo se está tratando, las cifras que se miden y los objetivos a los que la dirección se ha comprometido. El primer paso suele ser apuntar lo que falta por implantar."
+                    descripcion="Aquí aparecen el trabajo abierto, lo que vence, lo que se rompió y cómo se está tratando, las cifras que se miden y los objetivos a los que la dirección se ha comprometido. El primer paso suele ser apuntar lo que falta por implantar."
                     :accion="{ etiqueta: 'Abrir el plan de acción', href: '/tareas' }"
                 />
             </motion.section>
 
-            <!-- ── Plan de acción ─────────────────────────────────────────── -->
-            <!--
-                Abre la vista porque es la única de las cinco que habla de lo que
-                está pasando ahora mismo: el cumplimiento, en la pestaña de al
-                lado, dice qué falta, y esto dice quién lo está haciendo.
-            -->
-            <motion.section v-if="plan.total > 0" :variants="variantesEntrada" class="lg:col-span-2">
-                <ResumenPlanPanel :plan="plan" />
+            <!-- ── El elemento fuerte: el plan y lo que vence ─────────────── -->
+            <motion.section v-else :variants="variantesEntrada">
+                <Card class="gap-0 overflow-hidden py-0 lg:flex-row">
+                    <div class="min-w-0 flex-1 p-6 sm:p-8">
+                        <ResumenPlanPanel :plan="plan" />
+                    </div>
+                    <div class="border-t p-6 sm:p-8 lg:w-[28rem] lg:shrink-0 lg:border-t-0 lg:border-l">
+                        <ListaVencimientos :vencimientos="vencimientos" />
+                    </div>
+                </Card>
             </motion.section>
 
-            <!-- ── Obligaciones periódicas ────────────────────────────────── -->
-            <!--
-                Detrás del plan: la misma pregunta —qué hay abierto y para
-                cuándo— con otra cadencia. Con el registro vacío no se pinta,
-                como las demás.
-            -->
-            <motion.section v-if="obligaciones && obligaciones.total > 0" :variants="variantesEntrada">
-                <ResumenObligacionesPanel :resumen="obligaciones" />
+            <!-- ── Lo que falló ───────────────────────────────────────────── -->
+            <motion.section v-if="hayFallos" :variants="variantesEntrada" class="space-y-4">
+                <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                    <h2 class="text-base font-semibold tracking-[-0.01em]">Lo que falló y cómo se trata</h2>
+                    <p class="text-sm text-muted-foreground">Lo que se encontró, lo que pasó y lo que podría pasar.</p>
+                </div>
+                <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3 [&>*]:h-full">
+                    <ResumenNoConformidadesPanel v-if="noConformidades && hay.noConformidades.value" :resumen="noConformidades" />
+                    <ResumenIncidentesPanel v-if="incidentes && hay.incidentes.value" :resumen="incidentes" />
+                    <ResumenVulnerabilidadesPanel
+                        v-if="vulnerabilidades && hay.vulnerabilidades.value"
+                        :resumen="vulnerabilidades"
+                    />
+                </div>
             </motion.section>
 
-            <!-- ── No conformidades ───────────────────────────────────────── -->
-            <!--
-                Detrás del plan y por lo mismo que aquél abre: éste dice qué se
-                está haciendo y esto dice qué se rompió por el camino. Con el
-                registro vacío no se pinta: una tarjeta de ceros enseña a no
-                mirar la tarjeta, y aquí el vacío es además el estado normal de
-                quien todavía no ha auditado.
-            -->
-            <motion.section
-                v-if="noConformidades && noConformidades.total > 0"
-                :variants="variantesEntrada"
-            >
-                <ResumenNoConformidadesPanel :resumen="noConformidades" />
+            <!-- ── ¿Mejoramos? ────────────────────────────────────────────── -->
+            <!-- Y aquí baja el ritmo: un indicador trimestral cambia cuatro
+                 veces al año, así que va detrás de lo que se mira a diario. -->
+            <motion.section v-if="hayMejora" :variants="variantesEntrada" class="space-y-4">
+                <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                    <h2 class="text-base font-semibold tracking-[-0.01em]">¿Estamos mejorando?</h2>
+                    <p class="text-sm text-muted-foreground">Lo que se mide, contra qué, y lo que toca cada tanto.</p>
+                </div>
+                <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3 [&>*]:h-full">
+                    <ResumenMetricasPanel v-if="desempeno && hay.desempeno.value" :resumen="desempeno" />
+                    <ResumenObjetivosPanel v-if="objetivos && hay.objetivos.value" :resumen="objetivos" />
+                    <ResumenObligacionesPanel v-if="obligaciones && hay.obligaciones.value" :resumen="obligaciones" />
+                </div>
             </motion.section>
-
-            <!-- ── Incidentes ─────────────────────────────────────────────── -->
-            <!--
-                Detrás de las no conformidades y no junto a personas, que es
-                donde estaba en el panel de una sola columna: allí las dos eran
-                «lo último que llegó» y aquí manda la pregunta —un incidente es
-                algo que pasó, y personas es de qué organización hablamos—. Con
-                el registro vacío no se pinta, como las demás.
-            -->
-            <motion.section v-if="incidentes && incidentes.total > 0" :variants="variantesEntrada">
-                <ResumenIncidentesPanel :resumen="incidentes" />
-            </motion.section>
-
-            <!-- ── Vulnerabilidades ───────────────────────────────────────── -->
-            <!--
-                Pegada a los incidentes, que es su otra mitad: aquello es lo que
-                pasó y esto lo que puede llegar a pasar. Con el registro vacío no
-                se pinta, como las demás.
-            -->
-            <motion.section
-                v-if="vulnerabilidades && vulnerabilidades.total > 0"
-                :variants="variantesEntrada"
-            >
-                <ResumenVulnerabilidadesPanel :resumen="vulnerabilidades" />
-            </motion.section>
-
-            <!-- ── Desempeño ──────────────────────────────────────────────── -->
-            <!--
-                Y aquí baja el ritmo: un indicador trimestral cambia cuatro veces
-                al año, así que va detrás de lo que se mira a diario. Con el
-                cuadro vacío no se pinta, como las demás.
-            -->
-            <motion.section
-                v-if="desempeno && desempeno.total > 0"
-                :variants="variantesEntrada"
-            >
-                <ResumenMetricasPanel :resumen="desempeno" />
-            </motion.section>
-
-            <!-- ── Objetivos ──────────────────────────────────────────────── -->
-            <!--
-                Pegado al desempeño, que es su otra mitad: los indicadores dicen
-                cómo va y los objetivos dicen contra qué. Con el registro vacío no
-                se pinta, como las demás.
-            -->
-            <motion.section
-                v-if="objetivos && objetivos.total > 0"
-                :variants="variantesEntrada"
-            >
-                <ResumenObjetivosPanel :resumen="objetivos" />
-            </motion.section>
-
         </motion.div>
     </AppLayout>
 </template>

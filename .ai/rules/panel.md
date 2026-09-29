@@ -122,6 +122,46 @@ pudiera reproducirla. Ahora es `Implantacion::sinEvidencia()`, lo invocan el
 resumen y el filtro de `/implantaciones`, y por construcción no pueden
 discrepar.
 
+### Una forma para las tres: la tarjeta partida y la de tercio
+
+Cada vista abría con un bloque distinto y detrás apilaba tarjetas a todo el ancho
+del mismo peso —en «El ciclo», seis—, y la cifra que pedía acción estaba en otra
+tarjeta, más abajo. Ahora las tres tienen **un solo elemento fuerte partido en dos**:
+la cifra que contesta la pregunta a la izquierda y lo que pide acción a la derecha,
+cada fila con su enlace a la lista exacta.
+
+| Vista | Izquierda | Derecha |
+|---|---|---|
+| Cumplimiento | % implantado con su fracción, barra por estado | `ListaAcciones`: caducadas, sin prueba, por caducar, pendientes |
+| El ciclo | `ResumenPlanPanel`: abiertas de total, por origen | `ListaVencimientos`: lo que vence |
+| La organización | cuestiones del contexto y los cuatro cuadrantes | `ListaAcciones`: lo que queda por atar de 4.1 y 4.2 |
+
+**Sin anillo.** DESIGN.md § 9 ya decía que una cifra sola es una cifra grande con su
+fracción; el pulso del 100 % (§ 10, cuarto momento) pasó a la cifra. El ancla del
+recorrido guiado sigue llamándose `anillo-progreso` porque `lib/recorridos.ts` la
+nombra así: renombrarla es tocar el recorrido, no el panel.
+
+**Los registros secundarios van en `TarjetaRegistro`**, de tercio: cifra con su
+denominador, un reparto en el hueco del medio y filas que piden acción. **Qué cuenta
+y qué es rojo sigue en el componente de cada módulo** —`ResumenNoConformidadesPanel`
+decide que «sin verificar» es rojo, y lo explica—; la tarjeta sólo decide cómo se ve.
+Las filas a cero no se pintan, y si no queda ninguna lo dice una frase.
+
+**El avance por dominio** (`ResumenCumplimiento::porDominio()`) sube a la raíz de la
+jerarquía con una CTE recursiva: el ENS tiene tres niveles y el Anexo A dos, y no hay
+que suponerlo. Va en su propio recurso, `AvanceDominio`, y no dentro de `AvanceMarco`,
+que lo lee también el informe de estado.
+
+### «Lo que vence» elige sus fuentes por la `base`
+
+`VencimientosDelPanel` **no consulta nada nuevo**: le pide a `ResumenVencimientos` —el
+mismo del correo diario y del calendario— sólo las fuentes cuya `Fuente::base()` cae
+en la vista según `AlertasDelPanel::VISTAS`. Así la lista de «El ciclo» enseña los
+mismos rojos que cuenta el punto de su pestaña: una evidencia caducada se explica en
+«Cumplimiento» y una formación por renovar en «La organización». Una fuente nueva
+entra sola en la pestaña de su módulo, y `AlertasTest` exige que toda `Fuente` caiga
+en una vista y en una sola. Cada fuente con su permiso, por `Fuente::visiblesPara()`.
+
 ## Desvíos respecto al stack
 
 Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y por qué, para que nadie lo "arregle" sin contexto.

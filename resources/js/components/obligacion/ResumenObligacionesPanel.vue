@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import Cifra from '@/components/Cifra.vue';
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import TarjetaRegistro, { type FilaRegistro } from '@/components/panel/TarjetaRegistro.vue';
 import { Link } from '@inertiajs/vue3';
-import { ChevronRightIcon } from '@lucide/vue';
+import { computed } from 'vue';
 
 /**
  * Las obligaciones periódicas, de un vistazo (§ 4.16).
@@ -17,70 +16,41 @@ import { ChevronRightIcon } from '@lucide/vue';
  * plan de acción: el denominador crece cada vez que alguien declara una
  * obligación, así que la cifra bajaría justo al hacer lo correcto.
  */
-defineProps<{ resumen: App.Http.Resources.Panel.ResumenObligacionesPanel }>();
+const props = defineProps<{ resumen: App.Http.Resources.Panel.ResumenObligacionesPanel }>();
+
+/*
+ * Las fuera de plazo salen también una a una en «Lo que vence»; aquí va el
+ * recuento con el filtro que las reúne, que es lo que la lista no da.
+ */
+const filas = computed<FilaRegistro[]>(() => [
+    { clave: 'vencidas', etiqueta: 'Fuera de plazo', valor: props.resumen.vencidas, href: '/obligaciones?filter[vencidas]=1', alerta: true },
+    { clave: 'por_vencer', etiqueta: 'Vencen en 90 días', valor: props.resumen.porVencer, href: '/obligaciones?filter[por_vencer]=1' },
+    { clave: 'nunca_cumplidas', etiqueta: 'Nunca cumplidas', valor: props.resumen.nuncaCumplidas, href: '/obligaciones?filter[nunca_cumplidas]=1' },
+    { clave: 'sin_responsable', etiqueta: 'Sin responsable', valor: props.resumen.sinResponsable, href: '/obligaciones?filter[sin_responsable]=1' },
+]);
 </script>
 
 <template>
-    <Card>
-        <CardHeader>
-            <CardTitle>Obligaciones periódicas</CardTitle>
-            <CardDescription>
-                Lo que hay que hacer cada tanto y no sale de ningún otro registro: el informe
-                INES, la renovación de conformidad, las auditorías de seguimiento.
-            </CardDescription>
-            <CardAction>
-                <Link
-                    href="/obligaciones"
-                    class="flex items-center gap-1 rounded text-sm font-medium text-primary underline-offset-4 hover:underline"
-                >
-                    Ver las obligaciones
-                    <ChevronRightIcon class="size-4" />
-                </Link>
-            </CardAction>
-        </CardHeader>
-
-        <CardContent>
-            <!--
-                La próxima, con nombre y fecha. Enlaza a su ficha: una cifra que
-                no lleva a su lista no se acciona, se mira.
-            -->
-            <Link
-                v-if="resumen.proxima"
-                :href="`/obligaciones/${resumen.proxima.id}`"
-                class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 rounded-md py-1 hover:underline"
-            >
-                <span class="text-sm font-medium">{{ resumen.proxima.titulo }}</span>
-                <!--
-                    `text-destructive` es el token de rol que `lib/tonos.ts` usa
-                    para `caducada`, que es el único rojo del vocabulario. No se
-                    inventa aquí un color: se usa el mismo que pinta el badge.
-                -->
-                <span
-                    class="text-sm"
-                    :class="resumen.proxima.dias < 0 ? 'text-destructive' : 'text-muted-foreground'"
-                >
-                    {{ resumen.proxima.cuando }} · {{ resumen.proxima.fecha }}
-                </span>
-            </Link>
-
-            <dl class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-                <div>
-                    <dt class="text-xs text-muted-foreground">Vigentes</dt>
-                    <dd><Cifra :valor="resumen.total" /></dd>
-                </div>
-                <div>
-                    <dt class="text-xs text-muted-foreground">Fuera de plazo</dt>
-                    <dd><Cifra :valor="resumen.vencidas" /></dd>
-                </div>
-                <div>
-                    <dt class="text-xs text-muted-foreground">En 90 días</dt>
-                    <dd><Cifra :valor="resumen.porVencer" /></dd>
-                </div>
-                <div>
-                    <dt class="text-xs text-muted-foreground">Nunca cumplidas</dt>
-                    <dd><Cifra :valor="resumen.nuncaCumplidas" /></dd>
-                </div>
-            </dl>
-        </CardContent>
-    </Card>
+    <TarjetaRegistro
+        titulo="Obligaciones periódicas"
+        href="/obligaciones"
+        :cifra="resumen.total"
+        unidad="vigentes"
+        :filas="filas"
+        vacio="Todas al día."
+    >
+        <!-- La próxima, con nombre y fecha: «3 pendientes» no contesta lo que
+             se viene a mirar; «Informe INES — vence en 41 días» sí. -->
+        <Link
+            v-if="resumen.proxima"
+            :href="`/obligaciones/${resumen.proxima.id}`"
+            class="block rounded-md bg-superficie px-3 py-2.5 transition-colors hover:bg-accent"
+        >
+            <span class="block text-xs text-muted-foreground">La próxima</span>
+            <span class="block text-sm font-medium">{{ resumen.proxima.titulo }}</span>
+            <span class="block text-xs" :class="resumen.proxima.dias < 0 ? 'text-destructive' : 'text-secondary-foreground'">
+                {{ resumen.proxima.cuando }} · {{ resumen.proxima.fecha }}
+            </span>
+        </Link>
+    </TarjetaRegistro>
 </template>

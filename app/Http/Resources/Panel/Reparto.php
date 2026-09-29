@@ -26,5 +26,14 @@ final class Reparto
         public readonly string $tono,
         /** La query string que aísla esas filas en la tabla, si la hay. */
         public readonly ?string $filtro = null,
+        /**
+         * El icono del valor, cuando el dominio lo declara.
+         *
+         * Lo necesitan los repartos cuyo color no basta para identificar el
+         * tramo: los nueve tipos de activo (ΔE 5.2 en el peor par, DESIGN.md
+         * § 3) y los cuatro cuadrantes del DAFO. El nombre lo decide el enum
+         * —`TipoActivo::icono()`, `TipoCuestion::icono()`—, no el cliente.
+         */
+        public readonly ?string $icono = null,
     ) {}
 }

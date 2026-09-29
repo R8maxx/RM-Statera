@@ -2,6 +2,8 @@
 import Cifra from '@/components/Cifra.vue';
 import BarraSegmentada, { type Segmento } from '@/components/BarraSegmentada.vue';
 import GraficaBarras, { type Barra } from '@/components/grafica/GraficaBarras.vue';
+import IconoTipo from '@/components/IconoTipo.vue';
+import { tono } from '@/lib/tonos';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from '@inertiajs/vue3';
 import { ChevronRightIcon } from '@lucide/vue';
@@ -47,7 +49,6 @@ const barras = (reparto: Reparto[], total: number): Barra[] =>
         tono: tramo.tono,
     }));
 
-const totalTipos = computed(() => props.inventario.porTipo.reduce((suma, t) => suma + t.valor, 0));
 const totalCiclo = computed(() => props.inventario.porCicloDeVida.reduce((suma, t) => suma + t.valor, 0));
 </script>
 
@@ -109,9 +110,27 @@ const totalCiclo = computed(() => props.inventario.porCicloDeVida.reduce((suma, 
             </div>
 
             <div class="grid gap-8 border-t pt-6 lg:grid-cols-2">
+                <!--
+                    Por tipo, en chips con su icono y no en barras: nueve tipos no
+                    caben en nueve colores distinguibles (ΔE 5.2 en el peor par,
+                    DESIGN.md § 3), y la identidad la carga el icono. Cada chip
+                    lleva a su lista.
+                -->
                 <section>
                     <h3 class="mb-4 text-sm font-medium">Por tipo</h3>
-                    <GraficaBarras :barras="barras(inventario.porTipo, totalTipos)" />
+                    <ul class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                        <li v-for="tramo in inventario.porTipo" :key="tramo.clave">
+                            <Link
+                                :href="tramo.filtro ? `/activos?${tramo.filtro}` : '/activos'"
+                                class="flex h-9 items-center gap-2 rounded-md px-2.5 text-sm font-medium transition-opacity hover:opacity-85"
+                                :class="tono(tramo.tono).badge"
+                            >
+                                <IconoTipo :nombre="tramo.icono" clase="size-4 shrink-0" />
+                                <span class="min-w-0 flex-1 truncate">{{ tramo.etiqueta }}</span>
+                                <Cifra class="cifra" :valor="tramo.valor" />
+                            </Link>
+                        </li>
+                    </ul>
                 </section>
 
                 <section>

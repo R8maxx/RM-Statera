@@ -22,5 +22,7 @@ final class ResumenEvidencias
         public readonly int $caducadas,
         public readonly int $porCaducar,
         public readonly int $implantadasSinEvidencia,
+        /** La fecha de la primera que caduca dentro de la ventana, en `Y-m-d`. */
+        public readonly ?string $proximaCaducidad = null,
     ) {}
 }

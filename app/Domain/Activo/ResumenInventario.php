@@ -189,6 +189,7 @@ final class ResumenInventario
                 valor: $conteos[$tipo->value] ?? 0,
                 tono: 'tipo:'.$tipo->value,
                 filtro: "filter[tipo]={$tipo->value}",
+                icono: $tipo->icono(),
             ),
             TipoActivo::cases(),
         );

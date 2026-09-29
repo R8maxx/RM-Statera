@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import BarraSegmentada, { type Segmento } from '@/components/BarraSegmentada.vue';
-import Cifra from '@/components/Cifra.vue';
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Link } from '@inertiajs/vue3';
-import { ChevronRightIcon } from '@lucide/vue';
+import TarjetaRegistro, { type FilaRegistro } from '@/components/panel/TarjetaRegistro.vue';
+import { computed } from 'vue';
 
 type Reparto = App.Http.Resources.Panel.Reparto;
 
@@ -26,89 +24,26 @@ type Reparto = App.Http.Resources.Panel.Reparto;
 const props = defineProps<{ resumen: App.Http.Resources.Panel.ResumenNoConformidadesPanel }>();
 
 const segmentos = (reparto: Reparto[]): Segmento[] =>
-    reparto.map((tramo) => ({
-        clave: tramo.clave,
-        etiqueta: tramo.etiqueta,
-        valor: tramo.valor,
-        tono: tramo.tono,
-    }));
+    reparto.map((tramo) => ({ clave: tramo.clave, etiqueta: tramo.etiqueta, valor: tramo.valor, tono: tramo.tono }));
+
+/* «Sin verificar» y «fuera de plazo» son los dos rojos del módulo, y van delante. */
+const filas = computed<FilaRegistro[]>(() => [
+    { clave: 'sin_verificar', etiqueta: 'Cerradas sin verificar la eficacia', valor: props.resumen.sinVerificar, href: '/no-conformidades?filter[pendientes_de_verificar]=1', alerta: true },
+    { clave: 'vencidas', etiqueta: 'Fuera de plazo', valor: props.resumen.vencidas, href: '/no-conformidades?filter[vencidas]=1', alerta: true },
+    { clave: 'sin_accion', etiqueta: 'Sin acción correctiva', valor: props.resumen.sinAccion, href: '/no-conformidades?filter[sin_accion]=1' },
+]);
 </script>
 
 <template>
-    <Card>
-        <CardHeader>
-            <CardTitle>No conformidades</CardTitle>
-            <CardDescription>
-                Lo que se encontró y qué se hizo con ello. La cláusula 10.2 no termina al corregir:
-                termina al comprobar que la corrección sirvió.
-            </CardDescription>
-            <CardAction>
-                <Link
-                    href="/no-conformidades"
-                    class="flex items-center gap-1 rounded text-sm font-medium text-primary underline-offset-4 hover:underline"
-                >
-                    Ver el registro
-                    <ChevronRightIcon class="size-4" />
-                </Link>
-            </CardAction>
-        </CardHeader>
-
-        <CardContent class="space-y-6 pt-0">
-            <div class="flex flex-col gap-6 sm:flex-row sm:items-start sm:gap-10">
-                <div class="shrink-0">
-                    <p class="flex items-baseline gap-1.5">
-                        <Cifra class="text-2xl font-semibold" :valor="resumen.abiertas" />
-                        <!-- El denominador al lado: dos abiertas sobre tres es una
-                             organización que no cierra nada, y sobre ciento veinte
-                             es un martes. -->
-                        <span class="cifra text-sm text-muted-foreground">de <Cifra :valor="resumen.total" /></span>
-                    </p>
-                    <p class="mt-0.5 text-sm text-muted-foreground">
-                        {{ resumen.abiertas === 1 ? 'no conformidad abierta' : 'no conformidades abiertas' }}
-                    </p>
-                </div>
-
-                <div v-if="resumen.porEstado.length > 0" class="min-w-0 flex-1">
-                    <p class="mb-1.5 text-xs font-medium text-muted-foreground">En qué punto están</p>
-                    <BarraSegmentada :segmentos="segmentos(resumen.porEstado)" leyenda />
-                </div>
-            </div>
-
-            <!--
-                Lo que arde, en una línea con enlace y nunca a cero: una línea que
-                dice «0 sin verificar» enseña a no leer la línea.
-            -->
-            <p
-                v-if="resumen.sinVerificar > 0 || resumen.vencidas > 0 || resumen.sinAccion > 0"
-                class="flex flex-wrap gap-x-4 gap-y-1 border-t pt-4 text-sm"
-            >
-                <Link
-                    v-if="resumen.sinVerificar > 0"
-                    href="/no-conformidades?filter[pendientes_de_verificar]=1"
-                    class="text-destructive underline-offset-4 hover:underline"
-                >
-                    <Cifra class="font-medium" :valor="resumen.sinVerificar" />
-                    sin verificar
-                </Link>
-
-                <Link
-                    v-if="resumen.vencidas > 0"
-                    href="/no-conformidades?filter[vencidas]=1"
-                    class="text-destructive underline-offset-4 hover:underline"
-                >
-                    <Cifra class="font-medium" :valor="resumen.vencidas" />
-                    fuera de plazo
-                </Link>
-
-                <Link
-                    v-if="resumen.sinAccion > 0"
-                    href="/no-conformidades?filter[sin_accion]=1"
-                    class="text-muted-foreground underline-offset-4 hover:underline"
-                >
-                    <Cifra class="font-medium text-foreground" :valor="resumen.sinAccion" />
-                    sin acción correctiva
-                </Link>
-            </p>
-        </CardContent>
-    </Card>
+    <TarjetaRegistro
+        titulo="No conformidades"
+        href="/no-conformidades"
+        :cifra="resumen.abiertas"
+        :unidad="resumen.abiertas === 1 ? 'abierta' : 'abiertas'"
+        :de="resumen.total"
+        :filas="filas"
+        vacio="Todas tratadas y verificadas."
+    >
+        <BarraSegmentada v-if="resumen.porEstado.length > 0" :segmentos="segmentos(resumen.porEstado)" leyenda />
+    </TarjetaRegistro>
 </template>

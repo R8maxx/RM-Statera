@@ -14,6 +14,7 @@ use App\Domain\NoConformidad\RegistroNoConformidades;
 use App\Domain\Objetivo\RegistroObjetivos;
 use App\Domain\Obligacion\RegistroObligaciones;
 use App\Domain\Panel\AlertasDelPanel;
+use App\Domain\Panel\VencimientosDelPanel;
 use App\Domain\Persona\RegistroPersonas;
 use App\Domain\Proveedor\RegistroProveedores;
 use App\Domain\Tarea\ResumenPlanDeAccion;
@@ -22,6 +23,7 @@ use App\Http\Resources\Panel\ResumenEvidencias;
 use App\Http\Resources\Panel\ResumenPanel;
 use App\Http\Resources\Panel\SistemaResumido;
 use App\Http\Resources\Panel\VistaPanel;
+use App\Models\User;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -59,10 +61,10 @@ class PanelController extends Controller
     /**
      * «¿Cómo vamos con lo exigible?» — la vista por defecto.
      *
-     * Abre con el anillo porque es la única cifra que contesta la pregunta de la
-     * pantalla en un solo número, y detrás va lo que la sostiene: el reparto por
-     * estado, las pruebas que lo demuestran, el avance por marco y los sistemas
-     * en los que se mide.
+     * Abre con el porcentaje implantado porque es la única cifra que contesta la
+     * pregunta de la pantalla en un solo número, y a su lado lo que falta para
+     * poder demostrarlo. Detrás va lo que la sostiene: el avance por marco y por
+     * dominio de control, y los sistemas en los que se mide.
      */
     public function cumplimiento(ResumenCumplimiento $resumen, AlertasDelPanel $alertas): Response
     {
@@ -86,9 +88,11 @@ class PanelController extends Controller
                 caducadas: $pruebas['caducadas'],
                 porCaducar: $pruebas['porCaducar'],
                 implantadasSinEvidencia: $resumen->implantadasSinEvidencia(),
+                proximaCaducidad: $pruebas['proximaCaducidad'],
             ),
             'porEstado' => $resumen->porEstado(),
             'porMarco' => $resumen->porMarco(),
+            'porDominio' => $resumen->porDominio(),
         ]);
     }
 
@@ -107,11 +111,21 @@ class PanelController extends Controller
         RegistroObjetivos $objetivos,
         RegistroObligaciones $obligaciones,
         RegistroVulnerabilidades $vulnerabilidades,
+        VencimientosDelPanel $vencimientos,
         AlertasDelPanel $alertas,
     ): Response {
+        /** @var User $usuario */
+        $usuario = request()->user();
+
         return Inertia::render('panel/Ciclo', [
             ...$this->comunes($alertas),
             'plan' => $plan->paraElPanel(),
+            /*
+             * Al lado del plan: lo que vence de los registros de esta pestaña,
+             * con los mismos rojos que cuenta su punto. Cada fuente con su
+             * permiso, que lo decide `Fuente::visiblesPara()`.
+             */
+            'vencimientos' => $vencimientos->paraLaVista('ciclo', $usuario),
             /*
              * Nulo cuando quien mira no tiene el permiso. Lo decide el servidor:
              * conectar dos módulos abre una puerta lateral al registro del otro

@@ -27,6 +27,7 @@ export type Fuente = 'tarea' | 'evidencia' | 'documento' | 'formacion' | 'indica
 export type Vencimiento = {
 readonly url: string,
 readonly icono: string,
+readonly fuenteEtiqueta: string,
 readonly id: number,
 readonly fuente: App.Domain.Aviso.Fuente,
 readonly titulo: string,
@@ -351,6 +352,13 @@ readonly nota: string | null,
 };
 }
 namespace Panel {
+export type AvanceDominio = {
+readonly marco: string,
+readonly codigo: string,
+readonly titulo: string,
+readonly aplicables: number,
+readonly implantadas: number,
+};
 export type AvanceMarco = {
 readonly codigo: string,
 readonly nombre: string,
@@ -379,6 +387,7 @@ readonly etiqueta: string,
 readonly valor: number,
 readonly tono: string,
 readonly filtro: string | null,
+readonly icono: string | null,
 };
 export type ResumenContextoPanel = {
 readonly analisisVigente: string | null,
@@ -398,6 +407,7 @@ readonly total: number,
 readonly caducadas: number,
 readonly porCaducar: number,
 readonly implantadasSinEvidencia: number,
+readonly proximaCaducidad: string | null,
 };
 export type ResumenIncidentesPanel = {
 readonly total: number,
@@ -504,6 +514,13 @@ readonly marco: string | null,
 readonly categoria: string | null,
 readonly aplicables: number,
 readonly implantadas: number,
+readonly sinPrueba: number,
+};
+export type VencimientosPanel = {
+readonly pasados: number,
+readonly proximos: number,
+readonly dias: number,
+readonly filas: App.Domain.Aviso.Vencimiento[],
 };
 export type VistaPanel = {
 readonly clave: string,

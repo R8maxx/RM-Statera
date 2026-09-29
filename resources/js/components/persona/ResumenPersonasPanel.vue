@@ -1,18 +1,16 @@
 <script setup lang="ts">
-import AnilloProgreso from '@/components/AnilloProgreso.vue';
 import Cifra from '@/components/Cifra.vue';
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Link } from '@inertiajs/vue3';
-import { ChevronRightIcon } from '@lucide/vue';
+import TarjetaRegistro, { type FilaRegistro } from '@/components/panel/TarjetaRegistro.vue';
 import { computed } from 'vue';
 
 /**
  * Las personas, de un vistazo (§ 4.8 y cláusula 5.3).
  *
- * **El anillo es de los roles ENS designados, no del personal formado.** Es la
- * decisión que da forma a la tarjeta: la cobertura del 5.3 tiene un denominador
- * estable —los sistemas por los cinco roles— y mide cuánto está decidido, que es
- * el caso del anillo del inventario. El porcentaje de formados sube al impartir
+ * **La proporción que se enseña es la de roles ENS designados, no la del
+ * personal formado.** Es la decisión que da forma a la tarjeta: la cobertura del
+ * 5.3 tiene un denominador estable —los sistemas por los cinco roles— y mide
+ * cuánto está decidido. Iba en anillo; con la tarjeta de tercio va como
+ * fracción y barra, que es como DESIGN.md § 9 pide dar una cifra sola. El porcentaje de formados sube al impartir
  * una sesión y baja solo al pasar doce meses, así que castigaría por tener
  * plantilla nueva — el mismo argumento por el que el plan de acción no lleva
  * anillo.
@@ -28,86 +26,44 @@ const cobertura = computed(() =>
         ? 0
         : Math.round((props.resumen.rolesDesignados / props.resumen.rolesExigibles) * 100),
 );
+
+const filas = computed<FilaRegistro[]>(() => [
+    {
+        clave: 'baja_sin_cerrar',
+        etiqueta: props.resumen.bajaSinCerrar === 1 ? 'Salida sin cerrar' : 'Salidas sin cerrar',
+        valor: props.resumen.bajaSinCerrar,
+        href: '/personas?filter[baja_sin_cerrar]=1',
+        alerta: true,
+    },
+    { clave: 'sin_formacion', etiqueta: 'Sin formación reciente', valor: props.resumen.sinFormacion, href: '/personas?filter[sin_formacion]=1' },
+    { clave: 'sin_acuerdo', etiqueta: 'Sin acuerdo de confidencialidad', valor: props.resumen.sinAcuerdo, href: '/personas?filter[sin_acuerdo]=1' },
+]);
 </script>
 
 <template>
-    <Card>
-        <CardHeader>
-            <CardTitle>Personas</CardTitle>
-            <CardDescription>
-                La plantilla, no las cuentas de Statera. De aquí salen los nombramientos del 5.3,
-                la formación y los deberes por escrito.
-            </CardDescription>
-            <CardAction>
-                <Link
-                    href="/personas"
-                    class="flex items-center gap-1 rounded text-sm font-medium text-primary underline-offset-4 hover:underline"
-                >
-                    Ver las personas
-                    <ChevronRightIcon class="size-4" />
-                </Link>
-            </CardAction>
-        </CardHeader>
-
-        <CardContent class="space-y-6 pt-0">
-            <div class="flex flex-col gap-6 sm:flex-row sm:items-center sm:gap-10">
-                <div class="shrink-0">
-                    <p class="flex items-baseline gap-1.5">
-                        <Cifra class="text-2xl font-semibold" :valor="resumen.activas" />
-                        <span class="text-sm text-muted-foreground">de {{ resumen.total }}</span>
-                    </p>
-                    <p class="mt-0.5 text-sm text-muted-foreground">
-                        {{ resumen.activas === 1 ? 'persona en plantilla' : 'personas en plantilla' }}
-                    </p>
-                </div>
-
-                <div v-if="resumen.rolesExigibles > 0" class="flex items-center gap-3">
-                    <AnilloProgreso :valor="cobertura" etiqueta="designados" :tamano="96" />
-                    <div class="text-sm">
-                        <p class="font-medium">Roles ENS</p>
-                        <p class="text-muted-foreground">
-                            <Cifra class="font-medium text-foreground" :valor="resumen.rolesDesignados" />
-                            de {{ resumen.rolesExigibles }} designados
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <!--
-                Lo que pide acción, en una línea y nunca a cero: una línea que
-                dice «0 salidas sin cerrar» enseña a no leer la línea.
-            -->
-            <p
-                v-if="resumen.bajaSinCerrar > 0 || resumen.sinFormacion > 0 || resumen.sinAcuerdo > 0"
-                class="flex flex-wrap gap-x-4 gap-y-1 border-t pt-4 text-sm"
-            >
-                <Link
-                    v-if="resumen.bajaSinCerrar > 0"
-                    href="/personas?filter[baja_sin_cerrar]=1"
-                    class="text-destructive underline-offset-4 hover:underline"
-                >
-                    <Cifra class="font-medium" :valor="resumen.bajaSinCerrar" />
-                    {{ resumen.bajaSinCerrar === 1 ? 'salida sin cerrar' : 'salidas sin cerrar' }}
-                </Link>
-
-                <Link
-                    v-if="resumen.sinFormacion > 0"
-                    href="/personas?filter[sin_formacion]=1"
-                    class="text-muted-foreground underline-offset-4 hover:underline"
-                >
-                    <Cifra class="font-medium text-foreground" :valor="resumen.sinFormacion" />
-                    sin formación en doce meses
-                </Link>
-
-                <Link
-                    v-if="resumen.sinAcuerdo > 0"
-                    href="/personas?filter[sin_acuerdo]=1"
-                    class="text-muted-foreground underline-offset-4 hover:underline"
-                >
-                    <Cifra class="font-medium text-foreground" :valor="resumen.sinAcuerdo" />
-                    sin acuerdo vigente
-                </Link>
+    <TarjetaRegistro
+        titulo="Personas"
+        href="/personas"
+        :cifra="resumen.activas"
+        unidad="en plantilla"
+        :de="resumen.total"
+        :filas="filas"
+        vacio="Todas formadas, con su acuerdo y sin salidas a medias."
+    >
+        <div v-if="resumen.rolesExigibles > 0" class="rounded-md bg-superficie px-3 py-2.5">
+            <p class="flex items-baseline justify-between gap-3 text-sm">
+                <span class="font-medium">Roles del ENS designados</span>
+                <span class="cifra font-semibold">
+                    <Cifra :valor="resumen.rolesDesignados" /> / {{ resumen.rolesExigibles }}
+                </span>
             </p>
-        </CardContent>
-    </Card>
+            <div
+                class="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"
+                role="img"
+                :aria-label="`${resumen.rolesDesignados} de ${resumen.rolesExigibles} roles designados`"
+            >
+                <div class="h-full rounded-full bg-primary" :style="{ width: `${cobertura}%` }" />
+            </div>
+        </div>
+    </TarjetaRegistro>
 </template>

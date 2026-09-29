@@ -133,6 +133,23 @@ final readonly class AlertasDelPanel
     ];
 
     /**
+     * La vista en la que cae una `base`, o nula si no está en ninguna.
+     *
+     * `AlertasTest` exige que toda base de toda fuente esté en una y sólo una,
+     * así que para las que cuentan rojo la respuesta nunca es nula.
+     */
+    public static function vistaDe(string $base): ?string
+    {
+        foreach (self::VISTAS as $vista => $bases) {
+            if (in_array($base, $bases, true)) {
+                return $vista;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * @return list<Indicador>
      */
     public function __invoke(?User $usuario): array

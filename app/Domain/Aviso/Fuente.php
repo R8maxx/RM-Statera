@@ -238,18 +238,31 @@ enum Fuente: string
 
     public function url(int $id): string
     {
+        return $this->base().'/'.$id;
+    }
+
+    /**
+     * La ruta del módulo que es dueño de lo que vence.
+     *
+     * Es la misma `base` que llevan los indicadores de alerta, y por eso sirve
+     * para preguntarle a `AlertasDelPanel::VISTAS` en qué pestaña del panel cae
+     * esta fuente: así «Lo que vence» de «El ciclo» enseña los mismos rojos que
+     * cuenta el punto de su pestaña, sin una segunda lista que mantener.
+     */
+    public function base(): string
+    {
         return match ($this) {
-            self::Tarea => "/tareas/{$id}",
-            self::Evidencia => "/evidencias/{$id}",
-            self::Documento => "/documentos/{$id}",
-            self::Formacion => "/personas/{$id}",
-            self::Indicador => "/indicadores/{$id}",
-            self::Implantacion => "/implantaciones/{$id}",
-            self::Obligacion => "/obligaciones/{$id}",
-            self::PruebaContinuidad => "/continuidad/pruebas/{$id}",
-            self::Bia => "/continuidad/bia/{$id}",
-            self::Proveedor => "/proveedores/{$id}",
-            self::Vulnerabilidad => "/vulnerabilidades/{$id}",
+            self::Tarea => '/tareas',
+            self::Evidencia => '/evidencias',
+            self::Documento => '/documentos',
+            self::Formacion => '/personas',
+            self::Indicador => '/indicadores',
+            self::Implantacion => '/implantaciones',
+            self::Obligacion => '/obligaciones',
+            self::PruebaContinuidad => '/continuidad/pruebas',
+            self::Bia => '/continuidad/bia',
+            self::Proveedor => '/proveedores',
+            self::Vulnerabilidad => '/vulnerabilidades',
         };
     }
 

@@ -486,7 +486,7 @@ El tono que viaja del servidor es **un nombre de estado del dominio, no un color
 - **Ningún porcentaje sin su denominador.** «62 %» va siempre con «31 de 50» al lado. Es el principio de §1: el producto vende evidencia, no sensación.
 - **Sin librería de gráficas.** Lo que hay hoy —anillo, barra por tramos, barras horizontales— es SVG y CSS a mano sobre los tokens, y así funciona en los dos temas sin repintar nada. Entra una librería cuando llegue la primera serie histórica con eje de tiempo, que es lo único que no merece la pena escribir a mano; y en los documentos PDF el SVG lo genera el servidor, sin JavaScript, para que el vector y el texto sobrevivan a PDF/A y PDF/UA.
 
-**Panel de cumplimiento.** El elemento con más peso de la plataforma: grado de implantación por dominio de control, controles abiertos por estado, próximos vencimientos y última evidencia registrada. Un solo número grande —el porcentaje de controles conformes— con su fracción real debajo («112 de 146 controles»), y el resto en barras horizontales (`BarraSegmentada`) y anillos (`AnilloProgreso`). Nada de medidores tipo velocímetro.
+**Panel.** Tres vistas —cumplimiento, el ciclo y la organización— con la misma forma: **una tarjeta principal partida en dos**, la cifra que contesta la pregunta de la vista a la izquierda y lo que pide acción a la derecha, con cada fila llevando a la lista exacta que cuenta (`ListaAcciones`, `ListaVencimientos`). En cumplimiento, un solo número grande —el porcentaje implantado— con su fracción real al lado («94 de 146 requisitos implantados»), la barra por estados debajo y, a su lado, lo que falta para poder demostrarlo. Detrás, el avance por marco y por dominio de control en barras horizontales (`GraficaBarras`) y los sistemas en tabla estática. Los registros secundarios van en tarjetas de tercio con una sola forma (`TarjetaRegistro`): cifra con su denominador, un reparto si lo hay y las filas que piden acción, sin las que están a cero. Nada de anillos ni de medidores tipo velocímetro: una cifra sola es una cifra grande con su fracción.
 
 **Modales.** `rounded-xl`, padding 24, ancho máximo `sm:max-w-md` salvo formularios largos. Primario a la derecha. Escape y clic fuera cierran, salvo con cambios sin guardar.
 
@@ -557,7 +557,7 @@ Con `prefers-reduced-motion` se acorta a 120 ms y pasa a lineal, no se quita: aq
 1. **La entrada al acceso.** La pila del formulario escalona a 60 ms; la balanza se asienta al entrar bien y se desequilibra una vez al fallar.
 2. **Emitir una versión.** El sello de «Borrador» se convierte en el número, y la huella SHA-256 se revela carácter a carácter. La huella es la prueba de que ese PDF es ese PDF: verla escribirse es lo que la convierte en un hecho en lugar de en una cadena que nadie lee.
 3. **El recorrido guiado.** El panel acompaña al recorte del foco en vez de reaparecer, y el velo se retira desde el centro al terminar.
-4. **El anillo al llegar al 100 %.** Un pulso, una vez, sin bucle y sólo en 100.
+4. **El 100 % del panel.** La cifra de implantación da un pulso, una vez, sin bucle y sólo en 100; lo mismo hace `AnilloProgreso` donde todavía se usa.
 
 ### Dos bucles en todo el producto
 

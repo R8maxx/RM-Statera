@@ -39,6 +39,13 @@ final readonly class Vencimiento
     /** El icono con el que se distingue de un vistazo. Mismo motivo. */
     public string $icono;
 
+    /**
+     * De qué es, en texto: «Tarea», «Vulnerabilidad». El icono solo no basta
+     * donde las fuentes van mezcladas y sin la clave de chips del calendario,
+     * que es lo que pasa en «Lo que vence» del panel.
+     */
+    public string $fuenteEtiqueta;
+
     public function __construct(
         public int $id,
         public Fuente $fuente,
@@ -71,6 +78,7 @@ final readonly class Vencimiento
     ) {
         $this->url = $fuente->url($id);
         $this->icono = $fuente->icono();
+        $this->fuenteEtiqueta = $fuente->etiqueta();
     }
 
     public function pasado(): bool

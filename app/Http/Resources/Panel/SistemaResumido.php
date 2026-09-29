@@ -18,5 +18,7 @@ final class SistemaResumido
         public readonly ?string $categoria,
         public readonly int $aplicables,
         public readonly int $implantadas,
+        /** Implantados sin ninguna prueba detrás: `Implantacion::sinEvidencia()`. */
+        public readonly int $sinPrueba = 0,
     ) {}
 }

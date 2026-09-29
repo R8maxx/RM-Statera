@@ -56,11 +56,15 @@ final readonly class ResumenVencimientos
 
     public function __construct(private CalendarioVencimientos $calendario) {}
 
-    public function __invoke(int $dias = self::DIAS): Vencimientos
+    /**
+     * @param  list<Fuente>|null  $fuentes  sólo éstas, si quien pregunta no necesita todas:
+     *                                      el panel pide las de su pestaña y no paga las demás
+     */
+    public function __invoke(int $dias = self::DIAS, ?array $fuentes = null): Vencimientos
     {
         $porFuente = [];
 
-        foreach (Fuente::cases() as $fuente) {
+        foreach ($fuentes ?? Fuente::cases() as $fuente) {
             $porFuente[$fuente->value] = [
                 'pasados' => $this->pasados($fuente),
                 'proximos' => $this->proximos($fuente, $dias),

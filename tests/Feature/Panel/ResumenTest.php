@@ -9,6 +9,7 @@ use App\Domain\Catalogo\Models\Marco;
 use App\Domain\Catalogo\Models\Requisito;
 use App\Domain\Contexto\Enums\TipoCuestion;
 use App\Domain\Contexto\Models\CuestionContexto;
+use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Implantacion\Models\Implantacion;
 use App\Domain\Metrica\Enums\Periodicidad;
 use App\Domain\Metrica\Enums\SentidoIndicador;
@@ -117,6 +118,72 @@ it('cuenta el avance de cada marco por separado', function (): void {
             ->where('porMarco.1.aplicables', 2)
             ->where('porMarco.1.implantadas', 1)
         );
+});
+
+/*
+ * El dominio es la raíz de la jerarquía, subiendo los niveles que haga falta:
+ * el ENS tiene tres (`op` → `op.acc` → `op.acc.4`) y el Anexo A dos. Una
+ * implantación colgada de una hoja cuenta en su raíz, no en el nivel de en medio.
+ */
+it('cuenta el avance de cada dominio subiendo hasta la raíz de la jerarquía', function (): void {
+    $organizacion = comoOrganizacion();
+    $ens = Marco::factory()->create(['codigo' => 'ENS', 'nombre' => 'Esquema Nacional de Seguridad']);
+    $sistema = Sistema::factory()->de($organizacion)->conMarco($ens)->create();
+
+    $nodo = fn (string $codigo, ?Requisito $padre, int $orden): Requisito => Requisito::factory()->create([
+        'marco_id' => $ens->id,
+        'codigo' => $codigo,
+        'titulo' => "Título de {$codigo}",
+        'tipo' => TipoRequisito::Medida->value,
+        'parent_id' => $padre?->id,
+        'orden' => $orden,
+    ]);
+
+    $org = $nodo('org', null, 1);
+    $op = $nodo('op', null, 2);
+    $acc = $nodo('op.acc', $op, 1);
+
+    $implantar = fn (Requisito $requisito, string $estado) => Implantacion::factory()
+        ->for($sistema)
+        ->create(['requisito_id' => $requisito->id, 'estado' => $estado]);
+
+    $implantar($nodo('org.1', $org, 1), 'implantado');
+    $implantar($nodo('op.acc.1', $acc, 1), 'implantado');
+    $implantar($nodo('op.acc.2', $acc, 2), 'en_progreso');
+    $implantar($nodo('op.acc.3', $acc, 3), 'no_iniciado');
+
+    $this->actingAs(usuarioCon())
+        ->get('/panel')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->has('porDominio', 2)
+            // En el orden del catálogo, no alfabético.
+            ->where('porDominio.0.marco', 'ENS')
+            ->where('porDominio.0.codigo', 'org')
+            ->where('porDominio.0.aplicables', 1)
+            ->where('porDominio.0.implantadas', 1)
+            ->where('porDominio.1.codigo', 'op')
+            ->where('porDominio.1.titulo', 'Título de op')
+            ->where('porDominio.1.aplicables', 3)
+            ->where('porDominio.1.implantadas', 1));
+});
+
+/*
+ * La fila del sistema enlaza a `/implantaciones` con `sin_evidencia` y el
+ * sistema, así que su cifra tiene que ser la del scope y la de ese sistema.
+ */
+it('cuenta por sistema los implantados que no tienen prueba', function (): void {
+    ['usuario' => $usuario] = escenarioDePanel();
+
+    $conPrueba = Implantacion::query()->where('estado', 'implantado')->firstOrFail();
+    $evidencia = Evidencia::factory()->create();
+    $conPrueba->evidencias()->attach($evidencia->id, ['organizacion_id' => $evidencia->organizacion_id]);
+
+    $this->actingAs($usuario)
+        ->get('/panel')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            // Tres implantadas en el escenario, una ya con su prueba.
+            ->where('sistemas.0.sinPrueba', 2)
+            ->where('evidencias.implantadasSinEvidencia', 2));
 });
 
 it('da la madurez media con el número de requisitos sobre los que se calcula', function (): void {
