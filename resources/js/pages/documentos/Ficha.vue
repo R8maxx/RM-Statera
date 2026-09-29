@@ -187,6 +187,21 @@ const siguiente = computed(() => `v${Math.max(0, ...props.versiones.map((v) => v
  * falta, delante y sólo cuando falta»). Hoy es un dato; la forma es la del
  * activo para que el siguiente entre sin tocar la plantilla.
  */
+const subtitulo = computed(() =>
+    /*
+     * El tipo sólo cuando dice algo que el título no dice. En los documentos
+     * calculados el título ES el tipo —«Acta de revisión por la dirección»— y
+     * repetirlo debajo ocupaba la línea sin decir nada.
+     */
+    [
+        props.documento.tipoEtiqueta !== props.documento.titulo ? props.documento.tipoEtiqueta : null,
+        props.documento.clasificacionEtiqueta,
+        props.documento.sistemaCodigo,
+    ]
+        .filter((parte): parte is string => Boolean(parte))
+        .join(' · '),
+);
+
 const pendientes = computed(() => (props.documento.responsable === null ? ['Responsable'] : []));
 
 /*
@@ -210,7 +225,7 @@ const kb = (bytes: number | null | undefined): string =>
 
 <template>
     <AppLayout :titulo="documento.codigo">
-        <CabeceraPagina :titulo="documento.titulo" :codigo="documento.codigo" :descripcion="documento.tipoEtiqueta">
+        <CabeceraPagina :titulo="documento.titulo" :codigo="documento.codigo" :descripcion="subtitulo">
             <template #acciones>
                 <!--
                     Dos cosas distintas que antes se llamaban casi igual
