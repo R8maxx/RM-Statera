@@ -171,6 +171,77 @@ it('anota la notificación por la interfaz con la fecha que se le pasa', functio
 
 /*
 |--------------------------------------------------------------------------
+| El reloj dibujado
+|--------------------------------------------------------------------------
+|
+| La ficha pinta el plazo como barra y dice cuántas horas se pasó. Las horas
+| salen del servidor, hacia arriba como las que quedan, para que la barra y el
+| texto no discrepen del reloj del navegador.
+|
+*/
+
+it('cuenta las horas fuera de plazo, hacia arriba', function (): void {
+    $ahora = Carbon::parse('2026-09-29 12:00');
+    $incidente = Incidente::factory()->create([
+        'notificable_aepd' => true,
+        'fecha_deteccion' => $ahora->copy()->subHours(PlazoNotificacion::HORAS_AEPD + 5)->subMinutes(20),
+    ]);
+
+    $plazo = $incidente->plazoAepd($ahora);
+
+    expect($plazo->vencido)->toBeTrue()
+        ->and($plazo->horasFueraDePlazo)->toBe(6)
+        ->and($plazo->limite?->toIso8601String())
+        ->toBe($incidente->fecha_deteccion->copy()->addHours(PlazoNotificacion::HORAS_AEPD)->toIso8601String());
+});
+
+it('no cuenta horas fuera de plazo mientras el reloj sigue corriendo', function (): void {
+    $plazo = Incidente::factory()->enPlazoAepd()->create()->plazoAepd();
+
+    expect($plazo->horasFueraDePlazo)->toBeNull()
+        ->and($plazo->limite)->not->toBeNull();
+});
+
+it('guarda las horas de retraso de la notificación que llegó tarde', function (): void {
+    $incidente = Incidente::factory()->create([
+        'notificable_aepd' => true,
+        'fecha_deteccion' => Carbon::parse('2026-09-20 09:00'),
+        'notificado_aepd_en' => Carbon::parse('2026-09-23 19:00'),
+    ]);
+
+    $plazo = $incidente->plazoAepd();
+
+    expect($plazo->estado)->toBe('Fuera de plazo')
+        ->and($plazo->horasFueraDePlazo)->toBe(10);
+});
+
+it('manda el reloj a la ficha sólo para la AEPD', function (): void {
+    $incidente = Incidente::factory()->fueraDePlazoAepd()->create(['notificable_ccn_cert' => true]);
+
+    $this->actingAs($this->usuario)
+        ->get("/incidentes/{$incidente->id}")
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->component('incidentes/Ficha')
+            ->where('notificaciones.aepd.reloj.finEsNotificacion', false)
+            ->where('notificaciones.aepd.reloj.horasFueraDePlazo', fn (int $horas): bool => $horas > 0)
+            ->has('notificaciones.aepd.reloj.limite')
+            ->where('notificaciones.ccnCert.reloj', null)
+            ->has('dimensiones', 5)
+            ->has('ciclo', 4)
+            ->has('duracion.valor'));
+});
+
+it('no manda reloj cuando no hay datos personales de por medio', function (): void {
+    $incidente = Incidente::factory()->create();
+
+    $this->actingAs($this->usuario)
+        ->get("/incidentes/{$incidente->id}")
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->where('notificaciones.aepd.reloj', null));
+});
+
+/*
+|--------------------------------------------------------------------------
 | Las cifras
 |--------------------------------------------------------------------------
 */

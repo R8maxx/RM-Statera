@@ -28,6 +28,7 @@ use App\Http\Resources\IncidenteRecurso;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -96,11 +97,37 @@ class IncidenteController extends Controller
             'transiciones.usuario',
         ]);
 
-        $aepd = $incidente->plazoAepd();
+        $ahora = Carbon::now();
+        $aepd = $incidente->plazoAepd($ahora);
         $ccn = $incidente->notificacionCcnCert();
+        $ultima = $incidente->transiciones->sortByDesc('id')->first();
 
         return Inertia::render('incidentes/Ficha', [
             'incidente' => $this->serializar($incidente),
+            /*
+             * Las cinco, afectadas o no, en el orden del Anexo I: «qué se vio
+             * afectado» se contesta viendo también lo que no.
+             */
+            'dimensiones' => array_map(
+                static fn (string $columna, string $etiqueta): array => [
+                    'clave' => $columna,
+                    'etiqueta' => $etiqueta,
+                    'afectada' => (bool) $incidente->getAttribute($columna),
+                ],
+                array_keys(Incidente::DIMENSIONES),
+                Incidente::DIMENSIONES,
+            ),
+            'duracion' => $this->duracion($incidente, $ahora),
+            'ciclo' => array_map(
+                static fn (EstadoIncidente $estado): array => [
+                    'valor' => $estado->value,
+                    'etiqueta' => $estado->etiqueta(),
+                    'tono' => $estado->tono(),
+                    'icono' => $estado->icono(),
+                ],
+                EstadoIncidente::cases(),
+            ),
+            'estadoDesde' => $ultima?->created_at->toIso8601String(),
             'activos' => $incidente->activos
                 ->map(static fn (Activo $activo): array => [
                     'id' => $activo->id,
@@ -132,6 +159,18 @@ class IncidenteController extends Controller
                     // El número sale del RGPD y va citado: un plazo sin su fuente
                     // es una opinión.
                     'fundamento' => 'Artículo 33.1 del RGPD: 72 horas desde que se tiene constancia.',
+                    /*
+                     * El reloj, en instantes con zona: la ficha lo dibuja como
+                     * barra de la detección al límite y a lo que lo cierra —la
+                     * notificación, o ahora si no la hay—. Sólo cuando corre.
+                     */
+                    'reloj' => $aepd->limite === null ? null : [
+                        'detectado' => $incidente->fecha_deteccion->toIso8601String(),
+                        'limite' => $aepd->limite->toIso8601String(),
+                        'fin' => ($incidente->notificado_aepd_en ?? $ahora)->toIso8601String(),
+                        'finEsNotificacion' => $incidente->notificado_aepd_en !== null,
+                        'horasFueraDePlazo' => $aepd->horasFueraDePlazo,
+                    ],
                 ],
                 'ccnCert' => [
                     'destinatario' => 'ccn_cert',
@@ -151,6 +190,7 @@ class IncidenteController extends Controller
                      * una opinión de la herramienta disfrazada de plazo legal.
                      */
                     'fundamento' => 'El RD 311/2022 no fija un plazo en horas: exige notificar «sin dilación». Statera no inventa una cuenta atrás.',
+                    'reloj' => null,
                 ],
             ],
             'noConformidad' => $incidente->noConformidad === null ? null : [
@@ -324,6 +364,28 @@ class IncidenteController extends Controller
             [EstadoIncidente::EnTratamiento, EstadoIncidente::Abierto] => true,
             default => false,
         };
+    }
+
+    /**
+     * Cuánto lleva abierto, o cuánto duró si ya se cerró. Se cuenta desde la
+     * detección, que es la fecha que siempre existe: el inicio suele no saberse.
+     *
+     * @return array{etiqueta: string, valor: string}
+     */
+    private function duracion(Incidente $incidente, Carbon $ahora): array
+    {
+        $cerrado = $incidente->fecha_cierre !== null;
+        $minutos = (int) $incidente->fecha_deteccion->diffInMinutes($incidente->fecha_cierre ?? $ahora);
+        $dias = intdiv($minutos, 1440);
+        $horas = intdiv($minutos % 1440, 60);
+
+        $valor = match (true) {
+            $dias > 0 => "{$dias} d {$horas} h",
+            $horas > 0 => "{$horas} h",
+            default => 'menos de 1 h',
+        };
+
+        return ['etiqueta' => $cerrado ? 'Duró' : 'Abierto hace', 'valor' => $valor];
     }
 
     /**

@@ -77,6 +77,31 @@ Y **«en plazo» va separado de «fuera de plazo»** en las cifras: uno es un
 incumplimiento y el otro es trabajo urgente, y colapsarlos pondría en rojo a quien
 lo está haciendo bien.
 
+### La ficha
+
+**Los plazos van primero y a lo ancho**, en una tarjeta con las dos
+notificaciones. La de la AEPD se dibuja como barra (`RelojNotificacion`): de la
+detección al límite de las 72 h y de ahí a la notificación, o a ahora si no la
+hay. Tres tramos: lo pasado dentro de plazo en el ámbar de `en_progreso`, lo que
+queda en `muted` y **sólo lo que excede el límite en `destructive`**. Delante,
+un trazo discontinuo cuando no se sabe cuándo empezó. Los instantes y las horas
+fuera de plazo (`PlazoNotificacion::$horasFueraDePlazo`, hacia arriba como las
+que quedan) los manda el servidor: con el reloj del navegador la barra y el
+texto podían discrepar. **El CCN-CERT no tiene barra** y en su hueco va la frase
+que explica por qué. El botón de la AEPD es el primario de la pantalla mientras
+su reloj corre.
+
+**La columna lateral empieza por «Estado»**, con el ciclo entero en pasos y los
+botones que avanzan o retroceden, como el resto de fichas (DESIGN.md § 9).
+**Cerrar no está ahí**: se queda en la tarjeta de la lección, con lo que falta
+para poder hacerlo —pasar a resuelto, escribir la lección— marcado uno a uno.
+Es la excepción de § 9 y sigue en pie.
+
+**Las cinco dimensiones se pintan todas**, afectadas o no, porque «qué se vio
+afectado» se contesta viendo también lo que no. Y la tira de «datos sin
+completar» (responsable, inicio, dimensiones, activos) es la de la ficha de
+activo: neutra y sólo cuando falta algo.
+
 ### Lo que va en columnas y lo que no
 
 **Las cinco dimensiones son cinco columnas booleanas**, no filas ni JSONB. Mismo

@@ -50,6 +50,8 @@ final readonly class PlazoNotificacion
         public string $etiqueta,
         public string $tono,
         public string $icono,
+        public ?Carbon $limite = null,
+        public ?int $horasFueraDePlazo = null,
     ) {}
 
     public static function aepd(Incidente $incidente, ?Carbon $ahora = null): self
@@ -86,6 +88,8 @@ final readonly class PlazoNotificacion
                     : 'Notificada a la AEPD fuera de plazo',
                 tono: $aTiempo ? 'implantado' : 'caducada',
                 icono: $aTiempo ? 'CircleCheck' : 'CircleAlert',
+                limite: $limite,
+                horasFueraDePlazo: $aTiempo ? null : self::horasEntre($limite, $incidente->notificado_aepd_en),
             );
         }
 
@@ -103,6 +107,8 @@ final readonly class PlazoNotificacion
                 etiqueta: 'Plazo de la AEPD vencido sin notificar',
                 tono: 'caducada',
                 icono: 'CircleAlert',
+                limite: $limite,
+                horasFueraDePlazo: self::horasEntre($limite, $momento),
             );
         }
 
@@ -119,7 +125,17 @@ final readonly class PlazoNotificacion
             etiqueta: sprintf('Quedan %d h para notificar a la AEPD', $restantes),
             tono: $restantes <= 24 ? 'en_progreso' : 'planificado',
             icono: 'Clock',
+            limite: $limite,
         );
+    }
+
+    /**
+     * Las horas entre dos instantes, **hacia arriba** como las que quedan: cuarenta
+     * minutos fuera de plazo ya son una hora fuera de plazo, no cero.
+     */
+    private static function horasEntre(Carbon $desde, Carbon $hasta): int
+    {
+        return max(1, (int) ceil($desde->diffInMinutes($hasta) / 60));
     }
 
     /**

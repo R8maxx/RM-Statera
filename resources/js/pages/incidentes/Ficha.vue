@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import BotonEstado from '@/components/BotonEstado.vue';
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
-import Aviso from '@/components/Aviso.vue';
 import AvisoNotificacion, { type Notificacion } from '@/components/incidente/AvisoNotificacion.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
 import EstadoVacio from '@/components/EstadoVacio.vue';
-import { ServerIcon } from '@lucide/vue';
+import IconoTipo from '@/components/IconoTipo.vue';
+import { CircleCheckIcon, InfoIcon, ServerIcon } from '@lucide/vue';
+import { tono } from '@/lib/tonos';
 import HistoricoTransiciones, {
     type Transicion,
 } from '@/components/HistoricoTransiciones.vue';
@@ -44,6 +45,19 @@ interface ActivoAfectado {
     tipoIcono: string;
 }
 
+interface Dimension {
+    clave: string;
+    etiqueta: string;
+    afectada: boolean;
+}
+
+interface PasoCiclo {
+    valor: string;
+    etiqueta: string;
+    tono: string;
+    icono: string;
+}
+
 interface Incidente {
     id: number;
     codigo: string;
@@ -74,17 +88,25 @@ interface Incidente {
 /**
  * La ficha de un incidente: § 4.10 y `op.exp.7`.
  *
- * **Lo primero que se ve, cuando aplica, es el reloj de la AEPD.** Es el único
- * plazo legal del producto que se mide en horas, y es el único rojo del módulo:
- * ni el estado ni la peligrosidad lo gastan.
+ * **Lo primero que se ve es la tarjeta de plazos, a lo ancho.** El reloj de la
+ * AEPD es el único plazo legal del producto que se mide en horas, y es el único
+ * rojo del módulo: ni el estado ni la peligrosidad lo gastan. Va dibujado como
+ * barra y con su botón al lado, que es el primario de la pantalla mientras corre.
+ * El CCN-CERT comparte tarjeta y no tiene barra, a propósito.
  *
- * **Y la lección aprendida está en la misma tarjeta que el botón de cerrar**, a
- * propósito: es el paso que la norma pide y que todo el mundo se salta el día que
- * el servicio vuelve, así que el formulario y el gesto van juntos.
+ * **La columna lateral empieza por «Estado»**, como el resto de fichas (§ 9):
+ * el ciclo entero a la vista y los pasos que avanzan o retroceden. **Cerrar no
+ * está ahí**: va en la tarjeta de la lección aprendida, que es el paso que la
+ * norma pide y que todo el mundo se salta el día que el servicio vuelve, así que
+ * el formulario y el gesto siguen juntos.
  */
 const props = defineProps<{
     incidente: Incidente;
     activos: ActivoAfectado[];
+    dimensiones: Dimension[];
+    duracion: { etiqueta: string; valor: string };
+    ciclo: PasoCiclo[];
+    estadoDesde: string | null;
     notificaciones: { aepd: Notificacion; ccnCert: Notificacion };
     noConformidad: { id: number; codigo: string; estado: string; tono: string; icono: string } | null;
     transiciones: Destino[];
@@ -104,12 +126,58 @@ const disponibles = computed(() => (props.puedeGestionar ? props.transiciones : 
 
 const sinLeccion = computed(() => (props.incidente.leccion_aprendida ?? '').trim() === '');
 
+/** Los pasos de la tarjeta «Estado»: todos menos cerrar, que va con la lección. */
+const pasos = computed(() => disponibles.value.filter((paso) => !paso.exigeLeccion));
+
+/** Cerrar, cuando el estado lo admite. */
+const cierre = computed(() => disponibles.value.find((paso) => paso.exigeLeccion) ?? null);
+
+const cerrado = computed(() => props.incidente.estado === 'cerrado');
+
 /**
- * Sólo se avisa de que falta la lección cuando cerrar está sobre la mesa. En un
- * incidente recién abierto, «para cerrarlo hace falta…» es una instrucción para
- * un botón que todavía no existe.
+ * Lo que falta para poder cerrar, dicho en positivo y con su marca: pasar a
+ * resuelto y escribir la lección. Sustituye a la frase suelta de antes, que sólo
+ * decía la mitad.
  */
-const cerrarALaVista = computed(() => disponibles.value.some((paso) => paso.exigeLeccion));
+const requisitosCierre = computed(() => [
+    { clave: 'resuelto', etiqueta: 'Pasar a resuelto', hecho: props.incidente.estado === 'resuelto' },
+    { clave: 'leccion', etiqueta: 'Escribir la lección', hecho: !sinLeccion.value },
+]);
+
+const faltanParaCerrar = computed(() => requisitosCierre.value.filter((uno) => !uno.hecho).length);
+
+/** El ciclo pintado como pasos: hechos, el actual y los que quedan. */
+const posicion = computed(() => props.ciclo.findIndex((paso) => paso.valor === props.incidente.estado));
+
+const tonoActual = computed(() => tono(props.incidente.estadoTono));
+
+const formatoDesde = new Intl.DateTimeFormat('es-ES', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+});
+
+const desde = computed(() => (props.estadoDesde ? formatoDesde.format(new Date(props.estadoDesde)) : null));
+
+/**
+ * Lo que un auditor va a pedir y no está. Neutro y sólo cuando falta, como la
+ * tira de la ficha de activo (§ 9): que falte un dato no es que algo vaya mal.
+ */
+const pendientes = computed<string[]>(() =>
+    [
+        props.incidente.responsable === null ? 'Responsable sin asignar' : null,
+        props.incidente.fechaInicioEtiqueta === null ? 'Cuándo empezó' : null,
+        props.incidente.dimensiones.length === 0 ? 'Dimensiones afectadas' : null,
+        props.activos.length === 0 ? 'Activos afectados' : null,
+    ].filter((uno): uno is string => uno !== null),
+);
+
+/** La AEPD vencida sin notificar tiñe el borde de la tarjeta: el único rojo. */
+const aepdVencida = computed(() => props.notificaciones.aepd.vencido && !props.notificaciones.aepd.notificado);
+
+/** El primario de la pantalla es anotar la AEPD mientras su reloj corre. */
+const aepdPrimaria = computed(() => props.notificaciones.aepd.notificable && !props.notificaciones.aepd.notificado);
 
 function mover(paso: Destino): void {
     // Cerrar sin lección aprendida lo rechaza el dominio; decirlo aquí antes de
@@ -200,7 +268,7 @@ function anotarNotificacion(): void {
             <CeldaBadge
                 :valor="{
                     valor: incidente.peligrosidad,
-                    etiqueta: incidente.peligrosidadEtiqueta,
+                    etiqueta: `Peligrosidad ${incidente.peligrosidadEtiqueta.toLowerCase()}`,
                     tono: incidente.peligrosidadTono,
                     icono: incidente.peligrosidadIcono,
                 }"
@@ -213,42 +281,101 @@ function anotarNotificacion(): void {
                     icono: incidente.clasificacionIcono,
                 }"
             />
-            <span class="text-sm text-muted-foreground">
-                Detectado el {{ incidente.fechaDeteccionEtiqueta }}
-                <template v-if="incidente.fechaInicioEtiqueta">
-                    · empezó el {{ incidente.fechaInicioEtiqueta }}
-                </template>
-            </span>
         </div>
 
-        <!--
-            El único rojo del módulo, y arriba del todo cuando aplica: 72 h desde
-            la detección, artículo 33.1 del RGPD.
-        -->
-        <Aviso
-            v-if="notificaciones.aepd.vencido && !notificaciones.aepd.notificado"
-            tono="error"
-            titulo="Plazo de la AEPD vencido sin notificar"
+        <!-- Lo que falta: neutro y sólo cuando falta (§ 9, «Fichas»). -->
+        <section
+            v-if="pendientes.length > 0"
+            aria-labelledby="pendientes"
+            class="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border bg-card px-5 py-3.5"
         >
-            Pasaron las 72 horas que fija el artículo 33.1 del RGPD desde que se tuvo constancia.
-            Notificar tarde sigue siendo mejor que no notificar, y la fecha real queda anotada tal
-            cual.
-        </Aviso>
+            <InfoIcon class="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+            <h2 id="pendientes" class="text-sm font-semibold">
+                {{ pendientes.length }} {{ pendientes.length === 1 ? 'dato sin completar' : 'datos sin completar' }}
+            </h2>
+            <ul class="flex flex-1 flex-wrap gap-2">
+                <li v-for="pendiente in pendientes" :key="pendiente">
+                    <Link
+                        v-if="puedeGestionar"
+                        :href="`/incidentes/${incidente.id}/editar`"
+                        class="inline-flex h-7 items-center rounded-full bg-muted px-2.5 text-[13px] font-medium text-secondary-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                    >
+                        {{ pendiente }}
+                    </Link>
+                    <span
+                        v-else
+                        class="inline-flex h-7 items-center rounded-full bg-muted px-2.5 text-[13px] font-medium text-secondary-foreground"
+                    >
+                        {{ pendiente }}
+                    </span>
+                </li>
+            </ul>
+        </section>
 
-        <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <!--
+            Los plazos, a lo ancho y antes que nada. El borde se tiñe sólo con la
+            AEPD vencida sin notificar: 72 h desde la detección, artículo 33.1 del
+            RGPD, y el único rojo del módulo.
+        -->
+        <Card :class="aepdVencida ? 'ring-destructive/40' : undefined">
+            <CardHeader>
+                <CardTitle>Notificación a supervisores</CardTitle>
+                <CardDescription>Sólo hay cuenta atrás donde la ley pone un número.</CardDescription>
+            </CardHeader>
+            <CardContent class="space-y-5">
+                <AvisoNotificacion
+                    :notificacion="notificaciones.aepd"
+                    :puede-gestionar="puedeGestionar"
+                    :inicio-conocido="incidente.fechaInicioEtiqueta !== null"
+                    :primaria="aepdPrimaria"
+                    @anotar="abrirNotificacion"
+                />
+                <div class="border-t" />
+                <AvisoNotificacion
+                    :notificacion="notificaciones.ccnCert"
+                    :puede-gestionar="puedeGestionar"
+                    :inicio-conocido="incidente.fechaInicioEtiqueta !== null"
+                    @anotar="abrirNotificacion"
+                />
+            </CardContent>
+        </Card>
+
+        <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
             <div class="space-y-6">
                 <Card>
                     <CardHeader>
                         <CardTitle>Qué ha pasado</CardTitle>
-                        <CardDescription v-if="incidente.dimensiones.length > 0">
-                            Dimensiones afectadas: {{ incidente.dimensiones.join(', ') }}.
-                        </CardDescription>
-                        <CardDescription v-else>
-                            Todavía no se ha declarado ninguna dimensión afectada.
-                        </CardDescription>
                     </CardHeader>
-                    <CardContent class="space-y-4 text-sm">
-                        <p class="whitespace-pre-line">{{ incidente.descripcion }}</p>
+                    <CardContent class="space-y-5">
+                        <p class="max-w-prose text-base text-pretty whitespace-pre-line">
+                            {{ incidente.descripcion }}
+                        </p>
+
+                        <!--
+                            Las cinco dimensiones, afectadas o no: «qué se vio
+                            afectado» se contesta viendo también lo que no. La
+                            afectada lleva relleno, icono y lo dice en texto para
+                            el lector de pantalla; el color no va solo.
+                        -->
+                        <div class="space-y-2">
+                            <h3 class="text-[13px] font-medium text-muted-foreground">Dimensiones afectadas</h3>
+                            <ul class="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
+                                <li
+                                    v-for="dimension in dimensiones"
+                                    :key="dimension.clave"
+                                    class="flex h-10 items-center gap-2 rounded-md px-3 text-[13px]"
+                                    :class="
+                                        dimension.afectada
+                                            ? 'bg-foreground font-medium text-background'
+                                            : 'text-muted-foreground ring-1 ring-border ring-inset'
+                                    "
+                                >
+                                    <CircleCheckIcon v-if="dimension.afectada" class="size-4 shrink-0" aria-hidden="true" />
+                                    <span class="truncate">{{ dimension.etiqueta }}</span>
+                                    <span class="sr-only">{{ dimension.afectada ? ': afectada' : ': no afectada' }}</span>
+                                </li>
+                            </ul>
+                        </div>
 
                         <!--
                             Pares dato/valor en `<dl>`, como las fichas de
@@ -259,20 +386,16 @@ function anotarNotificacion(): void {
                         -->
                         <dl
                             v-if="incidente.impacto || incidente.acciones_contencion"
-                            class="grid gap-3"
+                            class="grid gap-4 border-t pt-5 text-sm sm:grid-cols-2"
                         >
-                            <div v-if="incidente.impacto">
-                                <dt class="font-medium">Impacto</dt>
-                                <dd class="whitespace-pre-line text-muted-foreground">
-                                    {{ incidente.impacto }}
-                                </dd>
+                            <div v-if="incidente.impacto" class="space-y-1">
+                                <dt class="text-[13px] font-medium text-muted-foreground">Impacto</dt>
+                                <dd class="whitespace-pre-line">{{ incidente.impacto }}</dd>
                             </div>
 
-                            <div v-if="incidente.acciones_contencion">
-                                <dt class="font-medium">Acciones de contención</dt>
-                                <dd class="whitespace-pre-line text-muted-foreground">
-                                    {{ incidente.acciones_contencion }}
-                                </dd>
+                            <div v-if="incidente.acciones_contencion" class="space-y-1">
+                                <dt class="text-[13px] font-medium text-muted-foreground">Acciones de contención</dt>
+                                <dd class="whitespace-pre-line">{{ incidente.acciones_contencion }}</dd>
                             </div>
                         </dl>
                     </CardContent>
@@ -286,9 +409,8 @@ function anotarNotificacion(): void {
                     <CardHeader>
                         <CardTitle>Qué se aprendió</CardTitle>
                         <CardDescription>
-                            <span class="cifra">op.exp.7</span> pide aprender del incidente, y sin
-                            esto el mismo incidente se repite el año que viene. Es obligatorio para
-                            cerrarlo.
+                            <span class="cifra">op.exp.7</span> pide aprender del incidente, y sin esto el mismo
+                            incidente se repite el año que viene. Se escribe mientras se resuelve, a trozos.
                         </CardDescription>
                     </CardHeader>
                     <CardContent class="space-y-4">
@@ -299,6 +421,7 @@ function anotarNotificacion(): void {
                             :filas="4"
                             :deshabilitado="!puedeGestionar"
                             :error="leccion.errors.leccion_aprendida"
+                            ayuda="Obligatoria para cerrar el incidente."
                         />
 
                         <Button
@@ -308,42 +431,54 @@ function anotarNotificacion(): void {
                             :disabled="leccion.processing"
                             @click="guardarLeccion"
                         >
-                            Guardar
+                            Guardar la lección
                         </Button>
 
-                        <div v-if="disponibles.length > 0" class="flex flex-wrap gap-2 border-t pt-4">
-                            <BotonEstado
-                                v-for="paso in disponibles"
-                                :key="paso.valor"
-                                :destino="paso"
-                                :deshabilitado="enviando || (paso.exigeLeccion && sinLeccion)"
-                                @click="mover(paso)"
-                            />
-                        </div>
-
-                        <p v-if="sinLeccion && cerrarALaVista" class="text-xs text-muted-foreground">
-                            Para cerrar el incidente hace falta escribir arriba qué se aprendió.
-                        </p>
-
-                        <div v-if="destino" class="space-y-2 border-t pt-4">
-                            <CampoTexto
-                                v-model="nota"
-                                nombre="nota"
-                                :etiqueta="`Por qué se vuelve a «${destino.etiqueta}»`"
-                                ayuda="Reabrir algo que alguien dio por hecho necesita explicación: es lo único que explica el ir y venir."
-                            />
-                            <div class="flex gap-2">
-                                <Button variant="outline" size="sm" @click="destino = null">
-                                    Cancelar
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    :disabled="enviando || nota.trim() === ''"
-                                    @click="mover(destino)"
-                                >
-                                    Confirmar
-                                </Button>
+                        <!--
+                            Lo que falta para cerrar, con su marca, y el botón al
+                            lado: deshabilitado mientras falte algo, y diciendo
+                            qué. No se pinta en un incidente ya cerrado ni a quien
+                            no puede gestionarlo.
+                        -->
+                        <div
+                            v-if="puedeGestionar && !cerrado"
+                            class="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-superficie px-4 py-3.5"
+                        >
+                            <div class="space-y-1.5">
+                                <p class="text-[13px] font-semibold">
+                                    <template v-if="faltanParaCerrar === 0">Listo para cerrar</template>
+                                    <template v-else-if="faltanParaCerrar === 1">Para cerrar falta una cosa</template>
+                                    <template v-else>Para cerrar faltan dos cosas</template>
+                                </p>
+                                <ul class="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-muted-foreground">
+                                    <li
+                                        v-for="requisito in requisitosCierre"
+                                        :key="requisito.clave"
+                                        class="flex items-center gap-1.5"
+                                        :class="{ 'text-foreground': requisito.hecho }"
+                                    >
+                                        <CircleCheckIcon
+                                            v-if="requisito.hecho"
+                                            class="size-3.5 text-estado-implantado"
+                                            aria-hidden="true"
+                                        />
+                                        <span
+                                            v-else
+                                            class="size-3.5 rounded-full ring-2 ring-border ring-inset"
+                                            aria-hidden="true"
+                                        />
+                                        {{ requisito.etiqueta }}
+                                        <span class="sr-only">{{ requisito.hecho ? '(hecho)' : '(pendiente)' }}</span>
+                                    </li>
+                                </ul>
                             </div>
+
+                            <BotonEstado
+                                v-if="cierre"
+                                :destino="cierre"
+                                :deshabilitado="enviando || sinLeccion"
+                                @click="mover(cierre)"
+                            />
                         </div>
                     </CardContent>
                 </Card>
@@ -357,56 +492,126 @@ function anotarNotificacion(): void {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <!--
-                            La misma cronología que la ficha de una implantación
-                            —línea vertical, hitos escalonados y del más
-                            reciente al más antiguo—, que es lo que la separa de
-                            una lista. Antes era un `<ul>` a mano, en orden
-                            inverso al del resto del producto.
-                        -->
                         <HistoricoTransiciones :transiciones="historial" />
                     </CardContent>
                 </Card>
             </div>
 
             <div class="space-y-6">
-                <Card v-if="incidente.responsable || incidente.sistema || incidente.fechaCierre">
+                <!--
+                    «Estado» arriba, como en el resto de fichas (§ 9): el ciclo
+                    entero a la vista y los pasos que se pueden dar. Cerrar vive
+                    con la lección.
+                -->
+                <Card>
                     <CardHeader>
-                        <CardTitle>Ficha</CardTitle>
+                        <CardTitle>Estado</CardTitle>
                     </CardHeader>
-                    <CardContent class="text-sm">
-                        <dl class="grid gap-2">
-                            <div v-if="incidente.responsable" class="flex flex-wrap gap-x-2">
-                                <dt class="text-muted-foreground">Responsable</dt>
-                                <dd>{{ incidente.responsable }}</dd>
+                    <CardContent class="space-y-4">
+                        <ol class="space-y-0">
+                            <li
+                                v-for="(paso, indice) in ciclo"
+                                :key="paso.valor"
+                                class="flex gap-3"
+                                :aria-current="indice === posicion ? 'step' : undefined"
+                            >
+                                <div class="flex flex-col items-center">
+                                    <CircleCheckIcon
+                                        v-if="indice < posicion || (indice === posicion && cerrado)"
+                                        class="size-5 shrink-0 text-estado-implantado"
+                                        aria-hidden="true"
+                                    />
+                                    <span
+                                        v-else-if="indice === posicion"
+                                        class="flex size-5 shrink-0 items-center justify-center rounded-full"
+                                        :class="tonoActual.badge"
+                                        aria-hidden="true"
+                                    >
+                                        <IconoTipo :nombre="paso.icono" clase="size-3" />
+                                    </span>
+                                    <span
+                                        v-else
+                                        class="size-5 shrink-0 rounded-full ring-2 ring-border ring-inset"
+                                        aria-hidden="true"
+                                    />
+                                    <span
+                                        v-if="indice < ciclo.length - 1"
+                                        class="my-1 min-h-3 w-0.5 flex-1 rounded-full"
+                                        :class="indice < posicion ? 'bg-estado-implantado/40' : 'bg-border'"
+                                        aria-hidden="true"
+                                    />
+                                </div>
+                                <div class="pb-3 text-sm">
+                                    <p
+                                        :class="
+                                            indice === posicion
+                                                ? ['font-semibold', tonoActual.texto]
+                                                : 'text-muted-foreground'
+                                        "
+                                    >
+                                        {{ paso.etiqueta }}
+                                    </p>
+                                    <p v-if="indice === posicion && desde" class="text-xs text-muted-foreground">
+                                        desde el <span class="cifra">{{ desde }}</span>
+                                    </p>
+                                </div>
+                            </li>
+                        </ol>
+
+                        <div v-if="pasos.length > 0" class="flex flex-wrap gap-2 border-t pt-4">
+                            <BotonEstado
+                                v-for="paso in pasos"
+                                :key="paso.valor"
+                                :destino="paso"
+                                :deshabilitado="enviando"
+                                @click="mover(paso)"
+                            />
+                        </div>
+
+                        <div v-if="destino" class="space-y-2 border-t pt-4">
+                            <CampoTexto
+                                v-model="nota"
+                                nombre="nota"
+                                :etiqueta="`Por qué se vuelve a «${destino.etiqueta}»`"
+                                ayuda="Reabrir algo que alguien dio por hecho necesita explicación: es lo único que explica el ir y venir."
+                            />
+                            <div class="flex gap-2">
+                                <Button variant="outline" size="sm" @click="destino = null">Cancelar</Button>
+                                <Button size="sm" :disabled="enviando || nota.trim() === ''" @click="mover(destino)">
+                                    Confirmar
+                                </Button>
                             </div>
-                            <div v-if="incidente.sistema" class="flex flex-wrap gap-x-2">
-                                <dt class="text-muted-foreground">Sistema</dt>
-                                <dd class="cifra">{{ incidente.sistema }}</dd>
-                            </div>
-                            <div v-if="incidente.fechaCierre" class="flex flex-wrap gap-x-2">
-                                <dt class="text-muted-foreground">Cerrado el</dt>
-                                <dd>{{ incidente.fechaCierre }}</dd>
-                            </div>
-                        </dl>
+                        </div>
                     </CardContent>
                 </Card>
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>Notificación a supervisores</CardTitle>
+                        <CardTitle>Ficha</CardTitle>
                     </CardHeader>
-                    <CardContent class="space-y-3">
-                        <AvisoNotificacion
-                            :notificacion="notificaciones.aepd"
-                            :puede-gestionar="puedeGestionar"
-                            @anotar="abrirNotificacion"
-                        />
-                        <AvisoNotificacion
-                            :notificacion="notificaciones.ccnCert"
-                            :puede-gestionar="puedeGestionar"
-                            @anotar="abrirNotificacion"
-                        />
+                    <CardContent class="text-sm">
+                        <dl class="grid grid-cols-[7rem_minmax(0,1fr)] gap-x-3 gap-y-2.5">
+                            <dt class="text-muted-foreground">Responsable</dt>
+                            <dd :class="{ 'text-muted-foreground': !incidente.responsable }">
+                                {{ incidente.responsable ?? 'Sin asignar' }}
+                            </dd>
+                            <template v-if="incidente.sistema">
+                                <dt class="text-muted-foreground">Sistema</dt>
+                                <dd class="cifra">{{ incidente.sistema }}</dd>
+                            </template>
+                            <dt class="text-muted-foreground">Empezó</dt>
+                            <dd :class="incidente.fechaInicioEtiqueta ? 'cifra' : 'text-muted-foreground'">
+                                {{ incidente.fechaInicioEtiqueta ?? 'Sin determinar' }}
+                            </dd>
+                            <dt class="text-muted-foreground">Detectado</dt>
+                            <dd class="cifra">{{ incidente.fechaDeteccionEtiqueta }}</dd>
+                            <template v-if="incidente.fechaCierre">
+                                <dt class="text-muted-foreground">Cerrado el</dt>
+                                <dd class="cifra">{{ incidente.fechaCierre }}</dd>
+                            </template>
+                            <dt class="text-muted-foreground">{{ duracion.etiqueta }}</dt>
+                            <dd class="cifra">{{ duracion.valor }}</dd>
+                        </dl>
                     </CardContent>
                 </Card>
 
@@ -446,7 +651,7 @@ function anotarNotificacion(): void {
                                         Abrir no conformidad
                                     </Link>
                                 </Button>
-                                <Button v-if="puedeMejorar" as-child variant="outline" size="sm">
+                                <Button v-if="puedeMejorar" as-child variant="ghost" size="sm">
                                     <Link :href="`/mejoras/crear?incidente=${incidente.id}`">
                                         Apuntar una mejora
                                     </Link>
@@ -486,20 +691,14 @@ function anotarNotificacion(): void {
                                         icono: activo.tipoIcono,
                                     }"
                                 />
-                                <Link
-                                    :href="`/activos/${activo.id}`"
-                                    class="underline underline-offset-4"
-                                >
+                                <Link :href="`/activos/${activo.id}`" class="underline underline-offset-4">
                                     {{ activo.nombre }}
                                 </Link>
-                                <span class="cifra text-xs text-muted-foreground">
-                                    {{ activo.codigo }}
-                                </span>
+                                <span class="cifra text-xs text-muted-foreground">{{ activo.codigo }}</span>
                             </li>
                         </ul>
                     </CardContent>
                 </Card>
-
             </div>
         </div>
 
@@ -541,9 +740,7 @@ function anotarNotificacion(): void {
 
                 <DialogFooter>
                     <Button variant="outline" @click="anotando = null">Cancelar</Button>
-                    <Button :disabled="notificacion.processing" @click="anotarNotificacion">
-                        Anotar
-                    </Button>
+                    <Button :disabled="notificacion.processing" @click="anotarNotificacion">Anotar</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
