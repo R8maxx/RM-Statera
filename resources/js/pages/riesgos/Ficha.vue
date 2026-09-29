@@ -7,10 +7,11 @@ import CampoOpciones from '@/components/formulario/CampoOpciones.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
 import EstadoVacio from '@/components/EstadoVacio.vue';
+import IconoTipo from '@/components/IconoTipo.vue';
 import MatrizRiesgo from '@/components/riesgo/MatrizRiesgo.vue';
 import CeldaBadge from '@/components/tabla/celdas/CeldaBadge.vue';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -25,7 +26,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { formatoFecha } from '@/lib/celdas';
 import { conOpcionVacia, SIN_VALOR, type Opcion } from '@/lib/formularios';
 import { Link, router, useForm } from '@inertiajs/vue3';
-import { ShieldPlusIcon, TriangleAlertIcon } from '@lucide/vue';
+import { ArrowRightIcon, CheckIcon, CircleIcon, InfoIcon, ShieldPlusIcon, TriangleAlertIcon, XIcon } from '@lucide/vue';
 import { motion } from 'motion-v';
 import { computed, ref } from 'vue';
 
@@ -307,8 +308,85 @@ const tramosCobertura = computed<Segmento[]>(() => [
     { clave: 'no_iniciado', etiqueta: 'Sin empezar', valor: props.cobertura.sinEmpezar },
 ]);
 
-/** Las anteriores a la vigente. La vigente ya se enseña entera arriba. */
-const anteriores = computed(() => props.historico.filter((valoracion) => !valoracion.vigente));
+/** Cuánto baja el riesgo entre el intrínseco y el residual declarado. */
+const reduccion = computed(() =>
+    props.valoracion?.residual != null ? props.valoracion.intrinseco - props.valoracion.residual : null,
+);
+
+const decisionVigente = computed(() =>
+    props.decisiones.find((decision) => decision.valor === props.valoracion?.decision),
+);
+
+/**
+ * Los días que faltan para la reevaluación, en positivo, o los que lleva vencida.
+ * Se cuenta por días de calendario: a las once de la noche «mañana» sigue siendo 1.
+ */
+const diasHastaRevision = computed(() => {
+    if (props.riesgo.fecha_revision === null) {
+        return null;
+    }
+
+    const hoy = new Date();
+    const inicioDeHoy = Date.UTC(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+    // Llega como `2026-12-23`, sin hora: se parte a mano para que la zona no mueva el día.
+    const [anio, mes, dia] = props.riesgo.fecha_revision.split('-').map(Number);
+    const inicioDeRevision = Date.UTC(anio, mes - 1, dia);
+
+    return Math.round((inicioDeRevision - inicioDeHoy) / 86_400_000);
+});
+
+const plazoRevision = computed(() => {
+    const dias = diasHastaRevision.value;
+
+    if (dias === null) {
+        return null;
+    }
+
+    if (dias === 0) {
+        return 'hoy';
+    }
+
+    const unidad = Math.abs(dias) === 1 ? 'día' : 'días';
+
+    return dias > 0 ? `en ${dias} ${unidad}` : `vencida hace ${-dias} ${unidad}`;
+});
+
+type EstadoPaso = 'hecho' | 'falla' | 'pendiente';
+
+/**
+ * Lo que falta hasta la firma, en el orden en que se hace. El respaldo cuenta
+ * como hecho cuando el residual no baja: nada que sostener, nada que falte.
+ */
+const pasos = computed<{ etiqueta: string; estado: EstadoPaso }[]>(() => {
+    const valoracion = props.valoracion;
+    const declarado = valoracion?.residual != null;
+
+    let respaldo: EstadoPaso = 'pendiente';
+
+    if (props.sinRespaldo) {
+        respaldo = 'falla';
+    } else if (props.cobertura.implantadas > 0 || (declarado && (reduccion.value ?? 0) <= 0)) {
+        respaldo = 'hecho';
+    }
+
+    return [
+        { etiqueta: 'Valorado', estado: valoracion ? 'hecho' : 'pendiente' },
+        { etiqueta: 'Residual declarado', estado: declarado ? 'hecho' : 'pendiente' },
+        { etiqueta: 'Respaldado por controles', estado: respaldo },
+        { etiqueta: 'Aceptado por el propietario', estado: valoracion?.aceptada_en ? 'hecho' : 'pendiente' },
+    ];
+});
+
+const estilosPaso: Record<EstadoPaso, { clase: string; icono: typeof CheckIcon }> = {
+    hecho: { clase: 'bg-estado-implantado-suave text-estado-implantado', icono: CheckIcon },
+    falla: { clase: 'bg-destructive/10 text-destructive', icono: XIcon },
+    pendiente: { clase: 'bg-muted text-muted-foreground', icono: CircleIcon },
+};
+
+/** El techo de la escala de impacto, para que las dos barras se lean contra lo mismo. */
+const impactoMaximo = computed(() => Math.max(...props.metodologia.impacto.map((escalon) => escalon.valor), 1));
+
+const anchoImpacto = (valor: number): string => `${Math.min(100, (valor / impactoMaximo.value) * 100)}%`;
 
 const dimensiones: Record<string, string> = {
     C: 'Confidencialidad',
@@ -321,282 +399,377 @@ const dimensiones: Record<string, string> = {
 
 <template>
     <AppLayout :titulo="`${riesgo.codigo} · ${riesgo.titulo}`">
-        <CabeceraPagina :titulo="riesgo.titulo" :codigo="riesgo.codigo" :descripcion="riesgo.amenaza">
+        <CabeceraPagina :titulo="riesgo.titulo" :codigo="riesgo.codigo" :descripcion="`Amenaza: ${riesgo.amenaza}`">
             <template #acciones>
                 <Button as-child variant="outline">
                     <Link :href="`/riesgos/${riesgo.id}/editar`">Editar</Link>
+                </Button>
+                <Button variant="outline" @click="valorando = true">
+                    {{ valoracion ? 'Valorar de nuevo' : 'Valorar' }}
                 </Button>
             </template>
         </CabeceraPagina>
 
         <motion.div :variants="variantesEntrada" initial="oculto" animate="visible" class="space-y-6">
-            <div class="flex flex-wrap items-center gap-2">
-                <CeldaBadge
+            <!--
+                El resumen: de dónde a dónde baja, qué se hace con él y quién
+                responde. Sustituye a la fila de badges, que decía lo mismo sin
+                orden de lectura.
+            -->
+            <Card class="gap-0 py-0">
+                <div
                     v-if="valoracion"
-                    :valor="{
-                        valor: valoracion.intrinseco,
-                        etiqueta: `Intrínseco: ${valoracion.intrinseco_nivel.etiqueta} (${valoracion.intrinseco})`,
-                        tono: valoracion.intrinseco_nivel.tono,
-                        icono: valoracion.intrinseco_nivel.icono,
-                    }"
+                    class="grid md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]"
+                >
+                    <div class="flex flex-col gap-1.5 p-6 pb-5">
+                        <span class="text-[13px] font-medium text-muted-foreground">Intrínseco</span>
+                        <div class="flex items-baseline gap-2.5">
+                            <span class="cifra text-4xl font-semibold">{{ valoracion.intrinseco }}</span>
+                            <CeldaBadge
+                                :valor="{
+                                    valor: valoracion.intrinseco,
+                                    etiqueta: valoracion.intrinseco_nivel.etiqueta,
+                                    tono: valoracion.intrinseco_nivel.tono,
+                                    icono: valoracion.intrinseco_nivel.icono,
+                                }"
+                            />
+                        </div>
+                        <span class="cifra text-xs text-muted-foreground">
+                            P {{ valoracion.probabilidad }} × I {{ valoracion.impacto }}
+                        </span>
+                    </div>
+
+                    <div
+                        class="hidden flex-col items-center justify-center gap-1 px-2 text-muted-foreground md:flex"
+                        aria-hidden="true"
+                    >
+                        <ArrowRightIcon class="size-5" />
+                        <span v-if="reduccion !== null && reduccion !== 0" class="cifra text-xs">
+                            {{ reduccion > 0 ? '−' : '+' }}{{ Math.abs(reduccion) }}
+                        </span>
+                    </div>
+
+                    <div class="flex flex-col gap-1.5 border-t p-6 pb-5 md:border-t-0">
+                        <span class="text-[13px] font-medium text-muted-foreground">Residual declarado</span>
+                        <template v-if="valoracion.residual !== null && valoracion.residual_nivel">
+                            <div class="flex items-baseline gap-2.5">
+                                <span class="cifra text-4xl font-semibold">{{ valoracion.residual }}</span>
+                                <CeldaBadge
+                                    :valor="{
+                                        valor: valoracion.residual,
+                                        etiqueta: valoracion.residual_nivel.etiqueta,
+                                        tono: valoracion.residual_nivel.tono,
+                                        icono: valoracion.residual_nivel.icono,
+                                    }"
+                                />
+                            </div>
+                            <span class="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+                                <span class="cifra">
+                                    P {{ valoracion.probabilidad_residual }} × I {{ valoracion.impacto_residual }}
+                                </span>
+                                <span v-if="sinRespaldo" class="inline-flex items-center gap-1 text-destructive">
+                                    <XIcon class="size-3" aria-hidden="true" />
+                                    sin respaldo
+                                </span>
+                            </span>
+                        </template>
+                        <p v-else class="mt-2 text-sm text-muted-foreground">Sin declarar todavía</p>
+                    </div>
+
+                    <div class="flex flex-col gap-1.5 border-t p-6 md:col-span-3 xl:col-span-1 xl:border-t-0 xl:border-l">
+                        <span class="text-[13px] font-medium text-muted-foreground">Tratamiento</span>
+                        <span class="flex items-center gap-2 font-semibold">
+                            <IconoTipo :nombre="valoracion.decision_icono" class="size-4 text-muted-foreground" />
+                            {{ valoracion.decision_etiqueta }}
+                        </span>
+                        <span v-if="decisionVigente" class="text-[13px] text-pretty text-muted-foreground">
+                            {{ decisionVigente.descripcion }}
+                        </span>
+                    </div>
+
+                    <dl class="grid gap-2.5 border-t p-6 md:col-span-3 xl:col-span-1 xl:border-t-0 xl:border-l">
+                        <div>
+                            <dt class="text-[13px] font-medium text-muted-foreground">Propietario</dt>
+                            <dd class="text-sm font-medium">{{ riesgo.propietario ?? 'Sin asignar' }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-[13px] font-medium text-muted-foreground">Próxima reevaluación</dt>
+                            <dd class="text-sm">
+                                <span class="cifra">{{ fecha(riesgo.fecha_revision) }}</span>
+                                <span
+                                    v-if="plazoRevision"
+                                    :class="riesgo.revision_vencida ? 'text-destructive' : 'text-muted-foreground'"
+                                >
+                                    · {{ plazoRevision }}
+                                </span>
+                            </dd>
+                        </div>
+                    </dl>
+                </div>
+
+                <EstadoVacio
+                    v-else
+                    :icono="TriangleAlertIcon"
+                    titulo="Todavía sin valorar"
+                    descripcion="Un riesgo registrado y sin medir no cuenta en ninguna cifra de exposición: no está por encima ni por debajo de ningún umbral, sencillamente no se sabe."
                 />
 
-                <CeldaBadge
-                    v-if="valoracion?.residual_nivel"
-                    :valor="{
-                        valor: valoracion.residual,
-                        etiqueta: `Residual: ${valoracion.residual_nivel.etiqueta} (${valoracion.residual})`,
-                        tono: valoracion.residual_nivel.tono,
-                        icono: valoracion.residual_nivel.icono,
-                    }"
-                />
-
-                <CeldaBadge
-                    v-if="valoracion"
-                    :valor="{
-                        valor: valoracion.decision,
-                        etiqueta: valoracion.decision_etiqueta,
-                        tono: valoracion.decision_tono,
-                        icono: valoracion.decision_icono,
-                    }"
-                />
-
-                <CeldaBadge
-                    v-if="riesgo.revision_vencida"
-                    :valor="{ valor: riesgo.fecha_revision, etiqueta: 'Reevaluación vencida', tono: 'caducada' }"
-                />
-            </div>
+                <!-- Lo que falta hasta la firma, en el orden en que se hace. -->
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-2 border-t px-6 py-3.5 text-[13px]">
+                    <span class="mr-1 font-medium text-muted-foreground">Hasta la firma</span>
+                    <ol class="contents">
+                        <li v-for="(paso, indice) in pasos" :key="paso.etiqueta" class="flex items-center gap-3">
+                            <span
+                                class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-medium"
+                                :class="estilosPaso[paso.estado].clase"
+                            >
+                                <component :is="estilosPaso[paso.estado].icono" class="size-3.5" aria-hidden="true" />
+                                {{ paso.etiqueta }}
+                                <span class="sr-only">
+                                    · {{ paso.estado === 'hecho' ? 'hecho' : paso.estado === 'falla' ? 'no se cumple' : 'pendiente' }}
+                                </span>
+                            </span>
+                            <span v-if="indice < pasos.length - 1" class="h-px w-6 bg-border" aria-hidden="true" />
+                        </li>
+                    </ol>
+                </div>
+            </Card>
 
             <!--
                 El hallazgo que este módulo existe para enseñar: se declara que el
                 riesgo baja y no hay ni una salvaguarda implantada que lo sostenga.
                 Va en bloque y no como toast porque tiene que seguir ahí mientras se
-                mira la ficha.
+                mira la ficha, y con su salida al lado.
             -->
-            <Aviso v-if="sinRespaldo" tono="error" titulo="El riesgo residual no tiene nada que lo respalde">
-                Se declara que el riesgo baja de <span class="cifra">{{ valoracion?.intrinseco }}</span> a
-                <span class="cifra">{{ valoracion?.residual }}</span
-                >, y ninguna de las salvaguardas vinculadas está implantada. Es lo primero que un auditor pide
-                que se enseñe. La herramienta no cambia la cifra —la decidió una persona y la aprueba el
-                propietario del riesgo—, sólo señala que no cuadra.
-            </Aviso>
+            <Aviso v-if="sinRespaldo" tono="error" titulo="El residual no tiene nada que lo respalde">
+                Se declara que baja de <span class="cifra">{{ valoracion?.intrinseco }}</span> a
+                <span class="cifra">{{ valoracion?.residual }}</span> y ninguna salvaguarda vinculada está
+                implantada. Es lo primero que pide un auditor.
 
-            <Aviso
-                v-if="metodologia.esDeFabrica || !metodologia.estaAprobada"
-                tono="info"
-                titulo="La metodología no está aprobada"
-            >
-                Este riesgo se está midiendo con
-                <template v-if="metodologia.esDeFabrica">la escala de partida de Statera</template>
-                <template v-else>«{{ metodologia.nombre }}»</template>, que nadie ha firmado. ISO 27001 pide
-                que los criterios de riesgo los establezca la organización.
-                <Link href="/riesgos/metodologia" class="font-medium underline underline-offset-4">
-                    Definirla y aprobarla
-                </Link>
+                <template #accion>
+                    <Button variant="outline" size="sm" @click="vinculando = true">Vincular control</Button>
+                </template>
             </Aviso>
 
             <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
                 <div class="space-y-6">
-                    <Card>
-                        <CardHeader class="flex-row items-start justify-between gap-4 space-y-0">
-                            <div>
-                                <CardTitle>Valoración</CardTitle>
-                                <CardDescription>
-                                    Lo que vale el riesgo antes de tratarlo y lo que queda después. El residual lo
-                                    declara quien valora y lo aprueba el propietario del riesgo: la herramienta no
-                                    lo calcula.
-                                </CardDescription>
-                            </div>
-                            <Button variant="outline" size="sm" @click="valorando = true">
-                                {{ valoracion ? 'Valorar de nuevo' : 'Valorar' }}
-                            </Button>
+                    <Card v-if="valoracion">
+                        <CardHeader>
+                            <CardTitle>Valoración</CardTitle>
+                            <CardDescription>
+                                Vigente desde el <span class="cifra">{{ fecha(valoracion.valorada_en) }}</span>
+                            </CardDescription>
                         </CardHeader>
 
-                        <CardContent>
-                            <EstadoVacio
-                                v-if="!valoracion"
-                                :icono="TriangleAlertIcon"
-                                titulo="Todavía sin valorar"
-                                descripcion="Un riesgo registrado y sin medir no cuenta en ninguna cifra de exposición: no está por encima ni por debajo de ningún umbral, sencillamente no se sabe."
-                            />
-
-                            <div v-else class="space-y-5">
-                                <FilaCampos>
-                                    <div>
-                                        <p class="text-xs text-muted-foreground">Riesgo intrínseco</p>
-                                        <p class="mt-1 flex items-baseline gap-2">
-                                            <span class="cifra text-3xl font-semibold">{{ valoracion.intrinseco }}</span>
-                                            <span class="text-sm text-muted-foreground">
-                                                {{ valoracion.intrinseco_nivel.etiqueta }}
-                                            </span>
-                                        </p>
-                                        <p class="mt-0.5 text-xs text-muted-foreground">
-                                            Probabilidad {{ valoracion.probabilidad }} × impacto
-                                            {{ valoracion.impacto }}
-                                        </p>
-                                    </div>
-
-                                    <div>
-                                        <p class="text-xs text-muted-foreground">Riesgo residual</p>
-                                        <p v-if="valoracion.residual !== null" class="mt-1 flex items-baseline gap-2">
-                                            <span class="cifra text-3xl font-semibold">{{ valoracion.residual }}</span>
-                                            <span class="text-sm text-muted-foreground">
-                                                {{ valoracion.residual_nivel?.etiqueta }}
-                                            </span>
-                                        </p>
-                                        <p v-else class="mt-1 text-sm text-muted-foreground">
-                                            Sin declarar todavía
-                                        </p>
-                                        <p
-                                            v-if="valoracion.probabilidad_residual !== null"
-                                            class="mt-0.5 text-xs text-muted-foreground"
+                        <CardContent class="space-y-5">
+                            <div class="grid gap-8 sm:grid-cols-[minmax(0,1fr)_auto]">
+                                <div>
+                                    <p class="text-xs text-muted-foreground">Impacto por dimensión</p>
+                                    <dl class="mt-2 grid gap-1.5 text-sm">
+                                        <div
+                                            v-for="(valor, codigo) in valoracion.impacto_por_dimension"
+                                            :key="codigo"
+                                            class="flex items-center justify-between gap-3"
                                         >
-                                            Probabilidad {{ valoracion.probabilidad_residual }} × impacto
-                                            {{ valoracion.impacto_residual }}
-                                        </p>
-                                    </div>
-                                </FilaCampos>
-
-                                <p v-if="valoracion.justificacion_residual" class="text-sm">
-                                    {{ valoracion.justificacion_residual }}
-                                </p>
-
-                                <Separator />
-
-                                <div class="grid gap-5 sm:grid-cols-[minmax(0,1fr)_auto]">
-                                    <div>
-                                        <p class="text-xs text-muted-foreground">Impacto por dimensión</p>
-                                        <dl class="mt-2 grid gap-1.5 text-sm">
-                                            <div
-                                                v-for="(valor, codigo) in valoracion.impacto_por_dimension"
-                                                :key="codigo"
-                                                class="flex items-center justify-between gap-3"
-                                            >
-                                                <dt class="text-muted-foreground">
-                                                    {{ dimensiones[codigo] ?? codigo }}
-                                                </dt>
-                                                <dd class="cifra">{{ valor }}</dd>
-                                            </div>
-                                        </dl>
-                                        <p
-                                            v-if="Object.keys(valoracion.impacto_por_dimension).length === 0"
-                                            class="mt-2 text-sm text-muted-foreground"
-                                        >
-                                            Sin desglose: el riesgo no tenía activos al valorarlo.
-                                        </p>
-                                    </div>
-
-                                    <div class="w-full sm:w-56">
-                                        <MatrizRiesgo
-                                            :bandas="metodologia.bandas"
-                                            :probabilidad="metodologia.probabilidad"
-                                            :impacto="metodologia.impacto"
-                                            :marcadas="marcadas"
-                                        />
-                                    </div>
+                                            <dt class="text-muted-foreground">
+                                                {{ dimensiones[codigo] ?? codigo }}
+                                            </dt>
+                                            <dd class="cifra">{{ valor }}</dd>
+                                        </div>
+                                    </dl>
+                                    <p
+                                        v-if="Object.keys(valoracion.impacto_por_dimension).length === 0"
+                                        class="mt-2 text-sm text-muted-foreground"
+                                    >
+                                        Sin desglose: el riesgo no tenía activos al valorarlo.
+                                    </p>
                                 </div>
 
+                                <div class="w-full sm:w-72">
+                                    <MatrizRiesgo
+                                        :bandas="metodologia.bandas"
+                                        :probabilidad="metodologia.probabilidad"
+                                        :impacto="metodologia.impacto"
+                                        :marcadas="marcadas"
+                                    />
+                                </div>
+                            </div>
+
+                            <!-- La justificación es lo que el auditor lee al lado de la firma. -->
+                            <blockquote
+                                v-if="valoracion.justificacion_residual"
+                                class="space-y-1.5 rounded-lg border bg-superficie px-4 py-3.5"
+                            >
+                                <p class="text-xs font-medium text-muted-foreground">Por qué baja</p>
+                                <p class="text-pretty">{{ valoracion.justificacion_residual }}</p>
                                 <p class="text-xs text-muted-foreground">
-                                    Valorado el {{ fecha(valoracion.valorada_en) }}
-                                    <template v-if="valoracion.valorada_por"> por {{ valoracion.valorada_por }}</template
-                                    >, con la escala de «{{ metodologia.nombre }}».
+                                    <template v-if="valoracion.valorada_por">{{ valoracion.valorada_por }} · </template>
+                                    <span class="cifra">{{ fecha(valoracion.valorada_en) }}</span>
                                 </p>
+                            </blockquote>
+
+                            <p v-if="valoracion.nota" class="text-sm text-muted-foreground">{{ valoracion.nota }}</p>
+
+                            <!--
+                                La metodología sin firmar baja aquí, a una línea: es un
+                                matiz de cómo se mide, no un hallazgo sobre este riesgo.
+                            -->
+                            <div class="flex flex-wrap items-center gap-x-2 gap-y-1 border-t pt-4 text-xs text-muted-foreground">
+                                <InfoIcon class="size-3.5 shrink-0" aria-hidden="true" />
+                                <span v-if="metodologia.esDeFabrica || !metodologia.estaAprobada">
+                                    <template v-if="metodologia.esDeFabrica">Escala de partida de Statera</template>
+                                    <template v-else>«{{ metodologia.nombre }}»</template>, sin aprobar: ISO 27001 pide
+                                    que los criterios los fije la organización.
+                                </span>
+                                <span v-else>Medido con «{{ metodologia.nombre }}».</span>
+                                <Link
+                                    v-if="metodologia.esDeFabrica || !metodologia.estaAprobada"
+                                    href="/riesgos/metodologia"
+                                    class="font-medium text-primary underline-offset-4 hover:underline sm:ml-auto"
+                                >
+                                    Definirla y aprobarla
+                                </Link>
                             </div>
                         </CardContent>
                     </Card>
 
                     <Card>
-                        <CardHeader class="flex-row items-start justify-between gap-4 space-y-0">
-                            <div>
-                                <CardTitle>Salvaguardas</CardTitle>
-                                <CardDescription>
-                                    Los controles implantados que se apoyan contra este riesgo. Apuntan a
-                                    implantaciones y no a requisitos: la diferencia entre «el ENS pide cifrado» y
-                                    «lo tenemos puesto en este sistema».
-                                </CardDescription>
-                            </div>
-                            <Button variant="outline" size="sm" @click="vinculando = true">Vincular control</Button>
+                        <CardHeader>
+                            <CardTitle>Salvaguardas</CardTitle>
+                            <CardDescription>Controles implantados en un sistema, no requisitos del catálogo.</CardDescription>
+                            <CardAction class="flex items-center gap-3">
+                                <span v-if="cobertura.total > 0" class="cifra text-[13px] text-muted-foreground">
+                                    {{ cobertura.implantadas }} de {{ cobertura.total }} implantadas
+                                </span>
+                                <Button
+                                    v-if="riesgo.salvaguardas.length > 0"
+                                    variant="outline"
+                                    size="sm"
+                                    @click="vinculando = true"
+                                >
+                                    Vincular control
+                                </Button>
+                            </CardAction>
                         </CardHeader>
 
                         <CardContent>
-                            <EstadoVacio
-                                v-if="riesgo.salvaguardas.length === 0"
-                                :icono="ShieldPlusIcon"
-                                titulo="Ningún control apoyado contra este riesgo"
-                                descripcion="Un riesgo que se decide mitigar y no tiene ni una salvaguarda vinculada es una declaración de intenciones, no un tratamiento."
-                            />
+                            <div v-if="riesgo.salvaguardas.length === 0" class="rounded-xl border border-dashed">
+                                <EstadoVacio
+                                    :icono="ShieldPlusIcon"
+                                    titulo="Ningún control apoyado contra este riesgo"
+                                    descripcion="Sin una salvaguarda vinculada, el residual es una declaración de intenciones, no un tratamiento."
+                                />
+                                <div class="-mt-2 flex justify-center pb-6">
+                                    <Button @click="vinculando = true">Vincular control</Button>
+                                </div>
+                            </div>
 
-                            <ul v-else class="divide-y">
-                                <li
-                                    v-for="salvaguarda in riesgo.salvaguardas"
-                                    :key="salvaguarda.id"
-                                    class="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0"
-                                >
-                                    <div class="min-w-0">
-                                        <p class="flex flex-wrap items-center gap-2 text-sm">
-                                            <span class="cifra">{{ salvaguarda.requisito ?? '—' }}</span>
-                                            <CeldaBadge
-                                                :valor="{
-                                                    valor: salvaguarda.estado,
-                                                    etiqueta: salvaguarda.estado_etiqueta,
-                                                    tono: salvaguarda.estado_tono,
-                                                    icono: salvaguarda.estado_icono,
-                                                }"
-                                            />
-                                            <span v-if="salvaguarda.madurez" class="text-xs text-muted-foreground">
-                                                {{ salvaguarda.madurez }}
-                                            </span>
-                                        </p>
-                                        <p class="mt-0.5 truncate text-sm text-muted-foreground">
-                                            {{ salvaguarda.titulo ?? '' }}
-                                        </p>
-                                        <p v-if="salvaguarda.nota" class="mt-1 text-sm">{{ salvaguarda.nota }}</p>
-                                    </div>
+                            <div v-else class="space-y-4">
+                                <!-- La cobertura se calcula, no se almacena: va al lado de lo declarado. -->
+                                <div class="space-y-2">
+                                    <BarraSegmentada :segmentos="tramosCobertura" leyenda />
+                                    <p v-if="cobertura.madurezMedia !== null" class="text-xs text-muted-foreground">
+                                        Madurez media <span class="cifra">{{ cobertura.madurezMedia }}</span> sobre
+                                        <span class="cifra">{{ cobertura.madurezEvaluadas }}</span> evaluadas de
+                                        <span class="cifra">{{ cobertura.total }}</span>
+                                    </p>
+                                    <p v-else class="text-xs text-muted-foreground">
+                                        Ninguna salvaguarda tiene la madurez evaluada.
+                                    </p>
+                                </div>
 
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        class="shrink-0"
-                                        @click="desvincular(salvaguarda.id)"
+                                <ul class="divide-y border-t">
+                                    <li
+                                        v-for="salvaguarda in riesgo.salvaguardas"
+                                        :key="salvaguarda.id"
+                                        class="flex items-start justify-between gap-3 py-3 last:pb-0"
                                     >
-                                        Quitar
-                                    </Button>
-                                </li>
-                            </ul>
+                                        <div class="min-w-0">
+                                            <p class="flex flex-wrap items-center gap-2 text-sm">
+                                                <span class="cifra">{{ salvaguarda.requisito ?? '—' }}</span>
+                                                <CeldaBadge
+                                                    :valor="{
+                                                        valor: salvaguarda.estado,
+                                                        etiqueta: salvaguarda.estado_etiqueta,
+                                                        tono: salvaguarda.estado_tono,
+                                                        icono: salvaguarda.estado_icono,
+                                                    }"
+                                                />
+                                                <span v-if="salvaguarda.madurez" class="text-xs text-muted-foreground">
+                                                    {{ salvaguarda.madurez }}
+                                                </span>
+                                            </p>
+                                            <p class="mt-0.5 truncate text-sm text-muted-foreground">
+                                                {{ salvaguarda.titulo ?? '' }}
+                                            </p>
+                                            <p v-if="salvaguarda.nota" class="mt-1 text-sm">{{ salvaguarda.nota }}</p>
+                                        </div>
+
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            class="shrink-0"
+                                            @click="desvincular(salvaguarda.id)"
+                                        >
+                                            Quitar
+                                        </Button>
+                                    </li>
+                                </ul>
+                            </div>
                         </CardContent>
                     </Card>
 
-                    <Card v-if="anteriores.length > 0">
+                    <Card v-if="historico.length > 0">
                         <CardHeader>
-                            <CardTitle>Valoraciones anteriores</CardTitle>
+                            <CardTitle>Historial</CardTitle>
                             <CardDescription>
-                                Cada una se lee con la escala que tenía en su momento: por eso «qué cambió entre
-                                marzo y octubre» tiene respuesta.
+                                Cada valoración se conserva con la escala que tenía en su momento.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <ol class="space-y-4">
-                                <li v-for="paso in anteriores" :key="paso.id" class="flex gap-3 text-sm">
-                                    <CeldaBadge
-                                        :valor="{
-                                            valor: paso.intrinseco,
-                                            etiqueta: `${paso.intrinseco}${paso.residual !== null ? ` → ${paso.residual}` : ''}`,
-                                            tono: (paso.residual_nivel ?? paso.intrinseco_nivel).tono,
-                                            icono: (paso.residual_nivel ?? paso.intrinseco_nivel).icono,
-                                        }"
-                                    />
+                            <ol class="relative space-y-5">
+                                <!-- El hilo de la línea de tiempo, detrás de los puntos. -->
+                                <span
+                                    v-if="historico.length > 1"
+                                    class="absolute top-2 bottom-2 left-[calc(7rem+19px)] w-px bg-border max-sm:hidden"
+                                    aria-hidden="true"
+                                />
+                                <li
+                                    v-for="paso in historico"
+                                    :key="paso.id"
+                                    class="relative grid gap-x-3 gap-y-1 text-sm sm:grid-cols-[7rem_16px_minmax(0,1fr)]"
+                                >
+                                    <span class="cifra pt-0.5 text-xs text-muted-foreground">
+                                        {{ fecha(paso.valorada_en) }}
+                                    </span>
+                                    <span class="flex justify-center pt-1.5 max-sm:hidden" aria-hidden="true">
+                                        <span
+                                            class="size-2.5 rounded-full ring-4 ring-card"
+                                            :class="paso.vigente ? 'bg-primary' : 'bg-muted-foreground/50'"
+                                        />
+                                    </span>
                                     <div class="min-w-0">
-                                        <p class="text-muted-foreground">
-                                            {{ paso.decision_etiqueta }} · {{ fecha(paso.valorada_en) }}
+                                        <p class="font-medium">
+                                            {{ paso.vigente ? 'Valoración vigente' : 'Valoración anterior' }}
+                                            <span class="cifra font-normal text-muted-foreground">
+                                                · {{ paso.intrinseco }}<template v-if="paso.residual !== null">
+                                                    → {{ paso.residual }}</template
+                                                >
+                                            </span>
+                                        </p>
+                                        <p class="text-[13px] text-muted-foreground">
+                                            {{ paso.decision_etiqueta }}
                                             <template v-if="paso.valorada_por"> · {{ paso.valorada_por }}</template>
                                             <template v-if="paso.aceptada_en">
                                                 · aceptada el {{ fecha(paso.aceptada_en) }}
                                             </template>
                                         </p>
-                                        <p v-if="paso.justificacion_residual" class="mt-0.5">
+                                        <p v-if="!paso.vigente && paso.justificacion_residual" class="mt-0.5">
                                             {{ paso.justificacion_residual }}
                                         </p>
-                                        <p v-if="paso.nota" class="mt-0.5 text-muted-foreground">{{ paso.nota }}</p>
+                                        <p v-if="!paso.vigente && paso.nota" class="mt-0.5 text-muted-foreground">
+                                            {{ paso.nota }}
+                                        </p>
                                     </div>
                                 </li>
                             </ol>
@@ -613,78 +786,72 @@ const dimensiones: Record<string, string> = {
                                 heredan por el grafo de dependencias.
                             </CardDescription>
                         </CardHeader>
-                        <CardContent class="space-y-4">
-                            <ul class="space-y-2 text-sm">
+                        <CardContent class="space-y-5">
+                            <ul class="space-y-2">
                                 <li v-for="activo in riesgo.activos" :key="activo.id">
                                     <Link
                                         :href="`/activos/${activo.id}`"
-                                        class="hover:underline hover:underline-offset-4"
+                                        class="flex min-w-0 flex-col rounded-lg border bg-superficie px-3 py-2.5 transition-colors hover:bg-accent"
                                     >
+                                        <span class="truncate text-sm font-medium">{{ activo.nombre }}</span>
                                         <span class="cifra text-xs text-muted-foreground">{{ activo.codigo }}</span>
-                                        {{ activo.nombre }}
                                     </Link>
                                 </li>
                             </ul>
-
-                            <template v-if="sugerencia.impacto !== null">
-                                <Separator />
-
-                                <div>
-                                    <p class="text-xs text-muted-foreground">Impacto que sugieren los activos</p>
-                                    <p class="cifra mt-1 text-2xl font-semibold">{{ sugerencia.impacto }}</p>
-
-                                    <!--
-                                        Sin los motivos, un 5 sobre treinta activos parece un
-                                        error de la herramienta. Esto dice quién pone el techo.
-                                    -->
-                                    <ul
-                                        v-if="sugerencia.motivos.length > 0"
-                                        class="mt-2 space-y-1 text-xs text-muted-foreground"
-                                    >
-                                        <li v-for="motivo in sugerencia.motivos" :key="motivo.activo">
-                                            {{ motivo.activo }} — {{ motivo.dimensiones.join(', ') }}
-                                        </li>
-                                    </ul>
-
-                                    <p class="mt-2 text-xs text-muted-foreground">
-                                        Es una propuesta: el impacto lo decide quien valora.
-                                    </p>
-                                </div>
-                            </template>
-                        </CardContent>
-                    </Card>
-
-                    <Card class="h-fit">
-                        <CardHeader>
-                            <CardTitle>Cobertura</CardTitle>
-                            <CardDescription>
-                                En qué estado están los controles que sostienen el residual. No se almacena: se
-                                calcula y se enseña al lado de lo declarado.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent class="space-y-3">
-                            <p v-if="cobertura.total === 0" class="text-sm text-muted-foreground">
-                                Ninguna salvaguarda vinculada.
+                            <p v-if="riesgo.activos.length === 0" class="text-sm text-muted-foreground">
+                                Ningún activo vinculado.
                             </p>
 
-                            <template v-else>
-                                <BarraSegmentada :segmentos="tramosCobertura" leyenda />
+                            <!--
+                                Lo sugerido y lo declarado, uno encima del otro y contra la
+                                misma escala. Lo derivado se enseña al lado y no sobrescribe.
+                            -->
+                            <div v-if="sugerencia.impacto !== null" class="space-y-2.5">
+                                <p class="text-xs text-muted-foreground">Impacto</p>
+                                <dl class="grid grid-cols-[5rem_minmax(0,1fr)_1.5rem] items-center gap-x-2.5 gap-y-2 text-[13px]">
+                                    <dt class="text-muted-foreground">Sugerido</dt>
+                                    <dd class="h-2 rounded-full bg-muted" aria-hidden="true">
+                                        <span
+                                            class="block h-full rounded-full bg-muted-foreground"
+                                            :style="{ width: anchoImpacto(sugerencia.impacto) }"
+                                        />
+                                    </dd>
+                                    <dd class="cifra text-right">{{ sugerencia.impacto }}</dd>
 
-                                <p class="text-sm">
-                                    <span class="cifra">{{ cobertura.implantadas }}</span> de
-                                    <span class="cifra">{{ cobertura.total }}</span> implantadas
-                                </p>
+                                    <template v-if="valoracion">
+                                        <dt class="text-muted-foreground">Declarado</dt>
+                                        <dd class="h-2 rounded-full bg-muted" aria-hidden="true">
+                                            <span
+                                                class="block h-full rounded-full bg-primary"
+                                                :style="{ width: anchoImpacto(valoracion.impacto) }"
+                                            />
+                                        </dd>
+                                        <dd class="cifra text-right">{{ valoracion.impacto }}</dd>
+                                    </template>
+                                </dl>
 
-                                <!-- La media, siempre con su denominador. -->
-                                <p v-if="cobertura.madurezMedia !== null" class="text-sm text-muted-foreground">
-                                    Madurez media <span class="cifra">{{ cobertura.madurezMedia }}</span> sobre
-                                    <span class="cifra">{{ cobertura.madurezEvaluadas }}</span> evaluadas de
-                                    <span class="cifra">{{ cobertura.total }}</span>
+                                <!--
+                                    Sin los motivos, un 5 sobre treinta activos parece un
+                                    error de la herramienta. Esto dice quién pone el techo.
+                                -->
+                                <ul v-if="sugerencia.motivos.length > 0" class="space-y-0.5 text-xs text-muted-foreground">
+                                    <li v-for="motivo in sugerencia.motivos" :key="motivo.activo">
+                                        Lo pone {{ motivo.activo }}:
+                                        <span class="text-foreground">{{ motivo.dimensiones.join(', ').toLowerCase() }}</span>
+                                    </li>
+                                </ul>
+
+                                <p
+                                    v-if="valoracion && valoracion.impacto < sugerencia.impacto"
+                                    class="text-xs text-pretty text-muted-foreground"
+                                >
+                                    Se declaró por debajo de lo que sugieren los activos: conviene que la justificación lo
+                                    explique.
                                 </p>
-                                <p v-else class="text-sm text-muted-foreground">
-                                    Ninguna salvaguarda tiene la madurez evaluada.
+                                <p v-else-if="!valoracion" class="text-xs text-muted-foreground">
+                                    Es una propuesta: el impacto lo decide quien valora.
                                 </p>
-                            </template>
+                            </div>
                         </CardContent>
                     </Card>
 
@@ -697,22 +864,13 @@ const dimensiones: Record<string, string> = {
                             </CardDescription>
                         </CardHeader>
                         <CardContent class="space-y-3">
-                            <dl class="grid gap-3 text-sm">
-                                <div class="flex items-center justify-between gap-3">
-                                    <dt class="text-muted-foreground">Propietario</dt>
-                                    <dd>{{ riesgo.propietario ?? 'Sin asignar' }}</dd>
-                                </div>
-                                <div class="flex items-center justify-between gap-3">
-                                    <dt class="text-muted-foreground">Próxima reevaluación</dt>
-                                    <dd class="cifra">{{ fecha(riesgo.fecha_revision) }}</dd>
-                                </div>
-                            </dl>
-
                             <template v-if="valoracion?.aceptada_en">
-                                <Separator />
-                                <p class="text-sm">
-                                    Aceptado por <strong>{{ valoracion.aceptada_por ?? '—' }}</strong> el
-                                    <span class="cifra">{{ fecha(valoracion.aceptada_en) }}</span>
+                                <p class="flex items-start gap-2 text-sm">
+                                    <CheckIcon class="mt-0.5 size-4 shrink-0 text-estado-implantado" aria-hidden="true" />
+                                    <span>
+                                        Aceptado por <strong>{{ valoracion.aceptada_por ?? '—' }}</strong> el
+                                        <span class="cifra">{{ fecha(valoracion.aceptada_en) }}</span>
+                                    </span>
                                 </p>
                                 <p v-if="valoracion.nota_aceptacion" class="text-sm text-muted-foreground">
                                     {{ valoracion.nota_aceptacion }}
@@ -720,7 +878,6 @@ const dimensiones: Record<string, string> = {
                             </template>
 
                             <template v-else>
-                                <Separator />
                                 <p v-if="!valoracion" class="text-sm text-muted-foreground">
                                     No se puede aceptar un riesgo que nadie ha medido.
                                 </p>
@@ -728,15 +885,30 @@ const dimensiones: Record<string, string> = {
                                     Falta declarar el riesgo residual: lo que se acepta es lo que queda después de
                                     tratar, no lo que había al empezar.
                                 </p>
-                                <!--
-                                    La variante `acento` que DESIGN.md reserva a los flujos de
-                                    revisión y auditoría, y su segundo uso tras «Emitir versión».
-                                    Va aquí, en la columna lateral, donde no compite con ningún
-                                    primario — que es la condición que pone §9.
-                                -->
-                                <Button v-else variant="acento" class="w-full" @click="aceptando = true">
-                                    Aceptar el riesgo
-                                </Button>
+                                <template v-else>
+                                    <p
+                                        v-if="sinRespaldo"
+                                        class="flex items-start gap-2 rounded-lg bg-estado-en-progreso-suave px-3 py-2.5 text-[13px] text-foreground"
+                                    >
+                                        <TriangleAlertIcon
+                                            class="mt-0.5 size-4 shrink-0 text-estado-en-progreso"
+                                            aria-hidden="true"
+                                        />
+                                        <span>
+                                            Firmarías un residual de <span class="cifra">{{ valoracion.residual }}</span>
+                                            sin ningún control implantado detrás.
+                                        </span>
+                                    </p>
+                                    <!--
+                                        La variante `acento` que DESIGN.md reserva a los flujos de
+                                        revisión y auditoría, y su segundo uso tras «Emitir versión».
+                                        Va aquí, en la columna lateral, donde no compite con ningún
+                                        primario — que es la condición que pone §9.
+                                    -->
+                                    <Button variant="acento" class="w-full" @click="aceptando = true">
+                                        Aceptar el riesgo
+                                    </Button>
+                                </template>
                             </template>
                         </CardContent>
                     </Card>

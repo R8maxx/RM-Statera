@@ -56,11 +56,16 @@ const { variantesEntrada } = useMovimientoReducido();
         animate="visible"
     >
         <component :is="estilo.icono" class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-        <div class="min-w-0">
+        <div class="min-w-0 flex-1">
             <p v-if="titulo" class="font-medium">{{ titulo }}</p>
             <!-- `div` y no `p`: quien lo usa pasa párrafos, y un `<p>` dentro
                  de otro no es HTML válido — el navegador lo parte en dos. -->
             <div :class="titulo && 'mt-0.5 opacity-90'"><slot /></div>
+        </div>
+
+        <!-- La salida del aviso, cuando la tiene: lo que se hace para que deje de salir. -->
+        <div v-if="$slots.accion" class="shrink-0 self-center">
+            <slot name="accion" />
         </div>
     </motion.div>
 </template>
