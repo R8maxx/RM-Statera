@@ -7,7 +7,7 @@ import FormularioRecurso from '@/components/formulario/FormularioRecurso.vue';
 import SeccionFormulario from '@/components/formulario/SeccionFormulario.vue';
 import { conOpcionVacia, type Opcion } from '@/lib/formularios';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 interface Accion {
     id: number;
@@ -18,6 +18,11 @@ interface Accion {
     duracion_horas: string | null;
     contenido: string | null;
     evidencia_id: number | null;
+    modalidad: string | null;
+    imparte: string | null;
+    ponente_persona_id: number | null;
+    proveedor_id: number | null;
+    ponente_nombre: string | null;
 }
 
 const props = defineProps<{
@@ -33,9 +38,18 @@ const props = defineProps<{
         tipo?: string | null;
         duracion_horas?: string | null;
         contenido?: string | null;
+        modalidad?: string | null;
+        imparte?: string | null;
+        ponente_persona_id?: number | null;
+        proveedor_id?: number | null;
+        ponente_nombre?: string | null;
     } | null;
     tipos: { valor: string; etiqueta: string; medida: string }[];
     evidencias: Opcion[];
+    modalidades: Opcion[];
+    imparticiones: Opcion[];
+    personas: Opcion[];
+    proveedores: Opcion[];
 }>();
 
 const edicion = props.accion !== null;
@@ -48,6 +62,18 @@ const valor = computed(() => ({
     duracion_horas: props.accion?.duracion_horas ?? props.sugerencia?.duracion_horas ?? undefined,
     contenido: props.accion?.contenido ?? props.sugerencia?.contenido ?? undefined,
 }));
+
+const origen = props.accion ?? props.sugerencia;
+
+/*
+ * Quién la impartió decide qué campos salen, y con `v-if` y no con `v-show`: lo
+ * que no toca no tiene que viajar. El `FormRequest` vacía además lo que no
+ * corresponde, porque al cambiar de externa a interna el nombre del formador
+ * que ya estaba guardado no viaja y se quedaría en la fila.
+ */
+const imparte = ref<string | undefined>(origen?.imparte ?? undefined);
+
+const aTexto = (id: number | null | undefined): string | undefined => (id == null ? undefined : String(id));
 
 const opcionesTipo = computed(() =>
     props.tipos.map((tipo) => ({ valor: tipo.valor, etiqueta: `${tipo.etiqueta} (${tipo.medida})` })),
@@ -140,6 +166,59 @@ const opcionesTipo = computed(() =>
                     :error="errors.evidencia_id"
                     ayuda="Una evidencia que ya esté en el repositorio: la lista de asistentes firmada, el certificado o la captura de la plataforma. La misma prueba vale para todos los marcos donde aplique."
                 />
+            </SeccionFormulario>
+
+            <SeccionFormulario
+                titulo="Cómo y quién la impartió"
+                ayuda="Interna si la dio alguien de la plantilla; externa si fue un formador o una empresa de fuera."
+            >
+                <FilaCampos>
+                    <CampoSelect
+                        nombre="modalidad"
+                        etiqueta="Modalidad"
+                        :opciones="conOpcionVacia(modalidades, 'Sin indicar')"
+                        :valor-inicial="origen?.modalidad ?? undefined"
+                        :error="errors.modalidad"
+                    />
+
+                    <CampoSelect
+                        v-model="imparte"
+                        nombre="imparte"
+                        etiqueta="Impartida por"
+                        :opciones="conOpcionVacia(imparticiones, 'Sin indicar')"
+                        :error="errors.imparte"
+                    />
+                </FilaCampos>
+
+                <CampoSelect
+                    v-if="imparte === 'interna'"
+                    nombre="ponente_persona_id"
+                    etiqueta="Persona que la impartió"
+                    :opciones="personas"
+                    :valor-inicial="aTexto(origen?.ponente_persona_id)"
+                    :error="errors.ponente_persona_id"
+                    requerido
+                    ayuda="Alguien de la plantilla, tenga o no cuenta en Statera."
+                />
+
+                <FilaCampos v-else-if="imparte === 'externa'">
+                    <CampoTexto
+                        nombre="ponente_nombre"
+                        etiqueta="Quién la impartió"
+                        :valor-inicial="origen?.ponente_nombre ?? undefined"
+                        :error="errors.ponente_nombre"
+                        ayuda="El formador o la formadora. Si sólo sabes la empresa, basta con elegirla."
+                    />
+
+                    <CampoSelect
+                        nombre="proveedor_id"
+                        etiqueta="Proveedor"
+                        :opciones="conOpcionVacia(proveedores, 'Ninguno dado de alta')"
+                        :valor-inicial="aTexto(origen?.proveedor_id)"
+                        :error="errors.proveedor_id"
+                        ayuda="La empresa que la impartió, si ya está en proveedores."
+                    />
+                </FilaCampos>
             </SeccionFormulario>
         </FormularioRecurso>
     </AppLayout>

@@ -1655,6 +1655,18 @@ Route::middleware('auth')->group(function (): void {
                 ->name('formacion.adjuntos.subir');
             Route::delete('/formacion/{accion}/adjuntos/{adjunto}', [FormacionController::class, 'borrarAdjunto'])
                 ->name('formacion.adjuntos.borrar');
+
+            /*
+             * El diploma de un asistente: un adjunto colgado a la vez de la
+             * sesión y de la persona. **`withoutScopedBindings()`** porque el
+             * grupo acota y la persona no es hija de la sesión —buscaría
+             * `$accion->personas()`, que no existe, y respondería 500—; que
+             * conste como asistente lo comprueba `SubirDiplomaRequest`. Se borra
+             * por la ruta de arriba, que ya acota el adjunto a la sesión.
+             */
+            Route::post('/formacion/{accion}/personas/{persona}/diploma', [FormacionController::class, 'subirDiploma'])
+                ->withoutScopedBindings()
+                ->name('formacion.diplomas.subir');
         });
 
     /*

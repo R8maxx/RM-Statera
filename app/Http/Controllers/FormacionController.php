@@ -11,15 +11,21 @@ use App\Domain\Autorizacion\Enums\Permiso;
 use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Persona\CodigoAccionFormativa;
 use App\Domain\Persona\ConvocatoriaDeSesion;
+use App\Domain\Persona\DiplomasDeFormacion;
+use App\Domain\Persona\Enums\ImparticionFormacion;
 use App\Domain\Persona\Enums\JustificacionAusencia;
+use App\Domain\Persona\Enums\ModalidadFormacion;
 use App\Domain\Persona\Enums\TipoAccionFormativa;
 use App\Domain\Persona\Models\AccionFormativa;
+use App\Domain\Persona\Models\Persona;
 use App\Domain\Persona\RegistrarAsistencia;
 use App\Domain\Persona\RegistroFormacion;
+use App\Domain\Proveedor\Models\Proveedor;
 use App\Http\Controllers\Concerns\GestionaAdjuntos;
 use App\Http\Requests\GuardarAccionFormativaRequest;
 use App\Http\Requests\RegistrarAsistenciaRequest;
 use App\Http\Requests\SubirAdjuntoRequest;
+use App\Http\Requests\SubirDiplomaRequest;
 use App\Http\Resources\AccionFormativaRecurso;
 use App\Http\Resources\Concerns\RespondeConRecurso;
 use Carbon\CarbonInterface;
@@ -87,6 +93,11 @@ class FormacionController extends Controller
                 'tipo' => $origen?->tipo->value,
                 'duracion_horas' => $origen?->duracion_horas,
                 'contenido' => $origen?->contenido,
+                'modalidad' => $origen?->modalidad?->value,
+                'imparte' => $origen?->imparte?->value,
+                'ponente_persona_id' => $origen?->ponente_persona_id,
+                'proveedor_id' => $origen?->proveedor_id,
+                'ponente_nombre' => $origen?->ponente_nombre,
             ],
             ...$this->opciones(),
         ]);
@@ -94,7 +105,7 @@ class FormacionController extends Controller
 
     public function store(GuardarAccionFormativaRequest $request): RedirectResponse
     {
-        $accion = AccionFormativa::query()->create($request->validated());
+        $accion = AccionFormativa::query()->create($request->datos());
 
         Inertia::flash('exito', "Sesión {$accion->codigo} registrada. Ahora se convoca.");
 
@@ -110,9 +121,18 @@ class FormacionController extends Controller
      * convocadas siguen apareciendo —asistieron de verdad y borrarlas reescribiría
      * el registro—, pero no se ofrecen para convocar.
      */
-    public function show(AccionFormativa $accion, ConvocatoriaDeSesion $convocatoria): Response
+    public function show(AccionFormativa $accion, ConvocatoriaDeSesion $convocatoria, DiplomasDeFormacion $diplomas): Response
     {
-        $accion->load(['evidencia', 'adjuntos.subidoPor']);
+        $accion->load(['evidencia', 'adjuntos.subidoPor', 'ponente', 'proveedor']);
+
+        /*
+         * Los diplomas salen de las personas y no del material: un adjunto que
+         * cuelga también de una persona es su diploma, y en «Material» se
+         * mezclaría con el temario.
+         */
+        $porPersona = $diplomas->deSesion($accion);
+        $idsDiplomas = collect($porPersona)->flatten()->map(static fn (Adjunto $adjunto): int => $adjunto->id)->all();
+        $accion->setRelation('adjuntos', $accion->adjuntos->reject(static fn (Adjunto $adjunto): bool => in_array($adjunto->id, $idsDiplomas, true))->values());
 
         $registrada = $accion->asistencias()->max('registrada_en');
         $vigenteHasta = $accion->vigenteHasta();
@@ -127,11 +147,28 @@ class FormacionController extends Controller
                 'vigenteHastaRelativa' => $vigenteHasta->locale('es')->diffForHumans(['parts' => 1]),
                 'evidenciaFecha' => $accion->evidencia?->fecha_obtencion->format('d/m/Y'),
                 'hoy' => Carbon::today()->toDateString(),
+                'modalidadEtiqueta' => $accion->modalidad?->etiqueta(),
+                'imparteEtiqueta' => $accion->imparte?->etiqueta(),
+                'ponente' => $accion->ponente === null ? null : ['id' => $accion->ponente->id, 'nombre' => $accion->ponente->nombre],
+                'proveedor' => $accion->proveedor === null ? null : ['id' => $accion->proveedor->id, 'nombre' => $accion->proveedor->nombre],
                 'asistenciaRegistrada' => is_string($registrada) ? Carbon::parse($registrada)->format('d/m/Y H:i') : null,
             ],
             'cubre' => $convocatoria->cubre($accion),
             'adjuntos' => $this->serializarAdjuntos($accion, request(), "/formacion/{$accion->id}/adjuntos"),
-            'personas' => $convocatoria->personas($accion),
+            'personas' => array_map(
+                static fn (array $persona): array => [
+                    ...$persona,
+                    'diplomas' => array_map(
+                        static fn (Adjunto $adjunto): array => [
+                            'id' => $adjunto->id,
+                            'nombre_fichero' => $adjunto->nombre_fichero,
+                            'fecha' => $adjunto->created_at?->format('d/m/Y'),
+                        ],
+                        $porPersona[$persona['id']] ?? [],
+                    ),
+                ],
+                $convocatoria->personas($accion),
+            ),
             'justificaciones' => array_map(
                 static fn (JustificacionAusencia $caso): array => [
                     'valor' => $caso->value,
@@ -143,6 +180,23 @@ class FormacionController extends Controller
             ),
             'puedeGestionar' => request()->user()?->can(Permiso::PersonasGestionar->value) ?? false,
         ]);
+    }
+
+    /**
+     * El diploma de una persona en esta sesión: un adjunto colgado de las dos.
+     * Por qué adjunto y no evidencia está en `DiplomasDeFormacion`.
+     */
+    public function subirDiploma(
+        SubirDiplomaRequest $request,
+        AccionFormativa $accion,
+        Persona $persona,
+        DiplomasDeFormacion $diplomas,
+    ): RedirectResponse {
+        $diplomas->subir($accion, $persona, $request->file('fichero'), $request->user());
+
+        Inertia::flash('exito', "Diploma de {$persona->nombre} guardado.");
+
+        return back();
     }
 
     public function edit(AccionFormativa $accion): Response
@@ -157,7 +211,7 @@ class FormacionController extends Controller
 
     public function update(GuardarAccionFormativaRequest $request, AccionFormativa $accion): RedirectResponse
     {
-        $accion->update($request->validated());
+        $accion->update($request->datos());
 
         Inertia::flash('exito', 'Sesión actualizada.');
 
@@ -233,6 +287,11 @@ class FormacionController extends Controller
             'contenido' => $accion->contenido,
             'evidencia_id' => $accion->evidencia_id,
             'evidencia' => $accion->relationLoaded('evidencia') ? $accion->evidencia?->titulo : null,
+            'modalidad' => $accion->modalidad?->value,
+            'imparte' => $accion->imparte?->value,
+            'ponente_persona_id' => $accion->ponente_persona_id,
+            'proveedor_id' => $accion->proveedor_id,
+            'ponente_nombre' => $accion->ponente_nombre,
         ];
     }
 
@@ -242,6 +301,26 @@ class FormacionController extends Controller
     private function opciones(): array
     {
         return [
+            'modalidades' => array_map(
+                static fn (ModalidadFormacion $caso): array => ['valor' => $caso->value, 'etiqueta' => $caso->etiqueta()],
+                ModalidadFormacion::cases(),
+            ),
+            'imparticiones' => array_map(
+                static fn (ImparticionFormacion $caso): array => ['valor' => $caso->value, 'etiqueta' => $caso->etiqueta()],
+                ImparticionFormacion::cases(),
+            ),
+            // Por el modelo, así que pasa por el scope de organización.
+            'personas' => Persona::query()
+                ->activas()
+                ->orderBy('nombre')
+                ->get(['id', 'nombre'])
+                ->map(static fn (Persona $persona): array => ['valor' => (string) $persona->id, 'etiqueta' => $persona->nombre])
+                ->all(),
+            'proveedores' => Proveedor::query()
+                ->orderBy('nombre')
+                ->get(['id', 'nombre'])
+                ->map(static fn (Proveedor $proveedor): array => ['valor' => (string) $proveedor->id, 'etiqueta' => $proveedor->nombre])
+                ->all(),
             'tipos' => array_map(
                 static fn (TipoAccionFormativa $tipo): array => [
                     'valor' => $tipo->value,

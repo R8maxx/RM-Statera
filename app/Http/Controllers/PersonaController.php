@@ -13,6 +13,7 @@ use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Persona\AsignarPuesto;
 use App\Domain\Persona\CodigoPersona;
 use App\Domain\Persona\DesignarRol;
+use App\Domain\Persona\DiplomasDeFormacion;
 use App\Domain\Persona\Enums\RolEns;
 use App\Domain\Persona\Enums\TipoPasoPersona;
 use App\Domain\Persona\Excepciones\DesignacionIncompatible;
@@ -96,7 +97,7 @@ class PersonaController extends Controller
         return to_route('personas.show', $persona);
     }
 
-    public function show(Persona $persona): Response
+    public function show(Persona $persona, DiplomasDeFormacion $diplomas): Response
     {
         $persona->load([
             'usuario',
@@ -114,6 +115,9 @@ class PersonaController extends Controller
             ->get()
             ->sortByDesc(fn ($asistencia) => $asistencia->accionFormativa?->fecha)
             ->values();
+
+        // Los diplomas ya están entre sus adjuntos; aquí se dice de qué sesión es cada uno.
+        $diplomasPorSesion = $diplomas->dePersona($persona);
 
         return Inertia::render('personas/Ficha', [
             'persona' => $this->serializar($persona),
@@ -147,6 +151,11 @@ class PersonaController extends Controller
                     'medida' => $asistencia->accionFormativa?->tipo->medida(),
                     'fecha' => $asistencia->accionFormativa?->fecha->format('d/m/Y'),
                     'asistio' => $asistencia->asistio,
+                    'ausencia' => $asistencia->ausencia?->etiqueta(),
+                    'diplomas' => array_map(
+                        static fn (Adjunto $adjunto): array => ['id' => $adjunto->id, 'nombre_fichero' => $adjunto->nombre_fichero],
+                        $diplomasPorSesion[$asistencia->accion_formativa_id] ?? [],
+                    ),
                 ])
                 ->all(),
             /*

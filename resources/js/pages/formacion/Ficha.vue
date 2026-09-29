@@ -21,6 +21,7 @@ import {
     ChevronRightIcon,
     ClockIcon,
     FileXIcon,
+    GraduationCapIcon,
     SearchIcon,
     TriangleAlertIcon,
     UserXIcon,
@@ -50,6 +51,12 @@ interface Accion {
     evidencia: string | null;
     evidenciaFecha: string | null;
     asistenciaRegistrada: string | null;
+    modalidadEtiqueta: string | null;
+    imparte: string | null;
+    imparteEtiqueta: string | null;
+    ponente: { id: number; nombre: string } | null;
+    ponente_nombre: string | null;
+    proveedor: { id: number; nombre: string } | null;
 }
 
 interface PersonaConvocada {
@@ -66,6 +73,8 @@ interface PersonaConvocada {
     /** Hasta cuándo estaba cubierta **sin contar esta sesión**. */
     renovacion_previa: string | null;
     ultima_sesion: string | null;
+    /** Los adjuntos que cuelgan a la vez de esta persona y de la sesión. */
+    diplomas: { id: number; nombre_fichero: string; fecha: string | null }[];
 }
 
 interface Justificacion {
@@ -424,6 +433,54 @@ function guardar(): void {
     );
 }
 
+/**
+ * Quién consta como asistente **en lo guardado**. El diploma sólo se ofrece a
+ * ésos: la ruta lo comprueba contra la base, y ofrecerlo a quien se acaba de
+ * marcar en pantalla sería un botón que falla.
+ */
+const asistioGuardado = computed(
+    () => new Set(props.personas.filter((persona) => persona.convocada && persona.asistio).map((persona) => persona.id)),
+);
+
+const subiendoDiploma = ref<number | null>(null);
+
+/**
+ * Sube el diploma nada más elegir el fichero: el título lo pone el servidor
+ * —«Diploma FOR-007 · Nombre»— y no hay nada más que preguntar.
+ *
+ * Con cambios sin guardar no se ofrece: la subida recarga la página y las
+ * casillas marcadas se perderían sin aviso.
+ */
+function subirDiploma(persona: PersonaConvocada, evento: Event): void {
+    const entrada = evento.target as HTMLInputElement;
+    const fichero = entrada.files?.[0];
+
+    if (!fichero) {
+        return;
+    }
+
+    subiendoDiploma.value = persona.id;
+    error.value = null;
+
+    router.post(
+        `/formacion/${props.accion.id}/personas/${persona.id}/diploma`,
+        { fichero },
+        {
+            forceFormData: true,
+            preserveScroll: true,
+            onError: (errores) => (error.value = Object.values(errores)[0] ?? 'No se ha podido subir el diploma.'),
+            onFinish: () => {
+                subiendoDiploma.value = null;
+                entrada.value = '';
+            },
+        },
+    );
+}
+
+function borrarDiploma(id: number): void {
+    router.delete(`/formacion/${props.accion.id}/adjuntos/${id}`, { preserveScroll: true });
+}
+
 const tonoVigencia: Record<Vigencia['tipo'], { etiqueta: (v: Vigencia) => string; tono: string; icono: string }> = {
     vigente: { etiqueta: (v) => (v.tipo === 'nunca' ? '' : `Hasta ${corta(v.hasta)}`), tono: 'implantado', icono: 'CircleCheck' },
     caducada: { etiqueta: (v) => (v.tipo === 'nunca' ? '' : `Caducó ${corta(v.hasta)}`), tono: 'en_progreso', icono: 'TriangleAlert' },
@@ -774,6 +831,56 @@ function badgeVigencia(persona: PersonaConvocada) {
                                         @update:model-value="(valor) => (persona.motivo = String(valor))"
                                     />
                                 </div>
+
+                                <!--
+                                    El diploma: un adjunto colgado a la vez de
+                                    la sesión y de la persona, así que sale
+                                    también en su ficha. Adjunto y no evidencia:
+                                    lleva su nombre y tiene que poder borrarse.
+                                -->
+                                <div
+                                    v-if="asistioGuardado.has(persona.id) && (persona.diplomas.length > 0 || puedeGestionar)"
+                                    class="mt-2 ml-7 flex flex-wrap items-center gap-2 border-l-2 border-border pl-3 text-xs"
+                                >
+                                    <template v-for="diploma in persona.diplomas" :key="diploma.id">
+                                        <a
+                                            :href="`/formacion/${accion.id}/adjuntos/${diploma.id}/descargar`"
+                                            class="inline-flex items-center gap-1.5 font-medium underline underline-offset-4"
+                                        >
+                                            <GraduationCapIcon class="size-3.5" aria-hidden="true" />
+                                            <span class="cifra">{{ diploma.nombre_fichero }}</span>
+                                        </a>
+                                        <Button
+                                            v-if="puedeGestionar"
+                                            variant="ghost"
+                                            size="xs"
+                                            :aria-label="`Borrar el diploma de ${persona.nombre}`"
+                                            @click="borrarDiploma(diploma.id)"
+                                        >
+                                            Borrar
+                                        </Button>
+                                    </template>
+
+                                    <template v-if="puedeGestionar && persona.diplomas.length === 0">
+                                        <label
+                                            v-if="!sinGuardar"
+                                            class="inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-md border border-border px-2.5 font-medium transition-colors hover:bg-muted has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50"
+                                        >
+                                            <GraduationCapIcon class="size-3.5" aria-hidden="true" />
+                                            {{ subiendoDiploma === persona.id ? 'Subiendo…' : 'Subir diploma' }}
+                                            <input
+                                                type="file"
+                                                class="sr-only"
+                                                :disabled="subiendoDiploma !== null"
+                                                :aria-label="`Subir el diploma de ${persona.nombre}`"
+                                                @change="(evento) => subirDiploma(persona, evento)"
+                                            />
+                                        </label>
+                                        <span v-else class="text-muted-foreground">
+                                            Guarda la asistencia para poder subir su diploma.
+                                        </span>
+                                    </template>
+                                </div>
                             </li>
                         </TransitionGroup>
 
@@ -854,6 +961,39 @@ function badgeVigencia(persona: PersonaConvocada) {
                                 <dt class="text-muted-foreground">Duración</dt>
                                 <dd class="cifra">{{ accion.duracion_horas }} h</dd>
                             </template>
+
+                            <dt class="text-muted-foreground">Modalidad</dt>
+                            <dd :class="!accion.modalidadEtiqueta && 'text-muted-foreground'">
+                                {{ accion.modalidadEtiqueta ?? 'Sin indicar' }}
+                            </dd>
+
+                            <dt class="text-muted-foreground">Impartida por</dt>
+                            <dd>
+                                <template v-if="accion.imparte === 'interna'">
+                                    <Link
+                                        v-if="accion.ponente"
+                                        :href="`/personas/${accion.ponente.id}`"
+                                        class="underline underline-offset-4"
+                                    >
+                                        {{ accion.ponente.nombre }}
+                                    </Link>
+                                    <span v-else class="text-muted-foreground">Sin nombrar</span>
+                                    <span class="block text-xs text-muted-foreground">Interna, de la plantilla</span>
+                                </template>
+                                <template v-else-if="accion.imparte === 'externa'">
+                                    <span v-if="accion.ponente_nombre">{{ accion.ponente_nombre }}</span>
+                                    <Link
+                                        v-if="accion.proveedor"
+                                        :href="`/proveedores/${accion.proveedor.id}`"
+                                        class="underline underline-offset-4"
+                                        :class="accion.ponente_nombre && 'block text-xs'"
+                                    >
+                                        {{ accion.proveedor.nombre }}
+                                    </Link>
+                                    <span class="block text-xs text-muted-foreground">Externa</span>
+                                </template>
+                                <span v-else class="text-muted-foreground">Sin indicar</span>
+                            </dd>
 
                             <dt class="text-muted-foreground">Vale hasta</dt>
                             <dd>

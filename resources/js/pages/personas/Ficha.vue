@@ -107,6 +107,10 @@ interface Formacion {
     medida: string | null;
     fecha: string | null;
     asistio: boolean;
+    /** De quien faltó: «Justificada» o «Sin justificar»; nula es sin indicar. */
+    ausencia: string | null;
+    /** Los adjuntos que cuelgan a la vez de esta persona y de la sesión. */
+    diplomas: { id: number; nombre_fichero: string }[];
 }
 
 interface Acuerdo {
@@ -691,7 +695,17 @@ const listasOrdenadas = computed(() =>
                                 <span class="text-xs text-muted-foreground">
                                     {{ item.fecha }} ·
                                     <span class="cifra">{{ item.medida }}</span>
+                                    <template v-if="!item.asistio && item.ausencia"> · {{ item.ausencia }}</template>
                                 </span>
+                                <a
+                                    v-for="diploma in item.diplomas"
+                                    :key="diploma.id"
+                                    :href="`/personas/${persona.id}/adjuntos/${diploma.id}/descargar`"
+                                    class="inline-flex items-center gap-1 text-xs font-medium underline underline-offset-4"
+                                >
+                                    <IconoTipo nombre="GraduationCap" class="size-3.5" />
+                                    Diploma
+                                </a>
                             </li>
                         </ul>
                     </CardContent>

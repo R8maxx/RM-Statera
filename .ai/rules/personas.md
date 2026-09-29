@@ -142,6 +142,50 @@ registrado** y abajo se edita, así que las cifras de arriba no se mueven hasta
 guardar. `/formacion/crear?desde=` propone la siguiente con lo de ésta y la
 fecha en que vence.
 
+### Cómo y quién la impartió
+
+`modalidad` (presencial / en línea / mixta) e `imparte` (interna / externa) en
+`acciones_formativas`, nulas en lo que ya había porque nadie lo apuntó.
+
+- **Interna → `ponente_persona_id`**, una persona y no una cuenta: quien da la
+  charla no tiene por qué entrar en Statera.
+- **Externa → `ponente_nombre` y, si está dado de alta, `proveedor_id`**. El
+  formador de una academia no es de la plantilla; la academia sí puede ser un
+  proveedor con su contrato evaluado.
+- **Un `CHECK` impide mezclar las dos**, y no exige el ponente porque borrar la
+  persona o el proveedor lo deja a nulo. Lo exige el `FormRequest`.
+- **`GuardarAccionFormativaRequest::datos()` y no `validated()`.** Los campos del
+  ponente se pintan con `v-if` según `imparte`, así que al pasar de externa a
+  interna el nombre del formador no viaja, `validated()` no lo trae y la fila
+  conservaría el de antes: el `CHECK` rechazaría el guardado con un 500. `datos()`
+  vacía lo que no corresponde.
+
+### El diploma de cada asistente: un adjunto, no una evidencia
+
+**Decidido con César, y el motivo es de protección de datos**: un diploma lleva el
+nombre —a veces el documento— de la persona, y el bucket de evidencias tiene
+Object Lock en modo compliance, así que como evidencia no se podría borrar nunca,
+ni al suprimirla. Como adjunto, `SeudonimizarPersona` se lo lleva. La prueba de la
+medida sigue siendo la hoja de firmas de la sesión.
+
+**Sin tabla ni columna propia**: el diploma **es** el adjunto que cuelga a la vez
+de `accion_formativa_adjunto` y de `persona_adjunto` (`DiplomasDeFormacion`). Se
+sube a los dos anfitriones en la misma llamada —`SubirAdjunto` acepta
+`$tambien`— y por eso sale en la ficha de la persona sin hacer nada más. En la
+ficha de la sesión se aparta del «Material» para no mezclarlo con el temario.
+
+- **Sólo de quien consta como asistente en lo guardado**: lo comprueba
+  `SubirDiplomaRequest`, y la pantalla no lo ofrece con cambios sin guardar
+  porque la subida recarga y se llevaría las casillas.
+- **La ruta lleva `withoutScopedBindings()`**: su grupo acota, y con la persona
+  detrás de `{accion}` Laravel busca `$accion->personas()`, que no existe —500—.
+  La persona no es hija de la sesión sino de la organización; que asistió lo mira
+  la validación.
+- **Lo que no hace**: no comprueba que el fichero sea un diploma de esa sesión
+  (lo mismo que declara `adjuntos.md`), y si luego se desmarca la asistencia el
+  diploma se queda: borrarlo es una decisión de quien lo subió, no un efecto
+  secundario de una casilla.
+
 ### El IND-03 pasó de manual a calculado
 
 `CalculoIndicador::PersonalFormado` — activas con al menos una asistencia en los

@@ -43,6 +43,12 @@ final readonly class SubirAdjunto
      * El vínculo va en la misma llamada y no en dos pasos a propósito: un
      * adjunto sin anfitrión no lo enseña ninguna pantalla, así que dejar la
      * puerta abierta a crearlo suelto es dejar la puerta abierta a huérfanos.
+     *
+     * `$tambien` cuelga el mismo fichero de más anfitriones en la misma llamada:
+     * el diploma de un curso documenta a la vez a la sesión y a quien la hizo, y
+     * subirlo dos veces serían dos ficheros que pueden discrepar.
+     *
+     * @param  list<Model&ConAdjuntos>  $tambien
      */
     public function __invoke(
         Model&ConAdjuntos $anfitrion,
@@ -50,6 +56,7 @@ final readonly class SubirAdjunto
         string $titulo,
         ?string $nota = null,
         ?User $subidoPor = null,
+        array $tambien = [],
     ): Adjunto {
         $adjunto = Adjunto::query()->create([
             ...$this->guardar($fichero),
@@ -58,9 +65,11 @@ final readonly class SubirAdjunto
             'subido_por_id' => $subidoPor?->id,
         ]);
 
-        $anfitrion->adjuntos()->attach($adjunto->id, [
-            'organizacion_id' => $adjunto->organizacion_id,
-        ]);
+        foreach ([$anfitrion, ...$tambien] as $cada) {
+            $cada->adjuntos()->attach($adjunto->id, [
+                'organizacion_id' => $adjunto->organizacion_id,
+            ]);
+        }
 
         return $adjunto;
     }

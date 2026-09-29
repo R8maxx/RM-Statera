@@ -8,7 +8,10 @@ use App\Domain\Adjunto\Concerns\ConAdjuntos;
 use App\Domain\Adjunto\Concerns\TieneAdjuntos;
 use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
+use App\Domain\Persona\Enums\ImparticionFormacion;
+use App\Domain\Persona\Enums\ModalidadFormacion;
 use App\Domain\Persona\Enums\TipoAccionFormativa;
+use App\Domain\Proveedor\Models\Proveedor;
 use App\Domain\Traza\Concerns\RegistraTraza;
 use Database\Factories\Persona\AccionFormativaFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -36,6 +39,11 @@ use Illuminate\Support\Carbon;
  * @property ?string $duracion_horas
  * @property ?string $contenido
  * @property ?int $evidencia_id
+ * @property ?ModalidadFormacion $modalidad
+ * @property ?ImparticionFormacion $imparte
+ * @property ?int $ponente_persona_id
+ * @property ?int $proveedor_id
+ * @property ?string $ponente_nombre
  */
 class AccionFormativa extends Model implements ConAdjuntos
 {
@@ -57,6 +65,11 @@ class AccionFormativa extends Model implements ConAdjuntos
         'duracion_horas',
         'contenido',
         'evidencia_id',
+        'modalidad',
+        'imparte',
+        'ponente_persona_id',
+        'proveedor_id',
+        'ponente_nombre',
     ];
 
     /** La hoja de firmas escaneada, el material, el certificado del proveedor. */
@@ -69,6 +82,26 @@ class AccionFormativa extends Model implements ConAdjuntos
     public function evidencia(): BelongsTo
     {
         return $this->belongsTo(Evidencia::class);
+    }
+
+    /**
+     * Quien la impartió, si fue alguien de la plantilla.
+     *
+     * @return BelongsTo<Persona, $this>
+     */
+    public function ponente(): BelongsTo
+    {
+        return $this->belongsTo(Persona::class, 'ponente_persona_id');
+    }
+
+    /**
+     * La empresa que la impartió, si fue externa y está dada de alta.
+     *
+     * @return BelongsTo<Proveedor, $this>
+     */
+    public function proveedor(): BelongsTo
+    {
+        return $this->belongsTo(Proveedor::class);
     }
 
     /** @return HasMany<Asistencia, $this> */
@@ -113,6 +146,8 @@ class AccionFormativa extends Model implements ConAdjuntos
     {
         return [
             'tipo' => TipoAccionFormativa::class,
+            'modalidad' => ModalidadFormacion::class,
+            'imparte' => ImparticionFormacion::class,
             'fecha' => 'date',
             'duracion_horas' => 'decimal:2',
         ];

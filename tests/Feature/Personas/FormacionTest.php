@@ -2,19 +2,26 @@
 
 declare(strict_types=1);
 
+use App\Domain\Adjunto\Models\Adjunto;
 use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Metrica\Enums\CalculoIndicador;
+use App\Domain\Persona\DiplomasDeFormacion;
+use App\Domain\Persona\Enums\ImparticionFormacion;
 use App\Domain\Persona\Enums\JustificacionAusencia;
+use App\Domain\Persona\Enums\ModalidadFormacion;
 use App\Domain\Persona\Enums\TipoAccionFormativa;
 use App\Domain\Persona\Models\AccionFormativa;
 use App\Domain\Persona\Models\Asistencia;
 use App\Domain\Persona\Models\Persona;
 use App\Domain\Persona\RegistrarAsistencia;
 use App\Domain\Persona\SeudonimizarPersona;
+use App\Domain\Proveedor\Models\Proveedor;
 use App\Http\Requests\Concerns\SeleccionVacia;
 use Illuminate\Database\QueryException;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia;
 
 /*
@@ -380,4 +387,154 @@ it('programa la siguiente con lo de ésta y la fecha en que vence', function ():
             ->where('sugerencia.titulo', $this->accion->titulo)
             ->where('sugerencia.tipo', $this->accion->tipo->value)
             ->where('sugerencia.fecha', $this->accion->vigenteHasta()->toDateString()));
+});
+
+/*
+|--------------------------------------------------------------------------
+| Cómo y quién la impartió
+|--------------------------------------------------------------------------
+*/
+
+/** @return array<string, mixed> */
+function datosDeSesion(array $extra = []): array
+{
+    return [
+        'codigo' => 'FOR-900',
+        'titulo' => 'Correo sospechoso',
+        'tipo' => 'concienciacion',
+        'fecha' => '2026-03-12',
+        ...$extra,
+    ];
+}
+
+it('registra una sesión interna con la persona que la impartió', function (): void {
+    $ponente = Persona::factory()->create();
+
+    $this->actingAs($this->usuario)
+        ->post('/formacion', datosDeSesion([
+            'modalidad' => 'presencial',
+            'imparte' => 'interna',
+            'ponente_persona_id' => $ponente->id,
+        ]))
+        ->assertSessionHasNoErrors();
+
+    $sesion = AccionFormativa::query()->where('codigo', 'FOR-900')->sole();
+
+    expect($sesion->modalidad)->toBe(ModalidadFormacion::Presencial)
+        ->and($sesion->imparte)->toBe(ImparticionFormacion::Interna)
+        ->and($sesion->ponente_persona_id)->toBe($ponente->id);
+});
+
+it('pide la persona si la sesión es interna', function (): void {
+    $this->actingAs($this->usuario)
+        ->post('/formacion', datosDeSesion(['imparte' => 'interna']))
+        ->assertSessionHasErrors('ponente_persona_id');
+});
+
+it('pide quién o qué empresa si la sesión es externa', function (): void {
+    $this->actingAs($this->usuario)
+        ->post('/formacion', datosDeSesion(['imparte' => 'externa']))
+        ->assertSessionHasErrors('ponente_nombre');
+});
+
+/**
+ * Al cambiar de externa a interna, el nombre del formador no viaja —su campo
+ * ya no se pinta— y se quedaría en la fila: el `FormRequest` lo vacía.
+ */
+it('al pasar de externa a interna vacía el formador y el proveedor', function (): void {
+    $proveedor = Proveedor::factory()->create();
+    $ponente = Persona::factory()->create();
+    $this->accion->update(['imparte' => 'externa', 'ponente_nombre' => 'Formadora de fuera', 'proveedor_id' => $proveedor->id]);
+
+    $this->actingAs($this->usuario)
+        ->put("/formacion/{$this->accion->id}", datosDeSesion([
+            'codigo' => $this->accion->codigo,
+            'imparte' => 'interna',
+            'ponente_persona_id' => $ponente->id,
+        ]))
+        ->assertSessionHasNoErrors();
+
+    $this->accion->refresh();
+
+    expect($this->accion->ponente_persona_id)->toBe($ponente->id)
+        ->and($this->accion->ponente_nombre)->toBeNull()
+        ->and($this->accion->proveedor_id)->toBeNull();
+});
+
+it('la base no admite una sesión interna con proveedor', function (): void {
+    $proveedor = Proveedor::factory()->create();
+
+    expect(fn () => $this->accion->update(['imparte' => 'interna', 'proveedor_id' => $proveedor->id]))
+        ->toThrow(QueryException::class);
+});
+
+/*
+|--------------------------------------------------------------------------
+| El diploma de cada asistente
+|--------------------------------------------------------------------------
+|
+| Un adjunto y no una evidencia: lleva datos de la persona y tiene que poder
+| borrarse. Cuelga a la vez de la sesión y de la persona, y eso es lo que lo
+| hace diploma — no hay columna que lo diga en un segundo sitio.
+|
+*/
+
+it('sube el diploma de un asistente colgado de la sesión y de la persona', function (): void {
+    Storage::fake('adjuntos');
+    $persona = Persona::factory()->create();
+    ($this->registrar)($this->accion, [$persona->id => true]);
+
+    $this->actingAs($this->usuario)
+        ->post("/formacion/{$this->accion->id}/personas/{$persona->id}/diploma", [
+            'fichero' => UploadedFile::fake()->createWithContent('diploma.pdf', 'contenido sintetico'),
+        ])
+        ->assertSessionHasNoErrors();
+
+    $adjunto = Adjunto::query()->sole();
+
+    expect($this->accion->adjuntos()->pluck('adjuntos.id')->all())->toBe([$adjunto->id])
+        ->and($persona->adjuntos()->pluck('adjuntos.id')->all())->toBe([$adjunto->id]);
+
+    $this->actingAs($this->usuario)
+        ->get("/formacion/{$this->accion->id}")
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->where('personas.0.diplomas.0.id', $adjunto->id)
+            // En la fila de la persona y no mezclado con el material.
+            ->has('adjuntos', 0));
+
+    $this->actingAs($this->usuario)
+        ->get("/personas/{$persona->id}")
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->where('formacion.0.diplomas.0.id', $adjunto->id));
+});
+
+it('no admite el diploma de quien faltó', function (): void {
+    Storage::fake('adjuntos');
+    $persona = Persona::factory()->create();
+    ($this->registrar)($this->accion, [$persona->id => false]);
+
+    $this->actingAs($this->usuario)
+        ->post("/formacion/{$this->accion->id}/personas/{$persona->id}/diploma", [
+            'fichero' => UploadedFile::fake()->createWithContent('diploma.pdf', 'contenido sintetico'),
+        ])
+        ->assertSessionHasErrors('fichero');
+
+    expect(Adjunto::query()->count())->toBe(0);
+});
+
+it('la supresión de la persona se lleva su diploma también de la sesión', function (): void {
+    Storage::fake('adjuntos');
+    $persona = Persona::factory()->deBaja(Carbon::today()->subMonth())->create();
+    ($this->registrar)($this->accion, [$persona->id => true]);
+
+    $adjunto = app(DiplomasDeFormacion::class)->subir(
+        $this->accion,
+        $persona,
+        UploadedFile::fake()->createWithContent('diploma.pdf', 'contenido sintetico'),
+    );
+
+    app(SeudonimizarPersona::class)($persona);
+
+    expect(Adjunto::query()->count())->toBe(0);
+    Storage::disk('adjuntos')->assertMissing($adjunto->ruta);
 });
