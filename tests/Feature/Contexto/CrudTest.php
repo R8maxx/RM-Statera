@@ -3,11 +3,15 @@
 declare(strict_types=1);
 
 use App\Domain\Autorizacion\Enums\Rol;
+use App\Domain\Catalogo\Models\Requisito;
 use App\Domain\Contexto\Enums\NaturalezaRequisito;
 use App\Domain\Contexto\Enums\TipoCuestion;
 use App\Domain\Contexto\Models\CuestionContexto;
 use App\Domain\Contexto\Models\ParteInteresada;
 use App\Domain\Contexto\Models\RequisitoInteresado;
+use App\Domain\Contexto\VincularImplantacionARequisito;
+use App\Domain\Implantacion\Enums\EstadoImplantacion;
+use App\Domain\Implantacion\Models\Implantacion;
 use App\Domain\Organizacion\Models\Organizacion;
 use Illuminate\Support\Facades\DB;
 
@@ -166,6 +170,53 @@ it('una parte interesada se da de alta con sus requisitos aparte', function (): 
  * distingue un requisito —una línea de la ficha de su parte— de una cuestión del
  * DAFO, que es un juicio fechado y se retira con motivo.
  */
+/*
+ * Tres escalones y no dos: una obligación atada a una medida sin iniciar tiene
+ * medida, pero no está cumplida. Y la SoA sólo cita controles de ISO, así que una
+ * medida del ENS atada no sale como «exigido por».
+ */
+it('la ficha de una parte cuenta su cobertura y dice dónde se nota', function (): void {
+    $parte = ParteInteresada::factory()->create(['codigo' => 'PI-01']);
+    $legal = RequisitoInteresado::factory()->for($parte, 'parteInteresada')->legal()->create();
+    $contractual = RequisitoInteresado::factory()->for($parte, 'parteInteresada')
+        ->deNaturaleza(NaturalezaRequisito::Contractual)->create();
+    $cubierto = RequisitoInteresado::factory()->for($parte, 'parteInteresada')
+        ->deNaturaleza(NaturalezaRequisito::Contractual)->create();
+    RequisitoInteresado::factory()->for($parte, 'parteInteresada')->create();
+
+    $medidaEns = Implantacion::factory()
+        ->for(Requisito::factory()->conCodigo('mp.com.1'), 'requisito')
+        ->create();
+    $controlIso = Implantacion::factory()
+        ->for(Requisito::factory()->control()->conCodigo('A.5.24'), 'requisito')
+        ->enEstado(EstadoImplantacion::Implantado)
+        ->create();
+
+    $vinculos = app(VincularImplantacionARequisito::class);
+    $vinculos->vincular($legal, $medidaEns, $this->usuario);
+    $vinculos->vincular($cubierto, $controlIso, $this->usuario);
+
+    $this->actingAs($this->usuario)
+        ->get("/partes-interesadas/{$parte->id}")
+        ->assertOk()
+        ->assertInertia(fn ($pagina) => $pagina
+            ->component('partes-interesadas/Ficha')
+            ->where('cobertura.obligan', 3)
+            ->where('cobertura.legales', 1)
+            ->where('cobertura.contractuales', 2)
+            ->where('cobertura.conMedida', 2)
+            ->where('cobertura.conMedidaImplantada', 1)
+            ->where('cobertura.sinMedida', 1)
+            ->where('cobertura.pendientesDeImplantar', ['mp.com.1'])
+            ->where('cobertura.citadasEnSoa', ['A.5.24'])
+            ->where('cobertura.medidasEnsAtadas', ['mp.com.1'])
+            ->where('cobertura.partesConObligacionSinCubrir', 1)
+            ->where('cobertura.cuentaEnElIndicador', true)
+            ->where('requisitos', fn ($requisitos): bool => collect($requisitos)
+                ->firstWhere('id', $contractual->id)['sinCubrir'] === true
+                && collect($requisitos)->where('sinCubrir', true)->count() === 1));
+});
+
 it('guardar la lista de requisitos borra lo que ya no está', function (): void {
     $parte = ParteInteresada::factory()->create();
     $requisito = RequisitoInteresado::factory()->for($parte, 'parteInteresada')->create();

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Domain\Autorizacion\Enums\Permiso;
+use App\Domain\Contexto\CoberturaParteInteresada;
 use App\Domain\Contexto\CodigoContexto;
 use App\Domain\Contexto\Enums\Ambito;
 use App\Domain\Contexto\Enums\NaturalezaRequisito;
@@ -74,7 +75,7 @@ class ParteInteresadaController extends Controller
         return to_route('partes-interesadas.show', $parte);
     }
 
-    public function show(ParteInteresada $parte): Response
+    public function show(ParteInteresada $parte, CoberturaParteInteresada $cobertura): Response
     {
         $parte->load([
             'responsable',
@@ -96,8 +97,11 @@ class ParteInteresadaController extends Controller
                 'vigente' => $parte->estaVigente(),
                 'motivoBaja' => $parte->motivo_baja,
                 'altaEn' => $parte->analisisAlta?->etiqueta(),
+                'altaAnalisisId' => $parte->analisisAlta?->id,
+                'altaFecha' => $parte->analisisAlta?->fecha_analisis->toDateString(),
                 'bajaEn' => $parte->analisisBaja?->etiqueta(),
             ],
+            'cobertura' => $cobertura($parte),
             'requisitos' => $parte->requisitos
                 ->map(fn (RequisitoInteresado $requisito): array => $this->serializarRequisito($requisito))
                 ->all(),
@@ -254,6 +258,7 @@ class ParteInteresadaController extends Controller
             'es_climatico' => $requisito->es_climatico,
             'referencia' => $requisito->referencia,
             'como_se_atiende' => $requisito->como_se_atiende,
+            'sinCubrir' => $requisito->estaSinCubrir(),
             'implantaciones' => $requisito->implantaciones->map(fn (Implantacion $implantacion): array => [
                 'id' => $implantacion->id,
                 'codigo' => $implantacion->requisito?->codigo,

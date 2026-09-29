@@ -3,7 +3,7 @@ import CabeceraPagina from '@/components/CabeceraPagina.vue';
 import EstadoVacio from '@/components/EstadoVacio.vue';
 import IconoTipo from '@/components/IconoTipo.vue';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -14,10 +14,12 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { fechaLegible } from '@/lib/celdas';
 import type { Opcion } from '@/lib/formularios';
 import { tono } from '@/lib/tonos';
 import { Link, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { ArchiveIcon, ChartLineIcon, CircleDotIcon, CircleOffIcon, FileTextIcon, PlusIcon, XIcon } from '@lucide/vue';
+import { computed, ref } from 'vue';
 
 /**
  * La ficha de una parte interesada: quién es y qué exige. Cláusula 4.2.
@@ -30,6 +32,14 @@ import { ref } from 'vue';
  * Y de aquí sale la costura que paga el módulo: atar un requisito legal a la medida
  * que lo cubre es lo que permite que la Declaración de Aplicabilidad lo imprima
  * como justificación de inclusión.
+ *
+ * **La tira de cobertura tiene tres escalones y no dos**: obliga, tiene medida y la
+ * medida está implantada. Con sólo los dos primeros, una obligación atada a una
+ * medida sin iniciar se leía como cubierta. Las cifras las cuenta
+ * `CoberturaParteInteresada`, no este fichero.
+ *
+ * La columna lateral va como en el resto de fichas —«Estado», «Ficha» y detrás lo
+ * demás—, y por eso «Retirar» vive en «Estado» y no en la cabecera.
  */
 
 interface ImplantacionVinculada {
@@ -53,6 +63,7 @@ interface Requisito {
     es_climatico: boolean;
     referencia: string | null;
     como_se_atiende: string | null;
+    sinCubrir: boolean;
     implantaciones: ImplantacionVinculada[];
 }
 
@@ -76,18 +87,54 @@ interface Parte {
     vigente: boolean;
     motivoBaja: string | null;
     altaEn: string | null;
+    altaAnalisisId: number | null;
+    altaFecha: string | null;
     bajaEn: string | null;
+}
+
+interface Cobertura {
+    obligan: number;
+    legales: number;
+    contractuales: number;
+    conMedida: number;
+    conMedidaImplantada: number;
+    sinMedida: number;
+    pendientesDeImplantar: string[];
+    citadasEnSoa: string[];
+    medidasEnsAtadas: string[];
+    partesConObligacionSinCubrir: number;
+    cuentaEnElIndicador: boolean;
 }
 
 const props = defineProps<{
     parte: Parte;
     requisitos: Requisito[];
+    cobertura: Cobertura;
     puedeGestionar: boolean;
     naturalezas: Opcion[];
     implantacionesDisponibles: Opcion[];
 }>();
 
 const enviando = ref(false);
+
+/** El primero que obliga sin nada detrás: a donde lleva «N sin medida detrás». */
+const primeroSinCubrir = computed(() => props.requisitos.find((requisito) => requisito.sinCubrir) ?? null);
+
+const repartoObligan = computed(() =>
+    [
+        props.cobertura.legales > 0 ? `${props.cobertura.legales} ${props.cobertura.legales === 1 ? 'legal' : 'legales'}` : null,
+        props.cobertura.contractuales > 0
+            ? `${props.cobertura.contractuales} ${props.cobertura.contractuales === 1 ? 'contractual' : 'contractuales'}`
+            : null,
+    ]
+        .filter(Boolean)
+        .join(' · '),
+);
+
+function abrirVinculo(requisitoId: number): void {
+    vinculando.value = requisitoId;
+    implantacionElegida.value = '';
+}
 
 /* Retirar, con su motivo. */
 const retirando = ref(false);
@@ -196,163 +243,348 @@ function desvincular(requisitoId: number, implantacionId: number): void {
 <template>
     <AppLayout :titulo="`${parte.codigo} · ${parte.nombre}`">
         <CabeceraPagina :titulo="parte.nombre" :codigo="parte.codigo" :descripcion="parte.descripcion">
+            <p class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] font-medium text-secondary-foreground">
+                <span>{{ parte.tipo }}</span>
+                <span aria-hidden="true" class="text-border">|</span>
+                <span>{{ parte.ambito }}</span>
+                <span aria-hidden="true" class="text-border">|</span>
+                <span class="text-muted-foreground">Atiende: {{ parte.responsable ?? 'sin asignar' }}</span>
+            </p>
+
             <template #acciones>
                 <Button v-if="puedeGestionar" variant="outline" size="sm" as-child>
-                    <Link :href="`/partes-interesadas/${parte.id}/editar`">Editar</Link>
-                </Button>
-                <Button
-                    v-if="puedeGestionar && parte.vigente"
-                    variant="outline"
-                    size="sm"
-                    @click="retirando = true"
-                >
-                    Retirar
+                    <Link :href="`/partes-interesadas/${parte.id}/editar`">Editar la ficha</Link>
                 </Button>
             </template>
         </CabeceraPagina>
 
-        <div class="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle class="flex flex-wrap items-center gap-2">
-                        <span class="text-sm font-normal text-muted-foreground">
-                            {{ parte.tipo }} · {{ parte.ambito }}
-                        </span>
-                        <span
-                            v-if="!parte.vigente"
-                            class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium"
-                            :class="tono('no_aplica').badge"
-                        >
-                            <IconoTipo nombre="Archive" />
-                            Retirada
-                        </span>
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <dl class="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
-                        <div>
-                            <dt class="text-xs text-muted-foreground">Quién la atiende</dt>
-                            <dd>{{ parte.responsable ?? 'Sin asignar' }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-xs text-muted-foreground">Dada de alta en</dt>
-                            <dd>{{ parte.altaEn ?? '—' }}</dd>
-                        </div>
-                        <div v-if="!parte.vigente">
-                            <dt class="text-xs text-muted-foreground">Retirada en</dt>
-                            <dd>{{ parte.bajaEn ?? '—' }}</dd>
-                        </div>
-                        <div v-if="parte.motivoBaja" class="sm:col-span-2">
-                            <dt class="text-xs text-muted-foreground">Por qué se retiró</dt>
-                            <dd>{{ parte.motivoBaja }}</dd>
-                        </div>
-                    </dl>
-                </CardContent>
-            </Card>
-
-            <Card>
+        <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+            <Card class="h-fit">
                 <CardHeader class="flex flex-row flex-wrap items-start justify-between gap-2">
-                    <div>
+                    <div class="space-y-1">
                         <CardTitle>Qué exige o espera</CardTitle>
-                        <p class="text-sm text-muted-foreground">
-                            Lo legal y lo contractual obligan; una expectativa no. La diferencia
-                            decide qué se cuenta como laguna y qué puede justificar la inclusión de
-                            un control en la Declaración de Aplicabilidad.
-                        </p>
+                        <CardDescription class="max-w-2xl">
+                            Lo legal y lo contractual obligan y pueden justificar un control en la
+                            Declaración de Aplicabilidad. Una expectativa se tiene en cuenta, pero no obliga.
+                        </CardDescription>
                     </div>
                     <Button v-if="puedeGestionar" variant="outline" size="sm" @click="abrirEdicion">
                         Editar la lista
                     </Button>
                 </CardHeader>
 
-                <CardContent class="space-y-4">
+                <CardContent class="space-y-2">
                     <EstadoVacio
                         v-if="requisitos.length === 0"
                         titulo="Sin requisitos escritos"
                         descripcion="Una parte interesada sin nada anotado no contesta a la pregunta de la cláusula 4.2."
                     />
 
+                    <!-- La tira: cada cifra con su denominador (DESIGN.md § 1). -->
+                    <dl
+                        v-else-if="cobertura.obligan > 0"
+                        class="grid divide-y divide-border rounded-xl border border-border bg-superficie sm:grid-cols-3 sm:divide-x sm:divide-y-0"
+                    >
+                        <div class="flex flex-col gap-0.5 px-4 py-3.5">
+                            <dt class="order-2 text-[13px] font-medium text-secondary-foreground">
+                                {{ cobertura.obligan === 1 ? 'obliga' : 'obligan' }}
+                            </dt>
+                            <dd class="order-1 flex items-baseline gap-1.5">
+                                <span class="cifra text-xl leading-7 font-semibold">{{ cobertura.obligan }}</span>
+                                <span class="text-[13px] text-muted-foreground">de {{ requisitos.length }}</span>
+                            </dd>
+                            <dd class="order-3 text-xs text-muted-foreground">{{ repartoObligan }}</dd>
+                        </div>
+                        <div class="flex flex-col gap-0.5 px-4 py-3.5">
+                            <dt class="order-2 text-[13px] font-medium text-secondary-foreground">con una medida atada</dt>
+                            <dd class="order-1 flex items-baseline gap-1.5">
+                                <span class="cifra text-xl leading-7 font-semibold">{{ cobertura.conMedida }}</span>
+                                <span class="text-[13px] text-muted-foreground">de {{ cobertura.obligan }}</span>
+                            </dd>
+                            <dd class="order-3 text-xs">
+                                <a
+                                    v-if="primeroSinCubrir"
+                                    :href="`#requisito-${primeroSinCubrir.id}`"
+                                    class="text-primary hover:underline"
+                                >
+                                    {{ cobertura.sinMedida }} sin medida detrás
+                                </a>
+                                <span v-else class="text-muted-foreground">Ninguna sin medida</span>
+                            </dd>
+                        </div>
+                        <div class="flex flex-col gap-0.5 px-4 py-3.5">
+                            <dt class="order-2 text-[13px] font-medium text-secondary-foreground">con la medida implantada</dt>
+                            <dd class="order-1 flex items-baseline gap-1.5">
+                                <span class="cifra text-xl leading-7 font-semibold">{{ cobertura.conMedidaImplantada }}</span>
+                                <span class="text-[13px] text-muted-foreground">de {{ cobertura.obligan }}</span>
+                            </dd>
+                            <dd class="order-3 text-xs text-muted-foreground">
+                                <template v-if="cobertura.pendientesDeImplantar.length > 0">
+                                    <span class="cifra">{{ cobertura.pendientesDeImplantar.join(', ') }}</span>
+                                    sin implantar
+                                </template>
+                                <template v-else-if="cobertura.conMedida > 0">Todas las atadas, implantadas</template>
+                                <template v-else>Sin medidas atadas todavía</template>
+                            </dd>
+                        </div>
+                    </dl>
+
+                    <p v-else class="text-sm text-muted-foreground">
+                        Nada de lo anotado obliga: son expectativas, y no cuentan como laguna.
+                    </p>
+
                     <article
                         v-for="requisito in requisitos"
+                        :id="`requisito-${requisito.id}`"
                         :key="requisito.id"
-                        class="space-y-2 border-b border-border pb-4 last:border-b-0 last:pb-0"
+                        class="grid scroll-mt-24 gap-3 border-b border-border py-5 last:border-b-0 last:pb-0 sm:grid-cols-[11rem_minmax(0,1fr)] sm:gap-4"
                     >
-                        <header class="flex flex-wrap items-start justify-between gap-2">
-                            <p class="min-w-0 text-sm">{{ requisito.descripcion }}</p>
+                        <div class="flex flex-wrap items-center gap-2 sm:flex-col sm:items-start">
                             <span
-                                class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium"
+                                class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium"
                                 :class="tono(requisito.naturalezaTono).badge"
                             >
                                 <IconoTipo :nombre="requisito.naturalezaIcono" />
                                 {{ requisito.naturalezaEtiqueta }}
                             </span>
-                        </header>
+                            <span v-if="requisito.referencia" class="cifra text-xs text-muted-foreground">
+                                {{ requisito.referencia }}
+                            </span>
+                        </div>
 
-                        <p v-if="requisito.referencia" class="cifra text-xs text-muted-foreground">
-                            {{ requisito.referencia }}
-                        </p>
-                        <p v-if="requisito.como_se_atiende" class="text-sm text-muted-foreground">
-                            {{ requisito.como_se_atiende }}
-                        </p>
-                        <p v-if="requisito.es_climatico" class="text-xs text-muted-foreground">
-                            Relacionado con el cambio climático (enmienda 1:2024).
-                        </p>
+                        <div class="min-w-0 space-y-3">
+                            <p class="text-sm font-medium">{{ requisito.descripcion }}</p>
 
-                        <ul v-if="requisito.implantaciones.length > 0" class="space-y-1">
-                            <li
-                                v-for="implantacion in requisito.implantaciones"
-                                :key="implantacion.id"
-                                class="flex flex-wrap items-center justify-between gap-2 text-sm"
-                            >
-                                <Link
-                                    :href="`/implantaciones/${implantacion.id}`"
-                                    class="min-w-0 hover:underline"
+                            <div class="space-y-0.5">
+                                <p class="text-xs text-muted-foreground">Cómo se atiende</p>
+                                <p
+                                    class="text-sm"
+                                    :class="requisito.como_se_atiende ? 'text-secondary-foreground' : 'text-muted-foreground'"
                                 >
-                                    <span class="cifra text-xs text-muted-foreground">
-                                        {{ implantacion.codigo }}
-                                    </span>
-                                    {{ implantacion.titulo }}
-                                    <span class="text-xs text-muted-foreground">({{ implantacion.sistema }})</span>
-                                </Link>
-                                <div class="flex shrink-0 items-center gap-2">
-                                    <span
-                                        class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium"
-                                        :class="tono(implantacion.estadoTono).badge"
+                                    {{ requisito.como_se_atiende ?? 'Sin anotar todavía.' }}
+                                </p>
+                            </div>
+
+                            <p v-if="requisito.es_climatico" class="text-xs text-muted-foreground">
+                                Relacionado con el cambio climático (enmienda 1:2024).
+                            </p>
+
+                            <div v-if="requisito.implantaciones.length > 0" class="space-y-1.5">
+                                <p class="text-xs text-muted-foreground">
+                                    {{ requisito.implantaciones.length === 1 ? 'La medida que lo cubre' : 'Las medidas que lo cubren' }}
+                                </p>
+                                <ul class="space-y-1.5">
+                                    <li
+                                        v-for="implantacion in requisito.implantaciones"
+                                        :key="implantacion.id"
+                                        class="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md bg-superficie py-1.5 pr-1.5 pl-3"
                                     >
-                                        <IconoTipo :nombre="implantacion.estadoIcono" />
-                                        {{ implantacion.estado }}
-                                    </span>
-                                    <Button
-                                        v-if="puedeGestionar"
-                                        variant="ghost"
-                                        size="sm"
-                                        @click="desvincular(requisito.id, implantacion.id)"
-                                    >
-                                        Quitar
-                                    </Button>
+                                        <Link
+                                            :href="`/implantaciones/${implantacion.id}`"
+                                            class="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 text-sm hover:underline"
+                                        >
+                                            <span class="cifra text-xs text-muted-foreground">{{ implantacion.codigo }}</span>
+                                            <span class="font-medium">{{ implantacion.titulo }}</span>
+                                            <span class="cifra text-xs text-muted-foreground">{{ implantacion.sistema }}</span>
+                                        </Link>
+                                        <span
+                                            class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium"
+                                            :class="tono(implantacion.estadoTono).badge"
+                                        >
+                                            <IconoTipo :nombre="implantacion.estadoIcono" />
+                                            {{ implantacion.estado }}
+                                        </span>
+                                        <Button
+                                            v-if="puedeGestionar"
+                                            variant="ghost"
+                                            size="icon-sm"
+                                            :aria-label="`Quitar ${implantacion.codigo ?? 'la medida'} de este requisito`"
+                                            @click="desvincular(requisito.id, implantacion.id)"
+                                        >
+                                            <XIcon class="size-4" />
+                                        </Button>
+                                    </li>
+                                </ul>
+                                <Button
+                                    v-if="puedeGestionar"
+                                    variant="ghost"
+                                    size="sm"
+                                    class="text-primary"
+                                    @click="abrirVinculo(requisito.id)"
+                                >
+                                    <PlusIcon class="size-4" />
+                                    Atar otra medida
+                                </Button>
+                            </div>
+
+                            <!-- El hueco: neutro, no rojo. Una obligación sin medida es una
+                                 pregunta pendiente, no un incumplimiento (contexto.md). -->
+                            <div
+                                v-else-if="requisito.sinCubrir"
+                                class="flex flex-wrap items-center justify-between gap-3 rounded-md border border-dashed border-input px-3.5 py-3"
+                            >
+                                <div class="flex min-w-0 items-start gap-2.5">
+                                    <CircleOffIcon class="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                                    <div class="space-y-0.5">
+                                        <p class="text-sm font-medium text-secondary-foreground">Sin ninguna medida detrás</p>
+                                        <p class="text-xs text-muted-foreground">
+                                            Obliga y nada lo cubre: cuenta en el indicador de obligaciones sin cubrir.
+                                        </p>
+                                    </div>
                                 </div>
-                            </li>
-                        </ul>
+                                <Button v-if="puedeGestionar" size="sm" @click="abrirVinculo(requisito.id)">
+                                    <PlusIcon class="size-4" />
+                                    Atar una medida
+                                </Button>
+                            </div>
 
-                        <p v-else-if="requisito.obliga" class="text-sm text-muted-foreground">
-                            Sin ninguna medida detrás. Esto es lo que cuenta el indicador de
-                            obligaciones sin cubrir.
-                        </p>
-
-                        <Button
-                            v-if="puedeGestionar"
-                            variant="outline"
-                            size="sm"
-                            @click="
-                                vinculando = requisito.id;
-                                implantacionElegida = '';
-                            "
-                        >
-                            Atar una medida
-                        </Button>
+                            <Button
+                                v-else-if="puedeGestionar"
+                                variant="ghost"
+                                size="sm"
+                                class="text-primary"
+                                @click="abrirVinculo(requisito.id)"
+                            >
+                                <PlusIcon class="size-4" />
+                                Atar una medida
+                            </Button>
+                        </div>
                     </article>
                 </CardContent>
             </Card>
+
+            <div class="h-fit space-y-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Estado</CardTitle>
+                    </CardHeader>
+                    <CardContent class="space-y-3">
+                        <span
+                            v-if="parte.vigente"
+                            class="inline-flex items-center gap-1.5 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-secondary-foreground"
+                        >
+                            <CircleDotIcon class="size-3.5" aria-hidden="true" />
+                            Vigente
+                        </span>
+                        <span
+                            v-else
+                            class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium"
+                            :class="tono('no_aplica').badge"
+                        >
+                            <IconoTipo nombre="Archive" />
+                            Retirada
+                        </span>
+
+                        <div v-if="!parte.vigente" class="space-y-1 text-[13px]">
+                            <p class="text-muted-foreground">Retirada en {{ parte.bajaEn ?? '—' }}.</p>
+                            <p v-if="parte.motivoBaja">{{ parte.motivoBaja }}</p>
+                        </div>
+
+                        <Button
+                            v-if="puedeGestionar && parte.vigente"
+                            variant="outline"
+                            size="sm"
+                            @click="retirando = true"
+                        >
+                            <ArchiveIcon class="size-4" />
+                            Retirar con su motivo
+                        </Button>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Ficha</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <dl class="grid grid-cols-[8rem_minmax(0,1fr)] gap-x-3 gap-y-2.5 text-sm">
+                            <dt class="text-[13px] text-muted-foreground">Código</dt>
+                            <dd class="cifra text-[13px]">{{ parte.codigo }}</dd>
+                            <dt class="text-[13px] text-muted-foreground">Tipo</dt>
+                            <dd>{{ parte.tipo }}</dd>
+                            <dt class="text-[13px] text-muted-foreground">Ámbito</dt>
+                            <dd>{{ parte.ambito }}</dd>
+                            <dt class="text-[13px] text-muted-foreground">Quién la atiende</dt>
+                            <dd :class="{ 'text-muted-foreground': !parte.responsable }">
+                                {{ parte.responsable ?? 'Sin asignar' }}
+                            </dd>
+                            <dt class="text-[13px] text-muted-foreground">Dada de alta</dt>
+                            <dd>
+                                <Link
+                                    v-if="parte.altaAnalisisId"
+                                    :href="`/contexto/analisis/${parte.altaAnalisisId}`"
+                                    class="text-primary hover:underline"
+                                >
+                                    {{ parte.altaEn }}
+                                </Link>
+                                <span v-else>—</span>
+                                <span v-if="parte.altaFecha" class="text-muted-foreground">
+                                    · {{ fechaLegible(parte.altaFecha) }}
+                                </span>
+                            </dd>
+                        </dl>
+                    </CardContent>
+                </Card>
+
+                <Card v-if="cobertura.obligan > 0">
+                    <CardHeader>
+                        <CardTitle>Dónde cuenta</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <ul class="space-y-3">
+                            <li class="flex items-start gap-2.5">
+                                <FileTextIcon class="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+                                <div class="space-y-0.5">
+                                    <Link href="/documentos" class="text-sm font-medium text-primary hover:underline">
+                                        Declaración de Aplicabilidad
+                                    </Link>
+                                    <p class="text-[13px] text-muted-foreground">
+                                        <template v-if="cobertura.citadasEnSoa.length > 0">
+                                            <span class="cifra">{{ cobertura.citadasEnSoa.join(', ') }}</span>
+                                            {{ cobertura.citadasEnSoa.length === 1 ? 'imprime' : 'imprimen' }}
+                                            «exigido por {{ parte.nombre }}» como justificación de inclusión.
+                                        </template>
+                                        <template v-else>
+                                            No la cita: ningún control de ISO está atado a lo que obliga.
+                                        </template>
+                                        <template v-if="cobertura.medidasEnsAtadas.length > 0">
+                                            <span class="cifra">{{ cobertura.medidasEnsAtadas.join(', ') }}</span>
+                                            {{ cobertura.medidasEnsAtadas.length === 1 ? 'es una medida' : 'son medidas' }}
+                                            del ENS, y la DdA justifica desde la categoría del sistema.
+                                        </template>
+                                    </p>
+                                </div>
+                            </li>
+                            <li v-if="parte.vigente" class="flex items-start gap-2.5">
+                                <ChartLineIcon class="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+                                <div class="space-y-0.5">
+                                    <Link
+                                        href="/partes-interesadas?filter[obligacion_sin_cubrir]=1"
+                                        class="text-sm font-medium text-primary hover:underline"
+                                    >
+                                        Partes con obligaciones sin cubrir
+                                    </Link>
+                                    <p class="text-[13px] text-muted-foreground">
+                                        <template v-if="cobertura.cuentaEnElIndicador && cobertura.partesConObligacionSinCubrir === 1">
+                                            Es la única que cuenta hoy el indicador.
+                                        </template>
+                                        <template v-else-if="cobertura.cuentaEnElIndicador">
+                                            Es una de las
+                                            <span class="cifra">{{ cobertura.partesConObligacionSinCubrir }}</span>
+                                            que cuenta hoy el indicador.
+                                        </template>
+                                        <template v-else>
+                                            No cuenta: todo lo que obliga tiene una medida atada. Hoy son
+                                            <span class="cifra">{{ cobertura.partesConObligacionSinCubrir }}</span>
+                                            en la organización.
+                                        </template>
+                                    </p>
+                                </div>
+                            </li>
+                        </ul>
+                    </CardContent>
+                </Card>
+            </div>
         </div>
 
         <!-- La lista entera, en una sola petición. -->

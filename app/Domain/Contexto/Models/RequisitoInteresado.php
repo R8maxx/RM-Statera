@@ -125,6 +125,15 @@ class RequisitoInteresado extends Model
     }
 
     /**
+     * `scopeObligacionSinCubrir()` sobre la fila ya cargada: obliga y no tiene
+     * ninguna implantación detrás. La misma condición, para no deducirla en el `.vue`.
+     */
+    public function estaSinCubrir(): bool
+    {
+        return $this->naturaleza->obliga() && $this->implantaciones->isEmpty();
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array

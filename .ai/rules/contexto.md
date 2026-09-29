@@ -127,6 +127,17 @@ que cuenta la cifra de `resumen` y que filtra la tabla. Deducirlo en el `.vue` c
 obligaría a repetir allí qué tipos son adversos. El chip es neutro, no rojo, por lo mismo que las
 alertas del registro están vacías.
 
+**La ficha de una parte cuenta la cobertura en tres escalones y no en dos**: obliga, tiene una
+medida atada y esa medida está implantada. El indicador del registro sólo mira el segundo, y es a
+propósito —atar es lo que pide la 4.2—, pero una obligación atada a una medida sin iniciar se leía
+en la ficha como cubierta. Lo cuenta `CoberturaParteInteresada` sobre los requisitos ya cargados, y
+el hueco de cada requisito lo marca `RequisitoInteresado::estaSinCubrir()`, que es el scope
+`obligacionSinCubrir` sobre la fila: el `.vue` no lo deduce. **«Dónde cuenta» separa los controles
+de ISO de las medidas del ENS** porque la SoA sólo lista implantaciones de tipo `control`: una
+medida del ENS atada no sale como «exigido por», y sin decirlo alguien la ata esperando verla allí.
+La cifra del indicador es la de **partes** (`conObligacionSinCubrir`), no la de requisitos, porque
+el enlace lleva a la lista de partes y pulsar el número tiene que enseñar ese número.
+
 La columna lateral —«Lo que pide acción» y las cuatro partes con más requisitos que obligan— cuenta
 con las cifras que `resumen` ya traía, y cada fila enlaza a la lista filtrada que cuenta. El «+» de
 cada cuadrante es un enlace a `/contexto/cuestiones/crear?tipo=…`, que `create()` ya aceptaba.
