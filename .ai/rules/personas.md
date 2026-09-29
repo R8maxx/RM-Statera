@@ -109,6 +109,39 @@ ya trabajan la revisión por la dirección, la auditoría interna y el informe I
 Vive en `Persona::MESES_DE_VIGENCIA_FORMATIVA`, y la factory lo lee de ahí para
 que cambiar la cadencia no deje en verde un test que prueba lo contrario.
 
+### De quien faltó, si tenía motivo
+
+La pregunta siguiente a «¿quién faltó?» es «¿tenía motivo?», y un certificado
+médico y un olvido se veían igual. `asistencias` gana `ausencia`
+(`JustificacionAusencia`: justificada / sin justificar) y `motivo_ausencia`.
+
+- **Nula es «sin indicar»**, no injustificada: que nadie lo haya dicho no es decir
+  que no había motivo. La ficha lo cuenta como pendiente.
+- **La base impone que quien asistió no lleve ni una ni otro**, y que el motivo
+  sólo acompañe a la justificada. **Que la justificada lleve motivo lo exige el
+  `FormRequest` y no un `CHECK`**, porque la supresión vacía el motivo y
+  conserva que estaba justificada: eso es histórico de la convocatoria, el
+  motivo es de la persona.
+- **El motivo va cifrado** (`encrypted`): «baja médica» es un dato de salud.
+  **La traza guarda ese cifrado en los eventos de `Asistencia`, y
+  `depurar_traza_de_persona()` no los alcanza** —sólo depura `Persona` y
+  `Adjunto`—. Está declarado, no resuelto; ampliarla es otra migración de la
+  función con las restricciones de `aislamiento.md`.
+- `RegistrarAsistencia` recibe las ausencias en un tercer argumento opcional, así
+  que quien sólo marca asistencias —seeders, importadores, tests de otros
+  módulos— no cambia.
+
+**La ficha de la sesión** lee de `ConvocatoriaDeSesion`: la vigencia de cada
+persona **sin contar esta sesión** (`renovacion_previa`), para que el cliente
+pueda enseñar si quien faltó queda al descubierto y seguir a las casillas sin otra
+petición; y qué requisitos cubre, desde la medida del tipo más lo que el catálogo
+mapea (`CorrespondenciasCruzadas`), nunca escrito a mano. La vigencia **no
+distingue formación de concienciación**, igual que `RENOVACION_FORMATIVA`: la
+columna dice «formación vigente» y no otra cosa. Arriba se resume **lo
+registrado** y abajo se edita, así que las cifras de arriba no se mueven hasta
+guardar. `/formacion/crear?desde=` propone la siguiente con lo de ésta y la
+fecha en que vence.
+
 ### El IND-03 pasó de manual a calculado
 
 `CalculoIndicador::PersonalFormado` — activas con al menos una asistencia en los

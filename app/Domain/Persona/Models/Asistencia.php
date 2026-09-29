@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Persona\Models;
 
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
+use App\Domain\Persona\Enums\JustificacionAusencia;
 use App\Domain\Traza\Concerns\RegistraTraza;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -21,11 +22,17 @@ use Illuminate\Support\Carbon;
  * Sin `updated_at`: una asistencia se corrige cambiando el booleano, y cuándo se
  * apuntó lo dice `registrada_en`.
  *
+ * **Quien faltó puede llevar justificación**: `ausencia` nula es «sin indicar»,
+ * y el motivo sólo acompaña a la justificada. Va **cifrado**, como el resto de
+ * datos personales desde el punto 35: «baja médica» es un dato de salud.
+ *
  * @property int $id
  * @property int $organizacion_id
  * @property int $accion_formativa_id
  * @property int $persona_id
  * @property bool $asistio
+ * @property ?JustificacionAusencia $ausencia
+ * @property ?string $motivo_ausencia
  * @property Carbon $registrada_en
  */
 class Asistencia extends Model
@@ -40,6 +47,8 @@ class Asistencia extends Model
         'accion_formativa_id',
         'persona_id',
         'asistio',
+        'ausencia',
+        'motivo_ausencia',
         'registrada_en',
     ];
 
@@ -60,6 +69,8 @@ class Asistencia extends Model
     {
         return [
             'asistio' => 'boolean',
+            'ausencia' => JustificacionAusencia::class,
+            'motivo_ausencia' => 'encrypted',
             'registrada_en' => 'datetime',
         ];
     }

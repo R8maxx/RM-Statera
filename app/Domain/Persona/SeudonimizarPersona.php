@@ -7,6 +7,7 @@ namespace App\Domain\Persona;
 use App\Domain\Adjunto\Models\Adjunto;
 use App\Domain\Copia\EspejoDeObjetos;
 use App\Domain\Persona\Excepciones\SeudonimizacionNoPermitida;
+use App\Domain\Persona\Models\Asistencia;
 use App\Domain\Persona\Models\Persona;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -48,6 +49,15 @@ final readonly class SeudonimizarPersona
         DB::transaction(function () use ($persona, $adjuntos): void {
             // Las pivotes se van en cascada, como en `BorrarAdjunto`.
             $adjuntos->each->delete();
+
+            /*
+             * El motivo de una ausencia es suyo —«baja médica» es un dato de
+             * salud— y se va. Que la ausencia estaba justificada se queda: es
+             * histórico de la convocatoria, como la asistencia misma. Una a una y
+             * no en bloque, para que cada una deje su evento en la traza.
+             */
+            $persona->asistencias()->whereNotNull('motivo_ausencia')->get()
+                ->each(static fn (Asistencia $asistencia): bool => $asistencia->update(['motivo_ausencia' => null]));
 
             $persona->forceFill([
                 'nombre_pila' => "Persona {$persona->codigo}",

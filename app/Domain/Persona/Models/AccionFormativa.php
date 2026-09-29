@@ -85,7 +85,18 @@ class AccionFormativa extends Model implements ConAdjuntos
     public function convocadas(): BelongsToMany
     {
         return $this->belongsToMany(Persona::class, 'asistencias')
-            ->withPivot(['asistio', 'registrada_en']);
+            ->withPivot(['asistio', 'ausencia', 'registrada_en']);
+    }
+
+    /**
+     * Hasta cuándo cuenta como formación reciente para quien asistió.
+     *
+     * La misma cadencia que `Persona::MESES_DE_VIGENCIA_FORMATIVA` y no otra: es
+     * la fecha que la ficha enseña y la que propone para la sesión siguiente.
+     */
+    public function vigenteHasta(): Carbon
+    {
+        return $this->fecha->copy()->addMonthsNoOverflow(Persona::MESES_DE_VIGENCIA_FORMATIVA);
     }
 
     /** @param  Builder<$this>  $query */

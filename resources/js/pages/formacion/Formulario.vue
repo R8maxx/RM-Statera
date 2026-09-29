@@ -22,7 +22,18 @@ interface Accion {
 
 const props = defineProps<{
     accion: Accion | null;
-    sugerencia: { codigo: string; fecha: string } | null;
+    /**
+     * Con `?desde=` trae además lo de la sesión que se repite: la
+     * concienciación anual se imparte casi tal cual.
+     */
+    sugerencia: {
+        codigo: string;
+        fecha: string;
+        titulo?: string | null;
+        tipo?: string | null;
+        duracion_horas?: string | null;
+        contenido?: string | null;
+    } | null;
     tipos: { valor: string; etiqueta: string; medida: string }[];
     evidencias: Opcion[];
 }>();
@@ -32,7 +43,10 @@ const edicion = props.accion !== null;
 const valor = computed(() => ({
     codigo: props.accion?.codigo ?? props.sugerencia?.codigo ?? '',
     fecha: props.accion?.fecha ?? props.sugerencia?.fecha ?? '',
-    tipo: props.accion?.tipo ?? 'concienciacion',
+    tipo: props.accion?.tipo ?? props.sugerencia?.tipo ?? 'concienciacion',
+    titulo: props.accion?.titulo ?? props.sugerencia?.titulo ?? undefined,
+    duracion_horas: props.accion?.duracion_horas ?? props.sugerencia?.duracion_horas ?? undefined,
+    contenido: props.accion?.contenido ?? props.sugerencia?.contenido ?? undefined,
 }));
 
 const opcionesTipo = computed(() =>
@@ -65,7 +79,7 @@ const opcionesTipo = computed(() =>
                     <CampoTexto
                         nombre="titulo"
                         etiqueta="Título"
-                        :valor-inicial="accion?.titulo ?? undefined"
+                        :valor-inicial="valor.titulo"
                         :error="errors.titulo"
                         requerido
                     />
@@ -97,7 +111,7 @@ const opcionesTipo = computed(() =>
                         etiqueta="Duración (horas)"
                         tipo="number"
                         step="0.25"
-                        :valor-inicial="accion?.duracion_horas ?? undefined"
+                        :valor-inicial="valor.duracion_horas"
                         :error="errors.duracion_horas"
                     />
                 </FilaCampos>
@@ -106,7 +120,7 @@ const opcionesTipo = computed(() =>
                     nombre="contenido"
                     etiqueta="Contenido"
                     :filas="4"
-                    :valor-inicial="accion?.contenido ?? undefined"
+                    :valor-inicial="valor.contenido"
                     :error="errors.contenido"
                     ayuda="Qué se trató. Es lo que un auditor lee para decidir si la sesión cubre lo que la medida pide."
                 />

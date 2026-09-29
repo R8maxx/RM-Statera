@@ -4,12 +4,17 @@ declare(strict_types=1);
 
 use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Metrica\Enums\CalculoIndicador;
+use App\Domain\Persona\Enums\JustificacionAusencia;
 use App\Domain\Persona\Enums\TipoAccionFormativa;
 use App\Domain\Persona\Models\AccionFormativa;
 use App\Domain\Persona\Models\Asistencia;
 use App\Domain\Persona\Models\Persona;
 use App\Domain\Persona\RegistrarAsistencia;
+use App\Domain\Persona\SeudonimizarPersona;
 use App\Http\Requests\Concerns\SeleccionVacia;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia;
 
 /*
@@ -219,4 +224,160 @@ it('adjunta el documento firmado a un acuerdo de confidencialidad', function ():
         ->assertSessionHasNoErrors();
 
     expect($persona->acuerdos()->sole()->evidencia_id)->toBe($evidencia->id);
+});
+
+/*
+|--------------------------------------------------------------------------
+| Por qué faltó quien estaba convocado
+|--------------------------------------------------------------------------
+|
+| La pregunta siguiente a «¿quién faltó?» es «¿tenía motivo?». Nula es «sin
+| indicar», que no es ni justificada ni injustificada: nadie lo ha dicho todavía.
+|
+*/
+
+it('guarda la justificación de quien faltó, con el motivo cifrado', function (): void {
+    $persona = Persona::factory()->create();
+
+    $this->actingAs($this->usuario)
+        ->put("/formacion/{$this->accion->id}/asistencia", [
+            'convocadas' => [[
+                'persona_id' => $persona->id,
+                'asistio' => false,
+                'ausencia' => 'justificada',
+                'motivo' => 'Baja médica',
+            ]],
+        ])
+        ->assertSessionHasNoErrors();
+
+    $asistencia = Asistencia::query()->sole();
+
+    expect($asistencia->ausencia)->toBe(JustificacionAusencia::Justificada)
+        ->and($asistencia->motivo_ausencia)->toBe('Baja médica')
+        ->and(DB::table('asistencias')->value('motivo_ausencia'))->not->toContain('Baja médica');
+});
+
+it('no admite una ausencia justificada sin motivo', function (): void {
+    $persona = Persona::factory()->create();
+
+    $this->actingAs($this->usuario)
+        ->put("/formacion/{$this->accion->id}/asistencia", [
+            'convocadas' => [['persona_id' => $persona->id, 'asistio' => false, 'ausencia' => 'justificada']],
+        ])
+        ->assertSessionHasErrors('convocadas.0.motivo');
+
+    expect(Asistencia::query()->count())->toBe(0);
+});
+
+it('apunta la ausencia sin justificar y descarta el motivo que venga con ella', function (): void {
+    $persona = Persona::factory()->create();
+
+    ($this->registrar)(
+        $this->accion,
+        [$persona->id => false],
+        [$persona->id => ['ausencia' => JustificacionAusencia::Injustificada, 'motivo' => 'Se le olvidó']],
+    );
+
+    $asistencia = Asistencia::query()->sole();
+
+    expect($asistencia->ausencia)->toBe(JustificacionAusencia::Injustificada)
+        ->and($asistencia->motivo_ausencia)->toBeNull();
+});
+
+/** Quien asistió no faltó: la justificación se descarta, y la base la rechazaría. */
+it('quien asistió no guarda justificación', function (): void {
+    $persona = Persona::factory()->create();
+
+    ($this->registrar)(
+        $this->accion,
+        [$persona->id => true],
+        [$persona->id => ['ausencia' => JustificacionAusencia::Justificada, 'motivo' => 'Baja médica']],
+    );
+
+    expect(Asistencia::query()->sole()->ausencia)->toBeNull();
+
+    expect(fn () => DB::table('asistencias')->update(['ausencia' => 'justificada']))
+        ->toThrow(QueryException::class);
+});
+
+it('al corregir a asistió se borra la justificación que tenía', function (): void {
+    $persona = Persona::factory()->create();
+
+    ($this->registrar)(
+        $this->accion,
+        [$persona->id => false],
+        [$persona->id => ['ausencia' => JustificacionAusencia::Justificada, 'motivo' => 'Vacaciones']],
+    );
+    ($this->registrar)($this->accion, [$persona->id => true]);
+
+    $asistencia = Asistencia::query()->sole();
+
+    expect($asistencia->ausencia)->toBeNull()
+        ->and($asistencia->motivo_ausencia)->toBeNull();
+});
+
+it('la supresión de una persona vacía el motivo y conserva que estaba justificada', function (): void {
+    $persona = Persona::factory()->deBaja(Carbon::today()->subMonth())->create();
+
+    ($this->registrar)(
+        $this->accion,
+        [$persona->id => false],
+        [$persona->id => ['ausencia' => JustificacionAusencia::Justificada, 'motivo' => 'Baja médica']],
+    );
+
+    app(SeudonimizarPersona::class)($persona);
+
+    $asistencia = Asistencia::query()->sole();
+
+    expect($asistencia->ausencia)->toBe(JustificacionAusencia::Justificada)
+        ->and($asistencia->motivo_ausencia)->toBeNull();
+});
+
+/*
+|--------------------------------------------------------------------------
+| La ficha de la sesión
+|--------------------------------------------------------------------------
+*/
+
+/**
+ * La vigencia de cada persona llega **sin contar esta sesión**: es lo que deja
+ * contestar «si falta, ¿queda al descubierto?».
+ */
+it('manda la vigencia previa de cada persona sin contar esta sesión', function (): void {
+    $persona = Persona::factory()->create();
+    $anterior = AccionFormativa::factory()->create(['fecha' => Carbon::today()->subMonths(3)]);
+
+    ($this->registrar)($anterior, [$persona->id => true]);
+    ($this->registrar)($this->accion, [$persona->id => false]);
+
+    $this->actingAs($this->usuario)
+        ->get("/formacion/{$this->accion->id}")
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->where('personas.0.asistio', false)
+            ->where('personas.0.renovacion_previa', $anterior->vigenteHasta()->toDateString())
+            ->where('personas.0.ultima_sesion', $anterior->codigo)
+            ->where('accion.vigenteHasta', $this->accion->vigenteHasta()->toDateString())
+            ->has('justificaciones', count(JustificacionAusencia::cases())));
+});
+
+it('manda la vigencia previa vacía a quien sólo tiene esta sesión', function (): void {
+    $persona = Persona::factory()->create();
+
+    ($this->registrar)($this->accion, [$persona->id => true]);
+
+    $this->actingAs($this->usuario)
+        ->get("/formacion/{$this->accion->id}")
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->where('personas.0.renovacion_previa', null)
+            ->where('personas.0.ultima_sesion', null));
+});
+
+it('programa la siguiente con lo de ésta y la fecha en que vence', function (): void {
+    $this->actingAs($this->usuario)
+        ->get("/formacion/crear?desde={$this->accion->id}")
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->component('formacion/Formulario')
+            ->where('sugerencia.titulo', $this->accion->titulo)
+            ->where('sugerencia.tipo', $this->accion->tipo->value)
+            ->where('sugerencia.fecha', $this->accion->vigenteHasta()->toDateString()));
 });

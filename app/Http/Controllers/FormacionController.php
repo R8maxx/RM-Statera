@@ -10,9 +10,10 @@ use App\Domain\Adjunto\SubirAdjunto;
 use App\Domain\Autorizacion\Enums\Permiso;
 use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Persona\CodigoAccionFormativa;
+use App\Domain\Persona\ConvocatoriaDeSesion;
+use App\Domain\Persona\Enums\JustificacionAusencia;
 use App\Domain\Persona\Enums\TipoAccionFormativa;
 use App\Domain\Persona\Models\AccionFormativa;
-use App\Domain\Persona\Models\Persona;
 use App\Domain\Persona\RegistrarAsistencia;
 use App\Domain\Persona\RegistroFormacion;
 use App\Http\Controllers\Concerns\GestionaAdjuntos;
@@ -21,8 +22,10 @@ use App\Http\Requests\RegistrarAsistenciaRequest;
 use App\Http\Requests\SubirAdjuntoRequest;
 use App\Http\Resources\AccionFormativaRecurso;
 use App\Http\Resources\Concerns\RespondeConRecurso;
+use Carbon\CarbonInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -60,13 +63,30 @@ class FormacionController extends Controller
         ]);
     }
 
-    public function create(CodigoAccionFormativa $codigos): Response
+    /**
+     * Con `?desde=` se programa la siguiente de una sesión: mismo título, tipo,
+     * duración y contenido, y la fecha al cumplirse la vigencia. Es la
+     * concienciación anual, que se repite casi tal cual; lo que no se copia es la
+     * convocatoria ni la prueba, que son de la sesión que se imparta.
+     *
+     * Se busca por el modelo, así que pasa por el scope de organización: un id de
+     * otro cliente no encuentra nada y el formulario sale vacío.
+     */
+    public function create(Request $request, CodigoAccionFormativa $codigos): Response
     {
+        $origen = $request->integer('desde') > 0
+            ? AccionFormativa::query()->find($request->integer('desde'))
+            : null;
+
         return Inertia::render('formacion/Formulario', [
             'accion' => null,
             'sugerencia' => [
                 'codigo' => $codigos->siguiente(),
-                'fecha' => now()->toDateString(),
+                'fecha' => $origen?->vigenteHasta()->toDateString() ?? now()->toDateString(),
+                'titulo' => $origen?->titulo,
+                'tipo' => $origen?->tipo->value,
+                'duracion_horas' => $origen?->duracion_horas,
+                'contenido' => $origen?->contenido,
             ],
             ...$this->opciones(),
         ]);
@@ -90,39 +110,37 @@ class FormacionController extends Controller
      * convocadas siguen apareciendo —asistieron de verdad y borrarlas reescribiría
      * el registro—, pero no se ofrecen para convocar.
      */
-    public function show(AccionFormativa $accion): Response
+    public function show(AccionFormativa $accion, ConvocatoriaDeSesion $convocatoria): Response
     {
-        $accion->load(['asistencias.persona', 'evidencia', 'adjuntos.subidoPor']);
+        $accion->load(['evidencia', 'adjuntos.subidoPor']);
 
-        $convocadas = $accion->asistencias->keyBy('persona_id');
-
-        $personas = Persona::query()
-            ->activas()
-            ->orderBy('nombre')
-            ->get()
-            ->concat(
-                $accion->asistencias
-                    ->map(static fn ($asistencia): ?Persona => $asistencia->persona)
-                    ->filter(static fn (?Persona $persona): bool => $persona !== null && ! $persona->estaActiva()),
-            )
-            ->unique('id')
-            ->sortBy('nombre')
-            ->values();
+        $registrada = $accion->asistencias()->max('registrada_en');
+        $vigenteHasta = $accion->vigenteHasta();
 
         return Inertia::render('formacion/Ficha', [
-            'accion' => $this->serializar($accion),
+            'accion' => [
+                ...$this->serializar($accion),
+                'fechaLarga' => $this->fechaLarga($accion->fecha),
+                'fechaRelativa' => $accion->fecha->locale('es')->diffForHumans(['parts' => 1]),
+                'vigenteHasta' => $vigenteHasta->toDateString(),
+                'vigenteHastaLarga' => $this->fechaLarga($vigenteHasta),
+                'vigenteHastaRelativa' => $vigenteHasta->locale('es')->diffForHumans(['parts' => 1]),
+                'evidenciaFecha' => $accion->evidencia?->fecha_obtencion->format('d/m/Y'),
+                'hoy' => Carbon::today()->toDateString(),
+                'asistenciaRegistrada' => is_string($registrada) ? Carbon::parse($registrada)->format('d/m/Y H:i') : null,
+            ],
+            'cubre' => $convocatoria->cubre($accion),
             'adjuntos' => $this->serializarAdjuntos($accion, request(), "/formacion/{$accion->id}/adjuntos"),
-            'personas' => $personas
-                ->map(static fn (Persona $persona): array => [
-                    'id' => $persona->id,
-                    'codigo' => $persona->codigo,
-                    'nombre' => $persona->nombre,
-                    'puesto' => $persona->puestoVigente()?->titulo,
-                    'activa' => $persona->estaActiva(),
-                    'convocada' => $convocadas->has($persona->id),
-                    'asistio' => (bool) $convocadas->get($persona->id)?->asistio,
-                ])
-                ->all(),
+            'personas' => $convocatoria->personas($accion),
+            'justificaciones' => array_map(
+                static fn (JustificacionAusencia $caso): array => [
+                    'valor' => $caso->value,
+                    'etiqueta' => $caso->etiqueta(),
+                    'tono' => $caso->tono(),
+                    'icono' => $caso->icono(),
+                ],
+                JustificacionAusencia::cases(),
+            ),
             'puedeGestionar' => request()->user()?->can(Permiso::PersonasGestionar->value) ?? false,
         ]);
     }
@@ -167,7 +185,7 @@ class FormacionController extends Controller
         AccionFormativa $accion,
         RegistrarAsistencia $registrar,
     ): RedirectResponse {
-        $registrar($accion, $request->convocadas());
+        $registrar($accion, $request->convocadas(), $request->ausencias());
 
         Inertia::flash('exito', 'Asistencia registrada.');
 
@@ -187,6 +205,12 @@ class FormacionController extends Controller
     public function borrarAdjunto(AccionFormativa $accion, Adjunto $adjunto, BorrarAdjunto $borrar): RedirectResponse
     {
         return $this->borrarAdjuntoDe($adjunto, $borrar, 'formacion.show', $accion);
+    }
+
+    /** «12 de marzo de 2026», que es como `DESIGN.md` § 13 pide escribir una fecha. */
+    private function fechaLarga(CarbonInterface $fecha): string
+    {
+        return $fecha->locale('es')->isoFormat('D [de] MMMM [de] YYYY');
     }
 
     /**
