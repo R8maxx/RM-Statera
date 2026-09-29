@@ -526,3 +526,34 @@ y 36 retención RGPD.
     sobre la base de desarrollo. El error que se veía no era ése, sino el
     `set_config()` del `finally` de `comoMantenimiento()` sobre una transacción
     ya abortada: el síntoma apuntaba al contexto y la causa estaba en una fila.
+
+36. ✅ Retención y supresión de los datos de personas. **Cierra el tramo**, y con
+    él los siete requisitos no funcionales del § 6 tienen dónde vivir. Era el
+    único que exigía decidir algo antes de escribir una línea, porque choca de
+    frente con el invariante 8: la traza no se modifica, y el derecho de
+    supresión dice que los datos de una persona tienen que dejar de estar.
+
+    **César eligió depurar la traza, y no declararlo como limitación.** Se hizo
+    en dos piezas. La primera es una **puerta estrecha**: una función
+    `SECURITY DEFINER` que sólo quita claves de una lista fija, sólo de una
+    persona y de sus adjuntos y sólo en la organización de la sesión. La
+    segunda, una **migración única** que cifra lo que la traza guardó en claro
+    antes del punto 35. Cifrarlo y no borrarlo fue un ajuste propuesto a la
+    decisión: la traza sigue diciendo qué cambió, tiene un solo formato y nadie
+    lo lee sin la clave. El borrado de verdad lo hace la supresión, persona a
+    persona.
+
+    Lo demás sigue la línea de siempre. **Seudonimizar y no borrar**, porque de
+    la persona cuelga histórico del SGSI. **El plazo lo declara la
+    organización y no tiene valor por defecto**, porque inventarlo sería la
+    herramienta decidiendo cuándo se borra el expediente de alguien. Y **dos
+    condiciones que impiden y no avisan**: baja pasada y ningún nombramiento
+    vigente.
+
+    **La lección, esta vez en la verificación.** El primer rojo del test de la
+    traza no probaba nada: la edición que quitaba la llamada a la función dejó
+    un error de sintaxis, y el test falló con cero aserciones. Un rojo sólo
+    prueba algo si falla por la aserción que se quería ver romper. El recorrido
+    en el navegador encontró además que Vite llevaba días sin publicar su
+    puerto. No era del punto: el contenedor había perdido la publicación tras
+    varios reinicios por cambios en `.env`, y se resolvió recreándolo.

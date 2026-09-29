@@ -53,6 +53,7 @@ use LogicException;
  * @property Carbon $fecha_alta
  * @property ?Carbon $fecha_baja
  * @property ?string $notas
+ * @property ?Carbon $seudonimizada_en cuándo se suprimieron sus datos personales (punto 36)
  */
 class Persona extends Model implements ConAdjuntos
 {
@@ -476,6 +477,7 @@ class Persona extends Model implements ConAdjuntos
         return [
             'fecha_alta' => 'date',
             'fecha_baja' => 'date',
+            'seudonimizada_en' => 'datetime',
             'nif' => 'encrypted',
             'telefono' => 'encrypted',
             'telefono_fijo' => 'encrypted',

@@ -56,6 +56,7 @@ class OrganizacionController extends Controller
                 'plazo_vulnerabilidad_alta_dias' => $organizacion->plazo_vulnerabilidad_alta_dias,
                 'plazo_vulnerabilidad_media_dias' => $organizacion->plazo_vulnerabilidad_media_dias,
                 'plazo_vulnerabilidad_baja_dias' => $organizacion->plazo_vulnerabilidad_baja_dias,
+                'retencion_personas_meses' => $organizacion->retencion_personas_meses,
             ],
 
             /*

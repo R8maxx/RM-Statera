@@ -138,6 +138,7 @@ completa con el razonamiento del orden, en `.ai/rules/orden-de-arranque.md`.
 | 33 | Los instantes con zona, bien guardados | — | `documentos.md` |
 | 34 | Copias cifradas con restauración probada | § 6 | `copias.md` |
 | 35 | Cifrado en reposo: ficheros y datos personales | § 6 | `personas.md`, `infraestructura.md` |
+| 36 | Retención y supresión de los datos de personas — **cierra el tramo** | § 6 | `personas.md`, `aislamiento.md` |
 
 **La fase 3 está cerrada.** Con continuidad (§ 4.11) dentro —el BIA por servicio,
 el plan como documento y las pruebas que lo contrastan— el ciclo vivo se recorre
@@ -167,13 +168,13 @@ tienen registro propio, con la severidad derivada del CVSS, el plazo de
 remediación como política de la organización, la aceptación firmada por
 supervisión y el cierre con verificación escrita.
 
-Con el punto 30 se acabó la lista de módulos. Lo que sigue es un **tramo sin
-módulos nuevos**, «listo para producción»: lo que el invariante 8 y el § 6
-de la especificación exigen antes de que entre un usuario real —traza completa e
+Con el punto 30 se acabó la lista de módulos. Lo que siguió fue un **tramo sin
+módulos nuevos**, «listo para producción»: lo que el invariante 8 y el § 6 de la
+especificación exigen antes de que entre un usuario real —traza completa e
 inmutable, horas bien escritas, copias con restauración probada, cifrado en
-reposo y retención RGPD de personas—. Se numera a partir del 31 y el porqué de
-cada punto está en la bitácora. Los demás huecos que anota `PRODUCT.md`
-vienen después.
+reposo y retención RGPD de personas—. **Con el punto 36 está cerrado**: los siete
+requisitos no funcionales del § 6 tienen dónde vivir. El porqué de cada punto
+está en la bitácora. Lo que queda son los huecos que anota `PRODUCT.md`.
 
 ## El catálogo
 

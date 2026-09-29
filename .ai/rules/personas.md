@@ -290,6 +290,50 @@ nacimiento, porque Laravel no combina `encrypted` con `date`. Tres consecuencias
 
 El correo no se cifra, porque con él se vincula la persona a una cuenta.
 
+### Retención y supresión (punto 36)
+
+**Suprimir es seudonimizar, no borrar.** `SeudonimizarPersona` deja la fila como
+«Persona PER-042» porque de ella cuelgan nombramientos, formación, acuses y
+checklists, y eso es histórico del SGSI: el auditor sigue viendo que `mp.per.4` se
+cumplía en marzo, aunque ya no con quién. Se van el nombre, el documento, los
+teléfonos, el domicilio, la fecha de nacimiento, el correo, las notas, el vínculo
+con la cuenta y los adjuntos, **también del espejo de copias**, que nunca borra por
+su cuenta. Queda `seudonimizada_en`, y no hay vuelta atrás.
+
+**Y se va de la traza**, que es lo que separa esto de un cambio de nombre. La
+aplicación no tiene `UPDATE` sobre `eventos_auditoria`, así que la única puerta es
+`depurar_traza_de_persona()`, una función `SECURITY DEFINER` del migrador cuya
+migración dice lo que puede hacer. Quita claves de una lista fija, sólo de los
+eventos de esa persona y de sus adjuntos y sólo en la organización de la sesión, y
+no cambia valores ni borra eventos. Se llama después del `save()`, para depurar
+también el evento que deja la propia supresión.
+
+**Dos condiciones, que impiden y no avisan:** fecha de baja pasada y ningún
+nombramiento vigente. Un rol del ENS asignado a «Persona PER-042» sería un hallazgo
+fabricado por la herramienta.
+
+**El plazo es de la organización y no tiene valor por defecto.**
+`organizaciones.retencion_personas_meses`, en su ficha; vacío, `personas:seudonimizar`
+(cada noche a las 01:30, antes de la copia) no toca a nadie. El RGPD pide «no más
+tiempo del necesario» y no pone número. Para el derecho de supresión antes de
+plazo está el botón de la ficha.
+
+Lo que **no** alcanza, y queda declarado:
+
+- **La cuenta de `users`**: se desvincula, pero su nombre y correo siguen en la
+  cuenta y en lo que la cuenta firmó. Desactivarla es de `cuentas.md`.
+- **Las evidencias que la nombren**: tienen Object Lock y valor probatorio, y no
+  se tocan.
+- **Los volcados de copia**: el dato sigue en los de los últimos
+  `COPIAS_CONSERVAR_DIAS` días y sale cuando caducan.
+- **Las versiones antiguas de los objetos** en un bucket versionado: borrar crea
+  una marca de borrado, y la versión sigue ahí. En producción la quita una regla
+  de ciclo de vida sobre las versiones no vigentes.
+- **Un adjunto compartido con una sesión formativa** se borra también de la
+  sesión. Es el certificado de esa persona, y por eso no puede quedarse.
+- **Puede suprimir quien tiene `personas.gestionar`**, técnico incluido, y no sólo
+  supervisión.
+
 ### La jerarquía vive en el puesto, no en la persona
 
 `puestos` —con `reporta_a_id`— y `asignaciones_puesto` entre medias. El

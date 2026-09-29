@@ -96,6 +96,8 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
   sus dos formas y exige el `where` en las cinco líneas siguientes. El resto de `exists:` no lo
   necesita: las demás tablas de datos propios tienen RLS y la validación pasa por ella.
 
+- **La traza tiene una sola puerta de escritura, y es estrecha (punto 36).** `depurar_traza_de_persona()` es `SECURITY DEFINER` y es del migrador, así que la aplicación puede ejecutarla sin tener `UPDATE` sobre `eventos_auditoria`. Por eso lo que importa es lo que **no** puede hacer: quita claves de una lista fija escrita en la función, sólo de eventos `Persona` y `Adjunto` con los ids que recibe y sólo de la organización de la sesión, además de RLS. `search_path` va fijado, porque una función `SECURITY DEFINER` con el del llamador se secuestra creando una tabla con el mismo nombre en otro esquema. `SupresionTest` comprueba que no toca otra organización ni otra entidad con el mismo id. **Cualquier otra puerta así se escribe con esas mismas restricciones o no se escribe.**
+
 - **Hay una cuarta capa, y no es de tenant: el alcance de la cuenta (§ 4.19).** El
   auditor externo ve sólo los sistemas que audita. Vive en
   `ContextoOrganizacion::acotarASistemas()`, la fija `EstablecerContextoOrganizacion`

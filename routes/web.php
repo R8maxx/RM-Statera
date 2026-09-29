@@ -1566,6 +1566,11 @@ Route::middleware('auth')->group(function (): void {
             Route::delete('/personas/{persona}', [PersonaController::class, 'destroy'])
                 ->name('personas.destroy');
 
+            // El derecho de supresión (RGPD, art. 17; punto 36). No es un
+            // `destroy`: la fila se queda, sin nada que identifique a nadie.
+            Route::post('/personas/{persona}/seudonimizar', [PersonaController::class, 'seudonimizar'])
+                ->name('personas.seudonimizar');
+
             // Los deberes por escrito: mp.per.2.
             Route::post('/personas/{persona}/acuerdos', [PersonaController::class, 'guardarAcuerdo'])
                 ->name('personas.acuerdos.guardar');

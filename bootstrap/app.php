@@ -9,6 +9,7 @@ use App\Domain\Copia\Console\VerificarCopiaCommand;
 use App\Domain\Documento\Console\GenerarDocumentoCommand;
 use App\Domain\Implantacion\Console\GenerarImplantacionesCommand;
 use App\Domain\Metrica\Console\MedirIndicadoresCommand;
+use App\Domain\Persona\Console\SeudonimizarPersonasCommand;
 use App\Http\Middleware\BloqueoPorInactividad;
 use App\Http\Middleware\CuentaVigente;
 use App\Http\Middleware\EstablecerContextoOrganizacion;
@@ -38,6 +39,7 @@ return Application::configure(basePath: dirname(__DIR__))
         MedirIndicadoresCommand::class,
         HacerCopiaCommand::class,
         VerificarCopiaCommand::class,
+        SeudonimizarPersonasCommand::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         // El orden importa y no es el que sale por defecto.

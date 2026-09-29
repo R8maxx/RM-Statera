@@ -23,7 +23,7 @@ import {
 import { useDesplegable } from '@/composables/useDesplegable';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { conOpcionVacia, SIN_VALOR } from '@/lib/formularios';
-import { Link, router, useForm } from '@inertiajs/vue3';
+import { Link, router, useForm, usePage } from '@inertiajs/vue3';
 import {
     BriefcaseIcon,
     ChevronRightIcon,
@@ -72,6 +72,7 @@ interface Persona {
     usuario: string | null;
     fecha_alta: string;
     fecha_baja: string | null;
+    seudonimizada_en: string | null;
     activa: boolean;
     estadoEtiqueta: string;
     estadoTono: string;
@@ -300,6 +301,27 @@ function guardarAcuerdo(): void {
 
 function borrarAcuerdo(id: number): void {
     router.delete(`/personas/${props.persona.id}/acuerdos/${id}`, { preserveScroll: true });
+}
+
+/*
+ * --- El derecho de supresión (punto 36) ---
+ *
+ * Sólo para quien ya no está en plantilla, y con su propia confirmación porque
+ * no se deshace. El servidor vuelve a comprobar las dos condiciones —baja y sin
+ * nombramientos vigentes— y el motivo, si falla, llega en `supresion`.
+ */
+const suprimiendo = ref(false);
+const supresion = useForm({});
+// No es un campo del formulario, así que se lee de los errores de la página,
+// como `errorCuenta` en la ficha de una cuenta.
+const pagina = usePage();
+const errorSupresion = computed(() => (pagina.props.errors as Record<string, string | undefined>).supresion);
+
+function suprimir(): void {
+    supresion.post(`/personas/${props.persona.id}/seudonimizar`, {
+        preserveScroll: true,
+        onSuccess: () => (suprimiendo.value = false),
+    });
 }
 
 /* --- Las dos checklists --- */
@@ -845,6 +867,17 @@ const listasOrdenadas = computed(() =>
                                 </dd>
                             </div>
                         </dl>
+
+                        <Aviso v-if="persona.seudonimizada_en" class="mt-4" titulo="Datos personales suprimidos">
+                            El {{ fechaLegible(persona.seudonimizada_en) }}. Sus nombramientos, su formación y
+                            sus acuses siguen en el registro, sin nada que diga quién era.
+                        </Aviso>
+
+                        <div v-else-if="puedeGestionar && !persona.activa" class="mt-4 border-t pt-4">
+                            <Button variant="destructive" size="sm" @click="suprimiendo = true">
+                                Suprimir datos personales
+                            </Button>
+                        </div>
                     </CardContent>
                 </Card>
 
@@ -871,6 +904,29 @@ const listasOrdenadas = computed(() =>
 
             </div>
         </div>
+
+        <Dialog v-model:open="suprimiendo">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>¿Suprimir los datos de {{ persona.nombre }}?</DialogTitle>
+                    <DialogDescription>
+                        No se puede deshacer. Se borran su nombre, su documento, sus teléfonos, su
+                        domicilio, su fecha de nacimiento, su correo, las notas, el vínculo con su cuenta y
+                        sus documentos adjuntos, también de la traza. En el registro queda como «Persona
+                        {{ persona.codigo }}», con sus nombramientos, su formación y sus acuses.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <Aviso v-if="errorSupresion" tono="error">{{ errorSupresion }}</Aviso>
+
+                <DialogFooter>
+                    <Button variant="outline" @click="suprimiendo = false">Cancelar</Button>
+                    <Button variant="destructive" :disabled="supresion.processing" @click="suprimir">
+                        Suprimir
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
 
         <!-- Designar en un rol -->
         <Dialog v-model:open="designando">

@@ -63,6 +63,10 @@ class GuardarFichaOrganizacionRequest extends FormRequest
             'plazo_vulnerabilidad_alta_dias' => ['required', 'integer', 'between:1,730'],
             'plazo_vulnerabilidad_media_dias' => ['required', 'integer', 'between:1,730'],
             'plazo_vulnerabilidad_baja_dias' => ['required', 'integer', 'between:1,730'],
+
+            // La retención de los datos de personas (punto 36), en meses.
+            // Opcional a propósito: vacío, nadie se suprime solo.
+            'retencion_personas_meses' => ['nullable', 'integer', 'between:1,600'],
         ];
     }
 
@@ -110,6 +114,7 @@ class GuardarFichaOrganizacionRequest extends FormRequest
             'plazo_vulnerabilidad_alta_dias' => 'plazo de una vulnerabilidad alta',
             'plazo_vulnerabilidad_media_dias' => 'plazo de una vulnerabilidad media',
             'plazo_vulnerabilidad_baja_dias' => 'plazo de una vulnerabilidad baja',
+            'retencion_personas_meses' => 'retención de los datos de personas',
         ];
     }
 }

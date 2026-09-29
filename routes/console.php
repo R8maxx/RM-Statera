@@ -55,3 +55,11 @@ Schedule::command('indicadores:medir')->dailyAt('07:30')->onOneServer();
 */
 Schedule::command('copias:hacer')->dailyAt('02:00')->onOneServer();
 Schedule::command('copias:verificar')->weeklyOn(0, '04:00')->onOneServer();
+
+/*
+| La retención de los datos de personas (§ 6, punto 36). Cada noche y antes de
+| la copia: así el volcado de las 02:00 ya no lleva lo que se suprimió a la
+| 01:30, y lo suprimido sale de las copias en cuanto caduca el último volcado
+| que lo tenía. Sólo toca a las organizaciones que han declarado un plazo.
+*/
+Schedule::command('personas:seudonimizar')->dailyAt('01:30')->onOneServer();

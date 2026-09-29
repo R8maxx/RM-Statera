@@ -44,6 +44,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $plazo_vulnerabilidad_alta_dias
  * @property int $plazo_vulnerabilidad_media_dias
  * @property int $plazo_vulnerabilidad_baja_dias
+ * @property ?int $retencion_personas_meses tras la baja; nulo, nadie se suprime solo (punto 36)
  */
 class Organizacion extends Model
 {
@@ -94,6 +95,7 @@ class Organizacion extends Model
         'plazo_vulnerabilidad_alta_dias',
         'plazo_vulnerabilidad_media_dias',
         'plazo_vulnerabilidad_baja_dias',
+        'retencion_personas_meses',
     ];
 
     /**
@@ -213,6 +215,7 @@ class Organizacion extends Model
             'plazo_vulnerabilidad_alta_dias' => 'integer',
             'plazo_vulnerabilidad_media_dias' => 'integer',
             'plazo_vulnerabilidad_baja_dias' => 'integer',
+            'retencion_personas_meses' => 'integer',
         ];
     }
 

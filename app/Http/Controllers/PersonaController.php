@@ -18,6 +18,7 @@ use App\Domain\Persona\Enums\TipoPasoPersona;
 use App\Domain\Persona\Excepciones\DesignacionIncompatible;
 use App\Domain\Persona\Excepciones\PersonaNoDesignable;
 use App\Domain\Persona\Excepciones\RolYaDesignado;
+use App\Domain\Persona\Excepciones\SeudonimizacionNoPermitida;
 use App\Domain\Persona\GuardarPasos;
 use App\Domain\Persona\Models\AcuerdoConfidencialidad;
 use App\Domain\Persona\Models\AsignacionPuesto;
@@ -26,6 +27,7 @@ use App\Domain\Persona\Models\PasoPersona;
 use App\Domain\Persona\Models\Persona;
 use App\Domain\Persona\Models\Puesto;
 use App\Domain\Persona\RegistroPersonas;
+use App\Domain\Persona\SeudonimizarPersona;
 use App\Domain\Sistema\Models\Sistema;
 use App\Http\Controllers\Concerns\GestionaAdjuntos;
 use App\Http\Requests\AsignarPuestoRequest;
@@ -240,6 +242,26 @@ class PersonaController extends Controller
         return to_route('personas.index');
     }
 
+    /**
+     * El derecho de supresión, a petición y antes de que venza el plazo de
+     * retención (punto 36).
+     *
+     * El error va a `supresion`, que no es ningún campo, porque el motivo no es
+     * de un campo: es que la persona sigue en plantilla o tiene nombramientos.
+     */
+    public function seudonimizar(Persona $persona, SeudonimizarPersona $seudonimizar): RedirectResponse
+    {
+        try {
+            $seudonimizar($persona);
+        } catch (SeudonimizacionNoPermitida $motivo) {
+            return back()->withErrors(['supresion' => $motivo->getMessage()]);
+        }
+
+        Inertia::flash('exito', "Datos personales suprimidos. En el registro queda como {$persona->nombre}.");
+
+        return back();
+    }
+
     // --- La cláusula 5.3 -----------------------------------------------------
 
     public function designar(
@@ -412,6 +434,7 @@ class PersonaController extends Controller
             'usuario' => $persona->usuario?->name,
             'fecha_alta' => $persona->fecha_alta->toDateString(),
             'fecha_baja' => $persona->fecha_baja?->toDateString(),
+            'seudonimizada_en' => $persona->seudonimizada_en?->toDateString(),
             'notas' => $persona->notas,
             'activa' => $persona->estaActiva(),
             'estadoEtiqueta' => $persona->estaActiva() ? 'En plantilla' : 'Dada de baja',

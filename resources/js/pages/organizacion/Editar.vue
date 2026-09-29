@@ -29,6 +29,7 @@ interface Organizacion {
     plazo_vulnerabilidad_alta_dias: number;
     plazo_vulnerabilidad_media_dias: number;
     plazo_vulnerabilidad_baja_dias: number;
+    retencion_personas_meses: number | null;
 }
 
 const props = defineProps<{
@@ -278,6 +279,22 @@ const cambioLaBase = computed(
                         :error="errors.plazo_vulnerabilidad_baja_dias"
                         ayuda="En días."
                         requerido
+                    />
+                </FilaCampos>
+            </SeccionFormulario>
+
+            <SeccionFormulario
+                titulo="Retención de los datos de personas"
+                ayuda="Cuánto tiempo se conservan los datos de alguien después de su baja. Pasado el plazo, cada noche se suprimen: queda en el registro sin nombre, documento ni contacto. El RGPD no fija el número, así que lo decide la organización. Vacío, no se suprime a nadie solo."
+            >
+                <FilaCampos>
+                    <CampoTexto
+                        nombre="retencion_personas_meses"
+                        etiqueta="Plazo tras la baja"
+                        tipo="number"
+                        :valor-inicial="organizacion.retencion_personas_meses === null ? '' : String(organizacion.retencion_personas_meses)"
+                        :error="errors.retencion_personas_meses"
+                        ayuda="En meses, de 1 a 600."
                     />
                 </FilaCampos>
             </SeccionFormulario>
