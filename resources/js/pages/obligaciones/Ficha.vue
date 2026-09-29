@@ -5,6 +5,7 @@ import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
 import EstadoVacio from '@/components/EstadoVacio.vue';
 import IconoTipo from '@/components/IconoTipo.vue';
+import BarraCiclo, { type Tramo } from '@/components/obligacion/BarraCiclo.vue';
 import CeldaBadge from '@/components/tabla/celdas/CeldaBadge.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,16 +17,31 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { conOpcionVacia } from '@/lib/formularios';
+import { fechaDe, fechaLegible, formatoFechaHora, formatoFechaLarga, formatoNumero } from '@/lib/celdas';
+import { conOpcionVacia, SIN_VALOR } from '@/lib/formularios';
+import { EllipsisIcon, InfoIcon, PencilIcon, PlusIcon } from '@lucide/vue';
 import { Link, useForm } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { motion } from 'motion-v';
+import { computed, ref, watch } from 'vue';
 
 type Referencia = App.Domain.Obligacion.Referencia;
 
 interface OpcionNumerica {
     valor: number;
     etiqueta: string;
+}
+
+/** Un tipo de registro con el que se demuestra un cumplimiento, y los que hay de él. */
+interface TipoReferencia {
+    valor: string;
+    etiqueta: string;
+    /** La columna del formulario a la que va: `auditoria_id`, `documento_id`… */
+    campo: 'auditoria_id' | 'revision_direccion_id' | 'documento_id' | 'prueba_continuidad_id';
+    opciones: OpcionNumerica[];
 }
 
 interface Compromiso {
@@ -42,16 +58,20 @@ interface Compromiso {
     sistema: string | null;
     activo: boolean;
     proximaFecha: string;
-    proximaEscrita: string;
     dias: number;
     vencido: boolean;
-    origen: { codigo: string; nombre: string; baseLegal: string | null; marco: string | null } | null;
+    origen: {
+        codigo: string;
+        nombre: string;
+        baseLegal: string | null;
+        marco: string | null;
+        referenciaSugerida: { valor: string; etiqueta: string } | null;
+    } | null;
 }
 
 interface Cumplimiento {
     id: number;
     fecha: string;
-    fechaEscrita: string;
     cubreHasta: string;
     registradoEn: string;
     registradoPor: string | null;
@@ -64,28 +84,34 @@ interface Cumplimiento {
  * La ficha de un compromiso periódico.
  *
  * El dato **es el histórico**: la pregunta del auditor no es «¿se hace?», es
- * «¿desde cuándo?». Por eso la columna ancha es la lista de cumplimientos y no la
- * descripción.
+ * «¿desde cuándo?». Por eso la columna ancha abre con el ciclo —la vida del
+ * compromiso en una barra, con los huecos a la vista— y sigue con la tabla de
+ * cumplimientos. Una lista de fechas no dice si el segundo cumplimiento llegó a
+ * tiempo; la barra sí, sin hacer la cuenta.
  *
  * **Cada asiento enseña sus dos fechas**, y no es redundancia: `fecha` es cuándo
  * se cumplió y `registradoEn` cuándo se apuntó. La del auditor es la primera y la
  * de la traza es la segunda, y enseñar sólo una las confunde — mismo reparto que
  * `medidaEn` frente a `registradaPor` en una medición.
  *
- * Un solo elemento fuerte (DESIGN.md § 14): «Registrar cumplimiento». Y **en teal
- * y no en la variante de acento**, aunque una de las obligaciones habituales sea
- * una auditoría: aquí no se abre ningún flujo de revisión, se sella un hecho.
+ * Un solo elemento fuerte (DESIGN.md § 14): «Registrar cumplimiento», **en la
+ * tarjeta «Estado»** de la columna lateral, que es donde toda ficha pone su
+ * cambio de estado (§ 9) y aquí registrar es exactamente eso. En teal y no en la
+ * variante de acento, aunque una de las obligaciones habituales sea una
+ * auditoría: aquí no se abre ningún flujo de revisión, se sella un hecho. En la
+ * cabecera quedan «Editar» y un menú con «Retirar», que es lo que se usa poco.
  */
 const props = defineProps<{
     compromiso: Compromiso;
     cumplimientos: Cumplimiento[];
+    ciclo: Tramo[];
+    hoy: string;
     puedeGestionar: boolean;
-    auditorias: OpcionNumerica[];
-    revisiones: OpcionNumerica[];
-    documentos: OpcionNumerica[];
-    pruebasContinuidad: OpcionNumerica[];
+    referencias: TipoReferencia[];
     evidencias: OpcionNumerica[];
 }>();
+
+const { variantesEntrada } = useMovimientoReducido();
 
 const abierto = ref(false);
 
@@ -101,7 +127,7 @@ const comoOpciones = (lista: OpcionNumerica[]) =>
     lista.map((item) => ({ valor: String(item.valor), etiqueta: item.etiqueta }));
 
 const formulario = useForm({
-    fecha: new Date().toISOString().slice(0, 10),
+    fecha: props.hoy,
     cubre_hasta: '',
     auditoria_id: '',
     revision_direccion_id: '',
@@ -110,6 +136,29 @@ const formulario = useForm({
     evidencia_id: '',
     nota: '',
 });
+
+/*
+ * Qué registro lo demuestra, en dos pasos: primero el tipo y luego cuál.
+ *
+ * Eran cuatro desplegables que parecían independientes, y la base sólo admite
+ * una referencia: la regla no se veía hasta enviar, y el error salía colgado del
+ * primero. Con el tipo delante, elegir dos es imposible. Arranca en el que el
+ * catálogo sugiere para esta obligación —el acta, en la revisión por la
+ * dirección—, que es lo que se va a elegir casi siempre.
+ */
+const tipoSugerido = props.compromiso.origen?.referenciaSugerida?.valor ?? SIN_VALOR;
+const tipoReferencia = ref(tipoSugerido);
+const registroReferencia = ref(SIN_VALOR);
+
+watch(tipoReferencia, () => {
+    registroReferencia.value = SIN_VALOR;
+});
+
+const referenciaElegida = computed(() => props.referencias.find((tipo) => tipo.valor === tipoReferencia.value) ?? null);
+
+const errorReferencia = computed(() =>
+    props.referencias.map((tipo) => formulario.errors[tipo.campo]).find((error) => error !== undefined),
+);
 
 /*
  * Retirar abre su confirmación y pide el motivo.
@@ -139,24 +188,64 @@ const estado = computed(() => {
         : { valor: 'al_dia', etiqueta: 'Al día', tono: 'implantado', icono: 'CircleCheck' };
 });
 
-const cuando = computed(() => {
-    const dias = props.compromiso.dias;
+const dias = (n: number) => `${formatoNumero.format(n)} ${n === 1 ? 'día' : 'días'}`;
 
-    if (dias < 0) {
-        return `venció hace ${Math.abs(dias)} ${dias === -1 ? 'día' : 'días'}`;
+/** «en 267 días», «hoy», «hace 3 días»: detrás de la fecha larga, como pide § 13. */
+const cuando = computed(() => {
+    const restantes = props.compromiso.dias;
+
+    if (restantes === 0) {
+        return 'hoy';
     }
 
-    return dias === 0 ? 'vence hoy' : `vence en ${dias} ${dias === 1 ? 'día' : 'días'}`;
+    return restantes > 0 ? `en ${dias(restantes)}` : `hace ${dias(Math.abs(restantes))}`;
+});
+
+const fechaLarga = (valor: string) => {
+    const fecha = fechaDe(valor);
+
+    return fecha ? formatoFechaLarga.format(fecha) : valor;
+};
+
+const ultimo = computed(() => props.cumplimientos[0] ?? null);
+
+const sinPrueba = (cumplimiento: Cumplimiento) => cumplimiento.referencia === null && cumplimiento.evidencia === null;
+
+/*
+ * Lo que un auditor va a pedir y falta (DESIGN.md § 9, «Lo que falta»). Sólo lo
+ * que se arregla editando la ficha: la prueba de un cumplimiento ya apuntado no
+ * se edita en el sitio —se borra y se vuelve a registrar—, así que se dice en su
+ * fila y no aquí, donde un chip tendría que llevar a alguna parte.
+ */
+const pendientes = computed(() => {
+    const faltan: string[] = [];
+
+    if (props.compromiso.activo && props.compromiso.responsable === null) {
+        faltan.push('Responsable');
+    }
+
+    return faltan;
 });
 
 function registrar(): void {
-    formulario.post(`/obligaciones/${props.compromiso.id}/cumplimientos`, {
-        preserveScroll: true,
-        onSuccess: () => {
-            abierto.value = false;
-            formulario.reset();
-        },
-    });
+    formulario
+        .transform((datos) => ({
+            ...datos,
+            ...Object.fromEntries(
+                props.referencias.map((tipo) => [
+                    tipo.campo,
+                    tipo.valor === tipoReferencia.value ? registroReferencia.value : SIN_VALOR,
+                ]),
+            ),
+        }))
+        .post(`/obligaciones/${props.compromiso.id}/cumplimientos`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                abierto.value = false;
+                formulario.reset();
+                tipoReferencia.value = tipoSugerido;
+            },
+        });
 }
 
 function borrarCumplimiento(): void {
@@ -185,152 +274,294 @@ function retirar(): void {
 
 <template>
     <AppLayout :titulo="compromiso.titulo">
-        <CabeceraPagina :titulo="compromiso.titulo" :codigo="compromiso.codigo" :descripcion="compromiso.descripcion ?? undefined">
-            <template #acciones>
-                <Button v-if="puedeGestionar && compromiso.activo" @click="abierto = true">
-                    Registrar cumplimiento
+        <CabeceraPagina :titulo="compromiso.titulo" :codigo="compromiso.codigo" :descripcion="compromiso.descripcion">
+            <template v-if="puedeGestionar" #acciones>
+                <Button as-child variant="outline">
+                    <Link :href="`/obligaciones/${compromiso.id}/editar`">
+                        <PencilIcon aria-hidden="true" />
+                        Editar
+                    </Link>
                 </Button>
-                <Button v-if="puedeGestionar" as-child variant="outline">
-                    <Link :href="`/obligaciones/${compromiso.id}/editar`">Editar</Link>
-                </Button>
-                <Button v-if="puedeGestionar && compromiso.activo" variant="ghost" @click="retirando = true">
-                    Retirar
-                </Button>
+                <DropdownMenu v-if="compromiso.activo">
+                    <DropdownMenuTrigger as-child>
+                        <Button variant="ghost" size="icon" aria-label="Más acciones">
+                            <EllipsisIcon aria-hidden="true" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" class="w-44">
+                        <DropdownMenuItem @select="retirando = true">Retirar la obligación</DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </template>
         </CabeceraPagina>
 
-        <div class="flex flex-wrap items-center gap-2">
-            <CeldaBadge :valor="estado" />
-            <span class="text-sm text-muted-foreground">
-                {{ compromiso.proximaEscrita }} · {{ cuando }}
-            </span>
-            <span v-if="!compromiso.activo" class="text-sm text-muted-foreground">
-                · Retirada. Su histórico se conserva.
-            </span>
-        </div>
+        <motion.div :variants="variantesEntrada" initial="oculto" animate="visible" class="space-y-6">
+            <section
+                v-if="pendientes.length > 0"
+                aria-labelledby="pendientes"
+                class="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border bg-card px-5 py-3.5"
+            >
+                <InfoIcon class="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                <h2 id="pendientes" class="text-sm font-semibold">
+                    {{ pendientes.length }} {{ pendientes.length === 1 ? 'dato sin completar' : 'datos sin completar' }}
+                </h2>
+                <ul class="flex flex-1 flex-wrap gap-2">
+                    <li v-for="pendiente in pendientes" :key="pendiente">
+                        <Link
+                            v-if="puedeGestionar"
+                            :href="`/obligaciones/${compromiso.id}/editar`"
+                            class="inline-flex h-7 items-center rounded-full bg-muted px-2.5 text-[13px] font-medium text-secondary-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                        >
+                            {{ pendiente }}
+                        </Link>
+                        <span
+                            v-else
+                            class="inline-flex h-7 items-center rounded-full bg-muted px-2.5 text-[13px] font-medium text-secondary-foreground"
+                        >
+                            {{ pendiente }}
+                        </span>
+                    </li>
+                </ul>
+                <p class="text-xs text-muted-foreground">Sin responsable, nadie responde por ella en la auditoría.</p>
+            </section>
 
-        <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Histórico de cumplimiento</CardTitle>
-                    <CardDescription>
-                        Cada vez que se cumplió, con qué se demuestra y hasta cuándo cubría.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ul v-if="cumplimientos.length > 0" class="divide-y">
-                        <li v-for="cumplimiento in cumplimientos" :key="cumplimiento.id" class="py-3">
-                            <div class="flex flex-wrap items-start justify-between gap-2">
-                                <div class="min-w-0">
-                                    <p class="cifra text-sm font-medium">{{ cumplimiento.fechaEscrita }}</p>
-                                    <p class="mt-0.5 text-xs text-muted-foreground">
-                                        Cubre hasta {{ cumplimiento.cubreHasta }} ·
-                                        apuntado el {{ cumplimiento.registradoEn }}
-                                        <template v-if="cumplimiento.registradoPor">
-                                            por {{ cumplimiento.registradoPor }}
-                                        </template>
-                                    </p>
+            <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start">
+                <div class="space-y-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Ciclo</CardTitle>
+                            <CardDescription>
+                                Qué periodos quedaron cubiertos y cuáles no, desde que empezó a contar.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <BarraCiclo
+                                :tramos="ciclo"
+                                :hoy="hoy"
+                                :vence="compromiso.activo ? compromiso.proximaFecha : null"
+                            />
+                        </CardContent>
+                    </Card>
 
-                                    <p v-if="cumplimiento.nota" class="mt-1 max-w-prose text-sm">
-                                        {{ cumplimiento.nota }}
-                                    </p>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Histórico de cumplimiento</CardTitle>
+                            <CardDescription>
+                                Cuándo se cumplió, hasta cuándo cubría, con qué se demuestra y cuándo se apuntó.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Table v-if="cumplimientos.length > 0">
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Cumplida</TableHead>
+                                        <TableHead>Cubre hasta</TableHead>
+                                        <TableHead>Prueba</TableHead>
+                                        <TableHead>Apuntada</TableHead>
+                                        <TableHead v-if="puedeGestionar" class="w-12">
+                                            <span class="sr-only">Acciones</span>
+                                        </TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    <TableRow v-for="cumplimiento in cumplimientos" :key="cumplimiento.id">
+                                        <TableCell class="cifra align-top font-medium">
+                                            {{ fechaLegible(cumplimiento.fecha) }}
+                                        </TableCell>
+                                        <TableCell class="cifra align-top">
+                                            {{ fechaLegible(cumplimiento.cubreHasta) }}
+                                        </TableCell>
+                                        <TableCell class="align-top whitespace-normal">
+                                            <div class="grid gap-1">
+                                                <Link
+                                                    v-if="cumplimiento.referencia"
+                                                    :href="cumplimiento.referencia.url"
+                                                    class="inline-flex items-center gap-1.5 text-primary underline-offset-4 hover:underline"
+                                                >
+                                                    <IconoTipo :nombre="cumplimiento.referencia.icono" />
+                                                    {{ cumplimiento.referencia.etiqueta }}
+                                                </Link>
+                                                <Link
+                                                    v-if="cumplimiento.evidencia"
+                                                    :href="`/evidencias/${cumplimiento.evidencia.id}`"
+                                                    class="inline-flex items-center gap-1.5 text-primary underline-offset-4 hover:underline"
+                                                >
+                                                    <IconoTipo nombre="Paperclip" />
+                                                    {{ cumplimiento.evidencia.titulo }}
+                                                </Link>
+                                                <span v-if="sinPrueba(cumplimiento)" class="text-muted-foreground">
+                                                    Sin prueba
+                                                </span>
+                                                <p v-if="cumplimiento.nota" class="max-w-prose text-muted-foreground">
+                                                    {{ cumplimiento.nota }}
+                                                </p>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell class="align-top">
+                                            <span class="cifra block">
+                                                {{ formatoFechaHora.format(new Date(cumplimiento.registradoEn)) }}
+                                            </span>
+                                            <span class="block text-xs text-muted-foreground">
+                                                {{
+                                                    cumplimiento.registradoPor
+                                                        ? `por ${cumplimiento.registradoPor}`
+                                                        : 'Sin autor en la traza'
+                                                }}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell v-if="puedeGestionar" class="text-right align-top">
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger as-child>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon-sm"
+                                                        :aria-label="`Acciones del cumplimiento del ${fechaLegible(cumplimiento.fecha)}`"
+                                                    >
+                                                        <EllipsisIcon aria-hidden="true" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" class="w-48">
+                                                    <DropdownMenuItem
+                                                        variant="destructive"
+                                                        @select="borrando = cumplimiento.id"
+                                                    >
+                                                        Borrar el cumplimiento
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow class="hover:bg-transparent">
+                                        <TableCell class="cifra align-top text-muted-foreground">
+                                            {{ fechaLegible(compromiso.computaDesde) }}
+                                        </TableCell>
+                                        <TableCell :colspan="puedeGestionar ? 4 : 3" class="whitespace-normal text-muted-foreground">
+                                            Empieza a contar. Desde aquí se mide el primer vencimiento.
+                                        </TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
 
-                                    <p class="mt-1.5 flex flex-wrap items-center gap-3 text-xs">
-                                        <Link
-                                            v-if="cumplimiento.referencia"
-                                            :href="cumplimiento.referencia.url"
-                                            class="inline-flex items-center gap-1 underline underline-offset-2"
-                                        >
-                                            <IconoTipo :nombre="cumplimiento.referencia.icono" />
-                                            {{ cumplimiento.referencia.etiqueta }}
-                                        </Link>
-                                        <Link
-                                            v-if="cumplimiento.evidencia"
-                                            :href="`/evidencias/${cumplimiento.evidencia.id}`"
-                                            class="inline-flex items-center gap-1 underline underline-offset-2"
-                                        >
-                                            <IconoTipo nombre="Paperclip" />
-                                            {{ cumplimiento.evidencia.titulo }}
-                                        </Link>
-                                    </p>
+                            <EstadoVacio
+                                v-else
+                                titulo="Nunca se ha registrado el cumplimiento"
+                                descripcion="Una obligación declarada y nunca cumplida es una promesa, no un control — y es lo primero que se comprueba."
+                            />
+                        </CardContent>
+                    </Card>
+                </div>
+
+                <div class="space-y-6">
+                    <Card>
+                        <CardHeader class="flex flex-row items-center justify-between gap-3">
+                            <CardTitle>Estado</CardTitle>
+                            <CeldaBadge :valor="estado" />
+                        </CardHeader>
+                        <CardContent class="grid gap-4">
+                            <dl class="grid gap-3">
+                                <div v-if="compromiso.activo">
+                                    <dt class="text-xs text-muted-foreground">
+                                        {{ compromiso.vencido ? 'Venció' : 'Próximo vencimiento' }}
+                                    </dt>
+                                    <dd class="text-base font-semibold">{{ fechaLarga(compromiso.proximaFecha) }}</dd>
+                                    <dd
+                                        class="text-[13px]"
+                                        :class="compromiso.vencido ? 'text-destructive' : 'text-muted-foreground'"
+                                    >
+                                        {{ cuando }}
+                                    </dd>
                                 </div>
+                                <div v-else>
+                                    <dt class="text-xs text-muted-foreground">Retirada</dt>
+                                    <dd class="text-sm">Ya no vence. Su histórico se conserva.</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-xs text-muted-foreground">Último cumplimiento</dt>
+                                    <dd class="text-sm">
+                                        <template v-if="ultimo">
+                                            {{ fechaLarga(ultimo.fecha) }}{{ sinPrueba(ultimo) ? ' · sin prueba' : '' }}
+                                        </template>
+                                        <span v-else class="text-muted-foreground">Ninguno todavía</span>
+                                    </dd>
+                                </div>
+                            </dl>
 
-                                <Button
-                                    v-if="puedeGestionar"
-                                    variant="ghost"
-                                    size="sm"
-                                    @click="borrando = cumplimiento.id"
-                                >
-                                    Borrar
-                                </Button>
-                            </div>
-                        </li>
-                    </ul>
+                            <Button v-if="puedeGestionar && compromiso.activo" size="lg" class="w-full" @click="abierto = true">
+                                <PlusIcon aria-hidden="true" />
+                                Registrar cumplimiento
+                            </Button>
+                        </CardContent>
+                    </Card>
 
-                    <EstadoVacio
-                        v-else
-                        titulo="Nunca se ha registrado el cumplimiento"
-                        descripcion="Una obligación declarada y nunca cumplida es una promesa, no un control — y es lo primero que se comprueba."
-                    />
-                </CardContent>
-            </Card>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Ficha</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <dl class="grid grid-cols-[7rem_minmax(0,1fr)] gap-x-3 gap-y-3 text-sm">
+                                <dt class="text-[13px] text-muted-foreground">Cadencia</dt>
+                                <dd>{{ compromiso.cadencia }}</dd>
+                                <dt class="text-[13px] text-muted-foreground">Se cuenta desde</dt>
+                                <dd class="cifra">{{ fechaLegible(compromiso.computaDesde) }}</dd>
+                                <dt class="text-[13px] text-muted-foreground">Responsable</dt>
+                                <dd>
+                                    <span v-if="compromiso.responsable">{{ compromiso.responsable }}</span>
+                                    <span v-else class="flex flex-wrap gap-2">
+                                        <span class="text-muted-foreground">Sin asignar</span>
+                                        <Link
+                                            v-if="puedeGestionar"
+                                            :href="`/obligaciones/${compromiso.id}/editar`"
+                                            class="font-medium text-primary underline-offset-4 hover:underline"
+                                        >
+                                            Asignar
+                                        </Link>
+                                    </span>
+                                </dd>
+                                <dt class="text-[13px] text-muted-foreground">Alcance</dt>
+                                <dd>{{ compromiso.sistema ?? 'La organización entera' }}</dd>
+                                <template v-if="compromiso.notas">
+                                    <dt class="text-[13px] text-muted-foreground">Notas</dt>
+                                    <dd class="whitespace-pre-line">{{ compromiso.notas }}</dd>
+                                </template>
+                                <template v-if="compromiso.motivoRetirada">
+                                    <dt class="text-[13px] text-muted-foreground">Por qué se retiró</dt>
+                                    <dd class="whitespace-pre-line">{{ compromiso.motivoRetirada }}</dd>
+                                </template>
+                            </dl>
+                        </CardContent>
+                    </Card>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Ficha</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <dl class="grid gap-3 text-sm">
-                        <div>
-                            <dt class="text-xs text-muted-foreground">Cadencia</dt>
-                            <dd>{{ compromiso.cadencia }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-xs text-muted-foreground">Se cuenta desde</dt>
-                            <dd class="cifra">{{ compromiso.computaDesde }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-xs text-muted-foreground">Responsable</dt>
-                            <dd>{{ compromiso.responsable ?? 'Sin asignar' }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-xs text-muted-foreground">Sistema</dt>
-                            <dd>{{ compromiso.sistema ?? 'La organización entera' }}</dd>
-                        </div>
-                        <!--
-                            De dónde sale, citado. Es lo que separa esta ficha de
-                            una lista de buenas intenciones, y lo primero que se
-                            comprueba.
-                        -->
-                        <div v-if="compromiso.origen">
-                            <dt class="text-xs text-muted-foreground">Del catálogo</dt>
-                            <dd>
-                                <span class="cifra">{{ compromiso.origen.codigo }}</span>
-                                — {{ compromiso.origen.nombre }}
-                            </dd>
-                        </div>
-                        <div v-if="compromiso.origen?.baseLegal">
-                            <dt class="text-xs text-muted-foreground">Base</dt>
-                            <dd>{{ compromiso.origen.baseLegal }}</dd>
-                        </div>
-                        <div v-else-if="!compromiso.origen">
-                            <dt class="text-xs text-muted-foreground">Del catálogo</dt>
-                            <dd class="text-muted-foreground">
+                    <!--
+                        De dónde sale, citado. Es lo que separa esta ficha de una
+                        lista de buenas intenciones, y lo primero que se comprueba.
+                        Con la regla de 2 px de lo que viene de otra ficha (§ 9),
+                        no con una caja dentro de la tarjeta.
+                    -->
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>De dónde sale</CardTitle>
+                        </CardHeader>
+                        <CardContent class="grid gap-4 text-sm">
+                            <template v-if="compromiso.origen">
+                                <blockquote class="grid gap-1 border-l-2 border-border pl-3.5">
+                                    <span v-if="compromiso.origen.baseLegal" class="font-medium">
+                                        {{ compromiso.origen.baseLegal }}
+                                    </span>
+                                    <span class="text-[13px] text-muted-foreground">{{ compromiso.origen.nombre }}</span>
+                                    <span class="cifra text-xs text-muted-foreground">{{ compromiso.origen.codigo }}</span>
+                                </blockquote>
+                                <p v-if="compromiso.origen.referenciaSugerida" class="text-[13px] text-secondary-foreground">
+                                    Se demuestra de costumbre con: {{ compromiso.origen.referenciaSugerida.etiqueta.toLowerCase() }}.
+                                </p>
+                            </template>
+                            <p v-else class="text-muted-foreground">
                                 Obligación propia: no la exige ningún marco cargado.
-                            </dd>
-                        </div>
-                        <div v-if="compromiso.notas">
-                            <dt class="text-xs text-muted-foreground">Notas</dt>
-                            <dd>{{ compromiso.notas }}</dd>
-                        </div>
-                        <div v-if="compromiso.motivoRetirada">
-                            <dt class="text-xs text-muted-foreground">Por qué se retiró</dt>
-                            <dd>{{ compromiso.motivoRetirada }}</dd>
-                        </div>
-                    </dl>
-                </CardContent>
-            </Card>
-        </div>
+                            </p>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+        </motion.div>
 
         <Dialog v-model:open="retirando">
             <DialogContent>
@@ -379,71 +610,56 @@ function retirar(): void {
         </Dialog>
 
         <Dialog v-model:open="abierto">
-            <DialogContent>
+            <DialogContent class="sm:max-w-lg">
                 <DialogHeader>
                     <DialogTitle>Registrar cumplimiento</DialogTitle>
                     <DialogDescription>
-                        Se sella un hecho, así que la fecha no puede estar en el futuro. La cobertura
-                        la calcula la cadencia salvo que la ventana real caiga en otro sitio.
+                        {{ compromiso.titulo }}. Se sella un hecho: la fecha no puede estar en el futuro.
                     </DialogDescription>
                 </DialogHeader>
 
                 <div class="grid gap-4">
-                    <CampoTexto
-                        v-model="formulario.fecha"
-                        nombre="fecha"
-                        etiqueta="Cuándo se cumplió"
-                        tipo="date"
-                        :error="formulario.errors.fecha"
-                        requerido
-                        ayuda="No cuándo se apunta: eso lo guarda la traza por su cuenta."
-                    />
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <CampoTexto
+                            v-model="formulario.fecha"
+                            nombre="fecha"
+                            etiqueta="Cuándo se cumplió"
+                            tipo="date"
+                            :error="formulario.errors.fecha"
+                            requerido
+                            ayuda="El día del hecho. Cuándo se apunta lo guarda la traza."
+                        />
 
-                    <CampoTexto
-                        v-model="formulario.cubre_hasta"
-                        nombre="cubre_hasta"
-                        etiqueta="Cubre hasta"
-                        tipo="date"
-                        :error="formulario.errors.cubre_hasta"
-                        ayuda="En blanco lo calcula la cadencia. Se ajusta cuando la ventana real no cae ahí."
-                    />
+                        <CampoTexto
+                            v-model="formulario.cubre_hasta"
+                            nombre="cubre_hasta"
+                            etiqueta="Cubre hasta"
+                            tipo="date"
+                            :error="formulario.errors.cubre_hasta"
+                            :ayuda="`En blanco, una cadencia después de la fecha (${compromiso.cadencia.toLowerCase()}).`"
+                        />
+                    </div>
 
-                    <!--
-                        Una sola referencia, que es lo que la base impone. La
-                        evidencia va aparte porque es otra cosa: es la prueba, y
-                        convive con el registro que la originó.
-                    -->
-                    <CampoSelect
-                        v-model="formulario.auditoria_id"
-                        nombre="auditoria_id"
-                        etiqueta="Auditoría que lo demuestra"
-                        :opciones="conOpcionVacia(comoOpciones(auditorias), 'Ninguna')"
-                        :error="formulario.errors.auditoria_id"
-                    />
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <CampoSelect
+                            v-model="tipoReferencia"
+                            nombre="tipo_referencia"
+                            etiqueta="Qué registro lo demuestra"
+                            :opciones="conOpcionVacia(referencias.map(({ valor, etiqueta }) => ({ valor, etiqueta })), 'Ninguno')"
+                            ayuda="Uno solo. La evidencia va aparte."
+                        />
 
-                    <CampoSelect
-                        v-model="formulario.revision_direccion_id"
-                        nombre="revision_direccion_id"
-                        etiqueta="Acta de revisión"
-                        :opciones="conOpcionVacia(comoOpciones(revisiones), 'Ninguna')"
-                        :error="formulario.errors.revision_direccion_id"
-                    />
-
-                    <CampoSelect
-                        v-model="formulario.documento_id"
-                        nombre="documento_id"
-                        etiqueta="Documento"
-                        :opciones="conOpcionVacia(comoOpciones(documentos), 'Ninguno')"
-                        :error="formulario.errors.documento_id"
-                    />
-
-                    <CampoSelect
-                        v-model="formulario.prueba_continuidad_id"
-                        nombre="prueba_continuidad_id"
-                        etiqueta="Prueba de continuidad"
-                        :opciones="conOpcionVacia(comoOpciones(pruebasContinuidad), 'Ninguna')"
-                        :error="formulario.errors.prueba_continuidad_id"
-                    />
+                        <CampoSelect
+                            v-if="referenciaElegida"
+                            :key="referenciaElegida.valor"
+                            v-model="registroReferencia"
+                            nombre="registro_referencia"
+                            :etiqueta="referenciaElegida.etiqueta"
+                            :opciones="conOpcionVacia(comoOpciones(referenciaElegida.opciones), 'Ninguno')"
+                            :error="errorReferencia"
+                            :ayuda="referenciaElegida.opciones.length === 0 ? 'Todavía no hay ninguno registrado.' : undefined"
+                        />
+                    </div>
 
                     <CampoSelect
                         v-model="formulario.evidencia_id"
@@ -451,7 +667,7 @@ function retirar(): void {
                         etiqueta="Evidencia"
                         :opciones="conOpcionVacia(comoOpciones(evidencias), 'Ninguna')"
                         :error="formulario.errors.evidencia_id"
-                        ayuda="Qué lo prueba. Sin prueba, un cumplimiento es una afirmación."
+                        ayuda="El fichero que lo prueba. Sin prueba, un cumplimiento es una afirmación."
                     />
 
                     <CampoTextarea
@@ -460,13 +676,13 @@ function retirar(): void {
                         etiqueta="Nota"
                         :filas="3"
                         :error="formulario.errors.nota"
-                        ayuda="El número de registro del INES, quién auditó, el número de acta."
+                        ayuda="El número de acta, quién asistió, el número de registro del INES."
                     />
                 </div>
 
                 <DialogFooter>
                     <Button variant="outline" @click="abierto = false">Cancelar</Button>
-                    <Button :disabled="formulario.processing" @click="registrar">Registrar</Button>
+                    <Button :disabled="formulario.processing" @click="registrar">Registrar cumplimiento</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

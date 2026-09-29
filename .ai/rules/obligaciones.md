@@ -289,6 +289,36 @@ normativo no se borra, se marca.
   cuándo se apuntó: la del auditor es la primera y la de la traza la segunda, y enseñar sólo una las
   confunde. Mismo reparto que `medidaEn` frente a `registradaPor` en una medición.
 
+- **La ficha abre con el ciclo, no con el histórico.** Una lista de cumplimientos contesta
+  «cuándo se cumplió», pero no «¿hubo un hueco?», y eso es lo que el auditor busca: dos fechas
+  seguidas no dicen si la segunda llegó a tiempo. `CicloCompromiso` parte la vida del compromiso en
+  tramos que no se pisan —`TramoCiclo`: primer plazo, cubierto, sin cubrir y fuera de plazo— y
+  `BarraCiclo` los reparte a lo ancho, cada uno con lo que duró. **Sigue la regla de
+  `Compromiso::PROXIMA` al pie de la letra**: el primer plazo sólo vale mientras no hay
+  cumplimientos y se corta en el primero, y a partir de ahí manda el `cubre_hasta` de cada uno. Si
+  divergieran, la barra pintaría «cubierto» donde la tabla dice «fuera de plazo»; lo fija un test que
+  compara el final de lo cubierto con `proximaFecha()` y el tramo abierto con `vencido()`.
+
+  Los dos huecos —el que ya se cerró y el que sigue abierto— comparten el rojo de `caducada` y se
+  separan por el icono: un periodo sin cubrir fue un incumplimiento aunque hoy esté al día, y
+  pintarlo de gris enseñaría a no mirarlo. Una obligación retirada no acumula hueco después.
+
+- **El primario vive en la tarjeta «Estado»**, arriba de la columna lateral, como en toda ficha
+  (`DESIGN.md` § 9): registrar un cumplimiento es el cambio de estado de esta. En la cabecera quedan
+  «Editar» y un menú con «Retirar», que es lo que se usa poco. Borrar un cumplimiento va en el menú de
+  su fila.
+
+- **La referencia se elige en dos pasos: primero el tipo, luego cuál.** Eran cuatro desplegables que
+  parecían independientes, y la base sólo admite uno. El controlador manda `referencias`, un elemento
+  por caso de `ReferenciaCumplimiento` con su columna y sus opciones, así que un caso nuevo del enum
+  aparece solo en el diálogo —el `match` de `opcionesDeReferencia()` no deja olvidarlo—. El tipo
+  arranca en `obligaciones.referencia_sugerida`. **Dos desplegables y no `CampoOpciones`**: ése es
+  para escalas que ordenan, y los tipos de registro no ordenan nada.
+
+- **La prueba que falta no entra en la tira de «datos sin completar».** Un cumplimiento ya apuntado
+  no se edita —se borra y se vuelve a registrar—, así que el chip no tendría adónde llevar. Se dice en
+  su fila, «Sin prueba». La tira sólo pide el responsable.
+
 - **No se marca cumplida desde un chip del calendario.** Un cumplimiento necesita fecha, prueba y nota, y
   `DESIGN.md` § 1 no admite un gesto irreversible desde una rejilla densa. El chip lleva a la ficha.
 
@@ -386,11 +416,6 @@ negarla. Nada de esto rompe nada hoy:
   esos números. Hay cinco reincidencias más en el repositorio.
 - **`EstadoVacio` dentro de una tarjeta** en la ficha: su balanza de 22 rem está
   calibrada para un vacío a ancho de pantalla, no para un hueco de 400 px.
-- **La ficha puede desbordar a 375 px**: tres botones en la cabecera y
-  `CabeceraPagina` no envuelve el hueco de acciones.
-- **El diálogo de cumplimiento no dice, hasta enviar, que sólo vale una
-  referencia.** La base lo impone y el `FormRequest` lo valida, pero los tres
-  desplegables se presentan como independientes y el error sale colgado del primero.
 - **`DIAS_POR_VENCER` está en tres sitios** —la constante del recurso, el valor por
   defecto del scope y un literal en la etiqueta del panel— pese a que su propio
   docblock dice que una cifra escrita dos veces se desincroniza.

@@ -148,6 +148,7 @@ readonly url: string,
 };
 namespace Enums {
 export type ReferenciaCumplimiento = 'auditoria' | 'revision_direccion' | 'documento' | 'prueba_continuidad';
+export type TramoCiclo = 'plazo' | 'cubierto' | 'sin_cubrir' | 'vencido';
 }
 }
 namespace Organizacion {

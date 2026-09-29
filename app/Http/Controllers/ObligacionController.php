@@ -12,7 +12,9 @@ use App\Domain\Documento\Models\Documento;
 use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Obligacion\AsumirObligacion;
 use App\Domain\Obligacion\Cadencia;
+use App\Domain\Obligacion\CicloCompromiso;
 use App\Domain\Obligacion\CodigoCompromiso;
+use App\Domain\Obligacion\Enums\ReferenciaCumplimiento;
 use App\Domain\Obligacion\Excepciones\CumplimientoInvalido;
 use App\Domain\Obligacion\Models\Compromiso;
 use App\Domain\Obligacion\Models\CompromisoCumplimiento;
@@ -183,6 +185,7 @@ class ObligacionController extends Controller
 
         $proxima = $compromiso->proximaFecha();
         $dias = (int) Carbon::today()->diffInDays($proxima, false);
+        $ciclo = (new CicloCompromiso)($compromiso);
 
         return Inertia::render('obligaciones/Ficha', [
             'compromiso' => [
@@ -199,7 +202,6 @@ class ObligacionController extends Controller
                 'sistema' => $compromiso->sistema?->nombre,
                 'activo' => $compromiso->activo,
                 'proximaFecha' => $proxima->toDateString(),
-                'proximaEscrita' => $proxima->format('d/m/Y'),
                 'dias' => $dias,
                 'vencido' => $dias < 0,
                 // De dónde sale y qué la exige, que es lo que un auditor pregunta
@@ -209,16 +211,36 @@ class ObligacionController extends Controller
                     'nombre' => $compromiso->obligacion->nombre,
                     'baseLegal' => $compromiso->obligacion->base_legal,
                     'marco' => $compromiso->obligacion->marco?->nombre,
+                    // Con qué registro se demuestra de costumbre: la ficha lo
+                    // marca por defecto al registrar y lo dice en «De dónde sale».
+                    'referenciaSugerida' => $compromiso->obligacion->referencia_sugerida === null ? null : [
+                        'valor' => $compromiso->obligacion->referencia_sugerida->value,
+                        'etiqueta' => $compromiso->obligacion->referencia_sugerida->etiqueta(),
+                    ],
                 ],
             ],
+            // La vida del compromiso en tramos que no se pisan: dónde estuvo
+            // cubierto y dónde hubo un hueco. Ver `CicloCompromiso`.
+            'ciclo' => array_map(fn (array $tramo): array => [
+                'tipo' => [
+                    'valor' => $tramo['tipo']->value,
+                    'etiqueta' => $tramo['tipo']->etiqueta(),
+                    'tono' => $tramo['tipo']->tono(),
+                    'icono' => $tramo['tipo']->icono(),
+                ],
+                'desde' => $tramo['desde'],
+                'hasta' => $tramo['hasta'],
+                'dias' => $tramo['dias'],
+                'cumplimiento' => $tramo['cumplimiento'],
+            ], $ciclo),
+            'hoy' => Carbon::today()->toDateString(),
             'cumplimientos' => $compromiso->cumplimientos->map(fn (CompromisoCumplimiento $cumplimiento): array => [
                 'id' => $cumplimiento->id,
                 // Las dos fechas, y no una: `fecha` es cuándo se cumplió y
                 // `created_at` cuándo se apuntó. Enseñar sólo una las confunde.
                 'fecha' => $cumplimiento->fecha->toDateString(),
-                'fechaEscrita' => $cumplimiento->fecha->format('d/m/Y'),
-                'cubreHasta' => $cumplimiento->cubre_hasta->format('d/m/Y'),
-                'registradoEn' => $cumplimiento->created_at->format('d/m/Y H:i'),
+                'cubreHasta' => $cumplimiento->cubre_hasta->toDateString(),
+                'registradoEn' => $cumplimiento->created_at->toIso8601String(),
                 'registradoPor' => $cumplimiento->registradoPor?->name,
                 'nota' => $cumplimiento->nota,
                 'referencia' => Referencia::de($cumplimiento),
@@ -385,50 +407,24 @@ class ObligacionController extends Controller
      * **Las cinco llevan tope.** `Documento` no lo llevaba y se traía el registro
      * documental entero para un desplegable.
      *
+     * **Los cuatro registros viajan como una lista, uno por caso de
+     * `ReferenciaCumplimiento`**, con la columna a la que van. La ficha los
+     * pintaba como cuatro desplegables sueltos que parecían independientes, y la
+     * regla de «sólo uno» no se veía hasta que el `FormRequest` la rechazaba.
+     * Ahora se elige primero cuál y luego qué, y un caso nuevo del enum aparece
+     * solo: el `match` de `opcionesDeReferencia()` no deja olvidarlo.
+     *
      * @return array<string, mixed>
      */
     private function opcionesDeCumplimiento(): array
     {
         return [
-            'auditorias' => Auditoria::query()
-                ->orderByDesc('fecha')
-                ->limit(50)
-                ->get()
-                ->map(fn (Auditoria $auditoria): array => [
-                    'valor' => $auditoria->id,
-                    'etiqueta' => "{$auditoria->codigo} — {$auditoria->tipo->etiqueta()} · {$auditoria->fecha->format('d/m/Y')}",
-                ])
-                ->all(),
-
-            'revisiones' => RevisionDireccion::query()
-                ->orderByDesc('fecha')
-                ->limit(50)
-                ->get()
-                ->map(fn (RevisionDireccion $revision): array => [
-                    'valor' => $revision->id,
-                    'etiqueta' => "{$revision->codigo} — {$revision->fecha->format('d/m/Y')}",
-                ])
-                ->all(),
-
-            'documentos' => Documento::query()
-                ->orderBy('codigo')
-                ->limit(100)
-                ->get()
-                ->map(fn (Documento $documento): array => ['valor' => $documento->id, 'etiqueta' => "{$documento->codigo} — {$documento->titulo}"])
-                ->all(),
-
-            /*
-             * Sólo las realizadas: una prueba planificada o cancelada todavía no
-             * demuestra nada, y citarla como referencia de un cumplimiento sería
-             * dar por hecho un resultado que no existe.
-             */
-            'pruebasContinuidad' => PruebaContinuidad::query()
-                ->where('estado', EstadoPrueba::Realizada)
-                ->orderByDesc('fecha_realizacion')
-                ->limit(50)
-                ->get()
-                ->map(fn (PruebaContinuidad $prueba): array => ['valor' => $prueba->id, 'etiqueta' => "{$prueba->codigo} — {$prueba->titulo}"])
-                ->all(),
+            'referencias' => array_map(fn (ReferenciaCumplimiento $referencia): array => [
+                'valor' => $referencia->value,
+                'etiqueta' => $referencia->etiqueta(),
+                'campo' => $referencia->columna(),
+                'opciones' => $this->opcionesDeReferencia($referencia),
+            ], ReferenciaCumplimiento::cases()),
 
             'evidencias' => Evidencia::query()
                 ->orderByDesc('created_at')
@@ -437,5 +433,59 @@ class ObligacionController extends Controller
                 ->map(fn (Evidencia $evidencia): array => ['valor' => $evidencia->id, 'etiqueta' => $evidencia->titulo])
                 ->all(),
         ];
+    }
+
+    /**
+     * Los registros de un tipo que pueden demostrar un cumplimiento.
+     *
+     * @return list<array{valor: int, etiqueta: string}>
+     */
+    private function opcionesDeReferencia(ReferenciaCumplimiento $referencia): array
+    {
+        return match ($referencia) {
+            ReferenciaCumplimiento::Auditoria => Auditoria::query()
+                ->orderByDesc('fecha')
+                ->limit(50)
+                ->get()
+                ->map(fn (Auditoria $auditoria): array => [
+                    'valor' => $auditoria->id,
+                    'etiqueta' => "{$auditoria->codigo} — {$auditoria->tipo->etiqueta()} · {$auditoria->fecha->format('d/m/Y')}",
+                ])
+                ->values()
+                ->all(),
+
+            ReferenciaCumplimiento::RevisionDireccion => RevisionDireccion::query()
+                ->orderByDesc('fecha')
+                ->limit(50)
+                ->get()
+                ->map(fn (RevisionDireccion $revision): array => [
+                    'valor' => $revision->id,
+                    'etiqueta' => "{$revision->codigo} — {$revision->fecha->format('d/m/Y')}",
+                ])
+                ->values()
+                ->all(),
+
+            ReferenciaCumplimiento::Documento => Documento::query()
+                ->orderBy('codigo')
+                ->limit(100)
+                ->get()
+                ->map(fn (Documento $documento): array => ['valor' => $documento->id, 'etiqueta' => "{$documento->codigo} — {$documento->titulo}"])
+                ->values()
+                ->all(),
+
+            /*
+             * Sólo las realizadas: una prueba planificada o cancelada todavía no
+             * demuestra nada, y citarla como referencia de un cumplimiento sería
+             * dar por hecho un resultado que no existe.
+             */
+            ReferenciaCumplimiento::PruebaContinuidad => PruebaContinuidad::query()
+                ->where('estado', EstadoPrueba::Realizada)
+                ->orderByDesc('fecha_realizacion')
+                ->limit(50)
+                ->get()
+                ->map(fn (PruebaContinuidad $prueba): array => ['valor' => $prueba->id, 'etiqueta' => "{$prueba->codigo} — {$prueba->titulo}"])
+                ->values()
+                ->all(),
+        };
     }
 }
