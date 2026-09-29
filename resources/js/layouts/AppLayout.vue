@@ -1,17 +1,16 @@
 <script setup lang="ts">
-import AvatarUsuario from '@/components/AvatarUsuario.vue';
 import GrupoSidebar from '@/components/GrupoSidebar.vue';
 import Logotipo from '@/components/Logotipo.vue';
+import MenuCuenta from '@/components/MenuCuenta.vue';
+import MenuOrganizacion from '@/components/MenuOrganizacion.vue';
 import PaletaComandos from '@/components/PaletaComandos.vue';
 import RecorridoGuiado from '@/components/RecorridoGuiado.vue';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
-    DropdownMenuCheckboxItem,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuLabel,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -20,26 +19,19 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
 import { usePaletaComandos } from '@/composables/usePaletaComandos';
 import { useRecorrido } from '@/composables/useRecorrido';
-import { useTema } from '@/composables/useTema';
 import { entradaDe, esSeccionActiva, navegacionPara, type GrupoNavegacion } from '@/lib/navegacion';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import {
-    BuildingIcon,
     ChevronRightIcon,
-    LogOutIcon,
+    ChevronsUpDownIcon,
     MenuIcon,
-    MonitorIcon,
-    MoonIcon,
-    PanelLeftIcon,
-    RouteIcon,
+    PanelLeftCloseIcon,
+    PanelLeftOpenIcon,
     SearchIcon,
-    ShieldCheckIcon,
-    SunIcon,
-    UserRoundCogIcon,
 } from '@lucide/vue';
 import { useStorage } from '@vueuse/core';
 import { MotionConfig, motion } from 'motion-v';
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 import 'vue-sonner/style.css';
 
@@ -80,40 +72,71 @@ const puede = (permiso: string): boolean => pagina.props.auth.permisos.includes(
 const rutaActual = computed(() => new URL(pagina.url, 'http://x').pathname);
 const seccion = computed(() => entradaDe(rutaActual.value));
 
-/* La preferencia de sidebar es del navegador, como la del tema. */
+const { abrir: abrirPaleta } = usePaletaComandos();
+const { abierto: recorridoAbierto } = useRecorrido();
+
+/* La preferencia de sidebar es del navegador: es del puesto y no de la persona. */
 const plegado = useStorage('statera.sidebar.plegado', false);
 
+/*
+ * Con el recorrido guiado en marcha el sidebar se enseña desplegado, lo haya
+ * plegado quien lo haya plegado: sus pasos señalan entradas (`nav-sistemas`,
+ * `nav-documentos`…) y en el riel sólo hay grupos.
+ */
+const compacto = computed(() => plegado.value && !recorridoAbierto.value);
+
 /* Sólo lo que la sesión puede abrir: un enlace a un 403 no se pinta. */
-const grupos = computed(() => navegacionPara(pagina.props.auth.permisos));
+const navegacionVisible = computed(() => navegacionPara(pagina.props.auth.permisos));
 
 /*
- * Los grupos plegados, por título, también del navegador. Se guarda lo que se
- * plegó y no lo que se abrió: un grupo nuevo que llegue con un módulo nuevo
- * sale abierto, que es lo que tiene que pasar con algo que nadie ha visto.
+ * El panel es la portada y va suelto, encima de los grupos: plegado dentro de
+ * «Estado» habría que abrir un grupo para volver a casa. Es una decisión del
+ * sidebar y no del mapa: la paleta y las migas lo siguen viendo en su grupo.
  */
-const gruposPlegados = useStorage<string[]>('statera.sidebar.grupos-plegados', []);
+const RUTA_INICIO = '/panel';
+const inicio = computed(() =>
+    navegacionVisible.value.flatMap((grupo) => grupo.entradas).find((entrada) => entrada.href === RUTA_INICIO),
+);
+const grupos = computed(() =>
+    navegacionVisible.value
+        .map((grupo) => ({ ...grupo, entradas: grupo.entradas.filter((entrada) => entrada.href !== RUTA_INICIO) }))
+        .filter((grupo) => grupo.entradas.length > 0),
+);
 
-const contieneLaRuta = (grupo: GrupoNavegacion): boolean =>
-    grupo.entradas.some((entrada) => esSeccionActiva(entrada.href, rutaActual.value));
+const entradaActual = (grupo: GrupoNavegacion): string | undefined =>
+    grupo.entradas.find((entrada) => esSeccionActiva(entrada.href, rutaActual.value))?.titulo;
 
 /*
- * Con el recorrido guiado en marcha se abren todos: sus pasos señalan entradas
- * del sidebar (`nav-sistemas`, `nav-documentos`…), y un foco sobre algo plegado
- * no señala nada.
+ * Un grupo abierto cada vez: el de la pantalla actual al llegar, y el que se
+ * pulse después. No se guarda en el navegador a propósito —cada pantalla abre
+ * el suyo—, que es lo que deja el sidebar en siete filas en vez de treinta.
  */
-const grupoAbierto = (grupo: GrupoNavegacion): boolean =>
-    recorridoAbierto.value || contieneLaRuta(grupo) || !gruposPlegados.value.includes(grupo.titulo);
+const grupoDeLaRuta = computed(() => grupos.value.find((grupo) => entradaActual(grupo) !== undefined)?.titulo ?? null);
+const grupoElegido = ref<string | null>(grupoDeLaRuta.value);
+
+watch(grupoDeLaRuta, (titulo) => {
+    grupoElegido.value = titulo;
+});
+
+/* Con el recorrido en marcha se abren todos: un foco sobre algo plegado no señala nada. */
+const grupoAbierto = (grupo: GrupoNavegacion): boolean => recorridoAbierto.value || grupoElegido.value === grupo.titulo;
 
 function alternarGrupo(grupo: GrupoNavegacion): void {
-    gruposPlegados.value = gruposPlegados.value.includes(grupo.titulo)
-        ? gruposPlegados.value.filter((titulo) => titulo !== grupo.titulo)
-        : [...gruposPlegados.value, grupo.titulo];
+    grupoElegido.value = grupoElegido.value === grupo.titulo ? null : grupo.titulo;
 }
-const menuMovil = ref(false);
 
-const { preferencia, esOscuro, fijar } = useTema();
-const { abrir: abrirPaleta } = usePaletaComandos();
-const { abierto: recorridoAbierto, abrir: abrirRecorrido } = useRecorrido();
+/* Las iniciales de la organización, para cuando no ha subido logo. */
+const inicialesOrganizacion = computed(
+    () =>
+        (organizacion.value?.nombre ?? '')
+            .trim()
+            .split(/\s+/)
+            .slice(0, 2)
+            .map((parte) => parte.charAt(0).toUpperCase())
+            .join('') || '?',
+);
+
+const menuMovil = ref(false);
 
 /**
  * El ancla que el recorrido guiado busca para cada módulo.
@@ -181,7 +204,6 @@ onUnmounted(() => {
     dejarDeEscucharErrores?.();
 });
 
-const salir = (): void => router.post('/logout');
 </script>
 
 <template>
@@ -205,136 +227,251 @@ const salir = (): void => router.post('/logout');
                 </a>
 
                 <!-- ── Sidebar de escritorio ──────────────────────────────── -->
-                <aside
-                    class="hidden shrink-0 flex-col border-r bg-superficie transition-[width] duration-(--duracion) ease-marca md:flex"
-                    :class="plegado ? 'w-[4.25rem]' : 'w-60'"
-                >
-                    <div class="flex h-16 items-center border-b px-4">
-                        <Link href="/panel" class="flex min-w-0 items-center rounded-md" data-recorrido="logotipo">
-                            <Logotipo :variante="plegado ? 'simbolo' : 'completo'" :respaldo="!plegado" />
-                        </Link>
-                    </div>
+                <!--
+                    El ancho es lo único que se anima con disposición (DESIGN.md
+                    §10), y el contenido no se reacomoda mientras tanto: cada modo
+                    tiene su ancho fijo, el que sale se funde recortado por el
+                    `overflow-hidden` y el que entra aparece cuando el ancho ya ha
+                    llegado. Sin eso, los textos se partían a mitad del pliegue.
 
-                    <nav class="flex-1 space-y-6 overflow-y-auto p-3">
-                        <GrupoSidebar
-                            v-for="grupo in grupos"
-                            :key="grupo.titulo"
-                            :titulo="grupo.titulo"
-                            :abierto="grupoAbierto(grupo)"
-                            :compacto="plegado"
-                            @alternar="alternarGrupo(grupo)"
-                        >
-                            <Tooltip v-for="entrada in grupo.entradas" :key="entrada.href">
-                                <TooltipTrigger as-child>
+                    Pegajoso y a la altura de la ventana: crecía con la página, y
+                    en una tabla larga la organización y el botón de plegar se
+                    quedaban al fondo del documento.
+                -->
+                <aside
+                    class="sticky top-0 hidden h-[100dvh] shrink-0 flex-col overflow-hidden border-r bg-superficie transition-[width] duration-(--duracion) ease-marca md:flex"
+                    :class="compacto ? 'w-16' : 'w-62'"
+                >
+                    <Transition name="modo-sidebar" mode="out-in">
+                        <!-- Desplegado: grupos plegables, uno abierto cada vez. -->
+                        <div v-if="!compacto" key="completo" class="flex min-h-0 w-62 flex-1 flex-col">
+                            <!-- Sólo Statera: el respaldo no va en la barra de
+                                 navegación (DESIGN.md §2, Logotipo). -->
+                            <div class="flex h-16 shrink-0 items-center border-b px-4">
+                                <Link href="/panel" class="flex min-w-0 items-center rounded-md" data-recorrido="logotipo">
+                                    <Logotipo />
+                                </Link>
+                            </div>
+
+                            <nav aria-label="Módulos" class="flex-1 space-y-0.5 overflow-y-auto p-2">
+                                <Link
+                                    v-if="inicio"
+                                    :href="inicio.href"
+                                    :data-recorrido="anclaRecorrido(inicio.href)"
+                                    class="mb-2 flex h-9 items-center gap-2.5 rounded-md px-3 text-sm font-medium transition-colors"
+                                    :class="
+                                        esSeccionActiva(inicio.href, rutaActual)
+                                            ? 'bg-accent font-semibold text-accent-foreground'
+                                            : 'text-secondary-foreground hover:bg-muted'
+                                    "
+                                    :aria-current="esSeccionActiva(inicio.href, rutaActual) ? 'page' : undefined"
+                                >
+                                    <component
+                                        :is="inicio.icono"
+                                        class="size-4 shrink-0"
+                                        :class="esSeccionActiva(inicio.href, rutaActual) ? 'text-primary' : 'text-muted-foreground'"
+                                    />
+                                    {{ inicio.titulo }}
+                                </Link>
+
+                                <GrupoSidebar
+                                    v-for="grupo in grupos"
+                                    :key="grupo.titulo"
+                                    :titulo="grupo.titulo"
+                                    :icono="grupo.icono"
+                                    :abierto="grupoAbierto(grupo)"
+                                    :cantidad="grupo.entradas.length"
+                                    :actual="entradaActual(grupo)"
+                                    @alternar="alternarGrupo(grupo)"
+                                >
+                                    <!-- Sin `transition-colors`: el color y la
+                                         entrada escalonada los lleva el grupo. -->
                                     <Link
+                                        v-for="entrada in grupo.entradas"
+                                        :key="entrada.href"
                                         :href="entrada.href"
                                         :data-recorrido="anclaRecorrido(entrada.href)"
-                                        class="relative flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors"
-                                        :class="[
+                                        class="relative flex h-8 items-center gap-2.5 rounded-md px-2.5 text-sm font-medium"
+                                        :class="
                                             esSeccionActiva(entrada.href, rutaActual)
-                                                ? 'bg-accent text-accent-foreground'
-                                                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                                            plegado && 'justify-center px-0',
-                                        ]"
+                                                ? 'bg-accent font-semibold text-accent-foreground'
+                                                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                        "
                                         :aria-current="esSeccionActiva(entrada.href, rutaActual) ? 'page' : undefined"
                                     >
+                                        <!-- La activa pinta su tramo de la guía. -->
                                         <span
                                             v-if="esSeccionActiva(entrada.href, rutaActual)"
-                                            class="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-primary"
+                                            class="absolute inset-y-1.5 -left-[9px] w-0.5 rounded-full bg-primary"
                                             aria-hidden="true"
                                         />
-                                        <component :is="entrada.icono" class="size-4 shrink-0" />
-                                        <span v-if="!plegado" class="truncate">{{ entrada.titulo }}</span>
+                                        <component
+                                            :is="entrada.icono"
+                                            class="size-4 shrink-0"
+                                            :class="esSeccionActiva(entrada.href, rutaActual) && 'text-primary'"
+                                        />
+                                        <span class="truncate">{{ entrada.titulo }}</span>
                                     </Link>
-                                </TooltipTrigger>
-                                <TooltipContent v-if="plegado" side="right">
-                                    {{ entrada.titulo }}
-                                </TooltipContent>
-                            </Tooltip>
-                        </GrupoSidebar>
-                    </nav>
+                                </GrupoSidebar>
+                            </nav>
 
-                    <div class="border-t p-3">
-                        <!-- La organización deja de ser texto muerto: es el punto
-                             de conmutación que el modelo multi-tenant ya soporta. -->
-                        <DropdownMenu>
-                            <DropdownMenuTrigger as-child>
-                                <button
-                                    type="button"
-                                    class="flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-muted"
-                                    :class="plegado && 'justify-center px-0'"
-                                >
-                                    <span
-                                        class="flex size-7 shrink-0 items-center justify-center rounded-md bg-accent text-accent-foreground"
-                                    >
-                                        <BuildingIcon class="size-3.5" />
-                                    </span>
-                                    <span v-if="!plegado" class="min-w-0 flex-1">
-                                        <span class="block text-xs text-muted-foreground">Organización</span>
-                                        <span class="block truncate text-sm font-medium">
-                                            {{ organizacion?.nombre ?? 'Sin contexto' }}
-                                        </span>
-                                    </span>
-                                </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start" class="w-56">
-                                <DropdownMenuLabel class="text-xs font-normal text-muted-foreground">
-                                    Organización activa
-                                </DropdownMenuLabel>
-                                <DropdownMenuItem v-if="organizacion" disabled>
-                                    <!--
-                                        El logo del cliente donde estaba el
-                                        escudo. Statera se queda arriba del
-                                        panel: esto es co-branding y no marca
-                                        blanca, que sigue fuera de alcance.
-                                        `DESIGN.md` §2 pide que no se compongan
-                                        en la misma pieza, y aquí los separa el
-                                        alto del sidebar entero.
-                                    -->
-                                    <img
-                                        v-if="organizacion.logo"
-                                        :src="organizacion.logo"
-                                        alt=""
-                                        class="h-5 w-auto max-w-[5rem] object-contain"
-                                    />
-                                    <ShieldCheckIcon v-else class="size-4 text-primary" />
-                                    {{ organizacion.nombre }}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem v-else disabled>Sin contexto de organización</DropdownMenuItem>
+                            <!-- Organización y plegar en una sola fila. -->
+                            <div class="flex shrink-0 items-center gap-1 border-t p-2">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger as-child>
+                                        <button
+                                            type="button"
+                                            class="flex h-12 min-w-0 flex-1 items-center gap-2.5 rounded-md px-2 text-left transition-colors hover:bg-muted data-[state=open]:bg-muted"
+                                        >
+                                            <span
+                                                class="flex size-8 shrink-0 items-center justify-center rounded-md border bg-card text-xs font-semibold text-secondary-foreground"
+                                                aria-hidden="true"
+                                            >
+                                                {{ inicialesOrganizacion }}
+                                            </span>
+                                            <span class="min-w-0 flex-1">
+                                                <span class="block truncate text-sm font-medium">
+                                                    {{ organizacion?.nombre ?? 'Sin contexto' }}
+                                                </span>
+                                                <span class="block text-xs text-muted-foreground">Organización activa</span>
+                                            </span>
+                                            <ChevronsUpDownIcon class="size-3.5 shrink-0 text-muted-foreground" />
+                                        </button>
+                                    </DropdownMenuTrigger>
+                                    <MenuOrganizacion :organizacion="organizacion" :gestionar="puede('organizacion.gestionar')" />
+                                </DropdownMenu>
 
-                                <!--
-                                    La ficha del tenant no está en
-                                    `lib/navegacion.ts` —ese fichero es el mapa
-                                    de MÓDULOS y esto no lo es—, así que su
-                                    puerta es este desplegable, que es donde ya
-                                    se mira para preguntarse de qué organización
-                                    hablamos. Mismo precedente que la metodología
-                                    de riesgo, que se enlaza desde la ficha de un
-                                    riesgo y tampoco tiene entrada de menú.
-                                -->
-                                <template v-if="organizacion && puede('organizacion.gestionar')">
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem as-child>
-                                        <Link href="/organizacion">
-                                            <BuildingIcon class="size-4" />
-                                            La ficha de la organización
+                                <Tooltip>
+                                    <TooltipTrigger as-child>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon-sm"
+                                            class="text-muted-foreground"
+                                            aria-label="Plegar la navegación"
+                                            @click="plegado = true"
+                                        >
+                                            <PanelLeftCloseIcon />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">Plegar la navegación</TooltipContent>
+                                </Tooltip>
+                            </div>
+                        </div>
+
+                        <!-- Plegado: el riel, un botón por grupo con su menú. -->
+                        <div v-else key="riel" class="flex min-h-0 w-16 flex-1 flex-col items-center">
+                            <div class="flex h-16 w-full shrink-0 items-center justify-center border-b">
+                                <Link href="/panel" class="flex rounded-md" data-recorrido="logotipo">
+                                    <Logotipo variante="simbolo" />
+                                </Link>
+                            </div>
+
+                            <nav aria-label="Módulos" class="flex w-full flex-1 flex-col items-center gap-1 overflow-y-auto py-2">
+                                <Tooltip v-if="inicio">
+                                    <TooltipTrigger as-child>
+                                        <Link
+                                            :href="inicio.href"
+                                            class="relative flex size-10 items-center justify-center rounded-md transition-colors"
+                                            :class="
+                                                esSeccionActiva(inicio.href, rutaActual)
+                                                    ? 'bg-accent text-primary'
+                                                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                            "
+                                            :aria-label="inicio.titulo"
+                                            :aria-current="esSeccionActiva(inicio.href, rutaActual) ? 'page' : undefined"
+                                        >
+                                            <span
+                                                v-if="esSeccionActiva(inicio.href, rutaActual)"
+                                                class="absolute inset-y-2.5 -left-3 w-[3px] rounded-full bg-primary"
+                                                aria-hidden="true"
+                                            />
+                                            <component :is="inicio.icono" class="size-4.5" />
                                         </Link>
-                                    </DropdownMenuItem>
-                                </template>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="right">{{ inicio.titulo }}</TooltipContent>
+                                </Tooltip>
 
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            class="mt-1 w-full justify-center text-muted-foreground"
-                            :aria-label="plegado ? 'Desplegar la navegación' : 'Plegar la navegación'"
-                            @click="plegado = !plegado"
-                        >
-                            <PanelLeftIcon class="size-4 transition-transform duration-(--duracion)" :class="plegado && 'rotate-180'" />
-                            <span v-if="!plegado">Plegar</span>
-                        </Button>
-                    </div>
+                                <span class="my-1 h-px w-6 shrink-0 bg-border" aria-hidden="true" />
+
+                                <DropdownMenu v-for="grupo in grupos" :key="grupo.titulo">
+                                    <DropdownMenuTrigger as-child>
+                                        <button
+                                            type="button"
+                                            class="relative flex size-10 shrink-0 items-center justify-center rounded-md transition-colors"
+                                            :class="
+                                                entradaActual(grupo)
+                                                    ? 'bg-accent text-primary'
+                                                    : 'text-muted-foreground hover:bg-muted hover:text-foreground data-[state=open]:bg-muted data-[state=open]:text-foreground'
+                                            "
+                                            :aria-label="entradaActual(grupo) ? `${grupo.titulo}, donde está ${entradaActual(grupo)}` : grupo.titulo"
+                                        >
+                                            <span
+                                                v-if="entradaActual(grupo)"
+                                                class="absolute inset-y-2.5 -left-3 w-[3px] rounded-full bg-primary"
+                                                aria-hidden="true"
+                                            />
+                                            <component :is="grupo.icono" class="size-4.5" />
+                                        </button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent side="right" align="start" :side-offset="14" class="w-60">
+                                        <DropdownMenuLabel class="flex items-center justify-between gap-2 text-xs font-medium text-muted-foreground">
+                                            {{ grupo.titulo }}
+                                            <span class="cifra">{{ grupo.entradas.length }}</span>
+                                        </DropdownMenuLabel>
+                                        <DropdownMenuItem v-for="entrada in grupo.entradas" :key="entrada.href" as-child>
+                                            <Link
+                                                :href="entrada.href"
+                                                :class="esSeccionActiva(entrada.href, rutaActual) && 'bg-accent font-semibold text-accent-foreground'"
+                                                :aria-current="esSeccionActiva(entrada.href, rutaActual) ? 'page' : undefined"
+                                            >
+                                                <component
+                                                    :is="entrada.icono"
+                                                    class="size-4"
+                                                    :class="esSeccionActiva(entrada.href, rutaActual) && 'text-primary'"
+                                                />
+                                                {{ entrada.titulo }}
+                                            </Link>
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </nav>
+
+                            <div class="flex w-full shrink-0 flex-col items-center gap-1 border-t py-2">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger as-child>
+                                        <button
+                                            type="button"
+                                            class="flex size-10 items-center justify-center rounded-md transition-colors hover:bg-muted data-[state=open]:bg-muted"
+                                            :aria-label="`Organización activa: ${organizacion?.nombre ?? 'sin contexto'}`"
+                                        >
+                                            <span
+                                                class="flex size-8 items-center justify-center rounded-md border bg-card text-xs font-semibold text-secondary-foreground"
+                                                aria-hidden="true"
+                                            >
+                                                {{ inicialesOrganizacion }}
+                                            </span>
+                                        </button>
+                                    </DropdownMenuTrigger>
+                                    <MenuOrganizacion side="right" :organizacion="organizacion" :gestionar="puede('organizacion.gestionar')" />
+                                </DropdownMenu>
+
+                                <Tooltip>
+                                    <TooltipTrigger as-child>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon-sm"
+                                            class="text-muted-foreground"
+                                            aria-label="Desplegar la navegación"
+                                            @click="plegado = false"
+                                        >
+                                            <PanelLeftOpenIcon />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="right">Desplegar la navegación</TooltipContent>
+                                </Tooltip>
+                            </div>
+                        </div>
+                    </Transition>
                 </aside>
 
                 <!-- ── Columna principal ──────────────────────────────────── -->
@@ -365,12 +502,27 @@ const salir = (): void => router.post('/logout');
                                         </SheetDescription>
 
                                         <div class="flex h-16 items-center border-b px-5">
-                                            <Logotipo respaldo />
+                                            <Logotipo />
                                         </div>
 
                                         <nav class="flex-1 space-y-6 overflow-y-auto p-3">
+                                            <Link
+                                                v-if="inicio"
+                                                :href="inicio.href"
+                                                class="flex items-center gap-2.5 rounded-md px-3 py-2.5 text-sm font-medium transition-colors"
+                                                :class="
+                                                    esSeccionActiva(inicio.href, rutaActual)
+                                                        ? 'bg-accent text-accent-foreground'
+                                                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                                "
+                                                @click="menuMovil = false"
+                                            >
+                                                <component :is="inicio.icono" class="size-4" />
+                                                {{ inicio.titulo }}
+                                            </Link>
                                             <div v-for="grupo in grupos" :key="grupo.titulo" class="space-y-1">
-                                                <p class="px-3 pb-1 text-xs font-medium text-muted-foreground">
+                                                <p class="flex items-center gap-2 px-3 pb-1 text-xs font-medium text-muted-foreground">
+                                                    <component :is="grupo.icono" class="size-3.5" />
                                                     {{ grupo.titulo }}
                                                 </p>
                                                 <Link
@@ -428,87 +580,13 @@ const salir = (): void => router.post('/logout');
                                     <kbd class="cifra rounded border bg-muted px-1 text-xs">⌘K</kbd>
                                 </Button>
 
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger as-child>
-                                        <Button variant="ghost" size="icon-sm" aria-label="Cambiar el tema">
-                                            <SunIcon v-if="esOscuro" />
-                                            <MoonIcon v-else />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" class="w-44">
-                                        <DropdownMenuCheckboxItem
-                                            :model-value="preferencia === 'claro'"
-                                            @select="fijar('claro')"
-                                        >
-                                            <SunIcon class="size-4" />
-                                            Claro
-                                        </DropdownMenuCheckboxItem>
-                                        <DropdownMenuCheckboxItem
-                                            :model-value="preferencia === 'oscuro'"
-                                            @select="fijar('oscuro')"
-                                        >
-                                            <MoonIcon class="size-4" />
-                                            Oscuro
-                                        </DropdownMenuCheckboxItem>
-                                        <DropdownMenuCheckboxItem
-                                            :model-value="preferencia === 'sistema'"
-                                            @select="fijar('sistema')"
-                                        >
-                                            <MonitorIcon class="size-4" />
-                                            El del sistema
-                                        </DropdownMenuCheckboxItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger as-child>
-                                        <Button variant="ghost" size="sm" class="gap-2">
-                                            <AvatarUsuario
-                                                :nombre="usuario?.nombre"
-                                                :foto="usuario?.foto"
-                                                tamano="sm"
-                                                clase="text-xs"
-                                            />
-                                            <span class="hidden truncate sm:inline">{{ usuario?.nombre }}</span>
-                                        </Button>
-                                    </DropdownMenuTrigger>
-
-                                    <DropdownMenuContent align="end" class="w-60">
-                                        <DropdownMenuLabel>
-                                            <p class="text-sm font-medium">{{ usuario?.nombre }}</p>
-                                            <p class="truncate text-xs font-normal text-muted-foreground">
-                                                {{ usuario?.email }}
-                                            </p>
-                                        </DropdownMenuLabel>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuLabel class="flex items-center gap-2 text-xs font-normal">
-                                            <ShieldCheckIcon
-                                                class="size-3.5"
-                                                :class="usuario?.dosFactores ? 'text-estado-implantado' : 'text-muted-foreground'"
-                                            />
-                                            {{ usuario?.dosFactores ? 'Segundo factor activo' : 'Sin segundo factor' }}
-                                        </DropdownMenuLabel>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem as-child>
-                                            <Link href="/perfil">
-                                                <UserRoundCogIcon class="size-4" />
-                                                Mi cuenta
-                                            </Link>
-                                        </DropdownMenuItem>
-                                        <!-- El recorrido se ofrece solo una vez; a
-                                             partir de ahí hay que poder encontrarlo,
-                                             y este es el menú donde ya se busca todo
-                                             lo que es del usuario y no del trabajo. -->
-                                        <DropdownMenuItem @select="abrirRecorrido">
-                                            <RouteIcon class="size-4" />
-                                            Recorrido guiado
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem @select="salir">
-                                            <LogOutIcon class="size-4" />
-                                            Cerrar sesión
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
+                                <!-- El tema vive dentro: es una preferencia de la persona,
+                                     como todo lo demás de ese menú. -->
+                                <MenuCuenta
+                                    v-if="usuario"
+                                    :usuario="usuario"
+                                    :organizacion="organizacion?.nombre ?? null"
+                                />
                             </div>
                         </div>
                     </header>
@@ -561,3 +639,24 @@ const salir = (): void => router.post('/logout');
         </TooltipProvider>
     </MotionConfig>
 </template>
+
+<style scoped>
+/*
+ * El relevo entre el sidebar desplegado y el riel. Sólo opacidad: el ancho ya
+ * se mueve, y dos cosas desplazándose a la vez no se siguen. Sale en la
+ * duración de salida mientras el ancho encoge o crece, y entra cuando el ancho
+ * ya ha llegado.
+ */
+.modo-sidebar-enter-active {
+    transition: opacity var(--duracion-salida) var(--curva) calc(var(--duracion) - var(--duracion-rapida));
+}
+
+.modo-sidebar-leave-active {
+    transition: opacity var(--duracion-rapida) var(--curva);
+}
+
+.modo-sidebar-enter-from,
+.modo-sidebar-leave-to {
+    opacity: 0;
+}
+</style>

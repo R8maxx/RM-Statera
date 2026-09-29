@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="92 152 328 208" width="328" height="208">
+  <title>Statera</title>
+  <defs>
+    <linearGradient id="bar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#1FD1C8"/>
+      <stop offset="0.5" stop-color="#3B9CF0"/>
+      <stop offset="1" stop-color="#8B5CF6"/>
+    </linearGradient>
+    <linearGradient id="stem" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#22D3EE"/>
+      <stop offset="0.55" stop-color="#2F7DE1"/>
+      <stop offset="1" stop-color="#7C3AED"/>
+    </linearGradient>
+    <linearGradient id="stemShade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0.5" stop-color="#0B1220" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#0B1220" stop-opacity="0.28"/>
+    </linearGradient>
+    <linearGradient id="left" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#14B8B0"/>
+      <stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+    <linearGradient id="right" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6D5BF0"/>
+      <stop offset="1" stop-color="#9B6BFA"/>
+    </linearGradient>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#121B2E"/>
+      <stop offset="1" stop-color="#0B1220"/>
+    </linearGradient>
+  </defs>
+  <g stroke-linejoin="round">
+    <path d="M99 314 L179 199 L219 314 Z" fill="url(#left)" stroke="url(#left)" stroke-width="8"/>
+    <path d="M296 314 L334 199 L414 314 Z" fill="url(#right)" stroke="url(#right)" stroke-width="8"/>
+    <rect x="136" y="159" width="240" height="19" rx="3" fill="url(#bar)"/>
+    <rect x="242" y="178" width="30" height="175" rx="2" fill="url(#stem)"/>
+    <rect x="242" y="178" width="30" height="175" rx="2" fill="url(#stemShade)"/>
+  </g>
+</svg>

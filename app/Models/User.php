@@ -7,6 +7,8 @@ namespace App\Models;
 use App\Domain\Autorizacion\Enums\Rol;
 use App\Domain\Organizacion\Models\Organizacion;
 use App\Domain\Usuario\Enums\EstadoCuenta;
+use App\Domain\Usuario\Enums\PaginaInicio;
+use App\Domain\Usuario\Enums\Tema;
 use App\Domain\Usuario\Models\CuentaSistema;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -38,6 +40,10 @@ use Spatie\Permission\Traits\HasRoles;
  * @property ?string $motivo_desactivacion
  * @property ?Carbon $acceso_hasta
  * @property ?Carbon $ultimo_acceso_en
+ * @property ?Carbon $password_cambiada_en
+ * @property Tema $tema
+ * @property PaginaInicio $pagina_inicio
+ * @property bool $avisos_por_correo
  * @property ?Carbon $created_at
  */
 #[Fillable(['name', 'email', 'password', 'organizacion_id'])]
@@ -48,6 +54,19 @@ class User extends Authenticatable implements PasskeyUser
     use HasFactory;
 
     use HasRoles, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
+
+    /**
+     * Los mismos que pone la base. Sin ellos, una cuenta recién creada lleva
+     * las preferencias a nulo hasta que se relee, y el primer `tema->value`
+     * revienta en la misma petición que la creó.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'tema' => 'sistema',
+        'pagina_inicio' => 'panel',
+        'avisos_por_correo' => true,
+    ];
 
     /**
      * Si el segundo factor está activo de verdad.
@@ -183,6 +202,10 @@ class User extends Authenticatable implements PasskeyUser
             'desactivada_en' => 'datetime',
             'acceso_hasta' => 'date',
             'ultimo_acceso_en' => 'datetime',
+            'password_cambiada_en' => 'datetime',
+            'tema' => Tema::class,
+            'pagina_inicio' => PaginaInicio::class,
+            'avisos_por_correo' => 'boolean',
             'password' => 'hashed',
         ];
     }

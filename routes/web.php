@@ -30,6 +30,7 @@ use App\Http\Controllers\PanelController;
 use App\Http\Controllers\ParteInteresadaController;
 use App\Http\Controllers\PerfilController;
 use App\Http\Controllers\PerfilFotoController;
+use App\Http\Controllers\PerfilSesionController;
 use App\Http\Controllers\PersonaController;
 use App\Http\Controllers\PlanContinuidadServicioController;
 use App\Http\Controllers\PlantillaDocumentoController;
@@ -123,6 +124,30 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/perfil/foto', [PerfilFotoController::class, 'show'])->name('perfil.foto');
     Route::post('/perfil/foto', [PerfilFotoController::class, 'store'])->name('perfil.foto.guardar');
     Route::delete('/perfil/foto', [PerfilFotoController::class, 'destroy'])->name('perfil.foto.borrar');
+
+    /*
+    | El resto de la cuenta propia, con el mismo criterio: sin permiso, sin
+    | `ExigirDosFactores` y sin parámetro de usuario. La cuenta es siempre la de
+    | la sesión.
+    |
+    | `/inicio` es el `home` de Fortify: adonde se aterriza al entrar, y de ahí
+    | a la página que la cuenta eligió.
+    |
+    | Cerrar sesiones de otros navegadores pide la contraseña en la misma
+    | petición (`CerrarSesionesRequest`): sin eso, quien encuentre una sesión
+    | abierta echa al dueño de las demás. El `{clave}` es la huella de la
+    | sesión y no su id, que es la cookie.
+    */
+    Route::get('/inicio', [PerfilController::class, 'inicio'])->name('inicio');
+    Route::get('/perfil/menu', [PerfilController::class, 'menu'])->name('perfil.menu');
+    Route::put('/perfil/preferencias', [PerfilController::class, 'preferencias'])->name('perfil.preferencias');
+    Route::put('/perfil/tema', [PerfilController::class, 'tema'])->name('perfil.tema');
+    Route::get('/perfil/mis-datos', [PerfilController::class, 'misDatos'])->name('perfil.mis-datos');
+    Route::delete('/perfil/sesiones', [PerfilSesionController::class, 'destroyOtras'])
+        ->name('perfil.sesiones.cerrar-otras');
+    Route::delete('/perfil/sesiones/{clave}', [PerfilSesionController::class, 'destroy'])
+        ->where('clave', '[0-9a-f]{64}')
+        ->name('perfil.sesiones.cerrar');
 
     /*
     |--------------------------------------------------------------------------

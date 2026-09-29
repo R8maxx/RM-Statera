@@ -3,14 +3,14 @@ import SimboloBalanza from '@/components/SimboloBalanza.vue';
 /**
  * La marca de Statera.
  *
- * *Statera* es la balanza romana, y ese es el símbolo: el fiel vertical, el
- * brazo horizontal y los dos platillos que penden de él — dos marcos normativos
- * puestos en la misma balanza, que es literalmente lo que hace el producto.
+ * *Statera* es la balanza romana, y ése es el símbolo: el brazo, el fiel y los
+ * dos platillos, dos marcos normativos puestos en la misma balanza, que es
+ * literalmente lo que hace el producto. La geometría vive en `SimboloBalanza`.
  *
- * Geometría plana en `currentColor`, sin degradados: el sistema de RM
- * Technology (chip, Poppins, degradado morado) comunica marca de desarrollo, y
- * Statera le habla a auditores y a compradores del sector público, donde ese
- * degradado resta credibilidad. Identidad propia, no derivada.
+ * Plano y en `currentColor`, sin degradados: el sistema de RM Technology
+ * (chip, Poppins, degradado morado) comunica marca de desarrollo, y Statera le
+ * habla a auditores y a compradores del sector público, donde ese degradado
+ * resta credibilidad. Identidad propia, no derivada.
  */
 withDefaults(
     defineProps<{

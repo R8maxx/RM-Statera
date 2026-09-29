@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import BalanzaPixeles from '@/components/BalanzaPixeles.vue';
 import Logotipo from '@/components/Logotipo.vue';
+import logoRmTechnology from '../../rm-technology.svg';
 import SelectorTema from '@/components/SelectorTema.vue';
 import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
 import { Head, Link } from '@inertiajs/vue3';
@@ -124,9 +125,15 @@ const marcos = [
                     por debajo de `lg`, y ponerlo en los dos sitios lo enseña
                     dos veces en la misma pantalla. Mismo ancho que la pila para
                     que caiga en su eje, no en el centro de la columna.
+
+                    El chip es el logo de RM Technology y va aquí como firma, a
+                    tamaño de texto: es el único sitio del producto donde
+                    aparece, y nunca en lugar de Statera (DESIGN.md §2). Lleva
+                    `alt` vacío porque el texto de al lado ya lo dice.
                 -->
-                <footer class="relative mx-auto w-full max-w-[26rem] pb-8 text-xs text-muted-foreground">
-                    Statera, un producto de RM Technology.
+                <footer class="relative mx-auto flex w-full max-w-[26rem] items-center gap-2 pb-8 text-xs text-muted-foreground">
+                    <img :src="logoRmTechnology" alt="" class="size-5 shrink-0 rounded-[0.3rem]" />
+                    <span>Statera, un producto de RM Technology.</span>
                 </footer>
             </div>
 

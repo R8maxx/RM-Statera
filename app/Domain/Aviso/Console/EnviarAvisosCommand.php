@@ -4,15 +4,13 @@ declare(strict_types=1);
 
 namespace App\Domain\Aviso\Console;
 
-use App\Domain\Autorizacion\Enums\Rol;
+use App\Domain\Aviso\DestinatariosDelResumen;
 use App\Domain\Aviso\Notifications\VencimientosDelDia;
 use App\Domain\Aviso\ResumenVencimientos;
 use App\Domain\Aviso\Vencimientos;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Organizacion\Models\Organizacion;
-use App\Models\User;
 use Illuminate\Console\Command;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Notification;
 
 /**
@@ -38,7 +36,7 @@ final class EnviarAvisosCommand extends Command
 
     protected $description = 'Envía a cada organización el resumen de lo que vence';
 
-    public function handle(ResumenVencimientos $resumen, ContextoOrganizacion $contexto): int
+    public function handle(ResumenVencimientos $resumen, ContextoOrganizacion $contexto, DestinatariosDelResumen $destinatarios): int
     {
         $dias = (int) ($this->option('dias') ?: ResumenVencimientos::DIAS);
         $simulacion = (bool) $this->option('dry-run');
@@ -54,7 +52,7 @@ final class EnviarAvisosCommand extends Command
                 continue;
             }
 
-            $destinatarios = $this->destinatarios($contexto, $organizacion);
+            $aQuien = $destinatarios->de($organizacion);
 
             $this->components->twoColumnDetail(
                 $organizacion->nombre,
@@ -62,16 +60,16 @@ final class EnviarAvisosCommand extends Command
                     '%d pasada(s) de fecha, %d por vencer → %d destinatario(s)',
                     $vencimientos->pasados(),
                     $vencimientos->total() - $vencimientos->pasados(),
-                    $destinatarios->count(),
+                    $aQuien->count(),
                 ),
             );
 
-            if ($simulacion || $destinatarios->isEmpty()) {
+            if ($simulacion || $aQuien->isEmpty()) {
                 continue;
             }
 
             Notification::send(
-                $destinatarios,
+                $aQuien,
                 new VencimientosDelDia($organizacion->nombre, $vencimientos),
             );
 
@@ -83,25 +81,5 @@ final class EnviarAvisosCommand extends Command
         }
 
         return self::SUCCESS;
-    }
-
-    /**
-     * Quien puede hacer algo con el aviso.
-     *
-     * El responsable de seguridad, que es quien responde de que la prueba exista.
-     * El técnico ve sus evidencias en la herramienta; recibir además el resumen
-     * de toda la organización es ruido para él y nadie lee un correo que casi
-     * nunca le toca.
-     *
-     * @return Collection<int, User>
-     */
-    private function destinatarios(ContextoOrganizacion $contexto, Organizacion $organizacion): Collection
-    {
-        // Dentro del contexto porque los roles de spatie van por «team»: fuera
-        // de él, `role()` miraría los de otra organización o los de ninguna.
-        return $contexto->paraOrganizacion($organizacion, fn () => User::query()
-            ->where('organizacion_id', $organizacion->id)
-            ->role(Rol::ResponsableSeguridad->value)
-            ->get());
     }
 }

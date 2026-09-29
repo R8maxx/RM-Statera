@@ -25,15 +25,17 @@ it('sirve la pantalla de acceso', function (): void {
         );
 });
 
-it('deja entrar con credenciales correctas y lleva al panel', function (): void {
+it('deja entrar con credenciales correctas y lleva a su página de inicio', function (): void {
     $organizacion = comoOrganizacion();
     $usuario = User::factory()->create([
         'organizacion_id' => $organizacion->id,
         'password' => Hash::make('contrasena-correcta'),
     ]);
 
+    // `/inicio` decide adónde según la cuenta; por defecto, el panel
+    // (`MiCuentaTest` recorre las tres).
     $this->post('/login', ['email' => $usuario->email, 'password' => 'contrasena-correcta'])
-        ->assertRedirect('/panel');
+        ->assertRedirect('/inicio');
 
     $this->assertAuthenticatedAs($usuario);
 });

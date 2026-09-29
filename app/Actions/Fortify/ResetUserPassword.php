@@ -29,6 +29,8 @@ class ResetUserPassword implements ResetsUserPasswords
 
         $user->forceFill([
             'password' => Hash::make($input['password']),
+            // Lo enseña «Mi cuenta»: cuánto hace que no se cambia.
+            'password_cambiada_en' => now(),
         ])->save();
     }
 }

@@ -83,6 +83,26 @@ it('avisa al responsable de seguridad y no al técnico', function (): void {
     Notification::assertNotSentTo($this->tecnico, VencimientosDelDia::class);
 });
 
+it('a quien lo ha apagado en su cuenta no le llega', function (): void {
+    Evidencia::factory()->create(['fecha_caducidad' => Carbon::today()->subDay()]);
+
+    $this->responsable->forceFill(['avisos_por_correo' => false])->save();
+
+    $this->artisan('avisos:enviar')->assertSuccessful();
+
+    Notification::assertNotSentTo($this->responsable, VencimientosDelDia::class);
+});
+
+it('a una cuenta desactivada no le llega', function (): void {
+    Evidencia::factory()->create(['fecha_caducidad' => Carbon::today()->subDay()]);
+
+    $this->responsable->forceFill(['desactivada_en' => now()])->save();
+
+    $this->artisan('avisos:enviar')->assertSuccessful();
+
+    Notification::assertNotSentTo($this->responsable, VencimientosDelDia::class);
+});
+
 it('sin nada que vencer no manda nada', function (): void {
     Evidencia::factory()->create(['fecha_caducidad' => null]);
     Evidencia::factory()->create(['fecha_caducidad' => Carbon::today()->addYear()]);

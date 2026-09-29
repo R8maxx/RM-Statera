@@ -27,13 +27,13 @@ Este archivo es la fuente de verdad de lo visual y manda sobre el apartado de ma
 
 ### Símbolo
 
-**La balanza romana.** *Statera* es su nombre en latín, y el símbolo es literal: el fiel vertical, el brazo horizontal con el punto de apoyo en el centro, y dos platillos colgando. Dos marcos normativos puestos en la misma balanza, que es exactamente lo que hace el producto.
+**La balanza romana.** *Statera* es su nombre en latín, y el símbolo es literal: el brazo horizontal, el fiel vertical que lo sostiene y dos platillos triangulares, con el vértice inclinado hacia el fiel. Dos marcos normativos puestos en la misma balanza, que es exactamente lo que hace el producto.
 
-El platillo derecho cuelga algo más bajo que el izquierdo, y no es un descuido: **una balanza en equilibrio perfecto no está midiendo nada.**
+**Es el logo definitivo**, y sus originales están en `resources/`: `statera-mark.svg` (el símbolo) y `statera-icon.svg` (el símbolo sobre su cuadrado oscuro). Los originales van en degradado de teal a violeta pasando por azul. **En el producto se usa su forma, no sus colores.** Formas llenas y planas en `currentColor`, con las esquinas de los platillos redondeadas. **Sin degradado.** El sistema de RM Technology —chip, Poppins, degradado morado— comunica marca de desarrollo, y Statera le habla a auditores y a compradores del sector público, donde ese degradado resta credibilidad. Además, el azul intermedio cae junto al hue 245 de los estados, justo el que el teal se eligió para evitar (§3). Identidad propia, no derivada.
 
-Geometría plana, trazo de 2 sobre retícula de 32, extremos y uniones redondeados, todo en `currentColor`. **Sin degradado.** El sistema de RM Technology —chip, Poppins, degradado morado— comunica marca de desarrollo, y Statera le habla a auditores y a compradores del sector público, donde ese degradado resta credibilidad. Identidad propia, no derivada.
+Los dos platillos están a la misma altura, como en el original. La balanza anterior bajaba el derecho —«una balanza en equilibrio perfecto no está midiendo nada»—; en ésta el desequilibrio lo pone la animación del acceso, no el dibujo.
 
-La fuente de verdad de la geometría es `resources/js/components/Logotipo.vue`. Cualquier redibujo —favicon, sello de informe, material impreso— sale de ahí.
+La fuente de verdad de la geometría es `resources/js/components/SimboloBalanza.vue`, pasada del lienzo de 512 del original a una retícula de 32 dividiendo entre 16 y recortada a los 24 centrales. Cualquier redibujo —favicon, sello de informe, material impreso, la nube del acceso— sale de ahí.
 
 **Variantes**, en este orden de preferencia:
 
@@ -48,6 +48,7 @@ La fuente de verdad de la geometría es `resources/js/components/Logotipo.vue`. 
 
 - **Horizontal** (símbolo + wordmark en texto, 15 px / 600 / tracking ajustado): cabecera de web y de aplicación, firmas, portadas.
 - **Con respaldo** (`un producto de RM Technology`, 11 px, en `muted-foreground` debajo del wordmark): sólo donde hay sitio y donde el respaldo aporta —portadas, pie del panel de acceso—. Nunca en la barra de navegación.
+- **El logo de RM Technology** (`resources/rm-technology.svg`, el chip) acompaña al respaldo **sólo en el pie del acceso**, a 20 px y a la izquierda del texto. Es una firma y no una marca del producto: no se recolorea, no se agranda y no aparece en ningún otro sitio. Su degradado morado es justo lo que Statera no hereda (§2, Símbolo), y por eso se queda en ese tamaño.
 - **Símbolo solo**: favicon, avatar, marca de agua, sello en informes, espacios estrechos.
 
 ### Reglas
@@ -55,7 +56,7 @@ La fuente de verdad de la geometría es `resources/js/components/Logotipo.vue`. 
 - **Zona de seguridad:** el alto del platillo por los cuatro lados.
 - **Mínimos:** símbolo 24 px, logotipo horizontal 120 px de ancho.
 - **Sobre claro:** wordmark en `foreground`. **Sobre oscuro:** wordmark en blanco. **Sobre foto:** monocromo blanco y siempre con velo oscuro debajo.
-- **Nunca:** deformar, recolorear fuera de la paleta, añadir sombra o contorno, encerrarlo en una forma ajena, separar o recomponer símbolo y wordmark, ni igualar los dos platillos.
+- **Nunca:** deformar, recolorear fuera de la paleta —tampoco con el degradado de los originales—, añadir sombra o contorno, encerrarlo en una forma ajena, ni separar o recomponer símbolo y wordmark.
 - **Girarlo tampoco**, con una excepción declarada: la animación del panel de acceso, que no es el logotipo sino una nube de puntos construida con sus mismas proporciones (`lib/balanza.ts`). Ahí el giro es el contenido, no un maltrato del símbolo.
 
 ### El símbolo como recurso gráfico

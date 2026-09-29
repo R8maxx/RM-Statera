@@ -47,6 +47,10 @@ class HandleInertiaRequests extends Middleware
                     // entonces el chrome cae al círculo de iniciales.
                     'foto' => $usuario->urlFoto(),
                     'dosFactores' => $usuario->two_factor_confirmed_at !== null,
+                    // El de la cuenta. La plantilla lo aplica antes del primer
+                    // pintado, pero al entrar la navegación es de Inertia y la
+                    // plantilla no se vuelve a pintar: el layout lo recoge de aquí.
+                    'tema' => $usuario->tema->value,
                 ],
                 // Los permisos viajan como lista plana: el frontend solo decide
                 // qué pinta, nunca qué autoriza. La autorización es del servidor.

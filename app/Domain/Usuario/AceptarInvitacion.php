@@ -37,6 +37,7 @@ final class AceptarInvitacion
             $cuenta->forceFill([
                 'password' => Hash::make($password),
                 'activada_en' => now(),
+                'password_cambiada_en' => now(),
                 'remember_token' => Str::random(60),
             ])->save();
 

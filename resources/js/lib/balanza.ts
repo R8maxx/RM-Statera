@@ -6,19 +6,20 @@
  * tiene que leer un bucle de pintado. `BalanzaPixeles.vue` sólo proyecta y
  * rellena celdas.
  *
- * Las coordenadas salen del `viewBox="0 0 32 32"` de `Logotipo.vue`, movidas al
- * centro y normalizadas a −1…1 con la Y hacia arriba. Cada trazo plano del SVG
- * se revoluciona alrededor de su propio eje para darle volumen. Lo que gira en
- * la pantalla de acceso **es** el logotipo, no un dibujo que se le parece.
+ * Las coordenadas salen de la retícula de 32 de `SimboloBalanza.vue`, movidas al
+ * centro y normalizadas a −1…1 con la Y hacia arriba. Cada forma plana del SVG
+ * se revoluciona alrededor de su propio eje para darle volumen: el brazo y el
+ * fiel son varillas, y cada platillo triangular, un cono. Lo que gira en la
+ * pantalla de acceso **es** el logotipo, no un dibujo que se le parece.
  */
 
 export type Punto = {
     x: number;
     y: number;
     z: number;
-    /** Va en violeta: el fulcro y las cuerdas. Nada más. */
+    /** Va en violeta: el tramo alto de los platillos. Nada más. */
     acento: boolean;
-    /** Cuelga del brazo, así que se inclina con él: brazo, cuerdas, platillos. */
+    /** Cuelga del brazo, así que se inclina con él: brazo y platillos. */
     pende: boolean;
 };
 
@@ -26,15 +27,19 @@ export type Punto = {
 const ux = (x: number): number => (x - 16) / 16;
 const uy = (y: number): number => (16 - y) / 16;
 
-/** Y del brazo, que es también el eje de la inclinación. */
-export const Y_BRAZO = uy(10.5);
-/** X de los extremos del brazo, de donde cuelga cada platillo. */
-const X_BRAZO = ux(27);
+/** Y del brazo, que es también el eje de la inclinación: el centro del rectángulo. */
+export const Y_BRAZO = uy(9.9375 + 1.1875 / 2);
+/** X de los extremos del brazo. */
+const X_BRAZO = ux(23.5);
 
-/** El platillo derecho cuelga más bajo: en equilibrio perfecto no mide nada. */
+/**
+ * Los dos platillos, como el triángulo del SVG: la base, su ancho y el vértice.
+ * El vértice no está sobre el centro de la base, sino inclinado hacia el fiel,
+ * y el cono lo respeta.
+ */
 const PLATILLOS = [
-    { x: -X_BRAZO, y: uy(17.5), radio: 3.5 / 16 },
-    { x: X_BRAZO, y: uy(19), radio: 3.5 / 16 },
+    { base: { x: ux((6.1875 + 13.6875) / 2), y: uy(19.625) }, radio: (13.6875 - 6.1875) / 2 / 16, vertice: { x: ux(11.1875), y: uy(12.4375) } },
+    { base: { x: ux((18.5 + 25.875) / 2), y: uy(19.625) }, radio: (25.875 - 18.5) / 2 / 16, vertice: { x: ux(20.875), y: uy(12.4375) } },
 ] as const;
 
 function cilindro(y0: number, y1: number, radio: number, lados: number, pasos: number): Punto[] {
@@ -96,46 +101,42 @@ function anillos(
     return puntos;
 }
 
-/** Esfera de Fibonacci: puntos repartidos sin acumularse en los polos. */
-function esfera(cy: number, radio: number, total: number): Punto[] {
-    const puntos: Punto[] = [];
-    const dorado = Math.PI * (3 - Math.sqrt(5));
-
-    for (let i = 0; i < total; i++) {
-        const y = 1 - (i / (total - 1)) * 2;
-        const r = Math.sqrt(Math.max(0, 1 - y * y));
-        const a = dorado * i;
-        puntos.push({
-            x: Math.cos(a) * r * radio,
-            y: cy + y * radio,
-            z: Math.sin(a) * r * radio,
-            acento: true,
-            pende: false,
-        });
-    }
-
-    return puntos;
-}
-
 /**
- * Una cuerda de suspensión. Sólo su tramo alto va en violeta.
+ * Un platillo: el triángulo del SVG revolucionado, que da un cono oblicuo.
  *
- * Pintarla entera de acento subía el violeta al 20 % de las celdas encendidas,
- * el doble de lo que le toca. Concentrándolo arriba, además, el acento queda
- * donde significa algo: el punto del que cuelga el platillo.
+ * Anillos que se estrechan de la base al vértice, y el centro de cada anillo
+ * se desplaza hacia el vértice. **Sólo el tramo alto va en violeta**: es el
+ * punto del que el platillo pende —el papel que tenían las cuerdas del dibujo
+ * anterior—, y
+ * pintarlo entero subiría el acento muy por encima de lo que le toca.
  */
-function cuerda(desde: Punto, hasta: Punto, pasos: number, tramoAcento: number): Punto[] {
+function cono(
+    base: { x: number; y: number },
+    radio: number,
+    vertice: { x: number; y: number },
+    lados: number,
+    pasos: number,
+    tramoAcento: number,
+): Punto[] {
     const puntos: Punto[] = [];
 
     for (let i = 0; i < pasos; i++) {
         const t = i / (pasos - 1);
-        puntos.push({
-            x: desde.x + (hasta.x - desde.x) * t,
-            y: desde.y + (hasta.y - desde.y) * t,
-            z: desde.z + (hasta.z - desde.z) * t,
-            acento: t <= tramoAcento,
-            pende: true,
-        });
+        const cx = base.x + (vertice.x - base.x) * t;
+        const cy = base.y + (vertice.y - base.y) * t;
+        const r = radio * (1 - t);
+        const vueltas = Math.max(1, Math.round(lados * (1 - t)));
+
+        for (let j = 0; j < vueltas; j++) {
+            const a = (j / vueltas) * Math.PI * 2;
+            puntos.push({
+                x: cx + Math.cos(a) * r,
+                y: cy,
+                z: Math.sin(a) * r,
+                acento: t >= 1 - tramoAcento,
+                pende: true,
+            });
+        }
     }
 
     return puntos;
@@ -145,10 +146,15 @@ function cuerda(desde: Punto, hasta: Punto, pasos: number, tramoAcento: number):
  * La nube completa, ~700 puntos. Se calcula una vez y no cambia: lo que se
  * mueve en cada fotograma son los dos ángulos, no la geometría.
  *
- * El violeta se queda en el fulcro y en el tramo alto de las cuerdas. Lo que
- * cuenta para el reparto 60 / 30 / 10 de DESIGN.md §3 no son los puntos sino las
- * celdas encendidas, y medido a la escala real da un 10 % de media y un 12 % en
- * el ángulo peor. Cualquier retoque de la geometría debería volver a medirlo.
+ * El violeta se queda en el tramo alto de los dos conos. Lo que cuenta para el
+ * reparto 60 / 30 / 10 de DESIGN.md §3 no son los puntos sino las celdas
+ * encendidas. Con la geometría del logo definitivo el tramo es la mitad alta de
+ * cada cono, que deja el 8,9 % de los puntos en violeta —medido con `node`
+ * sobre esta función—. Con catorce anillos por cono el umbral va a saltos: el
+ * siguiente escalón da el 11,9 %, y entre pasarse y quedarse corto se eligió
+ * quedarse corto. Con el tramo de las cuerdas antiguas, 0.3, quedaba en el
+ * 2,7 %, porque hacia el vértice hay pocos puntos. Cualquier retoque de la
+ * geometría debería volver a medirlo.
  */
 let cache: readonly Punto[] | null = null;
 
@@ -158,37 +164,18 @@ export function nubeBalanza(): readonly Punto[] {
     }
 
     const puntos: Punto[] = [
-        // El fiel y su base. El radio es fino a propósito: con la retícula de
-        // píxeles todos los puntos de un anillo caen en las mismas dos celdas,
-        // así que un cilindro generoso se pinta como una losa opaca.
-        ...cilindro(uy(25.5), uy(6.5), 0.034, 7, 24),
-        ...anillos(0, uy(26.5), 0.3125, [0.55, 1], 22, 0, false),
-        // El brazo, y el fulcro en su centro.
-        ...varilla(Y_BRAZO, -X_BRAZO, X_BRAZO, 0.026, 5, 40),
-        ...esfera(Y_BRAZO, 0.075, 22),
+        // El fiel. El radio es fino a propósito: con la retícula de píxeles
+        // todos los puntos de un anillo caen en las mismas dos celdas, así que
+        // un cilindro generoso se pinta como una losa opaca.
+        ...cilindro(uy(22.0625), uy(11.125), 0.04, 7, 22),
+        // El brazo, que es lo que bascula.
+        ...varilla(Y_BRAZO, -X_BRAZO, X_BRAZO, 0.03, 5, 40),
     ];
 
     for (const platillo of PLATILLOS) {
-        puntos.push(...anillos(platillo.x, platillo.y, platillo.radio, [0.4, 0.72, 1], 16, 0.055, true));
-
-        // Tres cuerdas por platillo, del extremo del brazo al borde del cuenco.
-        for (let i = 0; i < 3; i++) {
-            const a = (i / 3) * Math.PI * 2;
-            puntos.push(
-                ...cuerda(
-                    { x: platillo.x, y: Y_BRAZO, z: 0, acento: true, pende: true },
-                    {
-                        x: platillo.x + Math.cos(a) * platillo.radio,
-                        y: platillo.y,
-                        z: Math.sin(a) * platillo.radio,
-                        acento: true,
-                        pende: true,
-                    },
-                    9,
-                    0.45,
-                ),
-            );
-        }
+        // La base del cono, para que el platillo se lea como tal también desde arriba.
+        puntos.push(...anillos(platillo.base.x, platillo.base.y, platillo.radio, [0.45, 0.8], 16, 0, true));
+        puntos.push(...cono(platillo.base, platillo.radio, platillo.vertice, 18, 14, 0.5));
     }
 
     cache = Object.freeze(puntos);

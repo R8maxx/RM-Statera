@@ -3,6 +3,8 @@ paths:
   - resources/js/pages/perfil/**
   - app/Domain/Autorizacion/**
   - app/Domain/Usuario/**
+  - resources/js/components/MenuCuenta.vue
+  - resources/js/composables/useTema.ts
 ---
 
 # Mi cuenta
@@ -152,6 +154,79 @@ resumen.
 como el acuse de lectura de un documento: se escribe sobre uno mismo. Y el bloque
 no abre ninguna ruta de escritura — quién tiene qué rol es el § 4.19.
 
+### El menú de la cuenta y lo que llegó con él
+
+El desplegable de arriba a la derecha decía quién eras y poco más. Ahora contesta
+tres preguntas que no son del trabajo sino de quien lo hace: **qué hay a mi
+nombre**, **cómo está protegida mi cuenta** y **cuándo entré la última vez**.
+
+**Se pide al abrirse (`/perfil/menu`, JSON) y no viaja con cada página.** Son
+cinco consultas para un menú que casi nunca se abre; como prop compartido
+correrían en cada navegación y en cada recarga parcial de una tabla. Lo que ya se
+sabe —nombre, correo, segundo factor— sale de los props compartidos al instante.
+
+**Cada cifra sale del scope que filtra la tabla a la que lleva**:
+`Tarea::abiertas()`/`vencidas()`, `Documento::pendientesDeMiAcuse()` —nuevo, y
+también filtro `por_leer` de la tabla de documentos— y `enRevision()`. Lo clava
+«la cifra del menú es la del filtro de la tabla» en `MiCuentaTest`.
+`pendientesDeMiAcuse()` lee la cuenta de la sesión porque `Filtro::porScope()` no
+pasa parámetros; sin nadie autenticado no devuelve nada.
+
+**La entrada anterior es la segunda más reciente**, no la última: la última es la
+de la sesión actual (también la de «recordarme», que dispara el mismo evento). Va
+con los intentos fallidos desde entonces, que es lo que delata un acceso ajeno.
+Todo sale de la traza (`AccesosRecientes`): ya guarda IP y es inmutable, y un
+registro propio sería una segunda copia que sí se podría tocar.
+
+**Al auditor le dice hasta cuándo entra y qué sistemas ve.** Sin eso descubre que
+su acceso caduca el día que deja de poder entrar.
+
+**El tema pasó al menú y a la cuenta.** `users.tema` manda sobre `localStorage`:
+`app.blade.php` lo aplica antes del primer pintado y `useTema()` lo adopta al
+montarse, porque tras el login la navegación es de Inertia y la plantilla no se
+vuelve a pintar. `useTema()` guarda en el servidor al elegir (`PUT /perfil/tema`,
+sin navegar) y su `ref` es **de módulo**, no por llamada: con uno por componente,
+el menú seguía marcando «Claro» después de elegir «Oscuro» en la paleta.
+
+### Sesiones abiertas
+
+`SesionesAbiertas` lee la tabla `sessions` del driver `database`: la sesión ES
+esa fila. **El id de sesión no sale nunca hacia el cliente** —es el valor de la
+cookie—; viaja su SHA-256 como `clave` y cerrar compara huellas entre las de la
+propia cuenta. Lo clava `assertDontSee($id)`.
+
+**Cerrar pide la contraseña en la misma petición** (`CerrarSesionesRequest`), y no
+con `password.confirm`: ese middleware vuelve al destino con un `GET` y esto es
+un `DELETE`. Sin contraseña, quien encuentre una sesión olvidada echa al dueño de
+las demás. **Y cambia el `remember_token`**, como `DesactivarCuenta`: sin eso un
+navegador con «recordarme» abre sesión nueva en su siguiente petición. Queda en
+la traza como `cierre_sesion` con `sesiones_cerradas`.
+
+En la suite `SESSION_DRIVER=array`, así que los tests insertan las filas a mano.
+
+### Preferencias, contraseña y datos
+
+- **Tres columnas y no un JSONB** (`tema`, `pagina_inicio`, `avisos_por_correo`),
+  con `CHECK` desde listas escritas en la migración. Las lee el servidor —la
+  plantilla, la redirección de entrada— y un `CHECK` sobre una clave de JSON no se
+  mantiene. `User::$attributes` repite los valores por defecto: sin ellos, una
+  cuenta recién creada revienta en `tema->value` en la misma petición.
+- **`/inicio` es el `home` de Fortify** y redirige a la página elegida. «Mis
+  tareas» es la tabla de tareas con el filtro de responsable, no otra pantalla.
+- **Los avisos por correo son un solo interruptor**, porque el correo es uno: el
+  resumen diario. Sólo se ofrece a quien lo recibe —el responsable de seguridad—,
+  y la regla vive en `Aviso\DestinatariosDelResumen`, que usan el comando y la
+  pantalla. De paso el comando dejó de mandárselo a cuentas desactivadas.
+- **`password_cambiada_en` nace a nulo** en las cuentas que ya existían: no se sabe
+  cuándo se puso su contraseña. La escriben los dos actions de Fortify y
+  `AceptarInvitacion`.
+- **La copia de tus datos (`/perfil/mis-datos`) es lo de la cuenta**: ficha,
+  preferencias, accesos, acuses y firmas. No van tareas ni evidencias —son
+  registros del SGSI en los que apareces— ni ningún secreto.
+- **La pantalla no promete seudonimizar la cuenta**, porque no se hace: el punto
+  36 alcanza a `personas`, y la cuenta se desactiva y conserva su nombre en lo que
+  firmó.
+
 ### Lo que esta pantalla declara que no hace todavía
 
 - **No corrige la orientación EXIF.** La extensión `exif` no está en la imagen y
@@ -169,3 +244,11 @@ no abre ninguna ruta de escritura — quién tiene qué rol es el § 4.19.
   —de la que dependen los QR **ya impresos** del parque de activos— sólo se puede
   poner por seeder o tocando la base. Es el trabajo siguiente y es el que de
   verdad falta.
+- **No hay preferencia de densidad de tablas en la cuenta.** Ya existe por tabla y
+  por navegador en la vista guardada de `DataTable` (`recursos.md`), y duplicarla
+  en la cuenta daría dos fuentes para lo mismo.
+- **No hay avisos por tipo ni hora de envío por persona.** El resumen es uno y lo
+  manda un comando programado a una hora para todos; repartirlo por persona es
+  rehacer `avisos:enviar`.
+- **No hay diálogo de atajos de teclado.** Hoy son dos (`⌘K` y `/`), y un diálogo
+  para dos atajos no compensa la entrada en el menú.

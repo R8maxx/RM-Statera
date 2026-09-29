@@ -171,6 +171,7 @@ final class DocumentoRecurso extends Recurso
              */
             Filtro::porScope('revision_vencida', 'Revisión vencida', 'revisionVencida')->sinColumna(),
             Filtro::porScope('en_revision', 'Pendientes de aprobar', 'enRevision')->sinColumna(),
+            Filtro::porScope('por_leer', 'Pendientes de mi acuse', 'pendientesDeMiAcuse')->sinColumna(),
             Filtro::rangoFechas('created_at', 'Alta'),
         ];
     }

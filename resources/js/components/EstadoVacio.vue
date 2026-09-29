@@ -62,7 +62,6 @@ const { variantesEntrada } = useMovimientoReducido();
             texto limpia, que es además lo que §2 pide literalmente.
         -->
         <SimboloBalanza
-            :trazo="1"
             class="pointer-events-none absolute -right-20 -bottom-24 h-[22rem] w-[22rem] text-primary opacity-[0.07] select-none in-data-[slot=card]:hidden"
         />
 

@@ -17,11 +17,24 @@
         Tres estados: `claro`, `oscuro` y —cuando no hay nada guardado— lo que
         diga el sistema. Guardar sólo «claro/oscuro» destruía la preferencia del
         sistema en cuanto alguien tocaba el interruptor una vez.
+
+        Con sesión abierta manda el de la cuenta, que se guarda en el servidor y
+        sigue a la persona de un navegador a otro; el del navegador queda para
+        las pantallas de acceso, donde todavía no se sabe quién es nadie. Se
+        copia al navegador para que el acceso de mañana salga ya en ese tema.
     --}}
     <script>
         (function () {
             try {
-                const guardado = localStorage.getItem('statera.tema');
+                const cuenta = @json(auth()->user()?->tema?->value);
+
+                if (cuenta === 'sistema') {
+                    localStorage.removeItem('statera.tema');
+                } else if (cuenta) {
+                    localStorage.setItem('statera.tema', cuenta);
+                }
+
+                const guardado = cuenta ?? localStorage.getItem('statera.tema');
                 const preferencia = guardado === 'claro' || guardado === 'oscuro' ? guardado : 'sistema';
                 const oscuro = preferencia === 'oscuro'
                     || (preferencia === 'sistema' && window.matchMedia('(prefers-color-scheme: dark)').matches);

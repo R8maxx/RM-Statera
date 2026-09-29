@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1932 1932" width="1932" height="1932">
+  <title>RM Technology</title>
+  <defs>
+    <linearGradient id="chipGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#9f70e9"/>
+      <stop offset="1" stop-color="#6c3db2"/>
+    </linearGradient>
+    <filter id="glow" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="5"/>
+    </filter>
+    <g id="letters">
+      <!-- R -->
+      <path fill-rule="evenodd" d="M574 770 H700 C782 770 836 812 836 885 C836 945 800 980 750 993 L855 1163 H779 L677 999 H640 V1163 H574 V933 H635 L574 835 Z
+               M652 836 H705 C742 836 770 855 770 885 C770 915 746 929 712 933 Z"/>
+      <!-- M -->
+      <path d="M932 770 H999 L1148 1075 L1291 770 H1358 V1163 H1293 V922 L1180 1163 H1118 L998 917 V1163 H932 Z"/>
+    </g>
+  </defs>
+
+  <!-- Fondo -->
+  <rect width="1932" height="1932" fill="#2b2a30"/>
+  <rect x="168" y="168" width="1595" height="1595" rx="230" fill="#302f35"/>
+
+  <!-- Pines -->
+  <g stroke="#9c6be8" stroke-width="36" stroke-linecap="round">
+    <!-- superiores -->
+    <path d="M516 314V390M666 314V390M816 314V390M966 314V390M1115 314V390M1265 314V390M1414 314V390"/>
+    <!-- inferiores -->
+    <path d="M516 1541V1617M666 1541V1617M816 1541V1617M966 1541V1617M1115 1541V1617M1265 1541V1617M1414 1541V1617"/>
+    <!-- izquierda -->
+    <path d="M315 517H390M315 666H390M315 816H390M315 966H390M315 1115H390M315 1265H390M315 1414H390"/>
+    <!-- derecha -->
+    <path d="M1541 517H1617M1541 666H1617M1541 816H1617M1541 966H1617M1541 1115H1617M1541 1265H1617M1541 1414H1617"/>
+  </g>
+
+  <!-- Cuerpo del chip -->
+  <rect x="414" y="414" width="1103" height="1103" rx="140" fill="#2d2c31" stroke="url(#chipGrad)" stroke-width="48"/>
+
+  <!-- Panel interior -->
+  <rect x="483" y="483" width="966" height="966" rx="110" fill="#3f3d49"/>
+
+  <!-- Rejillas de puntos -->
+  <g fill="#7c7a86">
+    <g id="dots">
+      <circle cx="557" cy="557" r="10"/><circle cx="590" cy="557" r="10"/><circle cx="622" cy="557" r="10"/>
+      <circle cx="557" cy="590" r="10"/><circle cx="590" cy="590" r="10"/><circle cx="622" cy="590" r="10"/>
+      <circle cx="557" cy="622" r="10"/><circle cx="590" cy="622" r="10"/><circle cx="622" cy="622" r="10"/>
+    </g>
+    <use href="#dots" x="752" y="0"/>
+    <use href="#dots" x="0" y="752"/>
+    <use href="#dots" x="752" y="752"/>
+  </g>
+
+  <!-- Letras RM con brillo -->
+  <use href="#letters" fill="#b394ec" stroke="#b394ec" stroke-width="10" stroke-linejoin="round" filter="url(#glow)" opacity="0.9"/>
+  <use href="#letters" fill="#f3f1f7"/>
+</svg>

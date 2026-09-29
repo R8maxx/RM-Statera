@@ -204,6 +204,8 @@ export type AccionAuditada = 'creado' | 'actualizado' | 'eliminado' | 'rol_cambi
 namespace Usuario {
 namespace Enums {
 export type EstadoCuenta = 'invitada' | 'activa' | 'caducada' | 'desactivada';
+export type PaginaInicio = 'panel' | 'tareas' | 'calendario';
+export type Tema = 'claro' | 'oscuro' | 'sistema';
 }
 }
 namespace Vulnerabilidad {

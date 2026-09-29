@@ -16,6 +16,8 @@ export interface UsuarioAutenticado {
      */
     foto: string | null;
     dosFactores: boolean;
+    /** El tema guardado en la cuenta, que manda sobre el del navegador. */
+    tema: App.Domain.Usuario.Enums.Tema;
 }
 
 export interface OrganizacionActiva {

@@ -23,6 +23,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * La serie documental: «la SoA del SGSI», no una entrega concreta de ella.
@@ -260,6 +261,42 @@ class Documento extends Model
         $query->whereHas(
             'versiones',
             fn (Builder $version) => $version->where('estado', EstadoDocumental::EnRevision->value),
+        );
+    }
+
+    /**
+     * Los que tiene que leer quien ha entrado y todavía no ha acusado.
+     *
+     * Exigen acuse y tienen versión vigente sin lectura de esta cuenta. El acuse
+     * es de la **versión**: quien leyó la v3 tiene pendiente la v4, que es lo
+     * mismo que dice `CoberturaAcuse`.
+     *
+     * Lee la cuenta de la sesión y no de un argumento porque es un scope de
+     * filtro de tabla (`Filtro::porScope()` no pasa parámetros) y lo que filtra
+     * es «lo mío». Sin nadie autenticado no devuelve nada: «pendientes de
+     * nadie» no es una pregunta.
+     *
+     * Lo usan a la vez el menú de la cuenta y el filtro de la tabla, así que la
+     * cifra del menú es la de la tabla a la que lleva.
+     *
+     * @param  Builder<$this>  $query
+     */
+    public function scopePendientesDeMiAcuse(Builder $query): void
+    {
+        $lector = Auth::id();
+
+        if ($lector === null) {
+            $query->whereRaw('false');
+
+            return;
+        }
+
+        $query->where('exige_acuse', true)->whereHas(
+            'versionAprobada',
+            fn (Builder $version) => $version->whereDoesntHave(
+                'lecturas',
+                fn (Builder $lectura) => $lectura->where('user_id', $lector),
+            ),
         );
     }
 

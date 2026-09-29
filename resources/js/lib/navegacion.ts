@@ -2,7 +2,10 @@ import {
     BadgeCheckIcon,
     BoxesIcon,
     BugIcon,
+    Building2Icon,
     CalendarDaysIcon,
+    ChartLineIcon,
+    ChartPieIcon,
     ClipboardCheckIcon,
     ClipboardListIcon,
     ClipboardXIcon,
@@ -17,9 +20,12 @@ import {
     LifeBuoyIcon,
     LightbulbIcon,
     ListTodoIcon,
+    MapIcon,
     NetworkIcon,
     PaperclipIcon,
+    RefreshCwIcon,
     RepeatIcon,
+    ScanIcon,
     SearchCheckIcon,
     ServerIcon,
     ShieldAlertIcon,
@@ -59,6 +65,12 @@ export interface EntradaNavegacion {
 
 export interface GrupoNavegacion {
     titulo: string;
+    /**
+     * El icono del grupo, que es lo único que queda del grupo con el sidebar
+     * plegado a riel. No repite el de ninguna entrada: un icono que fuera a la
+     * vez el grupo y uno de sus módulos no diría cuál de los dos es.
+     */
+    icono: LucideIcon;
     entradas: EntradaNavegacion[];
 }
 
@@ -71,6 +83,7 @@ export const navegacion: GrupoNavegacion[] = [
      */
     {
         titulo: 'Estado',
+        icono: ChartPieIcon,
         entradas: [
             {
                 titulo: 'Panel',
@@ -118,6 +131,7 @@ export const navegacion: GrupoNavegacion[] = [
     },
     {
         titulo: 'Plan',
+        icono: MapIcon,
         entradas: [
             {
                 titulo: 'Riesgos',
@@ -181,6 +195,7 @@ export const navegacion: GrupoNavegacion[] = [
     },
     {
         titulo: 'Ciclo',
+        icono: RefreshCwIcon,
         entradas: [
             {
                 titulo: 'Auditorías',
@@ -297,6 +312,7 @@ export const navegacion: GrupoNavegacion[] = [
     },
     {
         titulo: 'Medida',
+        icono: ChartLineIcon,
         entradas: [
             {
                 titulo: 'Indicadores',
@@ -347,6 +363,7 @@ export const navegacion: GrupoNavegacion[] = [
     },
     {
         titulo: 'Alcance',
+        icono: ScanIcon,
         entradas: [
             /*
              * Delante de Sistemas porque es lo que va delante en la norma: el
@@ -401,6 +418,7 @@ export const navegacion: GrupoNavegacion[] = [
          * también, sólo para quien las gestiona.
          */
         titulo: 'Organización',
+        icono: Building2Icon,
         entradas: [
             {
                 titulo: 'Personas',
