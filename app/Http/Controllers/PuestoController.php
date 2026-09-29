@@ -148,18 +148,32 @@ class PuestoController extends Controller
     {
         $puesto->load([
             'reportaA',
-            'dependientes',
+            'dependientes.asignaciones' => static function (Relation $consulta): void {
+                $consulta->whereNull('hasta')->with('persona');
+            },
             'asignaciones.persona',
             'asignaciones.asignadaPor',
         ]);
 
         return Inertia::render('puestos/Ficha', [
             'puesto' => $this->serializar($puesto),
+            /*
+             * Cada dependiente trae quién lo ocupa hoy, para que las vacantes se
+             * vean desde el puesto de arriba, que es desde donde se cubren. Es el
+             * mismo criterio de vigencia que el organigrama: `hasta` nulo.
+             */
             'dependientes' => $puesto->dependientes
                 ->map(fn (Puesto $hijo): array => [
                     'id' => $hijo->id,
                     'codigo' => $hijo->codigo,
                     'titulo' => $hijo->titulo,
+                    'ocupantes' => $hijo->asignaciones
+                        ->map(fn (AsignacionPuesto $asignacion): array => [
+                            'id' => $asignacion->persona_id,
+                            'nombre' => $asignacion->persona->nombre,
+                        ])
+                        ->values()
+                        ->all(),
                 ])->values()->all(),
             'asignaciones' => $puesto->asignaciones
                 ->sortByDesc('desde')

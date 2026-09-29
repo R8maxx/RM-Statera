@@ -351,6 +351,28 @@ it('no borra un puesto que alguien ha ocupado', function (): void {
     expect(Puesto::query()->whereKey($puesto->id)->exists())->toBeTrue();
 });
 
+/**
+ * La ficha de un puesto dice quién ocupa cada uno de los que dependen de él,
+ * para que las vacantes se vean desde arriba. Y con el mismo criterio que el
+ * organigrama: quien ya dejó el puesto no cuenta.
+ */
+it('la ficha dice quién ocupa cada puesto dependiente', function (): void {
+    $direccion = Puesto::factory()->create(['titulo' => 'Dirección']);
+    $ocupado = Puesto::factory()->bajo($direccion)->create(['titulo' => 'A']);
+    $vacante = Puesto::factory()->bajo($direccion)->create(['titulo' => 'B']);
+    ($this->asignar)(Persona::factory()->create(), $ocupado);
+    $this->asignar->cerrar(($this->asignar)(Persona::factory()->create(), $vacante));
+
+    $this->actingAs($this->usuario)
+        ->get("/puestos/{$direccion->id}")
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->component('puestos/Ficha')
+            ->has('dependientes', 2)
+            ->where('dependientes.0.id', $ocupado->id)
+            ->has('dependientes.0.ocupantes', 1)
+            ->has('dependientes.1.ocupantes', 0));
+});
+
 it('no enseña el puesto de otra organización', function (): void {
     comoOrganizacion();
     $ajeno = Puesto::factory()->create();
