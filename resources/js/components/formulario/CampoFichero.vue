@@ -9,6 +9,9 @@ import { ref } from 'vue';
  * donde el fichero viaja de verdad. Lo único que se guarda en estado es el
  * nombre, para poder decir qué se ha elegido —un `<input type="file">` a secas
  * no lo enseña de forma legible en todos los navegadores—.
+ *
+ * Quien envía con `useForm` en vez de con `<Form>` —un diálogo dentro de una
+ * ficha— escucha `elegir`, que entrega el fichero o `null` al quitarlo.
  */
 defineProps<{
     nombre: string;
@@ -20,12 +23,16 @@ defineProps<{
     acepta?: string;
 }>();
 
+const emit = defineEmits<{ elegir: [fichero: File | null] }>();
+
 const elegido = ref<string | null>(null);
 
 function alElegir(evento: Event): void {
     const entrada = evento.target as HTMLInputElement;
+    const fichero = entrada.files?.[0] ?? null;
 
-    elegido.value = entrada.files?.[0]?.name ?? null;
+    elegido.value = fichero?.name ?? null;
+    emit('elegir', fichero);
 }
 </script>
 

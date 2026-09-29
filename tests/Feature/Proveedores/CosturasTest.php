@@ -27,13 +27,26 @@ beforeEach(function (): void {
 
 it('abre una tarea con origen proveedor y enlazada', function (): void {
     $this->actingAs($this->responsable)
-        ->post("/proveedores/{$this->proveedor->id}/tareas", ['titulo' => 'Firmar el encargo', 'prioridad' => 'alta'])
+        ->post("/proveedores/{$this->proveedor->id}/tareas", [
+            'titulo' => 'Firmar el encargo',
+            'prioridad' => 'alta',
+            'responsable_id' => $this->responsable->id,
+            'fecha_limite' => '2026-12-31',
+        ])
         ->assertSessionHasNoErrors();
 
     $tarea = Tarea::query()->firstOrFail();
 
     expect($tarea->origen)->toBe(OrigenTarea::Proveedor)
         ->and($this->proveedor->tareas()->pluck('tareas.id')->all())->toBe([$tarea->id]);
+});
+
+it('la tarea de un proveedor lleva responsable y fecha límite', function (): void {
+    $this->actingAs($this->responsable)
+        ->post("/proveedores/{$this->proveedor->id}/tareas", ['titulo' => 'Firmar el encargo', 'prioridad' => 'alta'])
+        ->assertSessionHasErrors(['responsable_id', 'fecha_limite']);
+
+    expect(Tarea::query()->count())->toBe(0);
 });
 
 it('la ficha del activo enseña quién lo presta', function (): void {

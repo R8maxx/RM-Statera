@@ -36,6 +36,34 @@ export function fechaLegible(valor: string | null | undefined): string {
     return fecha ? formatoFecha.format(fecha) : (valor ?? '—');
 }
 
+const formatoDistancia = new Intl.RelativeTimeFormat('es-ES', { numeric: 'auto' });
+
+/**
+ * Cuánto falta o cuánto pasó desde una fecha ISO, para ponerlo entre paréntesis
+ * detrás de ella: «25 sept 2027 (dentro de 12 meses)», como pide la voz de
+ * DESIGN.md § 13. En días hasta un mes y en meses a partir de ahí: «dentro de
+ * 361 días» obliga a hacer la cuenta.
+ */
+export function distanciaLegible(valor: string | null | undefined): string {
+    const fecha = fechaDe(valor);
+
+    if (fecha === null) {
+        return '';
+    }
+
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    fecha.setHours(0, 0, 0, 0);
+
+    const dias = Math.round((fecha.getTime() - hoy.getTime()) / 86_400_000);
+
+    if (Math.abs(dias) < 31) {
+        return formatoDistancia.format(dias, 'day');
+    }
+
+    return formatoDistancia.format(Math.round(dias / 30.44), 'month');
+}
+
 export function esVacio(valor: unknown): boolean {
     return valor === null || valor === undefined || valor === '';
 }

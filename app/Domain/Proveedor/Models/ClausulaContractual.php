@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Proveedor\Models;
 
+use App\Domain\Proveedor\Enums\DatoDeFicha;
 use Database\Factories\Proveedor\ClausulaContractualFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -23,6 +24,7 @@ use Illuminate\Support\Carbon;
  * @property ?string $descripcion
  * @property list<array{marco: string, requisito: string}> $referencias
  * @property int $orden
+ * @property ?DatoDeFicha $dato_de_ficha
  * @property ?string $huella
  * @property bool $vigente
  * @property ?Carbon $retirado_en
@@ -40,6 +42,7 @@ class ClausulaContractual extends Model
         'descripcion',
         'referencias',
         'orden',
+        'dato_de_ficha',
         'huella',
         'vigente',
         'retirado_en',
@@ -57,6 +60,7 @@ class ClausulaContractual extends Model
         return [
             'referencias' => 'array',
             'orden' => 'integer',
+            'dato_de_ficha' => DatoDeFicha::class,
             'vigente' => 'boolean',
             'retirado_en' => 'datetime',
         ];

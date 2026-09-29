@@ -22,6 +22,10 @@
 # referencia que no exista: una cláusula que dice probar un control que no está es
 # una cita inventada.
 #
+# `dato_de_ficha` dice qué dato de la ficha del proveedor contrasta la cláusula
+# (`ubicacion_datos` o `encargado_tratamiento`). Cuando la respuesta de la última
+# evaluación y la ficha no casan, la ficha lo avisa: una de las dos está mal.
+#
 # No va nada del RGPD que no sea el encargo de tratamiento (art. 28): la
 # evaluación de un proveedor no es una evaluación de impacto.
 #
@@ -79,6 +83,7 @@ clausulas:
   - codigo: CLA-06
     titulo: Ubicación de los datos
     descripcion: El contrato dice dónde se tratan y se almacenan los datos, y exige autorización para trasladarlos fuera de la Unión Europea o del Espacio Económico Europeo.
+    dato_de_ficha: ubicacion_datos
     referencias:
       - {marco: ISO27001-2022, requisito: A.5.23}
       - {marco: ENS-RD311-2022, requisito: op.nub.1}
@@ -108,6 +113,7 @@ clausulas:
   - codigo: CLA-10
     titulo: Encargo de tratamiento
     descripcion: Si el proveedor trata datos personales por cuenta de la organización, hay un contrato de encargo con el contenido que pide el artículo 28 del RGPD.
+    dato_de_ficha: encargado_tratamiento
     referencias:
       - {marco: ISO27001-2022, requisito: A.5.20}
 

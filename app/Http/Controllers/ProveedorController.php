@@ -13,6 +13,7 @@ use App\Domain\Proveedor\CodigoProveedor;
 use App\Domain\Proveedor\CriticidadProveedor;
 use App\Domain\Proveedor\DerivarTareaDeProveedor;
 use App\Domain\Proveedor\Enums\Criticidad;
+use App\Domain\Proveedor\Enums\DatoDeFicha;
 use App\Domain\Proveedor\Enums\EstadoProveedor;
 use App\Domain\Proveedor\Enums\ModeloNube;
 use App\Domain\Proveedor\Enums\ResultadoClausula;
@@ -26,11 +27,14 @@ use App\Domain\Proveedor\Models\ProveedorCertificacion;
 use App\Domain\Proveedor\Models\ProveedorEvaluacion;
 use App\Domain\Proveedor\Models\ProveedorEvaluacionClausula;
 use App\Domain\Proveedor\Models\ProveedorTransicion;
+use App\Domain\Proveedor\PendientesDeProveedor;
 use App\Domain\Proveedor\RecalcularReevaluacion;
+use App\Domain\Proveedor\RegistrarCertificacion;
 use App\Domain\Proveedor\RegistrarEvaluacion;
 use App\Domain\Proveedor\RegistroProveedores;
 use App\Domain\Tarea\Enums\PrioridadTarea;
 use App\Domain\Tarea\Models\Tarea;
+use App\Domain\Tarea\Plazo;
 use App\Domain\Usuario\CuentasAsignables;
 use App\Http\Requests\DerivarTareaDeProveedorRequest;
 use App\Http\Requests\GuardarCertificacionProveedorRequest;
@@ -42,6 +46,7 @@ use App\Http\Resources\ProveedorRecurso;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -109,12 +114,13 @@ class ProveedorController extends Controller
         return to_route('proveedores.show', $proveedor);
     }
 
-    public function show(Request $request, Proveedor $proveedor): Response
+    public function show(Request $request, Proveedor $proveedor, PendientesDeProveedor $pendientes): Response
     {
-        $proveedor->load(['responsable:id,name', 'certificaciones.evidencia:id,titulo', 'tareas', 'activos']);
+        $proveedor->load(['responsable:id,name', 'certificaciones.evidencia:id,titulo', 'tareas.responsable:id,name', 'activos']);
 
         return Inertia::render('proveedores/Ficha', [
             'proveedor' => $this->serializar($proveedor),
+            'pendiente' => $pendientes->de($proveedor),
             'activos' => $proveedor->activos
                 ->sortBy('codigo')
                 ->map(fn (Activo $activo): array => [
@@ -155,13 +161,19 @@ class ProveedorController extends Controller
                     'fecha' => $transicion->created_at->toIso8601String(),
                 ])->values()->all(),
             'tareas' => $proveedor->tareas
-                ->map(fn (Tarea $tarea): array => [
-                    'id' => $tarea->id,
-                    'titulo' => $tarea->titulo,
-                    'estado' => $tarea->estado->etiqueta(),
-                    'tono' => $tarea->estado->tono(),
-                    'icono' => $tarea->estado->icono(),
-                ])->values()->all(),
+                ->map(function (Tarea $tarea): array {
+                    $plazo = Plazo::de($tarea);
+
+                    return [
+                        'id' => $tarea->id,
+                        'titulo' => $tarea->titulo,
+                        'estado' => $tarea->estado->etiqueta(),
+                        'tono' => $tarea->estado->tono(),
+                        'icono' => $tarea->estado->icono(),
+                        'responsable' => $tarea->responsable?->name,
+                        'plazo' => ['fecha' => $plazo->fecha, 'etiqueta' => $plazo->etiqueta, 'tono' => $plazo->tono],
+                    ];
+                })->values()->all(),
             'clausulas' => $this->clausulasVigentes(),
             'tiposCertificacion' => array_map(
                 static fn (TipoCertificacion $tipo): array => ['valor' => $tipo->value, 'etiqueta' => $tipo->etiqueta()],
@@ -249,6 +261,11 @@ class ProveedorController extends Controller
                 'es_subencargado_rgpd' => $proveedor->es_subencargado_rgpd,
             ],
             'clausulas' => $this->clausulasVigentes(),
+            // Lo que dice la ficha de lo que CLA-06 y CLA-10 comprueban, para que
+            // quien evalúa lo vea al contestar y no nazca la contradicción.
+            'ficha' => collect(DatoDeFicha::cases())->mapWithKeys(static fn (DatoDeFicha $dato): array => [
+                $dato->value => ['campo' => $dato->etiqueta(), 'valor' => $dato->valorEn($proveedor)],
+            ])->all(),
             'resultados' => array_map(
                 static fn (ResultadoEvaluacion $resultado): array => ['valor' => $resultado->value, 'etiqueta' => $resultado->etiqueta()],
                 ResultadoEvaluacion::cases(),
@@ -324,11 +341,17 @@ class ProveedorController extends Controller
         return to_route('proveedores.show', $proveedor);
     }
 
-    public function guardarCertificacion(GuardarCertificacionProveedorRequest $request, Proveedor $proveedor): RedirectResponse
-    {
-        $proveedor->certificaciones()->create($request->validated());
+    public function guardarCertificacion(
+        GuardarCertificacionProveedorRequest $request,
+        Proveedor $proveedor,
+        RegistrarCertificacion $registrar,
+    ): RedirectResponse {
+        $fichero = $request->file('fichero');
+        $registrar($proveedor, $request->safe()->except('fichero'), $fichero instanceof UploadedFile ? $fichero : null);
 
-        Inertia::flash('exito', 'Certificación registrada.');
+        Inertia::flash('exito', $fichero instanceof UploadedFile
+            ? 'Certificación registrada. El certificado queda también en «Evidencias», con la misma caducidad.'
+            : 'Certificación registrada.');
 
         return back();
     }
@@ -425,6 +448,7 @@ class ProveedorController extends Controller
                     ->map(fn (ProveedorEvaluacionClausula $una): array => [
                         'codigo' => (string) $una->clausula?->codigo,
                         'titulo' => (string) $una->clausula?->titulo,
+                        'valor' => $una->resultado->value,
                         'resultado' => $una->resultado->etiqueta(),
                         'tono' => $una->resultado->tono(),
                         'icono' => $una->resultado->icono(),
@@ -437,7 +461,7 @@ class ProveedorController extends Controller
     }
 
     /**
-     * @return list<array{id: int, codigo: string, titulo: string, descripcion: ?string, referencias: string}>
+     * @return list<array{id: int, codigo: string, titulo: string, descripcion: ?string, referencias: string, datoDeFicha: ?string}>
      */
     private function clausulasVigentes(): array
     {
@@ -453,6 +477,7 @@ class ProveedorController extends Controller
                     static fn (array $referencia): string => $referencia['requisito'],
                     $clausula->referencias,
                 )),
+                'datoDeFicha' => $clausula->dato_de_ficha?->value,
             ])->values()->all();
     }
 

@@ -13,6 +13,11 @@ use Illuminate\Validation\Rule;
 /**
  * Registrar lo que acredita un proveedor. La categoría sólo para el ENS y la
  * descripción sólo para «otra», como piden los `CHECK`.
+ *
+ * El certificado puede llegar como fichero —se da de alta como evidencia, en
+ * `RegistrarCertificacion`— o como una evidencia que ya existe, **pero no las
+ * dos cosas**: con dos pruebas no se sabe cuál es la del certificado. El límite
+ * de tamaño es el de una evidencia subida desde su pantalla.
  */
 class GuardarCertificacionProveedorRequest extends FormRequest
 {
@@ -42,6 +47,17 @@ class GuardarCertificacionProveedorRequest extends FormRequest
             'caduca_en' => ['nullable', 'date', 'after_or_equal:emitida_en'],
             // RLS: una evidencia de otra organización no existe para esta consulta.
             'evidencia_id' => ['nullable', 'integer', Rule::exists('evidencias', 'id')],
+            'fichero' => ['nullable', 'file', 'max:51200', 'prohibits:evidencia_id'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'fichero.prohibits' => 'Sube el certificado o elige una evidencia que ya exista, no las dos cosas.',
         ];
     }
 
@@ -56,6 +72,7 @@ class GuardarCertificacionProveedorRequest extends FormRequest
             'emitida_en' => 'fecha de emisión',
             'caduca_en' => 'fecha de caducidad',
             'evidencia_id' => 'evidencia',
+            'fichero' => 'certificado',
         ];
     }
 

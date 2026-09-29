@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import Aviso from '@/components/Aviso.vue';
+import BarraSegmentada from '@/components/BarraSegmentada.vue';
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
 import EstadoVacio from '@/components/EstadoVacio.vue';
+import CampoFichero from '@/components/formulario/CampoFichero.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import HistoricoTransiciones, { type Transicion } from '@/components/HistoricoTransiciones.vue';
+import PendienteProveedor, { type Pendiente, type TareaPendiente } from '@/components/proveedor/PendienteProveedor.vue';
 import CeldaBadge from '@/components/tabla/celdas/CeldaBadge.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,23 +20,29 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { fechaLegible } from '@/lib/celdas';
+import { distanciaLegible, fechaLegible } from '@/lib/celdas';
 import { conOpcionVacia, type Opcion } from '@/lib/formularios';
 import { Link, router, useForm } from '@inertiajs/vue3';
-import { ChevronRightIcon } from '@lucide/vue';
+import { ChevronRightIcon, CircleHelpIcon, PlusIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 /**
  * La ficha de un proveedor (§ 4.9).
  *
+ * **Arriba, lo que falta para homologarlo** (`PendienteProveedor`): el
+ * certificado caducado, la condición de la última evaluación con las tareas que
+ * la levantan y los datos de la ficha que no casan con lo evaluado. Antes
+ * estaba repartido en cuatro tarjetas, y la condición, dentro de un plegable.
+ *
  * La columna lateral va en el orden de `DESIGN.md`: «Estado» arriba —cuándo
  * toca reevaluar, evaluar, retirar— y «Ficha» después. **El estado no se
  * cambia desde un desplegable**: lo pone la última evaluación, y lo único que
- * se mueve a mano es retirar y reactivar.
+ * se mueve a mano es retirar y reactivar. **Evaluar no espera a la fecha**:
+ * resuelta la condición, evaluar otra vez es lo que homologa.
  *
- * Las evaluaciones van en la columna principal, cada una con lo que se vio
- * cláusula a cláusula y plegada: es el histórico que un auditor pide, y doce
- * filas por evaluación desplegadas por defecto no dejarían ver el resto.
+ * Las evaluaciones van en la columna principal y plegadas salvo la última, que
+ * enseña primero lo que no se cumple y deja lo que sí en una rejilla compacta:
+ * doce filas iguales para decir que falla una no dejaban ver cuál.
  */
 interface Proveedor {
     id: number;
@@ -88,7 +96,7 @@ interface Evaluacion {
     conclusiones: string | null;
     evaluadaPor: string | null;
     incumplidas: number;
-    clausulas: { codigo: string; titulo: string; resultado: string; tono: string; icono: string; nota: string | null }[];
+    clausulas: { codigo: string; titulo: string; valor: string; resultado: string; tono: string; icono: string; nota: string | null }[];
 }
 
 const props = defineProps<{
@@ -97,7 +105,8 @@ const props = defineProps<{
     certificaciones: Certificacion[];
     evaluaciones: Evaluacion[];
     historial: Transicion[];
-    tareas: { id: number; titulo: string; estado: string; tono: string; icono: string }[];
+    pendiente: Pendiente;
+    tareas: TareaPendiente[];
     tiposCertificacion: Opcion[];
     evidencias: Opcion[];
     responsables: Opcion[];
@@ -108,6 +117,45 @@ const props = defineProps<{
 }>();
 
 const abierta = ref<number | null>(props.evaluaciones[0]?.id ?? null);
+
+/* ---------------------------------------------------------- Evaluaciones */
+
+/*
+ * El orden en que se leen las cláusulas de una evaluación: primero lo que falla,
+ * que es lo que se busca, y lo que se cumple al final y en compacto.
+ */
+const grupos = [
+    { valor: 'no_cumple', titulo: 'No se cumple' },
+    { valor: 'no_aplica', titulo: 'No aplica' },
+] as const;
+
+function clausulasDe(evaluacion: Evaluacion, valor: string) {
+    return evaluacion.clausulas.filter((clausula) => clausula.valor === valor);
+}
+
+function repartoDe(evaluacion: Evaluacion) {
+    const cuenta = (valor: string) => clausulasDe(evaluacion, valor).length;
+
+    return [
+        { clave: 'cumple', etiqueta: 'Se cumplen', valor: cuenta('cumple'), tono: 'implantado' },
+        { clave: 'no_cumple', etiqueta: 'No se cumplen', valor: cuenta('no_cumple'), tono: 'no_iniciado' },
+        { clave: 'no_aplica', etiqueta: 'No aplican', valor: cuenta('no_aplica'), tono: 'no_aplica' },
+    ];
+}
+
+function plazoDe(tarea: TareaPendiente) {
+    return {
+        valor: tarea.plazo.etiqueta,
+        etiqueta: tarea.plazo.fecha ? `${tarea.plazo.etiqueta} · ${fechaLegible(tarea.plazo.fecha)}` : tarea.plazo.etiqueta,
+        tono: tarea.plazo.tono,
+        icono: tarea.plazo.tono === 'caducada' ? 'CalendarX' : 'CalendarClock',
+    };
+}
+
+/* --------------------------------------------------------------- Ficha */
+
+/** Lo que dice la ficha y la última evaluación contradice, marcado en «Ficha». */
+const datosEnDuda = computed(() => new Set(props.pendiente.contradicciones.map((una) => una.clave)));
 
 /* ------------------------------------------------------------- Retirar */
 
@@ -139,6 +187,7 @@ const certificacion = useForm({
     emitida_en: '',
     caduca_en: '',
     evidencia_id: '',
+    fichero: null as File | null,
 });
 
 const categorias: Opcion[] = [
@@ -155,6 +204,9 @@ function certificar(): void {
             ...datos,
             categoria_ens: datos.tipo === 'ens' ? datos.categoria_ens : null,
             descripcion: datos.descripcion || null,
+            // Sin fichero no se manda la clave: un `null` en un multipart llega
+            // como cadena vacía y la regla `file` lo rechaza.
+            ...(datos.fichero ? { fichero: datos.fichero, evidencia_id: '' } : { fichero: undefined }),
         }))
         .post(`/proveedores/${props.proveedor.id}/certificaciones`, {
             preserveScroll: true,
@@ -187,7 +239,7 @@ function abrirTarea(): void {
 
 <template>
     <AppLayout :titulo="proveedor.nombre">
-        <CabeceraPagina :titulo="proveedor.nombre" :codigo="proveedor.codigo">
+        <CabeceraPagina :titulo="proveedor.nombre" :codigo="proveedor.codigo" :descripcion="proveedor.servicio_prestado">
             <template #acciones>
                 <Button v-if="puedeGestionar" as-child variant="outline">
                     <Link :href="`/proveedores/${proveedor.id}/editar`">Editar</Link>
@@ -216,33 +268,19 @@ function abrirTarea(): void {
             </span>
         </div>
 
-        <!-- El único rojo de la ficha: la prueba de que cumple ha dejado de valer. -->
-        <Aviso v-if="proveedor.reevaluacionVencida && proveedor.seReevalua" tono="error" titulo="Reevaluación vencida">
-            Tocaba volver a evaluar su contrato el {{ fechaLegible(proveedor.proximaEvaluacion) }}. Hasta que se haga,
-            lo que se comprobó la última vez no cubre el plazo que la organización fija para su criticidad.
-        </Aviso>
-
         <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
             <div class="space-y-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Qué presta</CardTitle>
-                        <CardDescription class="whitespace-pre-line">{{ proveedor.servicio_prestado }}</CardDescription>
-                    </CardHeader>
-                    <CardContent class="space-y-2 text-sm">
-                        <p v-if="activos.length === 0" class="text-muted-foreground">
-                            No presta ningún activo del inventario. Se le asigna uno desde la ficha del activo.
-                        </p>
-                        <ul v-else class="grid gap-1">
-                            <li v-for="activo in activos" :key="activo.id" class="flex flex-wrap items-baseline gap-x-2">
-                                <Link :href="`/activos/${activo.id}`" class="underline underline-offset-4">
-                                    <span class="cifra">{{ activo.codigo }}</span> · {{ activo.nombre }}
-                                </Link>
-                                <span class="text-xs text-muted-foreground">valoración {{ activo.nivel.toLowerCase() }}</span>
-                            </li>
-                        </ul>
-                    </CardContent>
-                </Card>
+                <PendienteProveedor
+                    v-if="proveedor.seReevalua"
+                    :pendiente="pendiente"
+                    :proveedor-id="proveedor.id"
+                    :homologado="proveedor.estado === 'homologado'"
+                    :puede-gestionar="puedeGestionar"
+                    :puede-evaluar="puedeEvaluar"
+                    :puede-abrir-tarea="puedeAbrirTarea"
+                    @registrar-certificacion="certificando = true"
+                    @abrir-tarea="abriendoTarea = true"
+                />
 
                 <Card>
                     <CardHeader>
@@ -258,8 +296,8 @@ function abrirTarea(): void {
                             titulo="Sin evaluar"
                             descripcion="Nunca se ha comprobado su contrato. Hasta la primera evaluación sigue «en evaluación» y no tiene fecha de reevaluación."
                         />
-                        <ul v-else class="divide-y">
-                            <li v-for="evaluacion in evaluaciones" :key="evaluacion.id" class="py-3 first:pt-0 last:pb-0">
+                        <ul v-else class="grid gap-3">
+                            <li v-for="(evaluacion, indice) in evaluaciones" :key="evaluacion.id" class="rounded-lg border p-4">
                                 <button
                                     type="button"
                                     class="flex w-full flex-wrap items-center gap-2 text-left"
@@ -280,36 +318,60 @@ function abrirTarea(): void {
                                         }"
                                     />
                                     <span class="text-xs text-muted-foreground">
-                                        {{ evaluacion.evaluadaPor ?? 'Sin autor' }} · criticidad
+                                        {{ evaluacion.evaluadaPor ?? 'Sin autor' }} · con criticidad
                                         {{ evaluacion.criticidad.toLowerCase() }}
-                                        <template v-if="evaluacion.incumplidas > 0">
-                                            · {{ evaluacion.incumplidas }}
-                                            {{ evaluacion.incumplidas === 1 ? 'cláusula no se cumple' : 'cláusulas no se cumplen' }}
-                                        </template>
                                     </span>
+                                    <span v-if="indice === 0" class="ml-auto text-xs text-muted-foreground">La última</span>
                                 </button>
 
-                                <div v-show="abierta === evaluacion.id" class="mt-3 space-y-3 pl-6">
+                                <div v-show="abierta === evaluacion.id" class="mt-4 grid gap-4 pl-6">
+                                    <BarraSegmentada :segmentos="repartoDe(evaluacion)" leyenda />
+
                                     <p v-if="evaluacion.conclusiones" class="text-sm whitespace-pre-line">
                                         {{ evaluacion.conclusiones }}
                                     </p>
-                                    <dl class="grid gap-2 text-sm">
-                                        <div v-for="clausula in evaluacion.clausulas" :key="clausula.codigo" class="grid gap-0.5">
-                                            <dt class="flex flex-wrap items-center gap-2">
-                                                <span class="cifra text-xs text-muted-foreground">{{ clausula.codigo }}</span>
-                                                <span>{{ clausula.titulo }}</span>
-                                                <CeldaBadge
-                                                    :valor="{
-                                                        valor: clausula.resultado,
-                                                        etiqueta: clausula.resultado,
-                                                        tono: clausula.tono,
-                                                        icono: clausula.icono,
-                                                    }"
-                                                />
-                                            </dt>
-                                            <dd v-if="clausula.nota" class="text-muted-foreground">{{ clausula.nota }}</dd>
+
+                                    <template v-for="grupo in grupos" :key="grupo.valor">
+                                        <div v-if="clausulasDe(evaluacion, grupo.valor).length > 0" class="grid gap-1">
+                                            <p class="text-xs font-medium text-muted-foreground">{{ grupo.titulo }}</p>
+                                            <ul class="grid gap-1 text-sm">
+                                                <li
+                                                    v-for="clausula in clausulasDe(evaluacion, grupo.valor)"
+                                                    :key="clausula.codigo"
+                                                    class="grid gap-0.5 rounded-md bg-superficie px-3 py-2"
+                                                >
+                                                    <span class="flex flex-wrap items-center gap-2">
+                                                        <CeldaBadge
+                                                            :valor="{
+                                                                valor: clausula.valor,
+                                                                etiqueta: clausula.resultado,
+                                                                tono: clausula.tono,
+                                                                icono: clausula.icono,
+                                                            }"
+                                                        />
+                                                        <span class="cifra text-xs text-muted-foreground">{{ clausula.codigo }}</span>
+                                                        <span class="font-medium">{{ clausula.titulo }}</span>
+                                                    </span>
+                                                    <span v-if="clausula.nota" class="text-muted-foreground">{{ clausula.nota }}</span>
+                                                </li>
+                                            </ul>
                                         </div>
-                                    </dl>
+                                    </template>
+
+                                    <div v-if="clausulasDe(evaluacion, 'cumple').length > 0" class="grid gap-1">
+                                        <p class="text-xs font-medium text-muted-foreground">Se cumplen</p>
+                                        <ul class="grid gap-x-4 gap-y-1 text-sm sm:grid-cols-2 xl:grid-cols-3">
+                                            <li
+                                                v-for="clausula in clausulasDe(evaluacion, 'cumple')"
+                                                :key="clausula.codigo"
+                                                class="flex min-w-0 items-baseline gap-2"
+                                                :title="clausula.nota ?? undefined"
+                                            >
+                                                <span class="cifra shrink-0 text-xs text-muted-foreground">{{ clausula.codigo }}</span>
+                                                <span class="truncate">{{ clausula.titulo }}</span>
+                                            </li>
+                                        </ul>
+                                    </div>
                                 </div>
                             </li>
                         </ul>
@@ -329,7 +391,7 @@ function abrirTarea(): void {
                         <ul v-else class="divide-y">
                             <li v-for="una in certificaciones" :key="una.id" class="flex flex-wrap items-center gap-2 py-2">
                                 <span class="font-medium">{{ una.etiqueta }}</span>
-                                <span v-if="una.entidadEmisora" class="text-muted-foreground">· {{ una.entidadEmisora }}</span>
+                                <span class="text-muted-foreground">· {{ una.entidadEmisora ?? 'Entidad emisora sin registrar' }}</span>
                                 <CeldaBadge
                                     v-if="una.caducaEn"
                                     :valor="{
@@ -342,6 +404,7 @@ function abrirTarea(): void {
                                 <Link v-if="una.evidencia" :href="`/evidencias/${una.evidencia.id}`" class="underline underline-offset-4">
                                     {{ una.evidencia.titulo }}
                                 </Link>
+                                <span v-else class="text-muted-foreground">· sin evidencia vinculada</span>
                                 <Button
                                     v-if="puedeGestionar"
                                     variant="ghost"
@@ -354,29 +417,8 @@ function abrirTarea(): void {
                             </li>
                         </ul>
                         <Button v-if="puedeGestionar" variant="outline" size="sm" @click="certificando = true">
+                            <PlusIcon />
                             Registrar una certificación
-                        </Button>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Tareas</CardTitle>
-                        <CardDescription>
-                            Lo que queda pendiente con este proveedor: firmar el encargo de tratamiento, pedir el informe
-                            de auditoría.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent class="space-y-3 text-sm">
-                        <p v-if="tareas.length === 0" class="text-muted-foreground">Ninguna abierta desde aquí.</p>
-                        <ul v-else class="grid gap-1">
-                            <li v-for="una in tareas" :key="una.id" class="flex flex-wrap items-center gap-2">
-                                <Link :href="`/tareas/${una.id}`" class="underline underline-offset-4">{{ una.titulo }}</Link>
-                                <CeldaBadge :valor="{ valor: una.estado, etiqueta: una.estado, tono: una.tono, icono: una.icono }" />
-                            </li>
-                        </ul>
-                        <Button v-if="puedeAbrirTarea" variant="outline" size="sm" @click="abriendoTarea = true">
-                            Abrir una tarea
                         </Button>
                     </CardContent>
                 </Card>
@@ -398,28 +440,32 @@ function abrirTarea(): void {
                         <CardTitle>Estado</CardTitle>
                         <CardDescription>{{ proveedor.estadoDescripcion }}</CardDescription>
                     </CardHeader>
-                    <CardContent class="space-y-3 text-sm">
-                        <p v-if="proveedor.seReevalua && proveedor.proximaEvaluacion">
-                            Próxima evaluación: <strong>{{ fechaLegible(proveedor.proximaEvaluacion) }}</strong>
-                            <span class="text-muted-foreground">
-                                · cada {{ proveedor.mesesReevaluacion }} meses por su criticidad
-                            </span>
-                        </p>
-                        <div class="flex flex-wrap gap-2">
-                            <Button v-if="puedeEvaluar && proveedor.seReevalua" as-child size="sm">
-                                <Link :href="`/proveedores/${proveedor.id}/evaluar`">Evaluar</Link>
+                    <CardContent class="space-y-4 text-sm">
+                        <dl v-if="proveedor.seReevalua && proveedor.proximaEvaluacion" class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2">
+                            <dt class="text-muted-foreground">Próxima evaluación</dt>
+                            <dd>
+                                <strong class="font-semibold">{{ fechaLegible(proveedor.proximaEvaluacion) }}</strong>
+                                <span class="text-muted-foreground"> ({{ distanciaLegible(proveedor.proximaEvaluacion) }})</span>
+                            </dd>
+                            <dt class="text-muted-foreground">Plazo</dt>
+                            <dd>Cada {{ proveedor.mesesReevaluacion }} meses, por criticidad {{ proveedor.criticidadEtiqueta.toLowerCase() }}</dd>
+                        </dl>
+                        <div v-if="puedeEvaluar && proveedor.seReevalua" class="grid gap-2">
+                            <Button as-child>
+                                <Link :href="`/proveedores/${proveedor.id}/evaluar`">
+                                    {{ evaluaciones.length === 0 ? 'Evaluar' : 'Evaluar ahora' }}
+                                </Link>
                             </Button>
-                            <Button
-                                v-if="puedeGestionar && proveedor.seReevalua"
-                                variant="outline"
-                                size="sm"
-                                @click="retirando = true"
-                            >
-                                Retirar
+                            <p v-if="evaluaciones.length > 0 && proveedor.estado !== 'homologado'" class="text-xs text-muted-foreground">
+                                No hace falta esperar a la fecha: con la condición resuelta, evaluar otra vez es lo que lo
+                                homologa.
+                            </p>
+                        </div>
+                        <div v-if="puedeGestionar" class="border-t pt-4">
+                            <Button v-if="proveedor.seReevalua" variant="outline" size="sm" @click="retirando = true">
+                                Retirar proveedor
                             </Button>
-                            <Button v-if="puedeGestionar && !proveedor.seReevalua" variant="outline" size="sm" @click="reactivar">
-                                Reactivar
-                            </Button>
+                            <Button v-else variant="outline" size="sm" @click="reactivar">Reactivar</Button>
                         </div>
                     </CardContent>
                 </Card>
@@ -429,28 +475,9 @@ function abrirTarea(): void {
                         <CardTitle>Ficha</CardTitle>
                     </CardHeader>
                     <CardContent class="text-sm">
-                        <dl class="grid gap-2">
-                            <div v-if="proveedor.cif" class="flex flex-wrap gap-x-2">
-                                <dt class="text-muted-foreground">CIF</dt>
-                                <dd class="cifra">{{ proveedor.cif }}</dd>
-                            </div>
-                            <div class="flex flex-wrap gap-x-2">
-                                <dt class="text-muted-foreground">Responsable</dt>
-                                <dd>{{ proveedor.responsable ?? 'Sin asignar' }}</dd>
-                            </div>
-                            <div class="flex flex-wrap gap-x-2">
-                                <dt class="text-muted-foreground">Datos en</dt>
-                                <dd>
-                                    {{ proveedor.ubicacionDatosEtiqueta }}
-                                    <template v-if="proveedor.ubicacion_detalle">· {{ proveedor.ubicacion_detalle }}</template>
-                                </dd>
-                            </div>
-                            <div class="flex flex-wrap gap-x-2">
-                                <dt class="text-muted-foreground">Encargado del tratamiento</dt>
-                                <dd>{{ proveedor.es_subencargado_rgpd ? 'Sí' : 'No' }}</dd>
-                            </div>
+                        <dl class="grid gap-3">
                             <div class="grid gap-0.5">
-                                <dt class="text-muted-foreground">Criticidad</dt>
+                                <dt class="text-xs text-muted-foreground">Criticidad</dt>
                                 <dd>
                                     {{ proveedor.criticidadEtiqueta }}
                                     <span class="text-muted-foreground">
@@ -465,11 +492,81 @@ function abrirTarea(): void {
                                     {{ proveedor.justificacion_criticidad }}
                                 </dd>
                             </div>
+                            <div class="grid gap-0.5">
+                                <dt class="text-xs text-muted-foreground">Presta</dt>
+                                <dd v-if="activos.length === 0" class="text-muted-foreground">
+                                    Ningún activo del inventario. Se le asigna uno desde la ficha del activo.
+                                </dd>
+                                <dd v-for="activo in activos" v-else :key="activo.id" class="flex flex-wrap items-baseline gap-x-2">
+                                    <Link :href="`/activos/${activo.id}`" class="underline underline-offset-4">
+                                        <span class="cifra">{{ activo.codigo }}</span> · {{ activo.nombre }}
+                                    </Link>
+                                    <span class="text-xs text-muted-foreground">valoración {{ activo.nivel.toLowerCase() }}</span>
+                                </dd>
+                            </div>
+                            <div class="grid gap-0.5">
+                                <dt class="text-xs text-muted-foreground">Responsable</dt>
+                                <dd :class="!proveedor.responsable && 'text-muted-foreground'">{{ proveedor.responsable ?? 'Sin asignar' }}</dd>
+                            </div>
+                            <div class="grid gap-0.5">
+                                <dt class="text-xs text-muted-foreground">CIF</dt>
+                                <dd :class="proveedor.cif ? 'cifra' : 'text-muted-foreground'">{{ proveedor.cif ?? 'Sin registrar' }}</dd>
+                            </div>
+                            <div class="grid gap-0.5">
+                                <dt class="text-xs text-muted-foreground">Datos en</dt>
+                                <dd class="flex items-center gap-1.5">
+                                    <CircleHelpIcon v-if="datosEnDuda.has('ubicacion_datos')" class="size-3.5 text-muted-foreground" aria-label="No casa con la última evaluación" />
+                                    {{ proveedor.ubicacionDatosEtiqueta }}
+                                    <template v-if="proveedor.ubicacion_detalle">· {{ proveedor.ubicacion_detalle }}</template>
+                                </dd>
+                            </div>
+                            <div class="grid gap-0.5">
+                                <dt class="text-xs text-muted-foreground">Encargado del tratamiento</dt>
+                                <dd class="flex items-center gap-1.5">
+                                    <CircleHelpIcon
+                                        v-if="datosEnDuda.has('encargado_tratamiento')"
+                                        class="size-3.5 text-muted-foreground"
+                                        aria-label="No casa con la última evaluación"
+                                    />
+                                    {{ proveedor.es_subencargado_rgpd ? 'Sí' : 'No' }}
+                                </dd>
+                            </div>
+                            <div v-if="proveedor.es_nube" class="grid gap-0.5">
+                                <dt class="text-xs text-muted-foreground">Nube</dt>
+                                <dd>{{ proveedor.modeloNubeEtiqueta }}</dd>
+                            </div>
                             <div v-if="proveedor.notas" class="grid gap-0.5">
-                                <dt class="text-muted-foreground">Notas</dt>
+                                <dt class="text-xs text-muted-foreground">Notas</dt>
                                 <dd class="whitespace-pre-line">{{ proveedor.notas }}</dd>
                             </div>
                         </dl>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Tareas</CardTitle>
+                        <CardDescription>
+                            Lo que queda pendiente con este proveedor: firmar el encargo de tratamiento, pedir el informe
+                            de auditoría.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent class="space-y-3 text-sm">
+                        <p v-if="tareas.length === 0" class="text-muted-foreground">Ninguna abierta desde aquí.</p>
+                        <ul v-else class="grid gap-3">
+                            <li v-for="una in tareas" :key="una.id" class="grid gap-1">
+                                <Link :href="`/tareas/${una.id}`" class="underline underline-offset-4">{{ una.titulo }}</Link>
+                                <span class="flex flex-wrap items-center gap-2">
+                                    <CeldaBadge :valor="{ valor: una.estado, etiqueta: una.estado, tono: una.tono, icono: una.icono }" />
+                                    <CeldaBadge :valor="plazoDe(una)" />
+                                </span>
+                                <span class="text-xs text-muted-foreground">{{ una.responsable ?? 'Sin responsable' }}</span>
+                            </li>
+                        </ul>
+                        <Button v-if="puedeAbrirTarea" variant="outline" size="sm" @click="abriendoTarea = true">
+                            <PlusIcon />
+                            Abrir una tarea
+                        </Button>
                     </CardContent>
                 </Card>
             </div>
@@ -505,7 +602,7 @@ function abrirTarea(): void {
                 <DialogHeader>
                     <DialogTitle>Registrar una certificación</DialogTitle>
                     <DialogDescription>
-                        El certificado en sí se guarda como evidencia, que es donde ya viven los ficheros con caducidad.
+                        Si subes el certificado, se guarda como evidencia, que es donde ya viven los ficheros con caducidad.
                     </DialogDescription>
                 </DialogHeader>
                 <div class="grid gap-4">
@@ -558,13 +655,22 @@ function abrirTarea(): void {
                             :error="certificacion.errors.caduca_en"
                         />
                     </div>
+                    <CampoFichero
+                        nombre="fichero"
+                        etiqueta="El certificado"
+                        acepta=".pdf,image/*"
+                        :error="certificacion.errors.fichero"
+                        ayuda="Si lo tienes. Queda como evidencia, con la misma caducidad, y se puede vincular a A.5.19. Hasta 50 MB."
+                        @elegir="certificacion.fichero = $event"
+                    />
                     <CampoSelect
+                        v-if="!certificacion.fichero"
                         v-model="certificacion.evidencia_id"
                         nombre="evidencia_id"
-                        etiqueta="Evidencia"
+                        etiqueta="O una evidencia que ya existe"
                         :opciones="evidencias"
                         :error="certificacion.errors.evidencia_id"
-                        ayuda="El certificado, si ya está registrado como evidencia."
+                        ayuda="Si el certificado ya está registrado en «Evidencias»."
                     />
                 </div>
                 <DialogFooter>
@@ -578,7 +684,10 @@ function abrirTarea(): void {
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Abrir una tarea</DialogTitle>
-                    <DialogDescription>Queda en el plan de acción con origen «Proveedor» y enlazada aquí.</DialogDescription>
+                    <DialogDescription>
+                        Queda en el plan de acción con origen «Proveedor» y enlazada aquí. Lleva responsable y fecha: es lo
+                        que levanta la condición, y sin ellas nadie la mueve.
+                    </DialogDescription>
                 </DialogHeader>
                 <div class="grid gap-4">
                     <CampoTexto v-model="tarea.titulo" nombre="titulo" etiqueta="Qué hay que hacer" :error="tarea.errors.titulo" requerido />
@@ -598,6 +707,7 @@ function abrirTarea(): void {
                             etiqueta="Fecha límite"
                             tipo="date"
                             :error="tarea.errors.fecha_limite"
+                            requerido
                         />
                     </div>
                     <CampoSelect
@@ -606,6 +716,7 @@ function abrirTarea(): void {
                         etiqueta="Responsable"
                         :opciones="props.responsables"
                         :error="tarea.errors.responsable_id"
+                        requerido
                     />
                 </div>
                 <DialogFooter>

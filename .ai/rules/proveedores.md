@@ -91,6 +91,34 @@ Sin evaluación no hay fecha: lo que falta no es reevaluar sino evaluar por
 primera vez, y eso lo cuenta el panel como pendiente (`sinEvaluar`). Lo retirado
 tampoco tiene.
 
+## Lo que falta para homologarlo
+
+La ficha abre con un bloque que responde «¿qué hay que hacer con él?», y lo
+calcula `PendientesDeProveedor`: primera evaluación, reevaluación vencida,
+certificados caducados, la condición de la última evaluación con las tareas
+abiertas que la levantan, y las contradicciones entre ficha y evaluación.
+
+- **Los dos rojos salen de los mismos scopes que el panel** (`reevaluacionVencida`,
+  `caducadas`). Por eso el `Aviso` de reevaluación vencida desapareció de la
+  ficha: está dentro del bloque, y dos rojos para lo mismo no avisan más.
+- **Las contradicciones son catálogo**: `dato_de_ficha` en el YAML dice qué dato
+  contrasta cada cláusula (hoy CLA-06 y CLA-10), y `DatoDeFicha::contradiccion()`
+  tiene la regla. Nada de códigos de cláusula en PHP (invariante 3). **No se
+  corrige nada solo**: no se sabe cuál de las dos está mal.
+- **Cada contradicción dice las dos caras y las dos salidas**: qué pone la ficha,
+  qué se contestó, y «corrige la ficha» o «evalúa otra vez», con las palabras del
+  formulario para que se encuentre el campo. Y **la pantalla de evaluar enseña lo
+  que dice la ficha** junto a las cláusulas con `dato_de_ficha`: la del PRV-001
+  nació ahí, con la ficha dada de alta con los valores por defecto y nadie que la
+  viera al contestar.
+- **Evaluar no espera a la fecha.** Resuelta la condición, evaluar otra vez es lo
+  que homologa; la ficha lo dice junto al botón.
+- **La tarea que se abre desde un proveedor exige responsable y fecha límite**
+  (`DerivarTareaDeProveedorRequest`), a diferencia de las de continuidad y
+  vulnerabilidades, que heredan la misma petición sin esa exigencia. Una
+  condición sin nadie detrás ni fecha es la que sigue abierta en la reevaluación
+  del año siguiente.
+
 ## Las costuras
 
 - **`Fuente::Proveedor`** en el calendario y en el correo diario. Es una `Fuente`
@@ -112,6 +140,10 @@ tampoco tiene.
 - **El certificado es una evidencia**: `proveedor_certificaciones.evidencia_id`.
   Es donde ya viven los ficheros con caducidad, y así también puede probar
   A.5.19.
+  **Se puede subir desde el diálogo del certificado** (`RegistrarCertificacion`):
+  entra como evidencia de tipo certificado, con la emisión como obtención y la
+  misma caducidad, y queda vinculada. O fichero o evidencia existente, no las
+  dos. Es la primera pantalla fuera de «Evidencias» que da de alta una.
 
 ## Desvíos respecto al stack
 

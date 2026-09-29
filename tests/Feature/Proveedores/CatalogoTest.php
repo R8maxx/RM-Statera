@@ -66,3 +66,19 @@ it('el fichero de cláusulas va después de los marcos al importar un directorio
         ->toBeGreaterThan(array_search('iso27001-2022.yaml', $ficheros, true))
         ->toBeGreaterThan(array_search('ens-rd311-2022.yaml', $ficheros, true));
 });
+
+it('el fichero real dice qué dato de la ficha contrasta cada cláusula', function (): void {
+    $this->importador->importar($this->fichero);
+
+    expect(ClausulaContractual::query()->whereNotNull('dato_de_ficha')->pluck('dato_de_ficha', 'codigo')->map->value->all())
+        ->toBe(['CLA-06' => 'ubicacion_datos', 'CLA-10' => 'encargado_tratamiento']);
+});
+
+it('un dato de ficha que no existe es un error de importación', function (): void {
+    $temporal = tempnam(sys_get_temp_dir(), 'clausulas').'.yaml';
+    file_put_contents($temporal, "clausulas:\n  - codigo: CLA-X\n    titulo: Inventada\n    dato_de_ficha: color_del_logo\n");
+
+    expect(fn () => $this->importador->importar($temporal))->toThrow(CatalogoInvalido::class);
+
+    unlink($temporal);
+});

@@ -157,6 +157,9 @@ export type PiezaDeMarca = 'logo' | 'simbolo';
 }
 namespace Persona {
 namespace Enums {
+export type ImparticionFormacion = 'interna' | 'externa';
+export type JustificacionAusencia = 'justificada' | 'injustificada';
+export type ModalidadFormacion = 'presencial' | 'en_linea' | 'mixta';
 export type RolEns = 'responsable_informacion' | 'responsable_servicio' | 'responsable_seguridad' | 'responsable_sistema' | 'administrador_seguridad';
 export type TipoAccionFormativa = 'formacion' | 'concienciacion';
 export type TipoPasoPersona = 'alta' | 'baja';
@@ -165,6 +168,7 @@ export type TipoPasoPersona = 'alta' | 'baja';
 namespace Proveedor {
 namespace Enums {
 export type Criticidad = 'baja' | 'media' | 'alta';
+export type DatoDeFicha = 'ubicacion_datos' | 'encargado_tratamiento';
 export type EstadoProveedor = 'en_evaluacion' | 'homologado' | 'condicionado' | 'rechazado' | 'retirado';
 export type ModeloNube = 'iaas' | 'paas' | 'saas';
 export type ResultadoClausula = 'cumple' | 'no_cumple' | 'no_aplica';

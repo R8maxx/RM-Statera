@@ -15,6 +15,7 @@ use App\Domain\Catalogo\Models\Requisito;
 use App\Domain\Obligacion\Enums\ReferenciaCumplimiento;
 use App\Domain\Obligacion\Models\Obligacion;
 use App\Domain\Organizacion\ContextoOrganizacion;
+use App\Domain\Proveedor\Enums\DatoDeFicha;
 use App\Domain\Proveedor\Models\ClausulaContractual;
 use App\Domain\Riesgo\Enums\GrupoAmenaza;
 use App\Domain\Riesgo\Models\Amenaza;
@@ -22,6 +23,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Symfony\Component\Yaml\Exception\ParseException;
 use Symfony\Component\Yaml\Yaml;
 use Throwable;
@@ -788,6 +790,7 @@ final class ImportadorCatalogo
                 'referencias.*.marco' => ['required', 'string'],
                 'referencias.*.requisito' => ['required', 'string'],
                 'orden' => ['nullable', 'integer', 'min:0'],
+                'dato_de_ficha' => ['nullable', Rule::enum(DatoDeFicha::class)],
             ]);
 
             if ($validador->fails()) {
@@ -829,6 +832,7 @@ final class ImportadorCatalogo
                 'descripcion' => isset($clausula['descripcion']) ? (string) $clausula['descripcion'] : null,
                 'referencias' => $referencias,
                 'orden' => isset($clausula['orden']) ? (int) $clausula['orden'] : $indice + 1,
+                'dato_de_ficha' => isset($clausula['dato_de_ficha']) ? (string) $clausula['dato_de_ficha'] : null,
             ];
         }
 
@@ -916,6 +920,10 @@ final class ImportadorCatalogo
             if ($existente->{$campo} != $nuevos[$campo]) {
                 $cambios[] = $campo;
             }
+        }
+
+        if ($existente->dato_de_ficha?->value !== $nuevos['dato_de_ficha']) {
+            $cambios[] = 'dato_de_ficha';
         }
 
         return $cambios;

@@ -3,8 +3,12 @@
 declare(strict_types=1);
 
 use App\Domain\Autorizacion\Enums\Rol;
+use App\Domain\Evidencia\Enums\TipoEvidencia;
+use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Proveedor\Enums\EstadoProveedor;
 use App\Domain\Proveedor\Models\Proveedor;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 /*
 |--------------------------------------------------------------------------
@@ -108,6 +112,64 @@ it('registra y quita certificaciones; la categoría sólo para el ENS', function
         ->assertRedirect();
 
     expect($proveedor->certificaciones()->count())->toBe(0);
+});
+
+it('el certificado subido queda como evidencia, con su caducidad, y vinculado', function (): void {
+    Storage::fake('evidencias');
+    $proveedor = Proveedor::factory()->create(['nombre' => 'Nube sintética']);
+
+    $this->actingAs($this->responsable)
+        ->post("/proveedores/{$proveedor->id}/certificaciones", [
+            'tipo' => 'iso27001',
+            'emitida_en' => '2026-01-15',
+            'caduca_en' => '2029-01-14',
+            'fichero' => UploadedFile::fake()->create('certificado.pdf', 120, 'application/pdf'),
+        ])
+        ->assertSessionHasNoErrors();
+
+    $certificacion = $proveedor->certificaciones()->with('evidencia')->firstOrFail();
+    $evidencia = $certificacion->evidencia;
+
+    expect($evidencia)->not->toBeNull()
+        ->and($evidencia?->tipo)->toBe(TipoEvidencia::Certificado)
+        ->and($evidencia?->titulo)->toBe('Certificado ISO/IEC 27001 · Nube sintética')
+        ->and($evidencia?->fecha_obtencion?->toDateString())->toBe('2026-01-15')
+        ->and($evidencia?->fecha_caducidad?->toDateString())->toBe('2029-01-14')
+        ->and($evidencia?->hash_sha256)->not->toBeNull();
+
+    Storage::disk('evidencias')->assertExists((string) $evidencia?->ruta);
+});
+
+it('un certificado ya caducado y sin emisión no rompe la evidencia', function (): void {
+    Storage::fake('evidencias');
+    $proveedor = Proveedor::factory()->create();
+
+    $this->actingAs($this->responsable)
+        ->post("/proveedores/{$proveedor->id}/certificaciones", [
+            'tipo' => 'iso27001',
+            'caduca_en' => today()->subMonth()->toDateString(),
+            'fichero' => UploadedFile::fake()->create('certificado.pdf', 10, 'application/pdf'),
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect(Evidencia::query()->count())->toBe(1);
+});
+
+it('o se sube el certificado o se elige una evidencia, no las dos cosas', function (): void {
+    Storage::fake('evidencias');
+    $proveedor = Proveedor::factory()->create();
+    $evidencia = Evidencia::factory()->create();
+
+    $this->actingAs($this->responsable)
+        ->post("/proveedores/{$proveedor->id}/certificaciones", [
+            'tipo' => 'iso27001',
+            'evidencia_id' => $evidencia->id,
+            'fichero' => UploadedFile::fake()->create('certificado.pdf', 10, 'application/pdf'),
+        ])
+        ->assertSessionHasErrors('fichero');
+
+    expect($proveedor->certificaciones()->count())->toBe(0)
+        ->and(Evidencia::query()->count())->toBe(1);
 });
 
 it('una certificación de otro proveedor no se borra desde éste', function (): void {

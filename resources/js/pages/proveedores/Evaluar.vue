@@ -25,6 +25,7 @@ interface Clausula {
     titulo: string;
     descripcion: string | null;
     referencias: string;
+    datoDeFicha: string | null;
 }
 
 defineProps<{
@@ -37,6 +38,8 @@ defineProps<{
         es_subencargado_rgpd: boolean;
     };
     clausulas: Clausula[];
+    /** Lo que dice la ficha de cada dato que una cláusula contrasta. */
+    ficha: Record<string, { campo: string; valor: string }>;
     resultados: Opcion[];
     respuestas: Opcion[];
     hoy: string;
@@ -67,6 +70,11 @@ defineProps<{
                         :ayuda="`${clausula.descripcion ?? ''} ${clausula.referencias ? `(${clausula.referencias})` : ''}`.trim()"
                         requerido
                     />
+                    <p v-if="clausula.datoDeFicha && ficha[clausula.datoDeFicha]" class="border-l-2 pl-3 text-sm text-muted-foreground">
+                        En su ficha, «{{ ficha[clausula.datoDeFicha].campo }}»:
+                        <strong class="font-medium text-foreground">{{ ficha[clausula.datoDeFicha].valor }}</strong>.
+                        Si el contrato dice otra cosa, corrige la ficha después de evaluar.
+                    </p>
                     <CampoTexto
                         :nombre="`clausulas[${clausula.id}][nota]`"
                         :etiqueta="`Nota sobre ${clausula.codigo}`"
