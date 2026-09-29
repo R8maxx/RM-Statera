@@ -21,7 +21,12 @@ import { computed } from 'vue';
  * misma razón por la que el badge dejó de conformarse con un punto.
  */
 const props = defineProps<{
-    destino: { valor: string; etiqueta: string; tono: string; icono: string };
+    /**
+     * `pista`, cuando viene, dice en pocas palabras qué significa pasar ahí. Lo
+     * manda el dominio (`EstadoTarea::pista()`) y la pinta la ficha de tarea,
+     * donde los destinos van en columna y a lo ancho.
+     */
+    destino: { valor: string; etiqueta: string; tono: string; icono: string; pista?: string | null };
     deshabilitado?: boolean;
 }>();
 
@@ -38,5 +43,6 @@ const estilo = computed(() => tono(props.destino.tono));
     >
         <IconoTipo :nombre="destino.icono" clase="size-4" />
         {{ destino.etiqueta }}
+        <span v-if="destino.pista" class="ml-auto text-xs font-normal text-muted-foreground">{{ destino.pista }}</span>
     </Button>
 </template>

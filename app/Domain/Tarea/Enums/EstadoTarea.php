@@ -87,6 +87,24 @@ enum EstadoTarea: string
     }
 
     /**
+     * Lo que significa pasar a este estado, en pocas palabras.
+     *
+     * Acompaña al botón de transición de la ficha para que no haya que conocer
+     * la máquina de estados para elegir. Vive aquí por lo mismo que `icono()`:
+     * cada módulo dice lo suyo de sus estados.
+     */
+    public function pista(): string
+    {
+        return match ($this) {
+            self::Pendiente => 'Nadie la ha empezado',
+            self::EnCurso => 'Alguien la está haciendo',
+            self::Bloqueada => 'Espera algo de fuera',
+            self::Hecha => 'Se cierra con fecha de hoy',
+            self::Descartada => 'Pide motivo',
+        };
+    }
+
+    /**
      * El tono del dominio con el que se pinta, que no es un color.
      *
      * Se reutiliza el vocabulario de `--estado-*` que ya existe: una tarea en

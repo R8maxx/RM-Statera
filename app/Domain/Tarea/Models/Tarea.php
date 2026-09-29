@@ -6,6 +6,7 @@ namespace App\Domain\Tarea\Models;
 
 use App\Domain\Continuidad\Models\PruebaContinuidad;
 use App\Domain\Implantacion\Models\Implantacion;
+use App\Domain\NoConformidad\Models\NoConformidad;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
 use App\Domain\Proveedor\Models\Proveedor;
 use App\Domain\Tarea\Enums\EstadoTarea;
@@ -101,6 +102,21 @@ class Tarea extends Model
     }
 
     /**
+     * Las no conformidades de las que esta tarea es acción correctiva.
+     *
+     * El lado inverso de `NoConformidad::tareas()`, sobre la misma pivote. Lo
+     * lee la ficha para decir por qué existe la tarea y para avisar cuando la no
+     * conformidad ya se cerró y la acción sigue abierta.
+     *
+     * @return BelongsToMany<NoConformidad, $this>
+     */
+    public function noConformidades(): BelongsToMany
+    {
+        return $this->belongsToMany(NoConformidad::class, 'no_conformidad_tarea')
+            ->withPivot(['vinculada_por_id', 'created_at']);
+    }
+
+    /**
      * De qué proveedor sale, cuando sale de uno (§ 4.9).
      *
      * @return BelongsToMany<Proveedor, $this>
@@ -155,6 +171,22 @@ class Tarea extends Model
         return ! $this->estado->esCerrada()
             && $this->fecha_limite !== null
             && $this->fecha_limite->isBefore(Carbon::today());
+    }
+
+    /**
+     * Cuántos días faltan para el plazo: negativo si ya pasó.
+     *
+     * Nulo cuando no hay nada que contar —sin fecha límite, o ya cerrada—, que
+     * es lo que permite escribir «Vence el 14 de marzo (en 12 días)» sin que la
+     * plantilla tenga que saber qué estados cierran.
+     */
+    public function diasHastaElPlazo(): ?int
+    {
+        if ($this->estado->esCerrada() || $this->fecha_limite === null) {
+            return null;
+        }
+
+        return (int) Carbon::today()->diffInDays($this->fecha_limite, false);
     }
 
     /**

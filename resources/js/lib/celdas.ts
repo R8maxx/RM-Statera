@@ -13,6 +13,8 @@ type ValorProgreso = App.Http.Resources.Definicion.ValorProgreso;
  * exportado.
  */
 export const formatoFecha = new Intl.DateTimeFormat('es-ES', { dateStyle: 'medium' });
+/** «23 de marzo de 2026»: para frases, no para columnas (DESIGN.md § 13). */
+export const formatoFechaLarga = new Intl.DateTimeFormat('es-ES', { dateStyle: 'long' });
 export const formatoFechaHora = new Intl.DateTimeFormat('es-ES', { dateStyle: 'medium', timeStyle: 'short' });
 export const formatoNumero = new Intl.NumberFormat('es-ES');
 

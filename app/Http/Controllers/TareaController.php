@@ -6,7 +6,6 @@ namespace App\Http\Controllers;
 
 use App\Domain\Autorizacion\Enums\Permiso;
 use App\Domain\Autorizacion\EscrituraPropia;
-use App\Domain\Continuidad\Models\PruebaContinuidad;
 use App\Domain\Implantacion\Models\Implantacion;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Tarea\CambiarEstadoTarea;
@@ -21,6 +20,7 @@ use App\Domain\Tarea\Models\Subtarea;
 use App\Domain\Tarea\Models\Tarea;
 use App\Domain\Tarea\Models\TareaTransicion;
 use App\Domain\Tarea\Plazo;
+use App\Domain\Tarea\Procedencia;
 use App\Domain\Tarea\ResumenPlanDeAccion;
 use App\Domain\Tarea\VincularTarea;
 use App\Http\Controllers\Concerns\EmpiezaPorLoMio;
@@ -266,6 +266,7 @@ class TareaController extends Controller
             'responsable',
             'implantaciones.requisito.marco',
             'implantaciones.sistema',
+            'noConformidades',
             'pruebasContinuidad',
             'transiciones.usuario',
             'subtareas',
@@ -277,16 +278,19 @@ class TareaController extends Controller
                 ->map(fn (Implantacion $implantacion): array => $this->requisito($implantacion))
                 ->all(),
             /*
-             * De qué prueba de continuidad sale, cuando sale de una. La pivote
-             * es N:M por si acaso, pero `DerivarDePrueba::tarea()` sólo ata una.
+             * De dónde sale y, cuando sale de algo ya cerrado, el aviso. El
+             * enlace sólo viaja a quien puede abrir el registro.
              */
-            'pruebasContinuidad' => $tarea->pruebasContinuidad
-                ->map(static fn (PruebaContinuidad $prueba): array => [
-                    'id' => $prueba->id,
-                    'codigo' => $prueba->codigo,
-                ])
-                ->values()
-                ->all(),
+            'procedencias' => array_map(
+                static fn (array $registro): array => [
+                    ...array_diff_key($registro, ['ruta' => true, 'permiso' => true]),
+                    'href' => ($request->user()?->can($registro['permiso']->value) ?? false)
+                        ? route($registro['ruta'], $registro['id'])
+                        : null,
+                ],
+                Procedencia::registros($tarea),
+            ),
+            'origenCerrado' => Procedencia::origenCerrado($tarea),
             'historico' => $tarea->transiciones
                 ->map(fn (TareaTransicion $transicion): array => [
                     'id' => $transicion->id,
@@ -310,6 +314,7 @@ class TareaController extends Controller
                     'etiqueta' => $estado->etiqueta(),
                     'tono' => $estado->tono(),
                     'icono' => $estado->icono(),
+                    'pista' => $estado->pista(),
                 ],
                 $tarea->estado->transicionesPermitidas(),
             ),
@@ -498,6 +503,8 @@ class TareaController extends Controller
             'sistema' => $implantacion->sistema->codigo,
             'estado' => $implantacion->estado->value,
             'estadoEtiqueta' => $implantacion->estado->etiqueta(),
+            'estadoTono' => $implantacion->estado->tono(),
+            'estadoIcono' => $implantacion->estado->icono(),
         ];
     }
 
@@ -515,13 +522,17 @@ class TareaController extends Controller
             'estado' => $tarea->estado->value,
             'estadoEtiqueta' => $tarea->estado->etiqueta(),
             'estadoTono' => $tarea->estado->tono(),
+            'estadoIcono' => $tarea->estado->icono(),
             'prioridad' => $tarea->prioridad->value,
             'prioridadEtiqueta' => $tarea->prioridad->etiqueta(),
+            'prioridadPeso' => $tarea->prioridad->peso(),
             'responsable_id' => $tarea->responsable_id,
             'responsable' => $tarea->responsable?->name,
             'fecha_limite' => $tarea->fecha_limite?->toDateString(),
             'fecha_cierre' => $tarea->fecha_cierre?->toDateString(),
             'haVencido' => $tarea->haVencido(),
+            'diasHastaElPlazo' => $tarea->diasHastaElPlazo(),
+            'creada' => $tarea->created_at?->toDateString(),
             // El número crudo lo necesita el formulario para reeditarlo; el
             // texto lo escribe el dominio, que es quien lo escribe también en la
             // tabla y en el plan de adecuación.
