@@ -3,17 +3,23 @@ import CabeceraPagina from '@/components/CabeceraPagina.vue';
 import ServiciosDelPlan from '@/components/continuidad/ServiciosDelPlan.vue';
 import BloqueAcuse from '@/components/documento/BloqueAcuse.vue';
 import BloqueAprobacion from '@/components/documento/BloqueAprobacion.vue';
-import HistorialVersiones, { type Version } from '@/components/documento/HistorialVersiones.vue';
+import CicloDocumento from '@/components/documento/CicloDocumento.vue';
+import CopiarHuella from '@/components/documento/CopiarHuella.vue';
 import EsqueletoDocumento from '@/components/documento/EsqueletoDocumento.vue';
+import HistorialVersiones, { type Version } from '@/components/documento/HistorialVersiones.vue';
+import HuellaRevelada from '@/components/documento/HuellaRevelada.vue';
+import MiniaturaPortada from '@/components/documento/MiniaturaPortada.vue';
+import EstadoVacio from '@/components/EstadoVacio.vue';
 import CeldaBadge from '@/components/tabla/celdas/CeldaBadge.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { distanciaLegible, fechaLegible } from '@/lib/celdas';
 import type { Opcion } from '@/lib/formularios';
 import { motion } from 'motion-v';
 import { Link, router, useForm, usePoll } from '@inertiajs/vue3';
-import { DownloadIcon, FileTextIcon, PencilIcon, RefreshCwIcon, TypeIcon } from '@lucide/vue';
+import { DownloadIcon, EyeIcon, FileTextIcon, InfoIcon, PencilIcon, RefreshCwIcon, TypeIcon } from '@lucide/vue';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 
@@ -99,7 +105,7 @@ const enCurso = computed(() => props.versionEnCurso?.enCurso ?? false);
  */
 const { start, stop } = usePoll(
     3000,
-    { only: ['versionEnCurso', 'versiones'] },
+    { only: ['versionEnCurso', 'versionVigente', 'versiones'] },
     { keepAlive: false, autoStart: false },
 );
 
@@ -167,16 +173,31 @@ onBeforeUnmount(pararTodo);
 
 function comprobar(): void {
     rendido.value = false;
-    router.reload({ only: ['versionEnCurso', 'versiones'] });
+    router.reload({ only: ['versionEnCurso', 'versionVigente', 'versiones'] });
 }
 
-/*
- * Un solo botón de color lleno por vista (DESIGN.md §9): en cuanto hay un
- * borrador generado, la acción que manda está en el bloque de aprobación —mandar
- * a revisión, o firmar—, así que regenerar baja a secundaria. Dos llenos a la vez
- * y no manda ninguno.
+/**
+ * La etiqueta que llevará el borrador al firmarse. La numeración no deja huecos
+ * —un rechazo no gasta número—, así que es la última emitida más uno.
  */
-const varianteGenerar = computed(() => (props.versionEnCurso?.descargable ? 'outline' : 'default'));
+const siguiente = computed(() => `v${Math.max(0, ...props.versiones.map((v) => v.numero ?? 0)) + 1}`);
+
+/**
+ * Lo que un auditor va a pedir y la ficha no tiene (DESIGN.md §9, «Lo que
+ * falta, delante y sólo cuando falta»). Hoy es un dato; la forma es la del
+ * activo para que el siguiente entre sin tocar la plantilla.
+ */
+const pendientes = computed(() => (props.documento.responsable === null ? ['Responsable'] : []));
+
+/*
+ * La huella de la vigente se escribe sola **sólo si la vigente cambia con la
+ * página abierta**, que es firmar y ver cómo se emite. Quien llega a la ficha
+ * escribiendo la URL no acaba de entregar nada y la ve puesta.
+ */
+const vigenteAlLlegar = props.versionVigente?.id ?? null;
+const revelarHuella = computed(
+    () => props.versionVigente !== null && props.versionVigente.id !== vigenteAlLlegar,
+);
 
 const { variantesEntrada, variantesEscalonado } = useMovimientoReducido();
 
@@ -191,262 +212,395 @@ const kb = (bytes: number | null | undefined): string =>
     <AppLayout :titulo="documento.codigo">
         <CabeceraPagina :titulo="documento.titulo" :codigo="documento.codigo" :descripcion="documento.tipoEtiqueta">
             <template #acciones>
+                <!--
+                    Dos cosas distintas que antes se llamaban casi igual
+                    —«Editar documento» y «Editar»—: el texto que sale en el
+                    PDF y los datos de la ficha.
+                -->
                 <Button as-child variant="outline">
                     <Link :href="`/documentos/${documento.id}/cuerpo`">
                         <TypeIcon class="size-4" />
-                        Editar documento
+                        Editar el texto
                     </Link>
                 </Button>
                 <Button as-child variant="outline">
                     <Link :href="`/documentos/${documento.id}/editar`">
                         <PencilIcon class="size-4" />
-                        Editar
+                        Editar la ficha
                     </Link>
                 </Button>
             </template>
         </CabeceraPagina>
 
-        <motion.div
-            class="grid gap-6 lg:grid-cols-3"
-            :variants="escalonado"
-            initial="oculto"
-            animate="visible"
-        >
-            <motion.div :variants="variantesEntrada" class="lg:col-span-2">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Borrador</CardTitle>
-                    <CardDescription>
-                        Se genera a partir de lo que hay registrado ahora mismo y se puede regenerar
-                        cuantas veces haga falta. No es una entrega hasta que se emite.
-                    </CardDescription>
-                </CardHeader>
-
-                <CardContent class="flex flex-col gap-4">
-                    <!--
-                        Mientras el worker trabaja se enseña la forma de lo que
-                        va a salir, no una rueda. Es la única espera del producto
-                        que dura decenas de segundos, que es donde DESIGN.md §9
-                        decía que hacía falta un esqueleto y donde no lo había.
-                    -->
-                    <EsqueletoDocumento v-if="enCurso" />
-
-                    <div v-if="versionEnCurso" class="flex flex-wrap items-center gap-3">
-                        <CeldaBadge
-                            :valor="{
-                                valor: versionEnCurso.generacion,
-                                etiqueta: versionEnCurso.generacionEtiqueta,
-                                tono: versionEnCurso.generacionTono,
-                            }"
-                        />
-                        <span v-if="versionEnCurso.descargable" class="text-sm text-muted-foreground">
-                            {{ kb(versionEnCurso.tamano) }}
-                            <template v-if="versionEnCurso.recuento">· {{ versionEnCurso.recuento }}</template>
-                        </span>
-                    </div>
-
-                    <p v-else class="text-sm text-muted-foreground">
-                        No hay ningún borrador pendiente.
-                    </p>
-
-                    <p v-if="versionEnCurso?.error" class="text-sm text-destructive">
-                        {{ versionEnCurso.error }}
-                    </p>
-
-                    <p v-if="rendido" class="text-sm text-muted-foreground">
-                        Está tardando más de lo normal. Puede que la cola no esté procesando trabajos.
-                    </p>
-
-                    <!--
-                        El PDF en disco es anterior a la última edición del
-                        documento. Sin decirlo, alguien edita, descarga, no ve su
-                        texto y concluye que el módulo no funciona.
-                    -->
-                    <p v-if="cuerpoMasNuevoQueElBorrador" class="text-sm text-estado-en-progreso">
-                        El borrador es anterior a la última edición del documento. Regenéralo para verla.
-                    </p>
-
-                    <div class="flex flex-wrap gap-2">
-                        <Button
-                            :variant="varianteGenerar"
-                            :disabled="enCurso || generar.processing"
-                            @click="generar.post(`/documentos/${documento.id}/generar`, { preserveScroll: true })"
+        <motion.div class="flex flex-col gap-6" :variants="escalonado" initial="oculto" animate="visible">
+            <motion.section
+                v-if="pendientes.length > 0"
+                :variants="variantesEntrada"
+                aria-labelledby="pendientes"
+                class="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border bg-card px-5 py-3.5"
+            >
+                <InfoIcon class="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                <h2 id="pendientes" class="text-sm font-semibold">
+                    {{ pendientes.length }} {{ pendientes.length === 1 ? 'dato sin completar' : 'datos sin completar' }}
+                </h2>
+                <ul class="flex flex-1 flex-wrap gap-2">
+                    <li v-for="pendiente in pendientes" :key="pendiente">
+                        <Link
+                            :href="`/documentos/${documento.id}/editar`"
+                            class="inline-flex h-7 items-center rounded-full bg-muted px-2.5 text-[13px] font-medium text-secondary-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                         >
-                            <RefreshCwIcon class="size-4" :class="{ 'animate-spin': enCurso }" />
-                            {{ versionEnCurso ? 'Regenerar borrador' : 'Generar borrador' }}
-                        </Button>
+                            {{ pendiente }}
+                        </Link>
+                    </li>
+                </ul>
+            </motion.section>
 
-                        <Button v-if="rendido" variant="outline" @click="comprobar">Comprobar</Button>
-
-                        <Button
-                            v-if="versionEnCurso?.descargable"
-                            as-child
-                            variant="outline"
-                        >
-                            <a :href="`/documentos/${documento.id}/versiones/${versionEnCurso.id}/descargar`">
-                                <DownloadIcon class="size-4" />
-                                Descargar borrador
-                            </a>
-                        </Button>
-
-                        <Button v-if="versionEnCurso?.descargable" as-child variant="ghost">
-                            <a :href="`/documentos/${documento.id}/versiones/${versionEnCurso.id}/word`">
-                                <FileTextIcon class="size-4" />
-                                Word
-                            </a>
-                        </Button>
-                    </div>
-
-                    <p class="text-sm text-muted-foreground">
-                        Las versiones aprobadas no se regeneran. El PDF que se descarga es exactamente
-                        el que se generó ese día, y su SHA-256 lo demuestra.
-                    </p>
-                </CardContent>
-            </Card>
-
-            <!--
-                La aprobación va bajo el borrador y no en la columna estrecha:
-                es donde está la acción que manda de esta pantalla, y lo que se
-                firma es el borrador que hay justo encima.
-            -->
-            <BloqueAprobacion
-                v-if="versionEnCurso"
-                class="mt-6 block"
-                :documento-id="documento.id"
-                :version="versionEnCurso"
-                :puede-aprobar="puedeAprobar"
-                :entregas="versiones.length"
-            />
-
-            <BloqueAprobacion
-                v-else-if="versionVigente"
-                class="mt-6 block"
-                :documento-id="documento.id"
-                :version="versionVigente"
-                :puede-aprobar="puedeAprobar"
-                :entregas="versiones.length"
-            />
-
+            <motion.div :variants="variantesEntrada">
+                <CicloDocumento
+                    :version="versionEnCurso"
+                    :siguiente="siguiente"
+                    :periodicidad-meses="documento.periodicidad_revision_meses"
+                />
             </motion.div>
 
-            <motion.div :variants="variantesEntrada" class="flex flex-col gap-6">
-            <!--
-                El bloque de acuse NO se pinta si el documento no lo exige, y el
-                servidor tampoco lo manda: conectar dos cosas abre una puerta
-                lateral si quien pinta decide también qué se permite.
-            -->
-            <BloqueAcuse
-                v-if="acuse && versionVigente"
-                :documento-id="documento.id"
-                :version-id="versionVigente.id"
-                :acuse="acuse"
-            />
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Ficha</CardTitle>
-                </CardHeader>
-                <CardContent class="flex flex-col gap-3 text-sm">
+            <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22.5rem] lg:items-start">
+                <motion.div :variants="variantesEntrada">
                     <!--
-                        Un documento redactado —política, norma, procedimiento,
-                        plan de continuidad— es de la organización entera y
-                        normalmente no cuelga de ningún sistema. Enseñar «— —»
-                        donde no hay nada es peor que no enseñar la fila.
+                        Sin borrador, la tarjeta es un estado vacío con la única
+                        acción que hay: generarlo. Es el primario de la vista;
+                        en cuanto hay borrador, regenerar baja a sutil y manda la
+                        acción del bloque de aprobación (DESIGN.md §9, un solo
+                        botón de color lleno).
                     -->
-                    <div v-if="documento.sistema">
-                        <div class="text-muted-foreground">Sistema</div>
-                        <div>{{ documento.sistemaCodigo }} — {{ documento.sistema }}</div>
-                    </div>
-                    <div v-if="documento.marco">
-                        <div class="text-muted-foreground">Marco</div>
-                        <div>{{ documento.marco }}</div>
-                    </div>
-                    <div v-if="documento.periodicidad_revision_meses">
-                        <div class="text-muted-foreground">Se revisa cada</div>
-                        <div>
-                            <span class="cifra">{{ documento.periodicidad_revision_meses }}</span>
-                            {{ documento.periodicidad_revision_meses === 1 ? 'mes' : 'meses' }}
-                        </div>
-                    </div>
+                    <Card v-if="!versionEnCurso">
+                        <CardContent>
+                            <EstadoVacio
+                                :icono="FileTextIcon"
+                                :titulo="versionVigente ? 'No hay ningún borrador pendiente' : 'Todavía no hay borrador'"
+                                :descripcion="
+                                    versionVigente
+                                        ? `La ${versionVigente.etiqueta} está en vigor y no cambia hasta que se firme la siguiente. Genera un borrador cuando toque revisarla.`
+                                        : 'Se genera con lo que haya registrado en ese momento y se puede regenerar cuantas veces haga falta: no se entrega hasta que se firma.'
+                                "
+                            >
+                                <Button
+                                    :disabled="generar.processing"
+                                    @click="generar.post(`/documentos/${documento.id}/generar`, { preserveScroll: true })"
+                                >
+                                    <RefreshCwIcon class="size-4" />
+                                    Generar el borrador
+                                </Button>
+                            </EstadoVacio>
+                        </CardContent>
+                    </Card>
+
+                    <Card v-else>
+                        <CardContent class="flex flex-col gap-6">
+                            <!--
+                                Mientras el worker trabaja se enseña la forma de
+                                lo que va a salir, no una rueda. Es la única
+                                espera del producto que dura decenas de segundos.
+                            -->
+                            <div class="flex flex-col gap-6 sm:flex-row">
+                                <EsqueletoDocumento v-if="enCurso" class="w-full sm:w-44 sm:shrink-0" :filas="3" />
+                                <MiniaturaPortada
+                                    v-else
+                                    :firmada="versionEnCurso.aprobadaPor !== null"
+                                    :en-revision="versionEnCurso.estado === 'en_revision'"
+                                />
+
+                                <div class="flex min-w-0 flex-1 flex-col gap-4">
+                                    <div class="flex flex-wrap items-center justify-between gap-3">
+                                        <h2 class="text-base font-semibold tracking-[-0.01em]">
+                                            Borrador de la <span class="cifra">{{ siguiente }}</span>
+                                        </h2>
+                                        <!--
+                                            Mientras se genera manda el estado
+                                            del trabajo; con el PDF listo, el del
+                                            documento, que es lo que le importa a
+                                            quien lo firma.
+                                        -->
+                                        <CeldaBadge
+                                            v-if="enCurso || versionEnCurso.generacion === 'fallida'"
+                                            :valor="{
+                                                valor: versionEnCurso.generacion,
+                                                etiqueta: versionEnCurso.generacionEtiqueta,
+                                                tono: versionEnCurso.generacionTono,
+                                            }"
+                                        />
+                                        <CeldaBadge
+                                            v-else
+                                            :valor="{
+                                                valor: versionEnCurso.estado,
+                                                etiqueta: versionEnCurso.estadoEtiqueta,
+                                                tono: versionEnCurso.estadoTono,
+                                                icono: versionEnCurso.estadoIcono,
+                                            }"
+                                        />
+                                    </div>
+
+                                    <dl
+                                        v-if="versionEnCurso.quien || versionEnCurso.descargable || versionEnCurso.motivo"
+                                        class="grid grid-cols-[8rem_minmax(0,1fr)] gap-x-4 gap-y-2.5 text-sm"
+                                    >
+                                        <template v-if="versionEnCurso.quien">
+                                            <dt class="text-[13px] font-medium text-muted-foreground">Generado por</dt>
+                                            <dd>{{ versionEnCurso.quien }}</dd>
+                                        </template>
+                                        <template v-if="versionEnCurso.recuento">
+                                            <dt class="text-[13px] font-medium text-muted-foreground">Contenido</dt>
+                                            <dd>{{ versionEnCurso.recuento }}</dd>
+                                        </template>
+                                        <template v-if="versionEnCurso.descargable">
+                                            <dt class="text-[13px] font-medium text-muted-foreground">Fichero</dt>
+                                            <dd>PDF/A-3b · <span class="cifra">{{ kb(versionEnCurso.tamano) }}</span></dd>
+                                        </template>
+                                        <template v-if="versionEnCurso.motivo">
+                                            <dt class="text-[13px] font-medium text-muted-foreground">Motivo</dt>
+                                            <dd class="border-l-2 border-border pl-3 text-secondary-foreground">
+                                                {{ versionEnCurso.motivo }}
+                                            </dd>
+                                        </template>
+                                    </dl>
+
+                                    <p v-if="versionEnCurso.error" class="text-sm text-destructive">
+                                        {{ versionEnCurso.error }}
+                                    </p>
+
+                                    <p v-if="rendido" class="text-sm text-muted-foreground">
+                                        Está tardando más de lo normal. Puede que la cola no esté procesando trabajos.
+                                    </p>
+
+                                    <!--
+                                        El PDF en disco es anterior a la última
+                                        edición del documento. Sin decirlo,
+                                        alguien edita, descarga, no ve su texto y
+                                        concluye que el módulo no funciona.
+                                    -->
+                                    <p v-if="cuerpoMasNuevoQueElBorrador" class="text-sm text-estado-en-progreso">
+                                        El borrador es anterior a la última edición del documento. Regenéralo para verla.
+                                    </p>
+
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <template v-if="versionEnCurso.descargable">
+                                            <Button as-child variant="outline">
+                                                <a
+                                                    :href="`/documentos/${documento.id}/versiones/${versionEnCurso.id}/ver`"
+                                                    target="_blank"
+                                                    rel="noopener"
+                                                >
+                                                    <EyeIcon class="size-4" />
+                                                    Ver el PDF
+                                                </a>
+                                            </Button>
+                                            <Button as-child variant="ghost">
+                                                <a :href="`/documentos/${documento.id}/versiones/${versionEnCurso.id}/descargar`">
+                                                    <DownloadIcon class="size-4" />
+                                                    Descargar
+                                                </a>
+                                            </Button>
+                                            <Button as-child variant="ghost">
+                                                <a :href="`/documentos/${documento.id}/versiones/${versionEnCurso.id}/word`">
+                                                    <FileTextIcon class="size-4" />
+                                                    Word
+                                                </a>
+                                            </Button>
+                                        </template>
+
+                                        <Button v-if="rendido" variant="outline" @click="comprobar">Comprobar</Button>
+
+                                        <Button
+                                            variant="ghost"
+                                            class="ms-auto text-muted-foreground"
+                                            :disabled="enCurso || generar.processing"
+                                            @click="generar.post(`/documentos/${documento.id}/generar`, { preserveScroll: true })"
+                                        >
+                                            <RefreshCwIcon class="size-4" :class="{ 'animate-spin': enCurso }" />
+                                            Regenerar
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!--
+                                La aprobación va dentro de la tarjeta del
+                                borrador: es la acción que manda de esta pantalla,
+                                y lo que se firma es el borrador que hay encima.
+                            -->
+                            <BloqueAprobacion
+                                :documento-id="documento.id"
+                                :version="versionEnCurso"
+                                :puede-aprobar="puedeAprobar"
+                                :entregas="versiones.length"
+                                :siguiente="siguiente"
+                            />
+                        </CardContent>
+                    </Card>
+                </motion.div>
+
+                <motion.aside :variants="variantesEntrada" class="flex flex-col gap-6">
+                    <!--
+                        El bloque de acuse NO se pinta si el documento no lo
+                        exige, y el servidor tampoco lo manda: conectar dos cosas
+                        abre una puerta lateral si quien pinta decide también qué
+                        se permite.
+                    -->
+                    <BloqueAcuse
+                        v-if="acuse && versionVigente"
+                        :documento-id="documento.id"
+                        :version-id="versionVigente.id"
+                        :acuse="acuse"
+                    />
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Ficha</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <dl class="flex flex-col gap-3.5 text-sm">
+                                <!--
+                                    La versión en vigor, con su firma. Cuando hay
+                                    un borrador encima, la tarjeta de la izquierda
+                                    habla de ÉL, y esto es lo único que sigue
+                                    diciendo qué está entregado ahora mismo.
+                                -->
+                                <div class="flex flex-col gap-0.5">
+                                    <dt class="text-[13px] font-medium text-muted-foreground">En vigor</dt>
+                                    <template v-if="versionVigente">
+                                        <dd class="flex items-center gap-2">
+                                            <span class="cifra font-medium">{{ versionVigente.etiqueta }}</span>
+                                            <CeldaBadge
+                                                :valor="{
+                                                    valor: versionVigente.estado,
+                                                    etiqueta: versionVigente.estadoEtiqueta,
+                                                    tono: versionVigente.estadoTono,
+                                                    icono: versionVigente.estadoIcono,
+                                                }"
+                                            />
+                                        </dd>
+                                        <dd v-if="versionVigente.aprobadaPor" class="text-secondary-foreground">
+                                            Firmada por {{ versionVigente.aprobadaPor }} el
+                                            {{ fechaLegible(versionVigente.aprobadaEn) }}
+                                        </dd>
+                                        <dd v-if="versionVigente.notaAprobacion" class="text-muted-foreground">
+                                            {{ versionVigente.notaAprobacion }}
+                                        </dd>
+                                    </template>
+                                    <dd v-else class="text-muted-foreground">Ninguna versión todavía</dd>
+                                </div>
+                                <div v-if="versionVigente?.proximaRevision" class="flex flex-col gap-0.5">
+                                    <dt class="text-[13px] font-medium text-muted-foreground">Próxima revisión</dt>
+                                    <dd>
+                                        {{ fechaLegible(versionVigente.proximaRevision) }}
+                                        <span class="text-muted-foreground">
+                                            ({{ distanciaLegible(versionVigente.proximaRevision) }})
+                                        </span>
+                                    </dd>
+                                </div>
+                                <!--
+                                    Un documento redactado —política, norma,
+                                    procedimiento— es de la organización entera y
+                                    normalmente no cuelga de ningún sistema.
+                                    Enseñar «— —» donde no hay nada es peor que no
+                                    enseñar la fila.
+                                -->
+                                <div v-if="documento.sistema" class="flex flex-col gap-0.5">
+                                    <dt class="text-[13px] font-medium text-muted-foreground">Sistema</dt>
+                                    <dd>{{ documento.sistemaCodigo }} — {{ documento.sistema }}</dd>
+                                </div>
+                                <div v-if="documento.marco" class="flex flex-col gap-0.5">
+                                    <dt class="text-[13px] font-medium text-muted-foreground">Marco</dt>
+                                    <dd>{{ documento.marco }}</dd>
+                                </div>
+                                <div v-if="documento.periodicidad_revision_meses" class="flex flex-col gap-0.5">
+                                    <dt class="text-[13px] font-medium text-muted-foreground">Se revisa cada</dt>
+                                    <dd>
+                                        <span class="cifra">{{ documento.periodicidad_revision_meses }}</span>
+                                        {{ documento.periodicidad_revision_meses === 1 ? 'mes' : 'meses' }}
+                                    </dd>
+                                </div>
+                                <div class="flex flex-col gap-0.5">
+                                    <dt class="text-[13px] font-medium text-muted-foreground">Responsable</dt>
+                                    <dd :class="{ 'text-muted-foreground': documento.responsable === null }">
+                                        {{ documento.responsable ?? 'Sin asignar' }}
+                                    </dd>
+                                </div>
+                                <div class="flex flex-col gap-0.5">
+                                    <dt class="text-[13px] font-medium text-muted-foreground">Clasificación</dt>
+                                    <dd>{{ documento.clasificacionEtiqueta }}</dd>
+                                </div>
+                                <div class="flex flex-col gap-0.5">
+                                    <dt class="text-[13px] font-medium text-muted-foreground">Acuse de lectura</dt>
+                                    <dd>{{ documento.exige_acuse ? 'Se exige' : 'No se exige' }}</dd>
+                                </div>
+                                <div v-if="documento.notas" class="flex flex-col gap-0.5">
+                                    <dt class="text-[13px] font-medium text-muted-foreground">Notas</dt>
+                                    <dd>{{ documento.notas }}</dd>
+                                </div>
+                            </dl>
+                        </CardContent>
+                    </Card>
 
                     <!--
-                        La versión en vigor, con su firma. Cuando hay un borrador
-                        encima, el bloque de aprobación habla de ÉL —que es lo que
-                        pide acción— y esto es lo único que sigue diciendo qué
-                        está entregado ahora mismo.
+                        La huella entera de lo que está en vigor, a la vista y
+                        no dentro del historial: es lo que se contrasta con el
+                        fichero que tiene el auditor.
                     -->
-                    <div v-if="versionVigente?.aprobadaPor">
-                        <div class="text-muted-foreground">Versión vigente</div>
-                        <div>
-                            <span class="cifra">{{ versionVigente.etiqueta }}</span>
-                            · aprobada por {{ versionVigente.aprobadaPor }}
-                            el {{ versionVigente.aprobadaEn }}
-                        </div>
-                    </div>
-                    <div v-if="versionVigente?.proximaRevision">
-                        <div class="text-muted-foreground">Próxima revisión</div>
-                        <div class="cifra">{{ versionVigente.proximaRevision }}</div>
-                    </div>
-                    <div>
-                        <div class="text-muted-foreground">Clasificación</div>
-                        <div>{{ documento.clasificacionEtiqueta }}</div>
-                    </div>
-                    <div>
-                        <div class="text-muted-foreground">Responsable</div>
-                        <div>{{ documento.responsable ?? 'Sin asignar' }}</div>
-                    </div>
-                    <div v-if="documento.notas">
-                        <div class="text-muted-foreground">Notas</div>
-                        <div>{{ documento.notas }}</div>
-                    </div>
-                </CardContent>
-            </Card>
-            </motion.div>
+                    <Card v-if="versionVigente?.huella">
+                        <CardHeader>
+                            <CardTitle>Huella de la <span class="cifra">{{ versionVigente.etiqueta }}</span></CardTitle>
+                            <CardDescription>
+                                SHA-256 del PDF que se firmó. Contrástala con el fichero que tenga el auditor.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent class="flex items-start gap-2">
+                            <HuellaRevelada
+                                :key="versionVigente.id"
+                                :huella="versionVigente.huella"
+                                :revelar="revelarHuella"
+                            />
+                            <CopiarHuella :huella="versionVigente.huella" :etiqueta="versionVigente.etiqueta" />
+                        </CardContent>
+                    </Card>
+                </motion.aside>
+            </div>
 
             <!--
                 Sólo un plan de continuidad vincula servicios (§ 4.11):
                 `serviciosDelPlan` es nulo para cualquier otro tipo y la tarjeta
-                no se ofrece, en vez de enseñarse vacía en un documento que no
-                la tiene.
+                no se ofrece, en vez de enseñarse vacía en un documento que no la
+                tiene.
             -->
-            <motion.div
-                v-if="serviciosDelPlan !== null"
-                :variants="variantesEntrada"
-                class="lg:col-span-3"
-            >
-            <Card>
-                <CardHeader>
-                    <CardTitle>Servicios cubiertos</CardTitle>
-                    <CardDescription>
-                        Los servicios del inventario que este plan cubre. Se vinculan, no se crean:
-                        un servicio ES un activo de tipo «Servicios» y su BIA se registra aparte.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ServiciosDelPlan
-                        :documento-id="documento.id"
-                        :servicios="serviciosDelPlan"
-                        :disponibles="serviciosDisponibles ?? []"
-                        :puede-gestionar="puedeRedactar"
-                    />
-                </CardContent>
-            </Card>
+            <motion.div v-if="serviciosDelPlan !== null" :variants="variantesEntrada">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Servicios cubiertos</CardTitle>
+                        <CardDescription>
+                            Los servicios del inventario que este plan cubre. Se vinculan, no se crean: un
+                            servicio ES un activo de tipo «Servicios» y su BIA se registra aparte.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <ServiciosDelPlan
+                            :documento-id="documento.id"
+                            :servicios="serviciosDelPlan"
+                            :disponibles="serviciosDisponibles ?? []"
+                            :puede-gestionar="puedeRedactar"
+                        />
+                    </CardContent>
+                </Card>
             </motion.div>
 
-            <motion.div :variants="variantesEntrada" class="lg:col-span-3">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Versiones emitidas</CardTitle>
-                    <CardDescription>
-                        Cada entrega con su huella SHA-256. Es lo que permite demostrar que el PDF
-                        que se enseña es el que se emitió aquel día.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <HistorialVersiones :versiones="versiones" :documento-id="documento.id" />
-                </CardContent>
-            </Card>
-            </motion.div>
+            <motion.section :variants="variantesEntrada" aria-labelledby="versiones-emitidas" class="flex flex-col gap-3">
+                <div class="flex flex-wrap items-baseline justify-between gap-2">
+                    <h2 id="versiones-emitidas" class="text-base font-semibold tracking-[-0.01em]">Versiones emitidas</h2>
+                    <p v-if="versiones.length > 0" class="text-[13px] text-muted-foreground">
+                        <span class="cifra">{{ versiones.length }}</span>
+                        {{ versiones.length === 1 ? 'entrega' : 'entregas' }} · cada PDF se guarda tal como se firmó
+                    </p>
+                </div>
+                <HistorialVersiones :versiones="versiones" :documento-id="documento.id" />
+            </motion.section>
         </motion.div>
     </AppLayout>
 </template>

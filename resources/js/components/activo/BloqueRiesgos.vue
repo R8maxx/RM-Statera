@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import CeldaBadge from '@/components/tabla/celdas/CeldaBadge.vue';
+import { distanciaLegible, fechaLegible } from '@/lib/celdas';
 import { Link } from '@inertiajs/vue3';
 import { ArrowRightIcon } from '@lucide/vue';
 
@@ -15,6 +16,7 @@ export interface RiesgoDelActivo {
     decision: ValorEtiquetado | null;
     sinRespaldo: boolean;
     revisionVencida: boolean;
+    fechaRevision: string | null;
 }
 
 /**
@@ -54,7 +56,15 @@ const sinValorar: ValorEtiquetado = { valor: null, etiqueta: 'Sin valorar', tono
                         <span class="cifra text-muted-foreground">{{ riesgo.codigo }}</span>
                         {{ riesgo.titulo }}
                     </Link>
-                    <p class="mt-0.5 text-xs text-muted-foreground">{{ riesgo.amenaza }}</p>
+                    <p class="mt-0.5 text-xs text-muted-foreground">
+                        {{ riesgo.amenaza }}
+                        <!-- Con el plazo a la vista (DESIGN.md §13): «¿desde
+                             cuándo?» y «¿hasta cuándo?» se contestan aquí. -->
+                        <template v-if="riesgo.fechaRevision && !riesgo.revisionVencida">
+                            · reevaluar el {{ fechaLegible(riesgo.fechaRevision) }}
+                            ({{ distanciaLegible(riesgo.fechaRevision) }})
+                        </template>
+                    </p>
                 </div>
 
                 <div class="flex flex-wrap items-center gap-1.5">

@@ -11,7 +11,7 @@ import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
 import CeldaBadge from '@/components/tabla/celdas/CeldaBadge.vue';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -22,9 +22,9 @@ import {
 } from '@/components/ui/dialog';
 import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { formatoFecha } from '@/lib/celdas';
+import { distanciaLegible, formatoFecha } from '@/lib/celdas';
 import type { Opcion } from '@/lib/formularios';
-import { NetworkIcon } from '@lucide/vue';
+import { ArrowDownIcon, ArrowRightIcon, InfoIcon, NetworkIcon, PlusIcon } from '@lucide/vue';
 import { Link, router, useForm } from '@inertiajs/vue3';
 import { motion } from 'motion-v';
 import { computed, ref } from 'vue';
@@ -58,15 +58,19 @@ const props = defineProps<{
         estado_ciclo_vida: string;
         estadoEtiqueta: string;
         estadoTono: string;
+        estadoIcono: string;
         clasificacion: string;
         clasificacionEtiqueta: string;
         clasificacionTono: string;
+        clasificacionIcono: string;
         cifrado: string;
         cifradoEtiqueta: string;
         cifradoTono: string;
+        cifradoIcono: string;
         copia_seguridad: string;
         copiaEtiqueta: string;
         copiaTono: string;
+        copiaIcono: string;
         ultima_revision: string | null;
         sinRevisar: boolean;
         llevaEtiqueta: boolean;
@@ -137,6 +141,39 @@ const explicacionHerencia = computed<string | null>(() => {
     return `Sube en ${dimensiones} porque ${nombres} se apoya${props.motivos.length === 1 ? '' : 'n'} en este activo.`;
 });
 
+/** De quién hereda cada dimensión, para que la tabla lo diga fila a fila. */
+const origenes = computed<Record<string, string[]>>(() => {
+    const mapa: Record<string, string[]> = {};
+
+    for (const motivo of props.motivos) {
+        for (const dimension of motivo.dimensiones) {
+            (mapa[dimension.codigo] ??= []).push(motivo.activo.codigo);
+        }
+    }
+
+    return mapa;
+});
+
+/**
+ * Lo que le falta a la ficha para poder defenderse en una auditoría.
+ *
+ * Estaba repartido por la columna lateral —un «Sin asignar» aquí, un «Por
+ * confirmar» allá— y se leía como un dato más. Delante, y sólo cuando falta:
+ * una tira que dijera «todo completo» sería la fila de ceros del inventario
+ * otra vez. «Por confirmar» cuenta porque es una pregunta abierta; «No aplica»
+ * no, porque es una respuesta.
+ */
+const pendientes = computed<string[]>(() =>
+    [
+        props.activo.propietario === null ? 'Propietario sin asignar' : null,
+        props.activo.custodio === null ? 'Custodio sin asignar' : null,
+        props.activo.copia_seguridad === 'por_confirmar' ? 'Copia de seguridad por confirmar' : null,
+        props.activo.cifrado === 'por_confirmar' ? 'Cifrado en reposo por confirmar' : null,
+    ].filter((uno): uno is string => uno !== null),
+);
+
+const hayExposicion = computed(() => props.puedeVerRiesgos || props.puedeVerVulnerabilidades);
+
 function confirmar(): void {
     vincular.post(`/activos/${props.activo.id}/dependencias`, {
         preserveScroll: true,
@@ -157,15 +194,13 @@ function retirar(dependenciaId: number): void {
 <template>
     <AppLayout :titulo="`${activo.codigo} · ${activo.nombre}`">
         <CabeceraPagina :titulo="activo.nombre" :codigo="activo.codigo" :descripcion="activo.descripcion">
-            <template v-if="puedeGestionar" #acciones>
-                <Button as-child variant="outline">
-                    <Link :href="`/activos/${activo.id}/editar`">Editar</Link>
-                </Button>
-            </template>
-        </CabeceraPagina>
-
-        <motion.div :variants="variantesEntrada" initial="oculto" animate="visible" class="space-y-6">
-            <div class="flex flex-wrap items-center gap-2">
+            <!--
+                Qué es y cómo está, en una línea bajo el título. Antes era una
+                fila suelta de cinco badges del mismo peso donde el tipo, el
+                estado, la clasificación y el alcance competían entre sí; la
+                clasificación se fue a «Seguridad», que es donde se pregunta.
+            -->
+            <div class="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm text-muted-foreground">
                 <CeldaBadge
                     :valor="{
                         valor: activo.tipo,
@@ -174,31 +209,46 @@ function retirar(dependenciaId: number): void {
                         icono: activo.tipoIcono,
                     }"
                 />
-                <CeldaBadge
-                    v-if="activo.subtipo"
-                    :valor="{ valor: activo.subtipo, etiqueta: activo.subtipo, tono: 'marco' }"
-                />
+                <span v-if="activo.subtipo">{{ activo.subtipo }}</span>
+                <span aria-hidden="true">·</span>
                 <CeldaBadge
                     :valor="{
                         valor: activo.estado_ciclo_vida,
                         etiqueta: activo.estadoEtiqueta,
                         tono: activo.estadoTono,
+                        icono: activo.estadoIcono,
                     }"
                 />
-                <CeldaBadge
-                    :valor="{
-                        valor: activo.clasificacion,
-                        etiqueta: activo.clasificacionEtiqueta,
-                        tono: activo.clasificacionTono,
-                    }"
-                />
-                <CeldaBadge
-                    v-for="sistema in activo.sistemas"
-                    :key="sistema.id"
-                    :valor="{ valor: sistema.codigo, etiqueta: sistema.codigo, tono: 'marco' }"
-                />
+                <template v-if="activo.sistemas.length > 0">
+                    <span aria-hidden="true">·</span>
+                    <span>
+                        En el alcance de
+                        <template v-for="(sistema, posicion) in activo.sistemas" :key="sistema.id">
+                            <span class="cifra text-foreground">{{ sistema.codigo }}</span>
+                            {{ sistema.nombre }}<template v-if="posicion < activo.sistemas.length - 1">, </template>
+                        </template>
+                    </span>
+                </template>
             </div>
 
+            <template #acciones>
+                <!--
+                    El grafo sube a la cabecera: es una subpantalla DE ESTE
+                    activo, como Editar, y no una acción de una de sus tarjetas.
+                -->
+                <Button as-child variant="outline">
+                    <Link :href="`/activos/${activo.id}/grafo`">
+                        <NetworkIcon class="size-4" aria-hidden="true" />
+                        Ver el grafo
+                    </Link>
+                </Button>
+                <Button v-if="puedeGestionar" as-child variant="outline">
+                    <Link :href="`/activos/${activo.id}/editar`">Editar</Link>
+                </Button>
+            </template>
+        </CabeceraPagina>
+
+        <motion.div :variants="variantesEntrada" initial="oculto" animate="visible" class="space-y-6">
             <Aviso v-if="avisoSoporte" tono="error" titulo="Fuera de soporte">
                 {{ avisoSoporte }} Un sistema que ya no recibe parches es op.exp.4 de la misma manera el día antes
                 y el día después de que salga el primer CVE sin arreglo.
@@ -217,231 +267,444 @@ function retirar(dependenciaId: number): void {
                 auditor.
             </Aviso>
 
-            <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+            <section
+                v-if="pendientes.length > 0"
+                aria-labelledby="pendientes"
+                class="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border bg-card px-5 py-3.5"
+            >
+                <InfoIcon class="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                <h2 id="pendientes" class="text-sm font-semibold">
+                    {{ pendientes.length }} {{ pendientes.length === 1 ? 'dato sin completar' : 'datos sin completar' }}
+                </h2>
+                <ul class="flex flex-1 flex-wrap gap-2">
+                    <li v-for="pendiente in pendientes" :key="pendiente">
+                        <Link
+                            v-if="puedeGestionar"
+                            :href="`/activos/${activo.id}/editar`"
+                            class="inline-flex h-7 items-center rounded-full bg-muted px-2.5 text-[13px] font-medium text-secondary-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                        >
+                            {{ pendiente }}
+                        </Link>
+                        <span
+                            v-else
+                            class="inline-flex h-7 items-center rounded-full bg-muted px-2.5 text-[13px] font-medium text-secondary-foreground"
+                        >
+                            {{ pendiente }}
+                        </span>
+                    </li>
+                </ul>
+                <p v-if="activo.propietario === null" class="text-xs text-muted-foreground">
+                    Sin propietario, nadie responde por él en la auditoría.
+                </p>
+            </section>
+
+            <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start">
                 <div class="space-y-6">
+                    <!-- El elemento fuerte de la pantalla (DESIGN.md §1): cuánto vale y por qué. -->
                     <Card>
                         <CardHeader>
                             <CardTitle>Valoración</CardTitle>
-                            <CardDescription>
-                                {{
-                                    explicacionHerencia ??
-                                    'Lo que la organización valoró y lo que el activo vale contando lo que se apoya en él. Aquí coinciden.'
-                                }}
-                            </CardDescription>
                         </CardHeader>
 
-                        <CardContent>
+                        <CardContent class="space-y-6">
+                            <div class="grid gap-4 sm:grid-cols-[13rem_minmax(0,1fr)] sm:gap-8">
+                                <div>
+                                    <p class="text-4xl leading-11 font-bold tracking-[-0.02em] text-primary">
+                                        {{ valoracionEfectiva.maximoEtiqueta }}
+                                    </p>
+                                    <p class="text-[13px] text-muted-foreground">
+                                        Nivel efectivo más alto ·
+                                        <template v-if="valoracionEfectiva.categoriaEtiqueta">
+                                            categoría
+                                            <strong class="font-medium text-foreground">
+                                                {{ valoracionEfectiva.categoriaEtiqueta.toLowerCase() }}
+                                            </strong>
+                                        </template>
+                                        <template v-else>sin categoría</template>
+                                    </p>
+                                </div>
+                                <p class="max-w-prose text-sm leading-6 text-pretty text-secondary-foreground sm:pt-1">
+                                    {{
+                                        explicacionHerencia ??
+                                        'Lo que la organización valoró y lo que el activo vale contando lo que se apoya en él. Aquí coinciden.'
+                                    }}
+                                </p>
+                            </div>
+
                             <ComparativaValoracion
                                 :propia="valoracionPropia"
                                 :efectiva="valoracionEfectiva"
-                            />
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader class="flex-row items-start justify-between gap-4 space-y-0">
-                            <div>
-                                <CardTitle>Depende de</CardTitle>
-                                <CardDescription>
-                                    Lo que este activo necesita para funcionar. Su valoración sube hasta aquí.
-                                </CardDescription>
-                            </div>
-
-                            <div class="flex shrink-0 items-center gap-2">
-                                <!--
-                                    El diagrama enseña lo que estas dos listas no
-                                    pueden: los rombos. Se ofrece desde aquí y no
-                                    desde el sidebar porque es el grafo DE ESTE
-                                    activo, no una pantalla del módulo.
-                                -->
-                                <Button as-child variant="outline" size="sm">
-                                    <Link :href="`/activos/${activo.id}/grafo`">
-                                        <NetworkIcon class="size-4" aria-hidden="true" />
-                                        Ver el grafo
-                                    </Link>
-                                </Button>
-                                <Button v-if="puedeGestionar" variant="outline" size="sm" @click="abierto = true">
-                                    Declarar dependencia
-                                </Button>
-                            </div>
-                        </CardHeader>
-
-                        <CardContent>
-                            <GrafoDependencias
-                                :activos="dependeDe"
-                                :activo-id="activo.id"
-                                :retirable="puedeGestionar"
-                                vacio="No depende de nada declarado. Si en realidad se apoya en un servidor, una red o una base de datos, decláralo: sin el grafo, la valoración no se propaga y el análisis de impacto se queda sin respuesta."
-                                @retirar="retirar"
-                            />
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Lo sostiene</CardTitle>
-                            <CardDescription>
-                                Lo que se cae si este activo cae. Es de aquí de donde hereda su valoración efectiva.
-                            </CardDescription>
-                        </CardHeader>
-
-                        <CardContent>
-                            <GrafoDependencias
-                                :activos="dependientes"
-                                :activo-id="activo.id"
-                                vacio="Ningún activo declarado se apoya en éste."
+                                :origenes="origenes"
                             />
                         </CardContent>
                     </Card>
 
                     <!--
-                        En la columna de análisis y no en la de datos: contra qué
-                        hay que proteger este activo pesa lo mismo que cuánto vale
-                        y qué se apoya en él. La columna de la derecha es la ficha.
+                        Las dos direcciones en una sola tarjeta y en el orden en
+                        que se lee la cadena: lo que se cae con él, él, y lo que
+                        necesita. Separadas en dos tarjetas se leían como dos
+                        listas sin relación. Siguen siendo listas —el camino con
+                        teclado y a 375 px que el grafo no es—, y sólo en pantallas
+                        anchas se ponen en fila.
                     -->
-                    <Card v-if="puedeVerRiesgos">
+                    <Card>
                         <CardHeader>
-                            <CardTitle>A qué está expuesto</CardTitle>
+                            <CardTitle>Dependencias</CardTitle>
                             <CardDescription>
-                                Los riesgos del registro que pesan sobre este activo. Su impacto se deduce de la
-                                valoración efectiva, así que lo que este activo hereda por el grafo también los sube.
+                                Qué se cae si cae, y qué necesita para funcionar. La valoración baja por la cadena hacia
+                                lo que necesita.
                             </CardDescription>
+
+                            <CardAction v-if="puedeGestionar">
+                                <Button variant="outline" size="sm" @click="abierto = true">
+                                    <PlusIcon class="size-4" aria-hidden="true" />
+                                    Declarar dependencia
+                                </Button>
+                            </CardAction>
                         </CardHeader>
 
-                        <CardContent>
-                            <BloqueRiesgos :riesgos="riesgos" :activo-id="activo.id" />
+                        <CardContent class="space-y-4">
+                            <div
+                                class="grid gap-3 2xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,12rem)_auto_minmax(0,1fr)] 2xl:items-start"
+                            >
+                                <div class="space-y-2">
+                                    <h3 class="text-xs font-semibold tracking-[0.06em] text-muted-foreground uppercase">
+                                        Lo sostiene · <span class="cifra">{{ dependientes.length }}</span>
+                                    </h3>
+                                    <GrafoDependencias
+                                        :activos="dependientes"
+                                        :activo-id="activo.id"
+                                        vacio="Ningún activo declarado se apoya en éste."
+                                    />
+                                </div>
+
+                                <div class="flex justify-center text-muted-foreground 2xl:pt-7" aria-hidden="true">
+                                    <ArrowDownIcon class="size-5 2xl:hidden" />
+                                    <ArrowRightIcon class="hidden size-5 2xl:block" />
+                                </div>
+
+                                <div class="rounded-lg border border-primary/30 bg-accent/60 p-3 2xl:mt-6">
+                                    <p class="cifra text-xs text-muted-foreground">{{ activo.codigo }} · este activo</p>
+                                    <p class="text-sm font-medium">{{ activo.nombre }}</p>
+                                </div>
+
+                                <div class="flex justify-center text-muted-foreground 2xl:pt-7" aria-hidden="true">
+                                    <ArrowDownIcon class="size-5 2xl:hidden" />
+                                    <ArrowRightIcon class="hidden size-5 2xl:block" />
+                                </div>
+
+                                <div class="space-y-2">
+                                    <h3 class="text-xs font-semibold tracking-[0.06em] text-muted-foreground uppercase">
+                                        Depende de · <span class="cifra">{{ dependeDe.length }}</span>
+                                    </h3>
+                                    <GrafoDependencias
+                                        :activos="dependeDe"
+                                        :activo-id="activo.id"
+                                        :retirable="puedeGestionar"
+                                        vacio="No depende de nada declarado. Si en realidad se apoya en un servidor, una red o una base de datos, decláralo: sin el grafo, la valoración no se propaga y el análisis de impacto se queda sin respuesta."
+                                        @retirar="retirar"
+                                    />
+                                </div>
+                            </div>
+
+                            <p class="text-[13px] text-muted-foreground">
+                                Cadenas largas y activos compartidos, en
+                                <Link :href="`/activos/${activo.id}/grafo`" class="text-primary underline-offset-4 hover:underline">
+                                    el grafo de este activo</Link>.
+                            </p>
                         </CardContent>
                     </Card>
 
-                    <Card v-if="puedeVerVulnerabilidades">
+                    <!--
+                        Riesgos y vulnerabilidades en una sola tarjeta: las dos
+                        contestan a lo mismo —contra qué hay que proteger este
+                        activo—, y cada mitad sólo si quien mira puede verla.
+                    -->
+                    <Card v-if="hayExposicion">
                         <CardHeader>
-                            <CardTitle>Vulnerabilidades</CardTitle>
+                            <CardTitle>A qué está expuesto</CardTitle>
                             <CardDescription>
-                                Las que siguen en este activo: sin arreglo, mitigadas sin verificar o aceptadas como
-                                riesgo asumido.
+                                Los riesgos del registro que pesan sobre este activo y las vulnerabilidades que siguen en
+                                él. El impacto de los riesgos se deduce de la valoración efectiva, así que lo que hereda
+                                por el grafo también los sube.
                             </CardDescription>
                         </CardHeader>
-                        <CardContent class="space-y-3 text-sm">
-                            <p v-if="vulnerabilidades.length === 0" class="text-muted-foreground">
-                                Ninguna pendiente. Que no haya ninguna apuntada no significa que no las tenga.
-                            </p>
-                            <ul v-else class="grid gap-1">
-                                <li v-for="una in vulnerabilidades" :key="una.id" class="flex flex-wrap items-center gap-2">
-                                    <Link :href="`/vulnerabilidades/${una.id}`" class="underline underline-offset-4">
-                                        <span class="cifra">{{ una.codigo }}</span> · {{ una.titulo }}
-                                    </Link>
-                                    <CeldaBadge :valor="{ valor: una.severidad, etiqueta: una.severidad, tono: una.severidadTono }" />
-                                    <CeldaBadge
-                                        v-if="una.aceptada"
-                                        :valor="{ valor: 'aceptada', ...una.aceptada }"
-                                    />
-                                    <CeldaBadge
-                                        v-if="una.fueraDePlazo"
-                                        :valor="{ valor: 'fuera', etiqueta: 'Fuera de plazo', tono: 'caducada', icono: 'TriangleAlert' }"
-                                    />
-                                </li>
-                            </ul>
-                            <Button v-if="puedeRegistrarVulnerabilidad" as-child variant="outline" size="sm">
-                                <Link :href="`/vulnerabilidades/crear?activo=${activo.id}`">Registrar una</Link>
-                            </Button>
+
+                        <CardContent class="space-y-6">
+                            <div v-if="puedeVerRiesgos" class="space-y-3">
+                                <h3 class="text-xs font-semibold tracking-[0.06em] text-muted-foreground uppercase">
+                                    Riesgos · <span class="cifra">{{ riesgos.length }}</span>
+                                </h3>
+                                <BloqueRiesgos :riesgos="riesgos" :activo-id="activo.id" />
+                            </div>
+
+                            <div v-if="puedeVerVulnerabilidades" class="space-y-3">
+                                <h3 class="text-xs font-semibold tracking-[0.06em] text-muted-foreground uppercase">
+                                    Vulnerabilidades · <span class="cifra">{{ vulnerabilidades.length }}</span>
+                                </h3>
+                                <ul v-if="vulnerabilidades.length > 0" class="divide-y divide-border">
+                                    <li
+                                        v-for="una in vulnerabilidades"
+                                        :key="una.id"
+                                        class="flex flex-wrap items-center justify-between gap-2 py-3 text-sm first:pt-0"
+                                    >
+                                        <Link
+                                            :href="`/vulnerabilidades/${una.id}`"
+                                            class="min-w-0 font-medium underline-offset-4 hover:underline"
+                                        >
+                                            <span class="cifra text-muted-foreground">{{ una.codigo }}</span>
+                                            {{ una.titulo }}
+                                        </Link>
+                                        <span class="flex flex-wrap items-center gap-1.5">
+                                            <CeldaBadge
+                                                :valor="{ valor: una.severidad, etiqueta: una.severidad, tono: una.severidadTono }"
+                                            />
+                                            <CeldaBadge v-if="una.aceptada" :valor="{ valor: 'aceptada', ...una.aceptada }" />
+                                            <CeldaBadge
+                                                v-if="una.fueraDePlazo"
+                                                :valor="{
+                                                    valor: 'fuera',
+                                                    etiqueta: 'Fuera de plazo',
+                                                    tono: 'caducada',
+                                                    icono: 'TriangleAlert',
+                                                }"
+                                            />
+                                        </span>
+                                    </li>
+                                </ul>
+                                <div class="flex flex-wrap items-center justify-between gap-3">
+                                    <p v-if="vulnerabilidades.length === 0" class="text-sm text-muted-foreground">
+                                        Ninguna pendiente. Que no haya ninguna apuntada no significa que no las tenga.
+                                    </p>
+                                    <Button
+                                        v-if="puedeRegistrarVulnerabilidad"
+                                        as-child
+                                        variant="outline"
+                                        size="sm"
+                                        class="ml-auto"
+                                    >
+                                        <Link :href="`/vulnerabilidades/crear?activo=${activo.id}`">Registrar una</Link>
+                                    </Button>
+                                </div>
+                            </div>
                         </CardContent>
                     </Card>
                 </div>
 
+                <!-- La columna lateral en el orden de DESIGN.md §9: Estado, Ficha y el resto. -->
                 <div class="space-y-6">
-                    <Card class="h-fit">
+                    <Card>
                         <CardHeader>
-                            <CardTitle>Ficha</CardTitle>
+                            <CardTitle>Estado</CardTitle>
                         </CardHeader>
 
                         <CardContent>
-                            <dl class="grid gap-3 text-sm">
-                            <div>
-                                <dt class="text-xs text-muted-foreground">Nº de serie / identificador</dt>
-                                <dd class="cifra break-all">{{ activo.identificador ?? '—' }}</dd>
-                            </div>
-                            <div v-if="activo.marca_modelo">
-                                <dt class="text-xs text-muted-foreground">Marca y modelo</dt>
-                                <dd>{{ activo.marca_modelo }}</dd>
-                            </div>
-                            <div v-if="activo.especificaciones">
-                                <dt class="text-xs text-muted-foreground">Especificaciones</dt>
-                                <dd>{{ activo.especificaciones }}</dd>
-                            </div>
-                            <div v-if="activo.sistema_operativo">
-                                <dt class="text-xs text-muted-foreground">Sistema operativo</dt>
-                                <dd>
-                                    {{ activo.sistema_operativo }}
-                                    <span v-if="activo.fin_soporte_so" class="text-muted-foreground">
-                                        · soporte hasta {{ fecha(activo.fin_soporte_so) }}
+                            <dl class="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-3 text-sm">
+                                <dt class="text-muted-foreground">Ciclo de vida</dt>
+                                <dd class="justify-self-end">
+                                    <CeldaBadge
+                                        :valor="{
+                                            valor: activo.estado_ciclo_vida,
+                                            etiqueta: activo.estadoEtiqueta,
+                                            tono: activo.estadoTono,
+                                            icono: activo.estadoIcono,
+                                        }"
+                                    />
+                                </dd>
+
+                                <dt class="text-muted-foreground">Alta</dt>
+                                <dd class="justify-self-end">{{ fecha(activo.fecha_alta) }}</dd>
+
+                                <template v-if="activo.fin_garantia">
+                                    <dt class="text-muted-foreground">Fin de garantía</dt>
+                                    <dd class="justify-self-end text-right">
+                                        {{ fecha(activo.fin_garantia) }}
+                                        <span class="block text-xs text-muted-foreground">
+                                            {{ distanciaLegible(activo.fin_garantia) }}
+                                        </span>
+                                    </dd>
+                                </template>
+
+                                <template v-if="activo.fecha_baja">
+                                    <dt class="text-muted-foreground">Baja</dt>
+                                    <dd class="justify-self-end">{{ fecha(activo.fecha_baja) }}</dd>
+                                </template>
+
+                                <template v-if="activo.borrado_seguro_en">
+                                    <dt class="text-muted-foreground">Borrado seguro</dt>
+                                    <dd class="justify-self-end">{{ fecha(activo.borrado_seguro_en) }}</dd>
+                                    <dd v-if="activo.nota_baja" class="col-span-2 text-muted-foreground">
+                                        {{ activo.nota_baja }}
+                                    </dd>
+                                </template>
+
+                                <dt class="text-muted-foreground">Última revisión</dt>
+                                <dd class="justify-self-end text-right">
+                                    <CeldaBadge
+                                        v-if="activo.sinRevisar"
+                                        :valor="{
+                                            valor: activo.ultima_revision,
+                                            etiqueta: activo.ultima_revision ? fecha(activo.ultima_revision) : 'Nunca',
+                                            tono: 'caducada',
+                                        }"
+                                    />
+                                    <template v-else>{{ fecha(activo.ultima_revision) }}</template>
+                                    <span v-if="activo.ultima_revision" class="block text-xs text-muted-foreground">
+                                        {{ distanciaLegible(activo.ultima_revision) }}
                                     </span>
                                 </dd>
-                            </div>
-                            <div>
-                                <dt class="text-xs text-muted-foreground">Propietario</dt>
-                                <dd>{{ activo.propietario ?? 'Sin asignar' }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-xs text-muted-foreground">Custodio</dt>
-                                <dd>{{ activo.custodio ?? 'Sin asignar' }}</dd>
-                            </div>
-                            <div v-if="activo.departamento">
-                                <dt class="text-xs text-muted-foreground">Departamento</dt>
-                                <dd>{{ activo.departamento }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-xs text-muted-foreground">Ubicación</dt>
-                                <dd>{{ activo.ubicacion ?? '—' }}</dd>
-                            </div>
-                            <div v-if="activo.proveedor">
-                                <dt class="text-xs text-muted-foreground">Lo presta</dt>
-                                <dd>
-                                    <Link :href="`/proveedores/${activo.proveedor.id}`" class="underline underline-offset-4">
-                                        {{ activo.proveedor.nombre }}
-                                    </Link>
-                                </dd>
-                            </div>
-                            <div>
-                                <dt class="text-xs text-muted-foreground">Alta</dt>
-                                <dd>{{ fecha(activo.fecha_alta) }}</dd>
-                            </div>
-                            <div v-if="activo.fin_garantia">
-                                <dt class="text-xs text-muted-foreground">Fin de garantía</dt>
-                                <dd>{{ fecha(activo.fin_garantia) }}</dd>
-                            </div>
-                            <div v-if="activo.fecha_baja">
-                                <dt class="text-xs text-muted-foreground">Baja</dt>
-                                <dd>{{ fecha(activo.fecha_baja) }}</dd>
-                            </div>
-                            <div v-if="activo.borrado_seguro_en">
-                                <dt class="text-xs text-muted-foreground">Borrado seguro</dt>
-                                <dd>{{ fecha(activo.borrado_seguro_en) }}</dd>
-                                <dd v-if="activo.nota_baja" class="mt-1 text-muted-foreground">
-                                    {{ activo.nota_baja }}
-                                </dd>
-                            </div>
-                            <div>
-                                <dt class="text-xs text-muted-foreground">Alcance</dt>
-                                <dd v-if="activo.sistemas.length > 0">
-                                    <ul class="grid gap-0.5">
-                                        <li v-for="sistema in activo.sistemas" :key="sistema.id">
-                                            {{ sistema.codigo }} — {{ sistema.nombre }}
-                                        </li>
-                                    </ul>
-                                </dd>
-                                <dd v-else class="text-muted-foreground">
-                                    No está declarado en el alcance de ningún sistema.
-                                </dd>
-                            </div>
-                            <div v-if="activo.observaciones">
-                                <dt class="text-xs text-muted-foreground">Observaciones</dt>
-                                <dd>{{ activo.observaciones }}</dd>
-                            </div>
                             </dl>
                         </CardContent>
                     </Card>
 
-                    <Card v-if="etiqueta" class="h-fit">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Ficha</CardTitle>
+                        </CardHeader>
+
+                        <CardContent class="space-y-5 text-sm">
+                            <div class="space-y-3">
+                                <h3 class="text-xs font-semibold tracking-[0.06em] text-muted-foreground uppercase">
+                                    Responsables
+                                </h3>
+                                <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-3">
+                                    <dt class="text-muted-foreground">Propietario</dt>
+                                    <dd class="justify-self-end text-right" :class="{ 'text-muted-foreground': !activo.propietario }">
+                                        {{ activo.propietario ?? 'Sin asignar' }}
+                                    </dd>
+                                    <dt class="text-muted-foreground">Custodio</dt>
+                                    <dd class="justify-self-end text-right" :class="{ 'text-muted-foreground': !activo.custodio }">
+                                        {{ activo.custodio ?? 'Sin asignar' }}
+                                    </dd>
+                                    <template v-if="activo.departamento">
+                                        <dt class="text-muted-foreground">Departamento</dt>
+                                        <dd class="justify-self-end text-right">{{ activo.departamento }}</dd>
+                                    </template>
+                                    <template v-if="activo.proveedor">
+                                        <dt class="text-muted-foreground">Lo presta</dt>
+                                        <dd class="justify-self-end text-right">
+                                            <Link
+                                                :href="`/proveedores/${activo.proveedor.id}`"
+                                                class="text-primary underline-offset-4 hover:underline"
+                                            >
+                                                {{ activo.proveedor.nombre }}
+                                            </Link>
+                                        </dd>
+                                    </template>
+                                </dl>
+                            </div>
+
+                            <div class="border-t" />
+
+                            <div class="space-y-3">
+                                <h3 class="text-xs font-semibold tracking-[0.06em] text-muted-foreground uppercase">
+                                    Técnica
+                                </h3>
+                                <dl class="grid gap-3">
+                                    <div>
+                                        <dt class="text-xs text-muted-foreground">Nº de serie / identificador</dt>
+                                        <dd class="cifra mt-0.5 text-[13px] break-all">{{ activo.identificador ?? '—' }}</dd>
+                                    </div>
+                                    <div v-if="activo.marca_modelo">
+                                        <dt class="text-xs text-muted-foreground">Marca y modelo</dt>
+                                        <dd class="mt-0.5">{{ activo.marca_modelo }}</dd>
+                                    </div>
+                                    <div v-if="activo.especificaciones">
+                                        <dt class="text-xs text-muted-foreground">Especificaciones</dt>
+                                        <dd class="mt-0.5">{{ activo.especificaciones }}</dd>
+                                    </div>
+                                    <div v-if="activo.sistema_operativo">
+                                        <dt class="text-xs text-muted-foreground">Sistema operativo</dt>
+                                        <dd class="mt-0.5">
+                                            {{ activo.sistema_operativo }}
+                                            <span v-if="activo.fin_soporte_so" class="block text-xs text-muted-foreground">
+                                                Soporte hasta el {{ fecha(activo.fin_soporte_so) }}
+                                                ({{ distanciaLegible(activo.fin_soporte_so) }})
+                                            </span>
+                                        </dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-xs text-muted-foreground">Ubicación</dt>
+                                        <dd class="mt-0.5">{{ activo.ubicacion ?? '—' }}</dd>
+                                    </div>
+                                </dl>
+                            </div>
+
+                            <div class="border-t" />
+
+                            <div class="space-y-3">
+                                <h3 class="text-xs font-semibold tracking-[0.06em] text-muted-foreground uppercase">
+                                    Alcance
+                                </h3>
+                                <ul v-if="activo.sistemas.length > 0" class="grid gap-1">
+                                    <li v-for="sistema in activo.sistemas" :key="sistema.id">
+                                        <span class="cifra text-muted-foreground">{{ sistema.codigo }}</span>
+                                        {{ sistema.nombre }}
+                                    </li>
+                                </ul>
+                                <p v-else class="text-muted-foreground">No está declarado en el alcance de ningún sistema.</p>
+                            </div>
+
+                            <template v-if="activo.observaciones">
+                                <div class="border-t" />
+                                <div class="space-y-2">
+                                    <h3 class="text-xs font-semibold tracking-[0.06em] text-muted-foreground uppercase">
+                                        Observaciones
+                                    </h3>
+                                    <p class="text-pretty">{{ activo.observaciones }}</p>
+                                </div>
+                            </template>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Seguridad</CardTitle>
+                            <CardDescription>
+                                «Por confirmar» no es «no»: significa que nadie lo ha comprobado todavía.
+                            </CardDescription>
+                        </CardHeader>
+
+                        <CardContent>
+                            <dl class="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-3 text-sm">
+                                <dt class="text-muted-foreground">Copia de seguridad</dt>
+                                <dd class="justify-self-end">
+                                    <CeldaBadge
+                                        :valor="{
+                                            valor: activo.copia_seguridad,
+                                            etiqueta: activo.copiaEtiqueta,
+                                            tono: activo.copiaTono,
+                                            icono: activo.copiaIcono,
+                                        }"
+                                    />
+                                </dd>
+                                <dt class="text-muted-foreground">Cifrado en reposo</dt>
+                                <dd class="justify-self-end">
+                                    <CeldaBadge
+                                        :valor="{
+                                            valor: activo.cifrado,
+                                            etiqueta: activo.cifradoEtiqueta,
+                                            tono: activo.cifradoTono,
+                                            icono: activo.cifradoIcono,
+                                        }"
+                                    />
+                                </dd>
+                                <dt class="text-muted-foreground">Clasificación</dt>
+                                <dd class="justify-self-end">
+                                    <CeldaBadge
+                                        :valor="{
+                                            valor: activo.clasificacion,
+                                            etiqueta: activo.clasificacionEtiqueta,
+                                            tono: activo.clasificacionTono,
+                                            icono: activo.clasificacionIcono,
+                                        }"
+                                    />
+                                </dd>
+                            </dl>
+                        </CardContent>
+                    </Card>
+
+                    <Card v-if="etiqueta">
                         <CardHeader>
                             <CardTitle>Etiqueta QR</CardTitle>
                             <CardDescription>
@@ -453,59 +716,6 @@ function retirar(dependenciaId: number): void {
                             <EtiquetaQr :activo-id="activo.id" :svg="etiqueta.svg" :url="etiqueta.url" />
                         </CardContent>
                     </Card>
-
-                    <Card class="h-fit">
-                        <CardHeader>
-                            <CardTitle>Seguridad</CardTitle>
-                            <CardDescription>
-                                «Por confirmar» no es «no»: significa que nadie lo ha comprobado todavía.
-                            </CardDescription>
-                        </CardHeader>
-
-                        <CardContent>
-                            <dl class="grid gap-3 text-sm">
-                                <div class="flex items-center justify-between gap-3">
-                                    <dt class="text-muted-foreground">Cifrado en reposo</dt>
-                                    <dd>
-                                        <CeldaBadge
-                                            :valor="{
-                                                valor: activo.cifrado,
-                                                etiqueta: activo.cifradoEtiqueta,
-                                                tono: activo.cifradoTono,
-                                            }"
-                                        />
-                                    </dd>
-                                </div>
-                                <div class="flex items-center justify-between gap-3">
-                                    <dt class="text-muted-foreground">Copia de seguridad</dt>
-                                    <dd>
-                                        <CeldaBadge
-                                            :valor="{
-                                                valor: activo.copia_seguridad,
-                                                etiqueta: activo.copiaEtiqueta,
-                                                tono: activo.copiaTono,
-                                            }"
-                                        />
-                                    </dd>
-                                </div>
-                                <div class="flex items-center justify-between gap-3">
-                                    <dt class="text-muted-foreground">Última revisión</dt>
-                                    <dd>
-                                        <CeldaBadge
-                                            :valor="{
-                                                valor: activo.ultima_revision,
-                                                etiqueta: activo.ultima_revision
-                                                    ? fecha(activo.ultima_revision)
-                                                    : 'Nunca',
-                                                tono: activo.sinRevisar ? 'caducada' : 'implantado',
-                                            }"
-                                        />
-                                    </dd>
-                                </div>
-                            </dl>
-                        </CardContent>
-                    </Card>
-
                 </div>
             </div>
         </motion.div>

@@ -553,10 +553,15 @@ class DocumentoController extends Controller
             ),
 
             'aprobadaPor' => $version->aprobadaPor?->name,
-            'aprobadaEn' => $version->aprobada_en?->format('d/m/Y'),
+            /*
+             * En ISO, y la ficha lo pone legible: «12 mar 2027 (dentro de 5
+             * meses)» necesita la fecha, no una cadena ya formateada que no se
+             * puede comparar con hoy.
+             */
+            'aprobadaEn' => $version->aprobada_en?->toDateString(),
             'notaAprobacion' => $version->nota_aprobacion,
             'motivoRechazo' => $version->motivo_rechazo,
-            'proximaRevision' => $version->fecha_proxima_revision?->format('d/m/Y'),
+            'proximaRevision' => $version->fecha_proxima_revision?->toDateString(),
 
             'descargable' => $version->tieneFichero(),
             // La huella entera, no un prefijo: es lo que se contrasta con el

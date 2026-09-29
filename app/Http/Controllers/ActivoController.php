@@ -406,15 +406,19 @@ class ActivoController extends Controller
             'estado_ciclo_vida' => $activo->estado_ciclo_vida->value,
             'estadoEtiqueta' => $activo->estado_ciclo_vida->etiqueta(),
             'estadoTono' => $activo->estado_ciclo_vida->tono(),
+            'estadoIcono' => $activo->estado_ciclo_vida->icono(),
             'clasificacion' => $activo->clasificacion->value,
             'clasificacionEtiqueta' => $activo->clasificacion->etiqueta(),
             'clasificacionTono' => $activo->clasificacion->tono(),
+            'clasificacionIcono' => $activo->clasificacion->icono(),
             'cifrado' => $activo->cifrado->value,
             'cifradoEtiqueta' => $activo->cifrado->etiqueta(),
             'cifradoTono' => $activo->cifrado->tono(),
+            'cifradoIcono' => $activo->cifrado->icono(),
             'copia_seguridad' => $activo->copia_seguridad->value,
             'copiaEtiqueta' => $activo->copia_seguridad->etiqueta(),
             'copiaTono' => $activo->copia_seguridad->tono(),
+            'copiaIcono' => $activo->copia_seguridad->icono(),
             'ultima_revision' => $activo->ultima_revision?->toDateString(),
             'sinRevisar' => $activo->sinRevisar(),
             'llevaEtiqueta' => $activo->llevaEtiqueta(),
@@ -553,6 +557,7 @@ class ActivoController extends Controller
                     // ficha: no cambian el dato, lo ponen delante.
                     'sinRespaldo' => $riesgo->residualSinRespaldo(),
                     'revisionVencida' => $riesgo->revisionVencida(),
+                    'fechaRevision' => $riesgo->fecha_revision?->toDateString(),
                 ];
             })
             ->all();
