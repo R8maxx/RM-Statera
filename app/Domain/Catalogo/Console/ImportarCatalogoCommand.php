@@ -132,6 +132,10 @@ final class ImportarCatalogoCommand extends Command
             $this->components->twoColumnDetail('Perfiles de cumplimiento', (string) $resultado->perfiles);
         }
 
+        if ($resultado->vocabularioModificado) {
+            $this->components->twoColumnDetail('Vocabulario de atributos', 'modificado');
+        }
+
         if ($this->option('diff')) {
             $this->detallar($resultado);
         }

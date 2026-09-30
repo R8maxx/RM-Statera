@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $nombre
  * @property string $version
  * @property EstadoMarco $estado
+ * @property list<array{clave: string, etiqueta: string, valores: list<array{valor: string, etiqueta: string}>}> $atributos
  */
 class Marco extends Model
 {
@@ -27,7 +28,7 @@ class Marco extends Model
 
     protected $table = 'marcos';
 
-    protected $fillable = ['codigo', 'nombre', 'version', 'fecha_vigencia', 'estado'];
+    protected $fillable = ['codigo', 'nombre', 'version', 'fecha_vigencia', 'estado', 'atributos'];
 
     /** @return HasMany<Requisito, $this> */
     public function requisitos(): HasMany
@@ -47,12 +48,32 @@ class Marco extends Model
         return $this->hasMany(PerfilCumplimiento::class);
     }
 
+    /**
+     * Los valores de una dimensión del vocabulario, en el orden de la norma.
+     *
+     * Vacío si el marco no declara esa dimensión: quien pregunta por los
+     * atributos de la ISO a un marco sin ellos recibe «nada», no un error.
+     *
+     * @return array<string, string> valor => etiqueta
+     */
+    public function valoresDeAtributo(string $clave): array
+    {
+        foreach ($this->atributos as $dimension) {
+            if ($dimension['clave'] === $clave) {
+                return array_column($dimension['valores'], 'etiqueta', 'valor');
+            }
+        }
+
+        return [];
+    }
+
     /** @return array<string, string> */
     protected function casts(): array
     {
         return [
             'fecha_vigencia' => 'date',
             'estado' => EstadoMarco::class,
+            'atributos' => 'array',
         ];
     }
 

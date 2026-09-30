@@ -66,6 +66,9 @@ final class Filtro
     /** El scope del modelo que aplica el filtro, cuando no es una columna. */
     private ?string $scope = null;
 
+    /** La clave de primer nivel del JSONB donde vive la lista de valores. */
+    private ?string $rutaJson = null;
+
     /**
      * Los campos que cruza una búsqueda.
      *
@@ -168,6 +171,34 @@ final class Filtro
         return $filtro->conOpciones($opciones);
     }
 
+    /**
+     * Multiselección sobre una lista guardada dentro de una columna JSONB.
+     *
+     * Existe para los atributos de la ISO 27002, que viven en
+     * `requisitos.atributos` como `{"tipo_control": ["preventivo"], …}`. Varios
+     * valores se leen en OR, igual que en cualquier otro multiselect: «detectar
+     * o responder».
+     *
+     * Pregunta con `@>` sobre **la columna entera** y no sobre `columna->ruta`,
+     * porque sólo así usa el índice GIN de la columna. Es lo que
+     * `whereJsonContains` no hace: compara el subcampo extraído, y eso no pasa
+     * por ningún índice.
+     *
+     * Tampoco inventa joins: el campo tiene que estar ya en la consulta del
+     * recurso, como cualquier `->campo('tabla.columna')`.
+     *
+     * @param  list<Opcion>|Closure(): list<Opcion>  $opciones
+     */
+    public static function porJson(string $clave, string $etiqueta, string $campo, string $ruta, array|Closure $opciones): self
+    {
+        $filtro = new self($clave, $etiqueta, TipoFiltro::MultiSelect);
+        $filtro->multiple = true;
+        $filtro->campo = $campo;
+        $filtro->rutaJson = $ruta;
+
+        return $filtro->conOpciones($opciones);
+    }
+
     public static function booleano(string $clave, string $etiqueta): self
     {
         return new self($clave, $etiqueta, TipoFiltro::Booleano);
@@ -257,6 +288,34 @@ final class Filtro
                     if (filter_var($valor, FILTER_VALIDATE_BOOL)) {
                         $query->{$scope}();
                     }
+                },
+            );
+        }
+
+        if ($this->rutaJson !== null) {
+            $ruta = $this->rutaJson;
+
+            return AllowedFilter::callback(
+                $this->clave,
+                static function (Builder $query, mixed $valor) use ($campo, $ruta): void {
+                    $valores = array_values(array_filter(
+                        is_array($valor) ? $valor : [$valor],
+                        static fn (mixed $uno): bool => is_scalar($uno) && $uno !== '',
+                    ));
+
+                    if ($valores === []) {
+                        return;
+                    }
+
+                    $columna = $query->getQuery()->getGrammar()->wrap($campo);
+
+                    $query->where(static function (Builder $anidada) use ($columna, $ruta, $valores): void {
+                        foreach ($valores as $uno) {
+                            $anidada->orWhereRaw("{$columna} @> ?::jsonb", [
+                                json_encode([$ruta => [(string) $uno]], JSON_THROW_ON_ERROR),
+                            ]);
+                        }
+                    });
                 },
             );
         }

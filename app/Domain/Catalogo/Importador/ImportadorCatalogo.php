@@ -233,11 +233,20 @@ final class ImportadorCatalogo
             $perfilesCrudos = [];
         }
 
+        $vocabulario = $this->normalizarVocabulario($documento['atributos'] ?? [], $errores);
+
+        if ($vocabulario !== []) {
+            $this->validarAtributos($planos, $vocabulario, $errores);
+        }
+
         if ($errores !== []) {
             throw new CatalogoInvalido($fichero, $errores);
         }
 
         $resultado = new ResultadoImportacion($fichero, 'marco', $simulacion, (string) $datosMarco['codigo']);
+
+        $anterior = Marco::query()->where('codigo', $datosMarco['codigo'])->first();
+        $resultado->vocabularioModificado = $anterior !== null && $anterior->atributos != $vocabulario;
 
         $marco = Marco::query()->updateOrCreate(
             ['codigo' => $datosMarco['codigo']],
@@ -246,6 +255,7 @@ final class ImportadorCatalogo
                 'version' => $datosMarco['version'],
                 'fecha_vigencia' => $datosMarco['fecha_vigencia'] ?? null,
                 'estado' => $datosMarco['estado'] ?? 'vigente',
+                'atributos' => $vocabulario,
             ],
         );
 
@@ -382,6 +392,93 @@ final class ImportadorCatalogo
 
             if (is_array($nodo['hijos'] ?? null) && $nodo['hijos'] !== []) {
                 $this->aplanar($nodo['hijos'], (string) $nodo['codigo'], $destino, $errores, "{$donde}.hijos");
+            }
+        }
+    }
+
+    /**
+     * El vocabulario de atributos del marco, como lista para que JSONB no
+     * pierda el orden de la norma.
+     *
+     * En el YAML se escribe como mapa porque así se lee; aquí se convierte en
+     * `[{clave, etiqueta, valores: [{valor, etiqueta}]}]`. Un marco que no
+     * declara el bloque devuelve una lista vacía y no valida nada: el ENS no
+     * tiene atributos.
+     *
+     * @param  list<string>  $errores
+     * @return list<array{clave: string, etiqueta: string, valores: list<array{valor: string, etiqueta: string}>}>
+     */
+    private function normalizarVocabulario(mixed $crudo, array &$errores): array
+    {
+        if (! is_array($crudo) || ($crudo !== [] && array_is_list($crudo))) {
+            $errores[] = 'atributos: se esperaba un mapa por dimensión.';
+
+            return [];
+        }
+
+        $vocabulario = [];
+
+        foreach ($crudo as $clave => $dimension) {
+            $etiqueta = is_array($dimension) ? ($dimension['etiqueta'] ?? null) : null;
+            $valores = is_array($dimension) ? ($dimension['valores'] ?? null) : null;
+
+            if (! is_string($etiqueta) || ! is_array($valores) || $valores === [] || array_is_list($valores)) {
+                $errores[] = "atributos.{$clave}: cada dimensión necesita `etiqueta` y un mapa `valores` no vacío.";
+
+                continue;
+            }
+
+            $normalizados = [];
+
+            foreach ($valores as $valor => $etiquetaValor) {
+                if (! is_string($etiquetaValor)) {
+                    $errores[] = "atributos.{$clave}.valores.{$valor}: la etiqueta tiene que ser texto.";
+
+                    continue;
+                }
+
+                $normalizados[] = ['valor' => (string) $valor, 'etiqueta' => $etiquetaValor];
+            }
+
+            $vocabulario[] = ['clave' => (string) $clave, 'etiqueta' => $etiqueta, 'valores' => $normalizados];
+        }
+
+        return $vocabulario;
+    }
+
+    /**
+     * Cada atributo de cada requisito tiene que estar en el vocabulario del
+     * marco. Sin esta comprobación, una errata en el YAML entra como un valor
+     * más que ningún filtro ofrece y ningún control encuentra.
+     *
+     * @param  list<array<string, mixed>>  $planos
+     * @param  list<array{clave: string, etiqueta: string, valores: list<array{valor: string, etiqueta: string}>}>  $vocabulario
+     * @param  list<string>  $errores
+     */
+    private function validarAtributos(array $planos, array $vocabulario, array &$errores): void
+    {
+        $admitidos = [];
+
+        foreach ($vocabulario as $dimension) {
+            $admitidos[$dimension['clave']] = array_column($dimension['valores'], 'valor');
+        }
+
+        foreach ($planos as $plano) {
+            /** @var array<string, mixed> $atributos */
+            $atributos = $plano['atributos'];
+
+            foreach ($atributos as $clave => $valores) {
+                if (! array_key_exists($clave, $admitidos)) {
+                    $errores[] = "requisitos [{$plano['codigo']}]: atributo no declarado en el vocabulario [{$clave}].";
+
+                    continue;
+                }
+
+                foreach (is_array($valores) ? $valores : [$valores] as $valor) {
+                    if (! in_array((string) $valor, $admitidos[$clave], true)) {
+                        $errores[] = "requisitos [{$plano['codigo']}]: valor no reconocido en {$clave} [{$valor}].";
+                    }
+                }
             }
         }
     }

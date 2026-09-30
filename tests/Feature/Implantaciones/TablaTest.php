@@ -106,6 +106,52 @@ it('filtra por marco a través del requisito', function (): void {
         ->assertInertia(fn (AssertableInertia $pagina) => $pagina->has('filas', 0));
 });
 
+it('filtra por los atributos de la ISO 27002, con las etiquetas del vocabulario del marco', function (): void {
+    $escenario = escenarioDeImplantaciones();
+    $marco = $escenario['implantaciones']['op.acc.2']->requisito->marco;
+    $marco->update(['atributos' => [[
+        'clave' => 'conceptos_ciberseguridad',
+        'etiqueta' => 'Concepto de ciberseguridad',
+        'valores' => [
+            ['valor' => 'proteger', 'etiqueta' => 'Proteger'],
+            ['valor' => 'detectar', 'etiqueta' => 'Detectar'],
+            ['valor' => 'responder', 'etiqueta' => 'Responder'],
+        ],
+    ]]]);
+
+    $escenario['implantaciones']['op.acc.2']->requisito->update(['atributos' => ['conceptos_ciberseguridad' => ['detectar']]]);
+    $escenario['implantaciones']['op.acc.10']->requisito->update(['atributos' => ['conceptos_ciberseguridad' => ['proteger', 'responder']]]);
+    // `mp.if.1` se queda sin atributos, como una medida del ENS.
+
+    $this->actingAs($escenario['usuario'])
+        ->get('/implantaciones?filter[atributo_conceptos_ciberseguridad][]=detectar')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->has('filas', 1)
+            ->where('filas.0.codigo', 'op.acc.2')
+            ->where('meta.filtros.atributo_conceptos_ciberseguridad', ['detectar'])
+            // Las opciones salen del vocabulario, en su orden y con su etiqueta.
+            ->where('recurso.filtros', fn ($filtros): bool => collect(collect($filtros)
+                ->firstWhere('clave', 'atributo_conceptos_ciberseguridad')['opciones'])
+                ->pluck('etiqueta', 'valor')
+                ->all() === ['proteger' => 'Proteger', 'detectar' => 'Detectar', 'responder' => 'Responder'])
+        );
+
+    // Dos valores se leen en OR; la medida sin atributos no casa con ninguno.
+    $this->actingAs($escenario['usuario'])
+        ->get('/implantaciones?filter[atributo_conceptos_ciberseguridad][]=detectar&filter[atributo_conceptos_ciberseguridad][]=responder')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->has('filas', 2)
+            ->where('filas.0.codigo', 'op.acc.2')
+            ->where('filas.1.codigo', 'op.acc.10')
+        );
+
+    // Un valor que no está en el vocabulario no revienta: no casa con nada.
+    $this->actingAs($escenario['usuario'])
+        ->get('/implantaciones?filter[atributo_conceptos_ciberseguridad][]=%22%7D%27')
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina->has('filas', 0));
+});
+
 it('serializa madurez, exigencia y origen de forma legible', function (): void {
     $escenario = escenarioDeImplantaciones();
 

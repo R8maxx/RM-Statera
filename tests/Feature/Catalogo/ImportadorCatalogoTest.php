@@ -281,6 +281,64 @@ it('rechaza códigos duplicados dentro del mismo marco', function (): void {
         ->toThrow(CatalogoInvalido::class);
 });
 
+/**
+ * Un marco con vocabulario de atributos y un control que usa `$concepto`.
+ */
+function marcoConAtributos(string $concepto, string $etiquetaDetectar = 'Detectar'): string
+{
+    return <<<YAML
+    marco:
+      codigo: MARCO-TEST
+      nombre: Marco de prueba
+      version: '1.0'
+    atributos:
+      conceptos_ciberseguridad:
+        etiqueta: Concepto de ciberseguridad
+        valores:
+          proteger: Proteger
+          detectar: {$etiquetaDetectar}
+    requisitos:
+      - codigo: A.1
+        tipo: control
+        titulo: Control de prueba
+        atributos: {conceptos_ciberseguridad: [{$concepto}]}
+    YAML;
+}
+
+it('guarda el vocabulario de atributos del marco en el orden del fichero', function (): void {
+    $this->importador->importar(escribirCatalogo($this->directorio, 'marco.yaml', marcoConAtributos('detectar')));
+
+    $marco = Marco::query()->where('codigo', 'MARCO-TEST')->sole();
+
+    // El orden importa y JSONB no lo guarda en un mapa: por eso es una lista.
+    expect($marco->valoresDeAtributo('conceptos_ciberseguridad'))->toBe([
+        'proteger' => 'Proteger',
+        'detectar' => 'Detectar',
+    ])->and($marco->valoresDeAtributo('tipo_control'))->toBe([]);
+});
+
+it('rechaza un atributo que no está en el vocabulario del marco', function (): void {
+    $fichero = escribirCatalogo($this->directorio, 'marco.yaml', marcoConAtributos('detectarr'));
+
+    expect(fn () => $this->importador->importar($fichero))
+        ->toThrow(CatalogoInvalido::class, 'valor no reconocido en conceptos_ciberseguridad [detectarr]');
+
+    expect(Marco::query()->where('codigo', 'MARCO-TEST')->exists())->toBeFalse();
+});
+
+it('cuenta un cambio de vocabulario en el diff, y la segunda pasada no', function (): void {
+    $this->importador->importar(escribirCatalogo($this->directorio, 'marco.yaml', marcoConAtributos('detectar')));
+
+    $mismo = $this->importador->importar(escribirCatalogo($this->directorio, 'marco.yaml', marcoConAtributos('detectar')));
+    expect($mismo->vocabularioModificado)->toBeFalse()
+        ->and($mismo->hayCambios())->toBeFalse();
+
+    $renombrado = $this->importador->importar(escribirCatalogo($this->directorio, 'marco.yaml', marcoConAtributos('detectar', 'Detección')));
+    expect($renombrado->vocabularioModificado)->toBeTrue()
+        ->and($renombrado->hayCambios())->toBeTrue()
+        ->and($renombrado->modificados)->toBeEmpty();
+});
+
 it('sincroniza los refuerzos: los que dejan de estar en el fichero desaparecen', function (): void {
     $fichero = escribirCatalogo($this->directorio, 'marco.yaml', marcoDePrueba(<<<'YAML'
       - codigo: op.acc.5

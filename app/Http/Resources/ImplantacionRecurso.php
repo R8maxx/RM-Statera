@@ -218,8 +218,51 @@ final class ImplantacionRecurso extends Recurso
                 ->get()
                 ->map(fn (Marco $marco): Opcion => new Opcion((string) $marco->id, $marco->nombre))
                 ->all())->campo('requisitos.marco_id')->enColumna('marco'),
+            ...$this->filtrosDeAtributos(),
             Filtro::texto('justificacion', 'Justificación'),
         ];
+    }
+
+    /**
+     * Un filtro por cada dimensión del vocabulario de atributos del catálogo:
+     * hoy, los cinco de la ISO 27002 (§ 4.4, «filtrada por… atributo»).
+     *
+     * Salen de los datos y no de una lista escrita aquí, porque el catálogo es
+     * datos: un marco que traiga su propio vocabulario tiene sus filtros sin
+     * tocar esta clase. Dos marcos con la misma dimensión comparten filtro, y
+     * sus valores se suman.
+     *
+     * Las implantaciones de un marco sin atributos —el ENS— no casan con
+     * ninguno, que es la respuesta correcta a «¿qué controles son detectivos?».
+     *
+     * @return list<Filtro>
+     */
+    private function filtrosDeAtributos(): array
+    {
+        /** @var array<string, array{etiqueta: string, valores: array<string, string>}> $dimensiones */
+        $dimensiones = [];
+
+        foreach (Marco::query()->orderBy('codigo')->get() as $marco) {
+            foreach ($marco->atributos as $dimension) {
+                $dimensiones[$dimension['clave']] ??= ['etiqueta' => $dimension['etiqueta'], 'valores' => []];
+                $dimensiones[$dimension['clave']]['valores'] += $marco->valoresDeAtributo($dimension['clave']);
+            }
+        }
+
+        $filtros = [];
+
+        foreach ($dimensiones as $clave => $dimension) {
+            $opciones = [];
+
+            foreach ($dimension['valores'] as $valor => $etiqueta) {
+                $opciones[] = new Opcion((string) $valor, $etiqueta);
+            }
+
+            $filtros[] = Filtro::porJson("atributo_{$clave}", $dimension['etiqueta'], 'requisitos.atributos', $clave, $opciones)
+                ->sinColumna();
+        }
+
+        return $filtros;
     }
 
     /**

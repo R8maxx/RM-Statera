@@ -20,6 +20,59 @@ marco:
 fuente: 'ISO/IEC 27001:2022 + Amd 1:2024; atributos según ISO/IEC 27002:2022'
 revisado: false
 
+# ---------------------------------------------------------------------------
+# Vocabulario de los cinco atributos de la ISO/IEC 27002:2022. Cada control
+# usa estos valores y ningún otro: el importador rechaza el fichero si uno no
+# está aquí. Las etiquetas son lo que enseña la interfaz; el orden, el de la
+# norma.
+# ---------------------------------------------------------------------------
+atributos:
+  tipo_control:
+    etiqueta: Tipo de control
+    valores:
+      preventivo: Preventivo
+      detectivo: Detectivo
+      correctivo: Correctivo
+  propiedades_seguridad:
+    etiqueta: Propiedad de seguridad
+    valores:
+      C: Confidencialidad
+      I: Integridad
+      D: Disponibilidad
+  conceptos_ciberseguridad:
+    etiqueta: Concepto de ciberseguridad
+    valores:
+      identificar: Identificar
+      proteger: Proteger
+      detectar: Detectar
+      responder: Responder
+      recuperar: Recuperar
+  capacidades_operativas:
+    etiqueta: Capacidad operativa
+    valores:
+      gobernanza: Gobernanza
+      gestion_de_activos: Gestión de activos
+      proteccion_de_la_informacion: Protección de la información
+      seguridad_rrhh: Seguridad de los recursos humanos
+      seguridad_fisica: Seguridad física
+      seguridad_sistemas_y_redes: Seguridad de sistemas y redes
+      seguridad_de_aplicaciones: Seguridad de las aplicaciones
+      configuracion_segura: Configuración segura
+      gestion_de_identidad_y_acceso: Gestión de identidades y accesos
+      gestion_de_amenazas_y_vulnerabilidades: Gestión de amenazas y vulnerabilidades
+      continuidad: Continuidad
+      seguridad_relaciones_proveedores: Seguridad en las relaciones con proveedores
+      legal_y_cumplimiento: Legal y cumplimiento
+      gestion_de_eventos_de_seguridad: Gestión de eventos de seguridad de la información
+      aseguramiento_de_la_seguridad: Aseguramiento de la seguridad de la información
+  dominios_seguridad:
+    etiqueta: Dominio de seguridad
+    valores:
+      gobernanza_y_ecosistema: Gobernanza y ecosistema
+      proteccion: Protección
+      defensa: Defensa
+      resiliencia: Resiliencia
+
 requisitos:
   # ---------------------------------------------------------------------------
   # Cuerpo de la norma. Es lo que se audita como sistema de gestión, y lo que
@@ -559,7 +612,7 @@ requisitos:
       - codigo: A.8.24
         tipo: control
         titulo: Uso de criptografía
-        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [criptografia_segura], dominios_seguridad: [proteccion]}
+        atributos: {tipo_control: [preventivo], propiedades_seguridad: [C, I, D], conceptos_ciberseguridad: [proteger], capacidades_operativas: [configuracion_segura], dominios_seguridad: [proteccion]}
       - codigo: A.8.25
         tipo: control
         titulo: Ciclo de vida de desarrollo seguro

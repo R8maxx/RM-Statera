@@ -35,6 +35,13 @@ final class ResultadoImportacion
 
     public int $perfiles = 0;
 
+    /**
+     * Si cambió el vocabulario de atributos del marco: una etiqueta, un valor
+     * nuevo o uno que desaparece. No toca a ningún requisito por sí solo, pero
+     * cambia lo que ofrecen los filtros, y eso también se dice.
+     */
+    public bool $vocabularioModificado = false;
+
     public int $implantacionesAfectadas = 0;
 
     /**
@@ -72,6 +79,7 @@ final class ResultadoImportacion
             || $this->modificados !== []
             || $this->retirados !== []
             || $this->reactivados !== []
+            || $this->vocabularioModificado
             || $this->mapeosNuevos > 0
             || $this->mapeosActualizados > 0;
     }

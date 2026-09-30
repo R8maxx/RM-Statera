@@ -20,4 +20,6 @@ Y en `obligaciones.yaml`, por una que es de datos: **`base_legal` cita el instru
 
 Y sobre los refuerzos: en el Anexo II **se acumulan** —«+ R1 + R2» exige los dos—, así que el catálogo guarda el mayor y `R2` se lee como «hasta R2», no como «sólo R2».
 
+**El vocabulario de atributos va en el YAML, y el importador lo hace cumplir.** `iso27001-2022.yaml` declara en `atributos:` las cinco dimensiones de la ISO 27002 con su etiqueta y sus valores en el orden de la norma; se guarda en `marcos.atributos` **como lista**, porque JSONB no conserva el orden de las claves de un mapa. Un valor de un control que no esté en el vocabulario **rechaza el fichero entero**, y un cambio de vocabulario sale en el diff aunque no toque ningún requisito. Un marco sin el bloque —el ENS— no valida nada. La primera pasada encontró `capacidades_operativas: [criptografia_segura]` en A.8.24, que no es ninguna de las quince de la norma; se corrigió a `configuracion_segura`, y está pendiente de contrastar con el texto de la 27002 como el resto del fichero (`revisado: false`).
+
 **Sobre el texto normativo:** en los YAML van código, título corto y atributos. La redacción íntegra de los controles de ISO 27001/27002 tiene derechos de autor y no se vuelca al repositorio. El ENS es texto del BOE y no tiene esa restricción.
