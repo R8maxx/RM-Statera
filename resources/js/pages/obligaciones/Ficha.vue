@@ -455,7 +455,7 @@ function retirar(): void {
                     <Card>
                         <CardHeader class="flex flex-row items-center justify-between gap-3">
                             <CardTitle>Estado</CardTitle>
-                            <CeldaBadge :valor="estado" />
+                            <CeldaBadge anunciar :valor="estado" />
                         </CardHeader>
                         <CardContent class="grid gap-4">
                             <dl class="grid gap-3">

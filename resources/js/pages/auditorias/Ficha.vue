@@ -220,7 +220,7 @@ const sinTratar = computed(
                     icono: auditoria.tipoIcono,
                 }"
             />
-            <CeldaBadge
+            <CeldaBadge anunciar
                 :valor="{
                     valor: auditoria.estado,
                     etiqueta: auditoria.estadoEtiqueta,

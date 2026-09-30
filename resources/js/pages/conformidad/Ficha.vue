@@ -239,7 +239,7 @@ const abiertoRetirar = computed({
                     icono: null,
                 }"
             />
-            <CeldaBadge
+            <CeldaBadge anunciar
                 v-if="vigente"
                 :valor="{ valor: vigente.estado, etiqueta: vigente.estadoEtiqueta, tono: vigente.tono, icono: vigente.icono }"
             />

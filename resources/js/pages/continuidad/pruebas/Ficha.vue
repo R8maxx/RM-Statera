@@ -360,10 +360,10 @@ function crearMejora(): void {
         </CabeceraPagina>
 
         <div class="-mt-2 flex flex-wrap items-center gap-2">
-            <CeldaBadge
+            <CeldaBadge anunciar
                 :valor="{ valor: prueba.estado, etiqueta: prueba.estadoEtiqueta, tono: prueba.estadoTono, icono: prueba.estadoIcono }"
             />
-            <CeldaBadge
+            <CeldaBadge anunciar
                 v-if="prueba.resultado"
                 :valor="{ valor: prueba.resultado, etiqueta: prueba.resultadoEtiqueta ?? prueba.resultado, tono: prueba.resultadoTono, icono: prueba.resultadoIcono }"
             />

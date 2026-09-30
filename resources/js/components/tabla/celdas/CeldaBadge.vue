@@ -1,11 +1,35 @@
 <script setup lang="ts">
 import IconoTipo from '@/components/IconoTipo.vue';
 import { tono } from '@/lib/tonos';
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 type ValorEtiquetado = App.Http.Resources.Definicion.ValorEtiquetado;
 
-const props = defineProps<{ valor: ValorEtiquetado | null }>();
+const props = defineProps<{
+    valor: ValorEtiquetado | null;
+    /**
+     * Si el icono aparece cuando el valor **cambia** delante de quien mira: el
+     * estado de una ficha tras pulsar su transición. Nunca en el primer pintado
+     * ni en una tabla —una página nueva de filas no es un cambio de nada—, y
+     * nunca al pasar por encima: un badge no se pulsa (DESIGN.md §10).
+     */
+    anunciar?: boolean;
+}>();
+
+/*
+ * Cuántas veces ha cambiado. Va de clave en el icono para que se monte de nuevo
+ * y la animación de CSS vuelva a correr; a cero no lleva la clase.
+ */
+const cambios = ref(0);
+
+watch(
+    () => props.valor?.valor,
+    (nuevo, anterior) => {
+        if (props.anunciar && anterior !== undefined && nuevo !== anterior) {
+            cambios.value++;
+        }
+    },
+);
 
 /**
  * El badge de un valor del dominio: color, icono y texto.
@@ -46,7 +70,7 @@ const icono = computed(() => props.valor?.icono ?? estilo.value.icono);
             El icono primero: identifica, y el punto sólo acompaña. Lo que separa
             nueve tipos de activo o dos grises que el color no llega a separar.
         -->
-        <IconoTipo v-if="icono" :nombre="icono" />
+        <IconoTipo v-if="icono" :key="cambios" :nombre="icono" :clase="cambios > 0 ? 'size-3.5 icono-anuncia' : undefined" />
 
         <!-- Y cuando no hay icono, el punto como respaldo de daltonismo. -->
         <span v-else-if="estilo.punto" class="size-1.5 rounded-full" :class="estilo.punto" aria-hidden="true" />

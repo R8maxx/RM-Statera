@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Domain\Autorizacion\Enums\Permiso;
+use App\Domain\Metrica\Enums\UnidadIndicador;
 use App\Domain\Metrica\Models\Indicador;
+use App\Domain\Metrica\SerieIndicador;
 use App\Domain\Objetivo\AbrirActuacion;
 use App\Domain\Objetivo\CambiarEstadoObjetivo;
 use App\Domain\Objetivo\CodigoObjetivo;
@@ -13,6 +15,7 @@ use App\Domain\Objetivo\Enums\EstadoObjetivo;
 use App\Domain\Objetivo\Excepciones\TransicionDeObjetivoNoPermitida;
 use App\Domain\Objetivo\Models\Objetivo;
 use App\Domain\Objetivo\Models\ObjetivoTransicion;
+use App\Domain\Objetivo\PlazoObjetivo;
 use App\Domain\Objetivo\RegistrarObjetivo;
 use App\Domain\Objetivo\RegistroObjetivos;
 use App\Domain\Objetivo\VincularActuacion;
@@ -28,6 +31,7 @@ use App\Http\Requests\GuardarObjetivoRequest;
 use App\Http\Requests\VincularActuacionRequest;
 use App\Http\Requests\VincularIndicadorRequest;
 use App\Http\Resources\Concerns\RespondeConRecurso;
+use App\Http\Resources\Metrica\PuntoSerie;
 use App\Http\Resources\ObjetivoRecurso;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -85,7 +89,7 @@ class ObjetivoController extends Controller
         return to_route('objetivos.show', $objetivo);
     }
 
-    public function show(Objetivo $objetivo): Response
+    public function show(Objetivo $objetivo, SerieIndicador $serie, PlazoObjetivo $plazo): Response
     {
         $objetivo->load([
             'responsable',
@@ -119,8 +123,14 @@ class ObjetivoController extends Controller
                  */
                 'contradice' => $objetivo->estado === EstadoObjetivo::Alcanzado && $avance->seQuedaCorto(),
             ],
+            /*
+             * El plazo contado desde la firma, en la misma forma que la barra
+             * de una vulnerabilidad: dos barras de plazo que se leyeran distinto
+             * enseñarían a no leer ninguna. Nulo mientras no haya firma.
+             */
+            'plazo' => $plazo->de($objetivo),
             'indicadores' => $objetivo->indicadores
-                ->map(fn (Indicador $indicador): array => $this->serializarIndicador($indicador))
+                ->map(fn (Indicador $indicador): array => $this->serializarIndicador($indicador, $serie->de($indicador, 4)))
                 ->values()
                 ->all(),
             'actuaciones' => $objetivo->tareas
@@ -365,9 +375,13 @@ class ObjetivoController extends Controller
     }
 
     /**
+     * Los últimos periodos van con el indicador: con uno solo, su serie es la
+     * lectura de la ficha; con varios, la tendencia de cada fila.
+     *
+     * @param  list<PuntoSerie>  $serie
      * @return array<string, mixed>
      */
-    private function serializarIndicador(Indicador $indicador): array
+    private function serializarIndicador(Indicador $indicador, array $serie): array
     {
         $cumplimiento = $indicador->cumplimiento();
         $ultima = $indicador->ultimaMedicion;
@@ -384,6 +398,9 @@ class ObjetivoController extends Controller
             'cumplimientoEtiqueta' => $cumplimiento->etiqueta(),
             'cumplimientoTono' => $cumplimiento->tono(),
             'cumplimientoIcono' => $cumplimiento->icono(),
+            'fraccion' => $ultima?->fraccion(),
+            'porcentaje' => $indicador->unidad === UnidadIndicador::Porcentaje,
+            'serie' => $serie,
         ];
     }
 
@@ -402,6 +419,7 @@ class ObjetivoController extends Controller
             'estadoTono' => $tarea->estado->tono(),
             'estadoIcono' => $tarea->estado->icono(),
             'responsable' => $tarea->responsable?->name,
+            'prioridad' => $tarea->prioridad->etiqueta(),
             'plazoEtiqueta' => $plazo->etiqueta,
             'plazoTono' => $plazo->tono,
             'fecha' => $plazo->fecha,

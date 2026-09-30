@@ -211,7 +211,7 @@ function retirar(dependenciaId: number): void {
                 />
                 <span v-if="activo.subtipo">{{ activo.subtipo }}</span>
                 <span aria-hidden="true">·</span>
-                <CeldaBadge
+                <CeldaBadge anunciar
                     :valor="{
                         valor: activo.estado_ciclo_vida,
                         etiqueta: activo.estadoEtiqueta,

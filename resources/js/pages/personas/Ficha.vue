@@ -405,7 +405,7 @@ const listasOrdenadas = computed(() =>
         </CabeceraPagina>
 
         <div class="flex flex-wrap items-center gap-2">
-            <CeldaBadge
+            <CeldaBadge anunciar
                 :valor="{
                     valor: persona.activa ? 'activa' : 'baja',
                     etiqueta: persona.estadoEtiqueta,

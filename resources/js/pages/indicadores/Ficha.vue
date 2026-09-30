@@ -156,7 +156,7 @@ onBeforeUnmount(() => clearTimeout(temporizador));
         </CabeceraPagina>
 
         <div class="flex flex-wrap items-center gap-2">
-            <CeldaBadge
+            <CeldaBadge anunciar
                 :valor="{
                     valor: indicador.cumplimiento,
                     etiqueta: indicador.cumplimientoEtiqueta,

@@ -369,6 +369,13 @@
      * que tarda en obedecer.
      */
     --duracion-salida: 160ms;
+    /*
+     * El gesto del icono de un control al pasar el puntero (DESIGN.md §10,
+     * «Los iconos de lo que se pulsa»). Más que el 120 ms de un hover de color
+     * porque tiene que poder verse el trazo; menos que un despliegue porque se
+     * ve decenas de veces al día.
+     */
+    --duracion-icono: 280ms;
 
     /*
      * Tres curvas, y cada una hace una cosa distinta (DESIGN.md §10).
@@ -902,6 +909,325 @@
 
     .tachado[data-hecha] {
         background-size: 100% 1px;
+    }
+
+    /*
+     * Los iconos de lo que se pulsa (DESIGN.md §10).
+     * ---------------------------------------------
+     * Al pasar el puntero por un botón o una entrada de menú, su icono hace un
+     * gesto que dice qué va a pasar: el lápiz escribe, el check se traza, los
+     * eslabones se juntan. Es **feedback de que el control responde**, que es
+     * una de las razones por las que algo se anima aquí, y por eso tiene tres
+     * fronteras que no se cruzan:
+     *
+     * - **Sólo en controles** (`[data-slot="button"]`, que pone `ui/button`, y
+     *   `[role="menuitem"]`). Un badge no se pulsa, y si se moviera al pasar
+     *   por encima parecería que sí. En una tabla de noventa filas, además,
+     *   barrer la pantalla con el ratón encendería veinte a la vez.
+     * - **Sólo con puntero que pasa por encima** (`hover: hover`) y sin
+     *   movimiento reducido. En táctil no hay hover, y con teclado no se anima
+     *   nunca nada: por eso no hay `:focus-visible` aquí.
+     * - **Una lista cerrada de iconos**, la de DESIGN.md. Todos acaban donde
+     *   empezaron, así que salir a mitad no deja nada torcido.
+     *
+     * Se engancha por la clase que pone Lucide (`lucide-pencil-line`), así que
+     * lo heredan `IconoTipo`, `BotonEstado` y todo botón que lleve uno de estos
+     * iconos, sin tocar el componente. Sólo `transform` y el trazo del SVG,
+     * que no recalculan la disposición.
+     */
+    @keyframes icono-trazo {
+        from {
+            stroke-dashoffset: var(--largo);
+        }
+        to {
+            stroke-dashoffset: 0;
+        }
+    }
+
+    @keyframes icono-escribe {
+        45% {
+            transform: rotate(-12deg) translateX(-1px);
+        }
+    }
+
+    @keyframes icono-junta-arriba {
+        50% {
+            transform: translate(-1.5px, 1.5px);
+        }
+    }
+
+    @keyframes icono-junta-abajo {
+        50% {
+            transform: translate(1.5px, -1.5px);
+        }
+    }
+
+    @keyframes icono-levanta {
+        45% {
+            transform: translateY(-2px) rotate(-4deg);
+        }
+    }
+
+    @keyframes icono-cuarto {
+        to {
+            transform: rotate(90deg);
+        }
+    }
+
+    @keyframes icono-octavo {
+        to {
+            transform: rotate(45deg);
+        }
+    }
+
+    @keyframes icono-vuelta {
+        to {
+            transform: rotate(-360deg);
+        }
+    }
+
+    @keyframes icono-aprieta {
+        45% {
+            transform: rotate(-20deg);
+        }
+    }
+
+    @keyframes icono-avisa {
+        40% {
+            transform: translateY(-1.5px);
+        }
+    }
+
+    @keyframes icono-parpadea {
+        50% {
+            transform: scaleY(0.15);
+        }
+    }
+
+    @keyframes icono-baja {
+        50% {
+            transform: translateY(2px);
+        }
+    }
+
+    @keyframes icono-a-la-izquierda {
+        50% {
+            transform: translateX(-2px);
+        }
+    }
+
+    @keyframes icono-a-la-derecha {
+        50% {
+            transform: translateX(2px);
+        }
+    }
+
+    @keyframes icono-despega {
+        50% {
+            transform: translate(2px, -2px);
+        }
+    }
+
+    @keyframes icono-separa {
+        50% {
+            transform: translate(1.5px, 1.5px);
+        }
+    }
+
+    @keyframes icono-vuelta-horaria {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    /* El icono de un cambio de estado que acaba de pasar: aparece, una vez. */
+    @keyframes icono-aparece {
+        from {
+            opacity: 0;
+            transform: scale(0.4);
+        }
+    }
+
+    @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+        :is([data-slot='button'], [role='menuitem']):not(:disabled, [data-disabled]):hover {
+            & svg.lucide * {
+                transform-box: fill-box;
+                transform-origin: center;
+            }
+
+            /* Editar: la raya se escribe y el lápiz se inclina al hacerlo. */
+            & :is(svg.lucide-pencil-line, svg.lucide-pen-line) {
+                & path:first-child {
+                    --largo: 9;
+                    stroke-dasharray: var(--largo);
+                    animation: icono-trazo var(--duracion-icono) var(--curva);
+                }
+
+                & path:not(:first-child) {
+                    transform-origin: left bottom;
+                    animation: icono-escribe var(--duracion-icono) var(--curva-en-pantalla);
+                }
+            }
+
+            /* Dar por alcanzado, verificar: el check se traza. */
+            & svg.lucide-circle-check path,
+            & svg.lucide-shield-check path:last-child {
+                --largo: 12;
+                stroke-dasharray: var(--largo);
+                animation: icono-trazo var(--duracion-icono) var(--curva);
+            }
+
+            /* No alcanzado: el aspa se traza, un brazo detrás del otro. */
+            & svg.lucide-circle-x path {
+                --largo: 9;
+                stroke-dasharray: var(--largo);
+                animation: icono-trazo var(--duracion-icono) var(--curva) backwards;
+
+                &:last-child {
+                    animation-delay: 60ms;
+                }
+            }
+
+            /* Vincular: los eslabones se juntan. */
+            & svg.lucide-link path:first-child {
+                animation: icono-junta-arriba var(--duracion-icono) var(--curva-en-pantalla);
+            }
+
+            & svg.lucide-link path:last-child {
+                animation: icono-junta-abajo var(--duracion-icono) var(--curva-en-pantalla);
+            }
+
+            /* Retirar: la tapa del archivo se levanta. */
+            & svg.lucide-archive rect {
+                transform-origin: left bottom;
+                animation: icono-levanta var(--duracion-icono) var(--curva-en-pantalla);
+            }
+
+            /* Añadir: un cuarto de vuelta, que en un + acaba donde empezó. */
+            & svg.lucide-plus {
+                animation: icono-cuarto var(--duracion-icono) var(--curva);
+            }
+
+            /* Aprobar: el anillo discontinuo avanza un octavo, lo que mide un trazo. */
+            & svg.lucide-circle-dot-dashed {
+                animation: icono-octavo var(--duracion-icono) var(--curva);
+            }
+
+            /* Reabrir, volver al borrador: una vuelta atrás. */
+            & svg.lucide-rotate-ccw {
+                animation: icono-vuelta var(--duracion-lenta) var(--curva);
+            }
+
+            /* Editar, con el lápiz sin raya: se inclina como al escribir. */
+            & svg.lucide-pencil path {
+                transform-origin: left bottom;
+                animation: icono-escribe var(--duracion-icono) var(--curva-en-pantalla);
+            }
+
+            /* Aprobar, verificar, homologar, publicar, declarar: el check se traza. */
+            & :is(svg.lucide-badge-check, svg.lucide-file-check) path:last-child {
+                --largo: 12;
+                stroke-dasharray: var(--largo);
+                animation: icono-trazo var(--duracion-icono) var(--curva);
+            }
+
+            /* Descartar, anular, cancelar, bloquear, rechazar: la barra se traza. */
+            & svg.lucide-circle-slash line,
+            & svg.lucide-ban path:last-child {
+                /* Lo que mide cada barra: si sobra mucho, el trazo acaba antes de tiempo. */
+                --largo: 10;
+                stroke-dasharray: var(--largo);
+                animation: icono-trazo var(--duracion-icono) var(--curva);
+            }
+
+            & svg.lucide-ban path:last-child {
+                --largo: 21;
+            }
+
+            /* Rechazar una versión: el aspa se traza, como en «No alcanzado». */
+            & svg.lucide-file-x path:nth-last-child(-n + 2) {
+                --largo: 8;
+                stroke-dasharray: var(--largo);
+                animation: icono-trazo var(--duracion-icono) var(--curva) backwards;
+
+                &:last-child {
+                    animation-delay: 60ms;
+                }
+            }
+
+            /* En tratamiento, en remediación: la llave aprieta. */
+            & svg.lucide-wrench {
+                animation: icono-aprieta var(--duracion-icono) var(--curva-en-pantalla);
+            }
+
+            /* Reabrir como abierta, aceptar un riesgo: la exclamación salta. */
+            & svg.lucide-circle-alert line,
+            & svg.lucide-shield-alert path:not(:first-child) {
+                animation: icono-avisa var(--duracion-icono) var(--curva-en-pantalla);
+            }
+
+            /* Pasar a revisión, ver: el ojo parpadea. */
+            & svg.lucide-eye {
+                animation: icono-parpadea var(--duracion-icono) var(--curva-en-pantalla);
+            }
+
+            /* Planificar: la aguja del reloj da la vuelta sobre su centro. */
+            & svg.lucide-calendar-clock path:first-child {
+                transform-box: view-box;
+                transform-origin: 16px 16px;
+                animation: icono-vuelta-horaria var(--duracion-lenta) var(--curva);
+            }
+
+            /* Descargar: la flecha baja a la bandeja. */
+            & svg.lucide-download path:not(:nth-child(2)) {
+                animation: icono-baja var(--duracion-icono) var(--curva-en-pantalla);
+            }
+
+            /* Regenerar, volver a traer: una vuelta en el sentido de la flecha. */
+            & svg.lucide-refresh-cw {
+                animation: icono-vuelta-horaria var(--duracion-lenta) var(--curva);
+            }
+
+            /* Volver y seguir: la flecha se asoma hacia donde lleva. */
+            & svg.lucide-arrow-left {
+                animation: icono-a-la-izquierda var(--duracion-icono) var(--curva-en-pantalla);
+            }
+
+            & svg.lucide-arrow-right {
+                animation: icono-a-la-derecha var(--duracion-icono) var(--curva-en-pantalla);
+            }
+
+            /* Enviar a revisión: el avión despega. */
+            & svg.lucide-send {
+                animation: icono-despega var(--duracion-icono) var(--curva-en-pantalla);
+            }
+
+            /* Firmar: el sello baja y vuelve; la raya de abajo es el papel y no se mueve. */
+            & svg.lucide-stamp path:not(:last-child) {
+                animation: icono-baja var(--duracion-icono) var(--curva-en-pantalla);
+            }
+
+            /* Copiar: la hoja de encima se separa de la de debajo. */
+            & svg.lucide-copy rect {
+                animation: icono-separa var(--duracion-icono) var(--curva-en-pantalla);
+            }
+        }
+    }
+
+    /*
+     * Lo que acaba de pasar, no lo que se señala: el icono de un badge cuyo
+     * estado acaba de cambiar (`CeldaBadge` con `anunciar`) y el check de una
+     * firma que acaba de ponerse. Una vez, al ocurrir, y nunca al pasar por
+     * encima. El `@media` global de abajo lo deja en un fotograma.
+     */
+    .icono-anuncia {
+        animation: icono-aparece var(--duracion-lenta) var(--curva);
+    }
+
+    .icono-dibuja path:last-child {
+        --largo: 12;
+        stroke-dasharray: var(--largo);
+        animation: icono-trazo var(--duracion-lenta) var(--curva) 120ms backwards;
     }
 }
 

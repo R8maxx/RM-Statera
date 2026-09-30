@@ -26,7 +26,17 @@ export interface Plazo {
     fuera: number;
 }
 
-const props = defineProps<{ plazo: Plazo }>();
+const props = withDefaults(
+    defineProps<{
+        plazo: Plazo;
+        /**
+         * Cómo se llama el hito de salida. En una vulnerabilidad es la detección;
+         * en un objetivo, la firma, que es cuando empieza a correr su plazo.
+         */
+        inicio?: string;
+    }>(),
+    { inicio: 'Detectada' },
+);
 
 const tramos = computed(() => {
     const { dias, transcurridos, fuera } = props.plazo;
@@ -41,7 +51,9 @@ const tramos = computed(() => {
 /**
  * Dónde cae el hito de en medio. El que acaba la barra —el límite o el fin, el
  * que llegue después— va al 100 %; el otro, en su sitio, sujeto lejos de los
- * extremos para que su rótulo no pise los de al lado.
+ * extremos para que su rótulo no pise los de al lado: con el 18 % que tenía,
+ * «Aprobado» y «Hoy» se montaban en un plazo recién empezado. La posición exacta
+ * ya la dice el tramo de la barra.
  */
 const hitos = computed(() => {
     const { dias, transcurridos, fuera, limite, fin, finRotulo } = props.plazo;
@@ -51,7 +63,7 @@ const hitos = computed(() => {
     const [intermedio, ultimo] = fuera > 0 ? [limiteHito, finHito] : [finHito, limiteHito];
 
     return {
-        intermedio: { ...intermedio, sitio: Math.min(82, Math.max(18, (intermedio.dia / total) * 100)) },
+        intermedio: { ...intermedio, sitio: Math.min(70, Math.max(30, (intermedio.dia / total) * 100)) },
         ultimo,
     };
 });
@@ -60,7 +72,7 @@ const descripcion = computed(() => {
     const { detectada, transcurridos, dias, fuera } = props.plazo;
     const { intermedio, ultimo } = hitos.value;
 
-    return `Detectada el ${fechaLegible(detectada)}; ${intermedio.rotulo.toLowerCase()}, ${intermedio.cuando}; ${ultimo.rotulo.toLowerCase()}, ${ultimo.cuando}. ${transcurridos} de ${dias} días${
+    return `${props.inicio} el ${fechaLegible(detectada)}; ${intermedio.rotulo.toLowerCase()}, ${intermedio.cuando}; ${ultimo.rotulo.toLowerCase()}, ${ultimo.cuando}. ${transcurridos} de ${dias} días${
         fuera > 0 ? `, ${fuera} fuera de plazo` : ''
     }.`;
 });
@@ -86,7 +98,7 @@ const descripcion = computed(() => {
 
         <div class="relative h-8 text-xs text-muted-foreground" aria-hidden="true">
             <span class="absolute left-0 flex flex-col">
-                <span class="font-medium text-foreground">Detectada</span>
+                <span class="font-medium text-foreground">{{ inicio }}</span>
                 <span class="cifra">{{ fechaLegible(plazo.detectada) }}</span>
             </span>
             <span class="absolute flex -translate-x-1/2 flex-col items-center" :style="{ left: `${hitos.intermedio.sitio}%` }">

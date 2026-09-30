@@ -160,7 +160,7 @@ const abiertas = computed(
         </CabeceraPagina>
 
         <div class="flex flex-wrap items-center gap-2">
-            <CeldaBadge
+            <CeldaBadge anunciar
                 :valor="{
                     valor: revision.estado,
                     etiqueta: revision.estadoEtiqueta,

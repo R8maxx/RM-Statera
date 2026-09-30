@@ -347,7 +347,7 @@ function cambiarEstado(): void {
                     <CardContent class="space-y-4">
                         <div class="flex items-center gap-3">
                             <span class="text-sm text-muted-foreground">Ahora:</span>
-                            <CeldaBadge
+                            <CeldaBadge anunciar
                                 :valor="{
                                     valor: implantacion.estado,
                                     etiqueta: implantacion.estadoEtiqueta,

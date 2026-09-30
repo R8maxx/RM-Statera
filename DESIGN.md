@@ -525,6 +525,7 @@ Y sigue en pie la mitad de la regla que protege la herramienta: **lo decorativo 
 ### Los números
 
 - 120 ms en hover y foco, 220 ms en lo general, 380 ms en modales y paneles laterales
+- 280 ms (`--duracion-icono`) para el gesto del icono de un control al pasar el puntero: el trazo tiene que poder verse, y se ve decenas de veces al día
 - **Toda salida es más corta que su entrada**: 160 ms frente a 220. Una salida que tarda lo mismo que su entrada se percibe como que la interfaz tarda en obedecer, porque en ese momento ya se ha decidido y sólo falta que desaparezca
 - Las entradas se desplazan 8 px, no 30. Ocho ordenan la lectura; treinta la interrumpen
 - Muelle (`stiffness: 220, damping: 26`) sólo para lo que se arrastra
@@ -544,6 +545,51 @@ Y sigue en pie la mitad de la regla que protege la herramienta: **lo decorativo 
 - **`.desplegable` es la forma canónica de plegar.** Rejilla de `0fr` a `1fr`, que anima una altura que nadie ha medido y **deja el contenido en el DOM** —lo que sale del DOM sale del `FormData`—. A altura cero el contenido sigue siendo tabulable, así que va con `inert`.
 - **`.tachado` es la otra utilidad de `app.css`**, y existe porque `text-decoration` no se puede animar. Un paso que se marca hecho se tacha con un `scaleX` sobre un pseudo-elemento: la raya se traza de izquierda a derecha y confirma que el clic llegó, que en una lista que se guarda contra el servidor es el único acuse que hay.
 - **Toda lista que puede menguar lleva salida**, con `AnimatePresence` o `<TransitionGroup>`. Una fila que desaparece de un fotograma al siguiente y arrastra a las de abajo es el salto más común y el más fácil de evitar.
+
+### Los iconos de lo que se pulsa
+
+Al pasar el puntero por un **botón o una entrada de menú**, su icono hace un gesto que dice qué va a pasar. No es un sexto momento de deleite: es feedback —«esto responde»—, que es una de las razones por las que algo se anima aquí, y por eso cabe en la fila de «decenas de veces» con su propia duración. Vive en `app.css`, enganchado a la clase de Lucide dentro de `[data-slot="button"]` y `[role="menuitem"]`, así que lo hereda cualquier botón con uno de estos iconos sin tocar el componente.
+
+| Icono | Gesto | Dónde se ve primero |
+|---|---|---|
+| `PencilLine`, `PenLine` | La raya se escribe y el lápiz se inclina | Editar |
+| `CircleCheck`, `ShieldCheck` | El check se traza | Dar por alcanzado, verificar |
+| `CircleX` | El aspa se traza, un brazo detrás del otro | Dar por no alcanzado |
+| `Link` | Los eslabones se juntan | Vincular |
+| `Archive` | La tapa se levanta | Retirar |
+| `Plus` | Un cuarto de vuelta | Añadir, abrir |
+| `CircleDotDashed` | El anillo avanza un octavo | Aprobar |
+| `RotateCcw` | Una vuelta atrás | Reabrir, volver al borrador |
+| `Pencil` | El lápiz se inclina como al escribir | Editar, en las fichas que lo usan sin raya |
+| `BadgeCheck`, `FileCheck` | El check se traza | Aprobar, verificar, homologar, publicar, declarar |
+| `CircleSlash`, `Ban` | La barra se traza | Descartar, anular, cancelar, bloquear, rechazar un proveedor |
+| `FileX` | El aspa se traza | Rechazar una versión |
+| `Wrench` | La llave aprieta | En tratamiento, en remediación |
+| `CircleAlert`, `ShieldAlert` | La exclamación salta | Reabrir como abierta, aceptar una vulnerabilidad |
+| `Eye` | Parpadea | Pasar a revisión, vista previa |
+| `CalendarClock` | La aguja da la vuelta | Planificar |
+| `Download` | La flecha baja a la bandeja | Descargar el PDF, exportar CSV |
+| `RefreshCw` | Una vuelta en el sentido de la flecha | Regenerar, volver a traer de NVD |
+| `ArrowLeft`, `ArrowRight` | Se asoma hacia donde lleva | Volver, siguiente paso del recorrido |
+| `Send` | El avión despega | Enviar a revisión |
+| `Stamp` | El sello baja; el papel no se mueve | Firmar una versión |
+| `Copy` | La hoja de encima se separa | Copiar la huella |
+
+**La lista es cerrada**, como los cinco momentos: un icono nuevo entra aquí antes de animarse.
+
+**Y lo que se queda quieto a propósito**, para que nadie lo «complete»:
+
+- **El chrome que se usa cien veces al día**: chevrons de paginación y de desplegables, `Ellipsis` de las filas, la lupa, el menú, plegar el sidebar, los controles de columnas, filtros, densidad y orden de la tabla. Es la primera fila de la tabla de arriba: nada.
+- **Cerrar y quitar (`X`)**. Lo que se aparta tiene que obedecer al instante, y una × que gira antes de cerrar parece que tarda.
+- **Lo destructivo**. Borrar o dar de baja no se adorna: un gesto simpático en `Trash2` invita a pulsarlo, y la regla de Protección (§ 1) pide lo contrario.
+- **El menú de la cuenta y el tema** (`Bell`, `LogOut`, `Sun`, `Moon`…). Es navegación, no una acción sobre un dato.
+- **Los iconos que no nombran un verbo** —`FileText`, `Network`, `Lock`, `Type`, `Building`— y los estados a los que no se llega con un botón (`Circle`, `LoaderCircle`, `MailClock`…). Un gesto sin acción detrás es decoración. Y tiene tres fronteras que no se cruzan:
+
+- **Nunca en un badge al pasar por encima.** Un badge no se pulsa, y si se moviera parecería que sí; en una tabla de noventa filas, barrer la pantalla con el ratón encendería veinte a la vez.
+- **Nunca con teclado, en táctil ni con movimiento reducido.** Sólo `hover: hover`, sin `:focus-visible`: una acción iniciada con el teclado no se anima nunca.
+- **Todo gesto acaba donde empezó**, para que salir a mitad no deje un icono torcido. Sólo `transform` y el trazo del SVG.
+
+**Lo que sí se anima en un badge es lo que acaba de pasar.** Con `anunciar`, `CeldaBadge` hace aparecer su icono cuando el valor cambia delante de quien mira —el estado de una ficha tras pulsar su transición—; nunca en el primer pintado ni en una tabla, donde una página nueva de filas no es un cambio de nada. Lo mismo el sello de una firma que acaba de ponerse: su check se traza una vez; hoy sólo lo tiene la ficha de un objetivo, que es la única que pinta la firma como sello. **Toda ficha con estado propio lleva `anunciar` en el badge de ese estado** —el de la cabecera o el de su tarjeta «Estado»—, y nunca en los badges de sus filas. La de una vulnerabilidad, que pinta su estado como un bloque grande y no con `CeldaBadge`, hace lo mismo a mano.
 
 ### El cambio de tema se funde, y no hace nada más
 
@@ -566,6 +612,8 @@ Con `prefers-reduced-motion` se acorta a 120 ms y pasa a lineal, no se quita: aq
 3. **El recorrido guiado.** El panel acompaña al recorte del foco en vez de reaparecer, y el velo se retira desde el centro al terminar.
 4. **El 100 % del panel.** La cifra de implantación da un pulso, una vez, sin bucle y sólo en 100; lo mismo hace `AnilloProgreso` donde todavía se usa.
 5. **La serie de un indicador.** Al abrir la ficha, la línea se traza de izquierda a derecha en 700 ms con `--curva-en-pantalla` y cada punto aparece cuando la línea llega a él —una vez por visita; una recarga parcial no la repite—. Al sellar un periodo, el tramo nuevo se alarga en 520 ms, el punto aterriza y, si alcanza el objetivo, deja una onda que se abre una vez. La cifra de la franja cuenta hasta el valor nuevo, el marcador de la barra viaja y la fila entra por arriba con un resaltado que se apaga. Un periodo se sella una vez por trimestre: es el «una vez, o casi» de la tabla, y es el único acuse de que la cifra entró en la serie. Lo hace `grafica/GraficaSerie.vue`, con la API de animaciones web porque los retrasos salen de la geometría; esa API no la alcanza el `@media` global, así que con movimiento reducido lo resuelve el componente: nada se traza y el punto nuevo sólo se funde en 120 ms.
+
+   **La misma serie en la ficha de un objetivo es este momento, no un sexto.** La gráfica de arriba se traza igual, y la tendencia de cada fila de «Cómo se evalúan los resultados» (`objetivo/TendenciaIndicador.vue`) levanta sus barras desde la base en el mismo `duracion.trazo` y con `--curva-en-pantalla`, escalonadas de izquierda a derecha, para que las dos se lean como un solo gesto. Una vez por visita: vincular o desvincular no la repite, y sólo se levanta la fila que entra nueva. Con movimiento reducido, quietas. Las cifras grandes de esa ficha —el valor y los días que quedan— cuentan con `Cifra`, porque resumen; las de la tabla, no.
 
 ### Dos bucles en todo el producto
 

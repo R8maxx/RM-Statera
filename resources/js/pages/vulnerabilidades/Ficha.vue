@@ -25,7 +25,7 @@ import type { Opcion } from '@/lib/formularios';
 import { tono } from '@/lib/tonos';
 import { Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { ExternalLinkIcon, InfoIcon, PlusIcon, ShieldAlertIcon } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 /**
  * La ficha de una vulnerabilidad (invariante 8, A.8.8, `op.exp.4`).
@@ -184,6 +184,22 @@ const pendientes = computed<string[]>(() =>
 );
 
 const estadoActual = computed(() => tono(props.vulnerabilidad.estadoTono));
+
+/*
+ * El icono del estado aparece cuando el estado cambia delante de quien mira, lo
+ * mismo que `CeldaBadge` con `anunciar` (DESIGN.md §10): este bloque es el badge
+ * de la ficha en grande. Va de clave para que el icono se monte de nuevo.
+ */
+const cambiosEstado = ref(0);
+
+watch(
+    () => props.vulnerabilidad.estado,
+    (nuevo, anterior) => {
+        if (nuevo !== anterior) {
+            cambiosEstado.value++;
+        }
+    },
+);
 const desde = computed(() => props.historial.at(-1)?.fecha ?? null);
 const terminal = computed(() => ['cerrada', 'aceptada', 'falso_positivo'].includes(props.vulnerabilidad.estado));
 
@@ -467,7 +483,11 @@ const rotuloPaso = (paso: PasoCamino): string => {
                     </CardHeader>
                     <CardContent class="space-y-4">
                         <div class="flex items-center gap-3 rounded-md px-4 py-3.5" :class="estadoActual.badge">
-                            <IconoTipo :nombre="vulnerabilidad.estadoIcono" clase="size-6 shrink-0" />
+                            <IconoTipo
+                                :key="cambiosEstado"
+                                :nombre="vulnerabilidad.estadoIcono"
+                                :clase="cambiosEstado > 0 ? 'size-6 shrink-0 icono-anuncia' : 'size-6 shrink-0'"
+                            />
                             <div class="flex flex-col">
                                 <span class="text-base font-semibold">{{ vulnerabilidad.estadoEtiqueta }}</span>
                                 <span v-if="desde" class="text-xs text-secondary-foreground">Desde el {{ fechaLegible(desde) }}</span>

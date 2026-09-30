@@ -248,7 +248,7 @@ function abrirTarea(): void {
         </CabeceraPagina>
 
         <div class="flex flex-wrap items-center gap-2">
-            <CeldaBadge
+            <CeldaBadge anunciar
                 :valor="{
                     valor: proveedor.estado,
                     etiqueta: proveedor.estadoEtiqueta,

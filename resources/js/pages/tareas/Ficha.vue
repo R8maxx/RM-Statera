@@ -233,7 +233,7 @@ function mover(estado: string): void {
         <CabeceraPagina :titulo="tarea.titulo" :descripcion="tarea.descripcion">
             <!-- Cómo va, sin bajar a la columna lateral: estado, quién y para cuándo. -->
             <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
-                <CeldaBadge :valor="estadoActual" />
+                <CeldaBadge anunciar :valor="estadoActual" />
                 <span class="inline-flex items-center gap-1.5">
                     <UserIcon class="size-4" aria-hidden="true" />
                     {{ tarea.responsable ?? 'Sin responsable' }}
@@ -449,7 +449,7 @@ function mover(estado: string): void {
                 <Card>
                     <CardHeader class="flex flex-row items-center justify-between gap-3">
                         <CardTitle>Estado</CardTitle>
-                        <CeldaBadge :valor="estadoActual" />
+                        <CeldaBadge anunciar :valor="estadoActual" />
                     </CardHeader>
 
                     <CardContent v-if="puedeGestionar" class="space-y-4">

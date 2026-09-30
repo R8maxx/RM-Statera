@@ -335,7 +335,7 @@ const kb = (bytes: number | null | undefined): string =>
                                             documento, que es lo que le importa a
                                             quien lo firma.
                                         -->
-                                        <CeldaBadge
+                                        <CeldaBadge anunciar
                                             v-if="enCurso || versionEnCurso.generacion === 'fallida'"
                                             :valor="{
                                                 valor: versionEnCurso.generacion,
@@ -343,7 +343,7 @@ const kb = (bytes: number | null | undefined): string =>
                                                 tono: versionEnCurso.generacionTono,
                                             }"
                                         />
-                                        <CeldaBadge
+                                        <CeldaBadge anunciar
                                             v-else
                                             :valor="{
                                                 valor: versionEnCurso.estado,
