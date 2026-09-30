@@ -179,3 +179,14 @@ it('no se elimina una revisión con acta', function (): void {
 
     expect($revision->fresh())->not->toBeNull();
 });
+
+it('la ficha del acta enlaza de vuelta a su revisión', function (): void {
+    $revision = ($this->aprobada)();
+    $documento = Documento::factory()->actaRevision($revision)->create();
+
+    $this->actingAs($this->usuario)
+        ->get("/documentos/{$documento->id}")
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->where('documento.fuente.codigo', $revision->codigo)
+            ->where('documento.fuente.href', "/revision-direccion/{$revision->id}"));
+});

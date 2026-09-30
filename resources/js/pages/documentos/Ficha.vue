@@ -61,6 +61,8 @@ const props = defineProps<{
         clasificacionEtiqueta: string;
         sistema: string | null;
         sistemaCodigo: string | null;
+        /** La auditoría o la revisión de la que nace, en los tipos que nacen de su fuente. */
+        fuente: { etiqueta: string; codigo: string; href: string } | null;
         marco: string | null;
         responsable: string | null;
         notas: string | null;
@@ -519,6 +521,20 @@ const kb = (bytes: number | null | undefined): string =>
                                     Enseñar «— —» donde no hay nada es peor que no
                                     enseñar la fila.
                                 -->
+                                <!-- El enlace de vuelta a lo que recoge: la ficha de origen ya enlaza aquí. -->
+                                <div v-if="documento.fuente" class="flex flex-col gap-0.5">
+                                    <dt class="text-[13px] font-medium text-muted-foreground">
+                                        {{ documento.fuente.etiqueta }}
+                                    </dt>
+                                    <dd>
+                                        <Link
+                                            :href="documento.fuente.href"
+                                            class="cifra text-primary underline-offset-4 hover:underline"
+                                        >
+                                            {{ documento.fuente.codigo }}
+                                        </Link>
+                                    </dd>
+                                </div>
                                 <div v-if="documento.sistema" class="flex flex-col gap-0.5">
                                     <dt class="text-[13px] font-medium text-muted-foreground">Sistema</dt>
                                     <dd>{{ documento.sistemaCodigo }} — {{ documento.sistema }}</dd>

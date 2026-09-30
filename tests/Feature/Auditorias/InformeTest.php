@@ -204,3 +204,22 @@ it('borrar el sistema arrastra la auditoría y su informe sin fallar', function 
     expect(Auditoria::query()->count())->toBe(0)
         ->and(Documento::query()->count())->toBe(0);
 });
+
+it('la ficha del informe enlaza de vuelta a su auditoría', function (): void {
+    $auditoria = autoevaluacion($this->sistema);
+    $documento = Documento::factory()->informeAuditoria($auditoria)->create();
+
+    $this->actingAs($this->usuario)
+        ->get("/documentos/{$documento->id}")
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->where('documento.fuente.codigo', $auditoria->codigo)
+            ->where('documento.fuente.href', "/auditorias/{$auditoria->id}"));
+});
+
+it('un documento que no nace de su fuente no enlaza a ninguna', function (): void {
+    $documento = Documento::factory()->informeEstado()->create();
+
+    $this->actingAs($this->usuario)
+        ->get("/documentos/{$documento->id}")
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina->where('documento.fuente', null));
+});

@@ -93,7 +93,7 @@ class DocumentoController extends Controller
      */
     public function show(Request $request, Documento $documento, CoberturaAcuse $acuse): Response
     {
-        $documento->load(['sistema.marco', 'responsable']);
+        $documento->load(['sistema.marco', 'responsable', 'auditoria', 'revisionDireccion']);
 
         $vigente = $documento->versionAprobada()->with('aprobadaPor')->first();
         $usuario = $request->user();
@@ -501,7 +501,32 @@ class DocumentoController extends Controller
             'periodicidad_revision_meses' => $documento->periodicidad_revision_meses,
             'exige_acuse' => $documento->exigeAcuse(),
             'redactado' => $documento->tipo->esRedactado(),
+            'fuente' => $this->fuente($documento),
         ];
+    }
+
+    /**
+     * De dónde nace, en los dos tipos que nacen de su fuente: la auditoría de un
+     * informe o la revisión de un acta. Es el enlace de vuelta del que la ficha
+     * de origen ya tiene de ida.
+     *
+     * @return array{etiqueta: string, codigo: string, href: string}|null
+     */
+    private function fuente(Documento $documento): ?array
+    {
+        return match (true) {
+            $documento->auditoria !== null => [
+                'etiqueta' => 'Auditoría',
+                'codigo' => $documento->auditoria->codigo,
+                'href' => route('auditorias.show', $documento->auditoria, absolute: false),
+            ],
+            $documento->revisionDireccion !== null => [
+                'etiqueta' => 'Revisión por la dirección',
+                'codigo' => $documento->revisionDireccion->codigo,
+                'href' => route('revision-direccion.show', $documento->revisionDireccion, absolute: false),
+            ],
+            default => null,
+        };
     }
 
     /**
