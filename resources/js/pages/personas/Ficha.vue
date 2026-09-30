@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { fechaLegible } from '@/lib/celdas';
+import { distanciaLegible, fechaLegible } from '@/lib/celdas';
 import Aviso from '@/components/Aviso.vue';
 import BloqueAdjuntos, { type Adjunto as Documento } from '@/components/adjunto/BloqueAdjuntos.vue';
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
@@ -11,7 +11,8 @@ import IconoTipo from '@/components/IconoTipo.vue';
 import ListaComprobacion, { type Paso } from '@/components/tarea/ListaComprobacion.vue';
 import CeldaBadge from '@/components/tabla/celdas/CeldaBadge.vue';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
     Dialog,
     DialogContent,
@@ -23,13 +24,21 @@ import {
 import { useDesplegable } from '@/composables/useDesplegable';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { conOpcionVacia, SIN_VALOR } from '@/lib/formularios';
+import { tono } from '@/lib/tonos';
 import { Link, router, useForm, usePage } from '@inertiajs/vue3';
 import {
     BriefcaseIcon,
     ChevronRightIcon,
+    DownloadIcon,
     FileSignatureIcon,
+    FileTextIcon,
     GraduationCapIcon,
+    LogInIcon,
+    LogOutIcon,
+    PencilLineIcon,
+    PlusIcon,
     UserCheckIcon,
+    UserRoundIcon,
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
@@ -392,33 +401,105 @@ const listasOrdenadas = computed(() =>
         ? props.pasos
         : [...props.pasos].sort((a, b) => Number(b.tipo === 'baja') - Number(a.tipo === 'baja')),
 );
+
+/*
+ * --- El resumen de arriba ---
+ *
+ * Una fila con lo que un auditor mira de una persona —puesto, cargos ENS,
+ * `mp.per.2`, `mp.per.3`/`mp.per.4` y la checklist que toca— antes del detalle.
+ * Es el elemento fuerte de la ficha (DESIGN.md §1): sin él eran seis tarjetas
+ * del mismo peso y había que leerlas todas para saber si faltaba algo. Todo se
+ * cuenta desde las props que ya llegan; no pide nada al servidor.
+ */
+const sistemasVigentes = computed(() => [
+    ...new Set(vigentes.value.map((item) => item.sistema).filter((sistema) => sistema !== null)),
+]);
+
+const acuerdoVigente = computed(() => props.acuerdos.find((item) => item.vigente) ?? null);
+
+/**
+ * Firmado y con su papel, firmado sin papel o sin firmar. El del medio no es
+ * rojo: la medida está declarada y no probada, que es un «a medias» y no algo
+ * que vaya mal.
+ */
+const situacionAcuerdo = computed(() => {
+    const vigente = acuerdoVigente.value;
+
+    if (vigente === null) {
+        return { valor: 'sin_acuerdo', etiqueta: 'Sin acuerdo vigente', tono: 'no_iniciado', icono: 'FileX' };
+    }
+
+    return vigente.evidencia_id === null
+        ? { valor: 'sin_documento', etiqueta: 'Firmado, sin documento', tono: 'en_progreso', icono: 'PenLine' }
+        : { valor: 'probado', etiqueta: 'Firmado y probado', tono: 'implantado', icono: 'FileCheck' };
+});
+
+/** La formación llega ordenada de la más reciente a la más antigua. */
+const asistidas = computed(() => props.formacion.filter((item) => item.asistio));
+
+/** Mientras está en plantilla cuenta la de alta; tras la baja, la de salida. */
+const listaDelResumen = computed(
+    () => props.pasos.find((lista) => lista.tipo === (props.persona.fecha_baja === null ? 'alta' : 'baja')) ?? null,
+);
+
+const pasosHechos = computed(() => listaDelResumen.value?.pasos.filter((paso) => paso.hecho).length ?? 0);
+const pasosTotales = computed(() => listaDelResumen.value?.pasos.length ?? 0);
+
+/**
+ * Los tramos de una barra de avance: lo hecho en verde y lo que falta en el
+ * hueco gris, o en rojo si es la salida de alguien que ya se fue.
+ */
+function tramos(hechos: number, total: number, alarma = false): { clase: string; peso: number }[] {
+    return [
+        { clase: tono('implantado').tramo, peso: hechos },
+        { clase: tono(alarma ? 'caducada' : 'no_iniciado').tramo, peso: total - hechos },
+    ].filter((tramo) => tramo.peso > 0);
+}
+
+/** Una checklist de salida sin estrenar en alguien que sigue: se pinta en reposo. */
+function enReposo(lista: Checklist): boolean {
+    return lista.tipo === 'baja' && props.persona.fecha_baja === null && lista.pasos.every((paso) => !paso.hecho);
+}
 </script>
 
 <template>
     <AppLayout :titulo="persona.nombre">
-        <CabeceraPagina :titulo="persona.nombre" :codigo="persona.codigo" :descripcion="persona.puesto">
+        <!--
+            El estado, las fechas y el correo van dentro de la cabecera y no en
+            una fila suelta debajo: son lo que dice quién es, junto al nombre.
+        -->
+        <CabeceraPagina :titulo="persona.nombre" :codigo="persona.codigo">
+            <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                <CeldaBadge anunciar
+                    :valor="{
+                        valor: persona.activa ? 'activa' : 'baja',
+                        etiqueta: persona.estadoEtiqueta,
+                        tono: persona.estadoTono,
+                        icono: persona.estadoIcono,
+                    }"
+                />
+                <span v-if="persona.puesto">{{ persona.puesto }}</span>
+                <span v-if="persona.fecha_baja">
+                    Del {{ fechaLegible(persona.fecha_alta) }} al {{ fechaLegible(persona.fecha_baja) }}
+                    ({{ distanciaLegible(persona.fecha_baja) }})
+                </span>
+                <span v-else>Alta el {{ fechaLegible(persona.fecha_alta) }}</span>
+                <a
+                    v-if="persona.email"
+                    :href="`mailto:${persona.email}`"
+                    class="text-primary underline-offset-4 hover:underline"
+                >{{ persona.email }}</a>
+            </div>
+
             <template #acciones>
                 <Button v-if="puedeGestionar" as-child variant="outline">
-                    <Link :href="`/personas/${persona.id}/editar`">Editar</Link>
+                    <Link :href="`/personas/${persona.id}/editar`">
+                        <PencilLineIcon />
+                        Editar
+                    </Link>
                 </Button>
             </template>
         </CabeceraPagina>
-
-        <div class="flex flex-wrap items-center gap-2">
-            <CeldaBadge anunciar
-                :valor="{
-                    valor: persona.activa ? 'activa' : 'baja',
-                    etiqueta: persona.estadoEtiqueta,
-                    tono: persona.estadoTono,
-                    icono: persona.estadoIcono,
-                }"
-            />
-            <span class="text-sm text-muted-foreground">
-                Desde el {{ fechaLegible(persona.fecha_alta) }}
-                <template v-if="persona.fecha_baja"> hasta el {{ fechaLegible(persona.fecha_baja) }}</template>
-            </span>
-            <span v-if="persona.email" class="text-sm text-muted-foreground">{{ persona.email }}</span>
-        </div>
 
         <!--
             El único rojo del módulo, y es el hermano exacto del equipo retirado
@@ -434,14 +515,138 @@ const listasOrdenadas = computed(() =>
             <span class="cifra">mp.per.*</span>, y es lo que un auditor comprueba primero.
         </Aviso>
 
-        <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <!--
+            Lo que el auditor mira, antes que el detalle. `gap-px` sobre el fondo
+            del borde dibuja los divisores en cualquier número de columnas: con
+            `divide-x` se perdían al partirse la fila en móvil.
+        -->
+        <section
+            aria-label="Medidas de personal"
+            class="grid gap-px overflow-hidden rounded-xl bg-border ring-1 ring-foreground/10 sm:grid-cols-2 lg:grid-cols-5"
+        >
+            <div class="flex flex-col gap-2 bg-card px-6 py-5">
+                <p class="flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground">
+                    <BriefcaseIcon class="size-4" />
+                    Puesto
+                </p>
+                <p class="text-lg leading-6 font-semibold" :class="asignacionVigente === null && 'text-muted-foreground'">
+                    {{ asignacionVigente?.puesto ?? 'Sin puesto' }}
+                </p>
+                <p class="text-xs text-muted-foreground">
+                    <template v-if="asignacionVigente">Desde el {{ asignacionVigente.desde }}</template>
+                    <template v-else-if="asignacionesPasadas.length > 0">
+                        {{ asignacionesPasadas[0].puesto }} hasta el {{ asignacionesPasadas[0].hasta }}
+                    </template>
+                    <template v-else>No figura en el organigrama</template>
+                </p>
+            </div>
+
+            <div class="flex flex-col gap-2 bg-card px-6 py-5">
+                <p class="flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground">
+                    <UserCheckIcon class="size-4" />
+                    Nombramientos ENS
+                </p>
+                <p class="text-lg leading-6 font-semibold">
+                    <span class="cifra">{{ vigentes.length }}</span>
+                    {{ vigentes.length === 1 ? 'vigente' : 'vigentes' }}
+                </p>
+                <p class="text-xs text-muted-foreground">
+                    <template v-if="sistemasVigentes.length > 0">
+                        En <span class="cifra">{{ sistemasVigentes.join(', ') }}</span>
+                    </template>
+                    <template v-else>Ningún cargo ahora</template>
+                    <template v-if="historicas.length > 0">
+                        · {{ historicas.length }} revocado{{ historicas.length === 1 ? '' : 's' }}
+                    </template>
+                </p>
+            </div>
+
+            <div class="flex flex-col gap-2 bg-card px-6 py-5">
+                <p class="flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground">
+                    <FileSignatureIcon class="size-4" />
+                    Confidencialidad
+                    <span class="cifra text-xs">mp.per.2</span>
+                </p>
+                <div><CeldaBadge :valor="situacionAcuerdo" /></div>
+                <p class="text-xs text-muted-foreground">
+                    <template v-if="acuerdoVigente">
+                        Firmado el {{ acuerdoVigente.fecha_firma }} ·
+                        {{ acuerdoVigente.vigente_hasta ? `hasta el ${acuerdoVigente.vigente_hasta}` : 'sin vencimiento' }}
+                    </template>
+                    <template v-else>Los deberes tienen que constar por escrito</template>
+                </p>
+            </div>
+
+            <div class="flex flex-col gap-2 bg-card px-6 py-5">
+                <p class="flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground">
+                    <GraduationCapIcon class="size-4" />
+                    Formación
+                    <span class="cifra text-xs">mp.per.3·4</span>
+                </p>
+                <p class="text-lg leading-6 font-semibold">
+                    <span class="cifra">{{ asistidas.length }}</span> de
+                    <span class="cifra">{{ formacion.length }}</span>
+                    {{ formacion.length === 1 ? 'sesión' : 'sesiones' }}
+                </p>
+                <div
+                    v-if="formacion.length > 0"
+                    class="flex h-1.5 gap-0.5"
+                    role="img"
+                    :aria-label="`Asistió a ${asistidas.length} de ${formacion.length} sesiones`"
+                >
+                    <div
+                        v-for="tramo in tramos(asistidas.length, formacion.length)"
+                        :key="tramo.clase"
+                        class="rounded-full"
+                        :class="tramo.clase"
+                        :style="{ flexGrow: tramo.peso }"
+                    />
+                </div>
+                <p class="text-xs text-muted-foreground">
+                    {{ asistidas.length > 0 ? `Última, el ${asistidas[0].fecha}` : 'Sin asistencias registradas' }}
+                </p>
+            </div>
+
+            <div class="flex flex-col gap-2 bg-card px-6 py-5 sm:col-span-2 lg:col-span-1">
+                <p class="flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground">
+                    <component :is="persona.fecha_baja === null ? LogInIcon : LogOutIcon" class="size-4" />
+                    Checklist de {{ persona.fecha_baja === null ? 'alta' : 'salida' }}
+                </p>
+                <p class="text-lg leading-6 font-semibold">
+                    <span class="cifra">{{ pasosHechos }}</span> de
+                    <span class="cifra">{{ pasosTotales }}</span> pasos
+                </p>
+                <div
+                    v-if="pasosTotales > 0"
+                    class="flex h-1.5 gap-0.5"
+                    role="img"
+                    :aria-label="`${pasosHechos} de ${pasosTotales} pasos hechos`"
+                >
+                    <div
+                        v-for="tramo in tramos(pasosHechos, pasosTotales, persona.esperaCierreDeBaja)"
+                        :key="tramo.clase"
+                        class="rounded-full"
+                        :class="tramo.clase"
+                        :style="{ flexGrow: tramo.peso }"
+                    />
+                </div>
+                <p
+                    class="text-xs"
+                    :class="persona.esperaCierreDeBaja ? 'font-medium text-destructive' : 'text-muted-foreground'"
+                >
+                    <template v-if="pasosTotales === 0">Sin pasos escritos</template>
+                    <template v-else-if="pasosHechos === pasosTotales">Todos hechos</template>
+                    <template v-else>{{ pasosTotales - pasosHechos }} pendientes</template>
+                </p>
+            </div>
+        </section>
+
+        <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start">
             <div class="space-y-6">
                 <!--
                     Puesto y nombramientos en una sola tarjeta: las dos cosas
                     contestan a qué papel tiene esta persona, las dos llevan
-                    vigencia y las dos guardan lo que fue. En tarjetas separadas,
-                    la ficha eran seis bloques apilados del mismo peso y no
-                    mandaba ninguno.
+                    vigencia y las dos guardan lo que fue.
 
                     Y el puesto va ANTES que los nombramientos, que no es un
                     capricho de orden: el puesto es lo que esta persona hace
@@ -453,133 +658,152 @@ const listasOrdenadas = computed(() =>
                     <CardHeader>
                         <CardTitle>Puesto y nombramientos</CardTitle>
                         <CardDescription>
-                            Lo que hace todos los días y los cargos ENS que se le suman. Nada se
-                            borra: la pregunta del auditor es desde cuándo, y también hasta cuándo.
+                            Lo que hace cada día y los cargos del ENS que se le suman. Nada se borra:
+                            cada fila guarda desde cuándo y hasta cuándo.
                         </CardDescription>
                     </CardHeader>
                     <CardContent class="space-y-6">
-                        <section class="space-y-4" aria-labelledby="titulo-puesto">
-                            <h3 id="titulo-puesto" class="text-sm font-semibold">Puesto</h3>
+                        <section class="space-y-3" aria-labelledby="titulo-puesto">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <h3 id="titulo-puesto" class="text-sm font-semibold">Puesto</h3>
+                                <div v-if="puedeGestionar" class="flex flex-wrap gap-2">
+                                    <Button
+                                        v-if="asignacionVigente"
+                                        variant="ghost"
+                                        size="sm"
+                                        @click="cerrarPuesto(asignacionVigente.id)"
+                                    >
+                                        Dejar el puesto
+                                    </Button>
+                                    <Button v-if="persona.activa" variant="outline" size="sm" @click="abrirPuesto">
+                                        {{ asignacionVigente === null ? 'Asignar un puesto' : 'Cambiar de puesto' }}
+                                    </Button>
+                                </div>
+                            </div>
+
                             <EstadoVacio
-                                v-if="asignacionVigente === null"
+                                v-if="asignaciones.length === 0"
                                 :icono="BriefcaseIcon"
                                 titulo="Sin puesto asignado"
                                 descripcion="Asignarle uno es lo que la coloca en el organigrama."
                             />
 
-                            <div v-else class="flex flex-wrap items-center gap-2 text-sm">
-                                <Link
-                                    :href="`/puestos/${asignacionVigente.puesto_id}`"
-                                    class="font-medium underline-offset-4 hover:underline"
+                            <!--
+                                Una línea de tiempo: el vigente con su punto de
+                                marca y los anteriores en hueco. Leída de arriba
+                                abajo contesta a «qué puesto tenía el 3 de marzo».
+                            -->
+                            <ol v-else class="text-sm">
+                                <li
+                                    v-for="(asignacion, indice) in asignaciones"
+                                    :key="asignacion.id"
+                                    class="grid grid-cols-[1.25rem_minmax(0,1fr)_auto] gap-x-3"
                                 >
-                                    <span class="cifra text-muted-foreground">{{ asignacionVigente.codigo }}</span>
-                                    {{ asignacionVigente.puesto }}
-                                </Link>
-                                <span class="text-muted-foreground">desde el {{ asignacionVigente.desde }}</span>
-                                <span v-if="asignacionVigente.nota" class="text-muted-foreground">
-                                    · {{ asignacionVigente.nota }}
-                                </span>
-                                <Button
-                                    v-if="puedeGestionar"
-                                    variant="ghost"
-                                    size="sm"
-                                    @click="cerrarPuesto(asignacionVigente.id)"
-                                >
-                                    Dejar el puesto
-                                </Button>
-                            </div>
-
-                            <div v-if="asignacionesPasadas.length > 0" class="space-y-1">
-                                <h3 class="text-sm text-muted-foreground">Antes ocupó</h3>
-                                <ul class="divide-y divide-border">
-                                    <li
-                                        v-for="pasada in asignacionesPasadas"
-                                        :key="pasada.id"
-                                        class="flex flex-wrap items-center gap-2 py-2 text-sm text-muted-foreground"
-                                    >
+                                    <div class="flex flex-col items-center" aria-hidden="true">
+                                        <span
+                                            class="mt-1.5 size-2.5 shrink-0 rounded-full"
+                                            :class="
+                                                asignacion.vigente
+                                                    ? 'bg-primary ring-4 ring-primary/15'
+                                                    : 'border-2 border-border bg-card'
+                                            "
+                                        />
+                                        <span v-if="indice < asignaciones.length - 1" class="mt-1.5 w-0.5 grow bg-border" />
+                                    </div>
+                                    <div class="min-w-0 space-y-0.5 pb-4">
                                         <Link
-                                            :href="`/puestos/${pasada.puesto_id}`"
+                                            :href="`/puestos/${asignacion.puesto_id}`"
                                             class="underline-offset-4 hover:underline"
-                                        >{{ pasada.puesto }}</Link>
-                                        <span>del {{ pasada.desde }} al {{ pasada.hasta }}</span>
-                                    </li>
-                                </ul>
-                            </div>
-
-                            <Button
-                                v-if="puedeGestionar && persona.activa"
-                                variant="outline"
-                                size="sm"
-                                @click="abrirPuesto"
-                            >
-                                {{ asignacionVigente === null ? 'Asignar un puesto' : 'Cambiar de puesto' }}
-                            </Button>
+                                            :class="asignacion.vigente ? 'font-semibold' : 'text-muted-foreground'"
+                                        >
+                                            <span class="cifra font-normal text-muted-foreground">{{ asignacion.codigo }}</span>
+                                            {{ asignacion.puesto }}
+                                        </Link>
+                                        <p v-if="asignacion.nota" class="text-xs text-muted-foreground">{{ asignacion.nota }}</p>
+                                    </div>
+                                    <p
+                                        class="pb-4 text-right text-[13px]"
+                                        :class="asignacion.vigente ? 'text-secondary-foreground' : 'text-muted-foreground'"
+                                    >
+                                        <template v-if="asignacion.vigente">Desde el {{ asignacion.desde }}</template>
+                                        <template v-else>{{ asignacion.desde }} – {{ asignacion.hasta }}</template>
+                                    </p>
+                                </li>
+                            </ol>
                         </section>
 
                         <!-- Cláusula 5.3 -->
-                        <section class="space-y-4 border-t pt-6" aria-labelledby="titulo-nombramientos">
-                            <div>
-                                <h3 id="titulo-nombramientos" class="text-sm font-semibold">Nombramientos ENS</h3>
-                                <p class="mt-1 max-w-2xl text-sm text-muted-foreground">
-                                    La cláusula 5.3. El responsable de seguridad y el del sistema no pueden
-                                    ser la misma persona en el mismo sistema: quien decide qué protección
-                                    hace falta no puede ser quien responde de haberla puesto.
-                                </p>
+                        <section class="space-y-3 border-t pt-6" aria-labelledby="titulo-nombramientos">
+                            <div class="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
+                                <div>
+                                    <h3 id="titulo-nombramientos" class="text-sm font-semibold">
+                                        Nombramientos ENS
+                                        <span class="cifra ml-1 text-xs font-normal text-muted-foreground">cláusula 5.3</span>
+                                    </h3>
+                                    <p class="mt-1 max-w-2xl text-[13px] text-muted-foreground">
+                                        Por sistema. Quien decide qué protección hace falta no puede ser quien
+                                        responde de haberla puesto.
+                                    </p>
+                                </div>
+                                <Button v-if="puedeDesignar" variant="outline" size="sm" @click="abrirDesignacion">
+                                    <PlusIcon />
+                                    Designar en un rol
+                                </Button>
                             </div>
+
                             <EstadoVacio
                                 v-if="vigentes.length === 0"
                                 :icono="UserCheckIcon"
                                 titulo="Sin nombramientos vigentes"
                                 descripcion="Los roles ENS se designan por sistema, porque es donde la incompatibilidad significa algo."
                             />
-                            <TransitionGroup v-else tag="ul" name="paso" class="divide-y divide-border">
-                                <li
-                                    v-for="item in vigentes"
-                                    :key="item.id"
-                                    class="flex flex-wrap items-center gap-2 py-2 text-sm"
-                                >
-                                    <CeldaBadge
-                                        :valor="{
-                                            valor: item.rol,
-                                            etiqueta: item.rolEtiqueta,
-                                            tono: item.rolTono,
-                                            icono: item.rolIcono,
-                                        }"
-                                    />
-                                    <span class="cifra" :title="item.sistemaNombre ?? undefined">
-                                        {{ item.sistema }}
-                                    </span>
-                                    <span class="text-xs text-muted-foreground">
-                                        desde el {{ item.desde }}
-                                        <template v-if="item.designadaPor">
-                                            · designada por {{ item.designadaPor }}
-                                        </template>
-                                    </span>
-                                    <Button
-                                        v-if="puedeDesignar"
-                                        variant="ghost"
-                                        size="sm"
-                                        @click="revocar(item.id)"
-                                    >
-                                        Revocar
-                                    </Button>
-
-                                    <!--
-                                        Dónde consta el nombramiento —«acta del
-                                        comité del 3 de marzo»—. El diálogo lo pide
-                                        con esas palabras y no se pintaba en ningún
-                                        sitio, que es lo mismo que no haberlo
-                                        escrito.
-                                    -->
-                                    <span v-if="item.nota" class="w-full text-xs text-muted-foreground">
-                                        {{ item.nota }}
-                                    </span>
-                                </li>
-                            </TransitionGroup>
-
-                            <Button v-if="puedeDesignar" variant="outline" @click="abrirDesignacion">
-                                Designar en un rol
-                            </Button>
+                            <Table v-else>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Rol</TableHead>
+                                        <TableHead>Sistema</TableHead>
+                                        <TableHead>Designación</TableHead>
+                                        <TableHead class="text-right">Desde</TableHead>
+                                        <TableHead v-if="puedeDesignar"><span class="sr-only">Acciones</span></TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TransitionGroup tag="tbody" name="paso" data-slot="table-body" class="[&_tr:last-child]:border-0">
+                                    <TableRow v-for="item in vigentes" :key="item.id">
+                                        <TableCell class="align-top">
+                                            <CeldaBadge
+                                                :valor="{
+                                                    valor: item.rol,
+                                                    etiqueta: item.rolEtiqueta,
+                                                    tono: item.rolTono,
+                                                    icono: item.rolIcono,
+                                                }"
+                                            />
+                                        </TableCell>
+                                        <TableCell class="align-top whitespace-normal">
+                                            <span class="cifra block text-[13px]">{{ item.sistema }}</span>
+                                            <span v-if="item.sistemaNombre" class="block text-xs text-muted-foreground">
+                                                {{ item.sistemaNombre }}
+                                            </span>
+                                        </TableCell>
+                                        <!--
+                                            Dónde consta el nombramiento —«acta del
+                                            comité del 3 de marzo»—. El diálogo lo pide
+                                            con esas palabras, y sin pintarlo es lo
+                                            mismo que no haberlo escrito.
+                                        -->
+                                        <TableCell class="align-top whitespace-normal">
+                                            <span v-if="item.designadaPor" class="block text-[13px]">Por {{ item.designadaPor }}</span>
+                                            <span class="block text-xs text-muted-foreground">
+                                                {{ item.nota ?? 'Sin nota de dónde consta' }}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell class="cifra text-right align-top text-[13px]">{{ item.desde }}</TableCell>
+                                        <TableCell v-if="puedeDesignar" class="py-1.5 text-right align-top">
+                                            <Button variant="ghost" size="sm" @click="revocar(item.id)">Revocar</Button>
+                                        </TableCell>
+                                    </TableRow>
+                                </TransitionGroup>
+                            </Table>
 
                             <!--
                                 Se pliega desde el título y con el chevron delante,
@@ -628,7 +852,7 @@ const listasOrdenadas = computed(() =>
                                             >
                                                 <span>{{ item.rolEtiqueta }}</span>
                                                 <span class="cifra text-xs">{{ item.sistema }}</span>
-                                                <span class="text-xs">{{ item.desde }} – {{ item.hasta }}</span>
+                                                <span class="ml-auto text-xs">{{ item.desde }} – {{ item.hasta }}</span>
                                             </li>
                                         </ul>
                                     </div>
@@ -643,9 +867,8 @@ const listasOrdenadas = computed(() =>
                     <CardHeader>
                         <CardTitle>Formación y concienciación</CardTitle>
                         <CardDescription>
-                            <span class="cifra">mp.per.4</span> y
-                            <span class="cifra">mp.per.3</span>. Se registra desde la sesión, no
-                            desde aquí: lo que se apunta es una convocatoria con sus asistentes.
+                            La asistencia se apunta desde la sesión, con todos sus convocados, y no
+                            desde aquí.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -656,94 +879,127 @@ const listasOrdenadas = computed(() =>
                             descripcion="La asistencia se apunta desde la sesión y no desde aquí: lo que se registra es una convocatoria con sus asistentes."
                             :accion="{ etiqueta: 'Ir a formación', href: '/formacion' }"
                         />
-                        <ul v-else class="divide-y divide-border">
-                            <li
-                                v-for="item in formacion"
-                                :key="item.id"
-                                class="flex flex-wrap items-center gap-2 py-2 text-sm"
-                            >
-                                <CeldaBadge
-                                    :valor="{
-                                        valor: item.asistio ? 'asistio' : 'falto',
-                                        etiqueta: item.asistio ? 'Asistió' : 'No asistió',
-                                        tono: item.asistio ? 'implantado' : 'no_iniciado',
-                                        icono: item.asistio ? 'Check' : 'Minus',
-                                    }"
-                                />
-                                <Link
-                                    :href="`/formacion/${item.accion_formativa_id}`"
-                                    class="underline underline-offset-4"
-                                >
-                                    {{ item.titulo }}
-                                </Link>
-                                <!--
-                                    Concienciar y formar son dos medidas
-                                    distintas —`mp.per.3` y `mp.per.4`—, y el
-                                    servidor ya mandaba su tono y su icono: en
-                                    texto plano se leían como una coletilla de
-                                    la fecha.
-                                -->
-                                <CeldaBadge
-                                    v-if="item.tipo"
-                                    :valor="{
-                                        valor: item.tipo,
-                                        etiqueta: item.tipo,
-                                        tono: item.tipoTono,
-                                        icono: item.tipoIcono,
-                                    }"
-                                />
-                                <span class="text-xs text-muted-foreground">
-                                    {{ item.fecha }} ·
-                                    <span class="cifra">{{ item.medida }}</span>
-                                    <template v-if="!item.asistio && item.ausencia"> · {{ item.ausencia }}</template>
-                                </span>
-                                <a
-                                    v-for="diploma in item.diplomas"
-                                    :key="diploma.id"
-                                    :href="`/personas/${persona.id}/adjuntos/${diploma.id}/descargar`"
-                                    class="inline-flex items-center gap-1 text-xs font-medium underline underline-offset-4"
-                                >
-                                    <IconoTipo nombre="GraduationCap" class="size-3.5" />
-                                    Diploma
-                                </a>
-                            </li>
-                        </ul>
+                        <Table v-else>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Sesión</TableHead>
+                                    <TableHead>Tipo</TableHead>
+                                    <TableHead>Asistencia</TableHead>
+                                    <TableHead class="text-right">Fecha</TableHead>
+                                    <TableHead class="text-right">Diploma</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <tbody data-slot="table-body" class="[&_tr:last-child]:border-0">
+                                <TableRow v-for="item in formacion" :key="item.id">
+                                    <TableCell class="whitespace-normal">
+                                        <Link
+                                            :href="`/formacion/${item.accion_formativa_id}`"
+                                            class="font-medium underline-offset-4 hover:underline"
+                                        >
+                                            {{ item.titulo }}
+                                        </Link>
+                                    </TableCell>
+                                    <!--
+                                        Concienciar y formar son dos medidas
+                                        distintas —`mp.per.3` y `mp.per.4`—, y el
+                                        servidor ya manda su tono y su icono.
+                                    -->
+                                    <TableCell>
+                                        <span class="inline-flex items-center gap-1.5">
+                                            <CeldaBadge
+                                                v-if="item.tipo"
+                                                :valor="{
+                                                    valor: item.tipo,
+                                                    etiqueta: item.tipo,
+                                                    tono: item.tipoTono,
+                                                    icono: item.tipoIcono,
+                                                }"
+                                            />
+                                            <span class="cifra text-xs text-muted-foreground">{{ item.medida }}</span>
+                                        </span>
+                                    </TableCell>
+                                    <TableCell>
+                                        <span class="inline-flex items-center gap-1.5">
+                                            <CeldaBadge
+                                                :valor="{
+                                                    valor: item.asistio ? 'asistio' : 'falto',
+                                                    etiqueta: item.asistio ? 'Asistió' : 'No asistió',
+                                                    tono: item.asistio ? 'implantado' : 'no_iniciado',
+                                                    icono: item.asistio ? 'Check' : 'Minus',
+                                                }"
+                                            />
+                                            <span v-if="!item.asistio && item.ausencia" class="text-xs text-muted-foreground">
+                                                {{ item.ausencia }}
+                                            </span>
+                                        </span>
+                                    </TableCell>
+                                    <TableCell class="cifra text-right text-[13px] text-muted-foreground">{{ item.fecha }}</TableCell>
+                                    <TableCell class="text-right">
+                                        <a
+                                            v-for="diploma in item.diplomas"
+                                            :key="diploma.id"
+                                            :href="`/personas/${persona.id}/adjuntos/${diploma.id}/descargar`"
+                                            class="inline-flex items-center gap-1 text-[13px] font-medium text-primary underline-offset-4 hover:underline"
+                                            :title="diploma.nombre_fichero"
+                                        >
+                                            <DownloadIcon class="size-3.5" />
+                                            Descargar
+                                        </a>
+                                        <span v-if="item.diplomas.length === 0" class="text-muted-foreground">—</span>
+                                    </TableCell>
+                                </TableRow>
+                            </tbody>
+                        </Table>
                     </CardContent>
                 </Card>
 
                 <!--
                     Las dos checklists en una tarjeta: son las dos mitades del
                     mismo trámite. Con quien ya se fue, la de salida va delante,
-                    porque es la que queda por cerrar.
+                    porque es la que queda por cerrar. Lado a lado sólo en 2xl:
+                    por debajo, con la fecha de cada paso, la columna no cabe.
                 -->
                 <Card>
                     <CardHeader>
                         <CardTitle>Incorporación y salida</CardTitle>
                         <CardDescription>
-                            Lo que hay que hacer al entrar y al irse. Marcar todos los pasos no da de
-                            baja a nadie: eso es una fecha, y se pone al editar la persona.
+                            Marcar todos los pasos no da de baja a nadie: la baja es una fecha, y se pone
+                            al editar la persona.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent class="space-y-6">
+                    <CardContent class="grid gap-4 2xl:grid-cols-2 2xl:items-start">
                         <section
-                            v-for="(lista, indice) in listasOrdenadas"
+                            v-for="lista in listasOrdenadas"
                             :key="lista.tipo"
-                            class="space-y-3"
-                            :class="indice > 0 && 'border-t pt-6'"
+                            class="space-y-3 rounded-lg border p-4"
+                            :class="enReposo(lista) && 'border-dashed bg-background'"
                             :aria-labelledby="`titulo-pasos-${lista.tipo}`"
                         >
-                            <div>
-                                <h3 :id="`titulo-pasos-${lista.tipo}`" class="flex items-center gap-2 text-sm font-semibold">
-                                    <IconoTipo :nombre="lista.icono" />
-                                    Checklist de {{ lista.etiqueta.toLowerCase() }}
-                                </h3>
-                                <p class="mt-1 max-w-2xl text-sm text-muted-foreground">
-                                    {{
-                                        lista.tipo === 'baja'
-                                            ? 'La que el auditor mira: un acceso que nadie revocó es el hallazgo clásico.'
-                                            : 'Entregar el equipo, firmar el acuerdo, dar de alta las cuentas.'
-                                    }}
-                                </p>
+                            <div class="flex items-start justify-between gap-3">
+                                <div>
+                                    <h3 :id="`titulo-pasos-${lista.tipo}`" class="flex items-center gap-2 text-sm font-semibold">
+                                        <IconoTipo :nombre="lista.icono" class="text-muted-foreground" />
+                                        Checklist de {{ lista.etiqueta.toLowerCase() }}
+                                    </h3>
+                                    <p class="mt-1 text-[13px] text-muted-foreground">
+                                        {{
+                                            lista.tipo === 'baja'
+                                                ? 'La que el auditor mira: un acceso que nadie revocó es el hallazgo clásico.'
+                                                : 'Entregar el equipo, firmar el acuerdo, dar de alta las cuentas.'
+                                        }}
+                                    </p>
+                                </div>
+                                <span
+                                    v-if="lista.pasos.length > 0"
+                                    class="cifra shrink-0 text-xs"
+                                    :class="
+                                        lista.pasos.every((paso) => paso.hecho)
+                                            ? 'text-estado-implantado'
+                                            : 'text-muted-foreground'
+                                    "
+                                >
+                                    {{ lista.pasos.filter((paso) => paso.hecho).length }} de {{ lista.pasos.length }}
+                                </span>
                             </div>
 
                             <Aviso v-if="errorPasos[lista.tipo]" tono="error">{{ errorPasos[lista.tipo] }}</Aviso>
@@ -767,131 +1023,141 @@ const listasOrdenadas = computed(() =>
                 </Card>
             </div>
 
+            <!--
+                La columna lateral en el orden de DESIGN.md §9: «Ficha» primero
+                —esta persona no tiene máquina de estados, su estado es una
+                fecha y va en la cabecera— y el resto detrás.
+            -->
             <div class="space-y-6">
+                <!--
+                    Los datos personales identifican y localizan a quien figura en
+                    un nombramiento, pero no son lo que se viene a mirar. Los que
+                    no hay no se pintan — cinco guiones no dicen nada que su
+                    ausencia no diga —, y la cuenta de Statera va con ellos.
+                -->
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Ficha</CardTitle>
+                    </CardHeader>
+                    <CardContent class="space-y-4 text-sm">
+                        <dl v-if="hayDatosDeContacto" class="grid grid-cols-[7rem_minmax(0,1fr)] gap-x-3 gap-y-3">
+                            <template v-if="persona.nif">
+                                <dt class="text-muted-foreground">Documento</dt>
+                                <dd class="cifra text-[13px]">{{ persona.nif }}</dd>
+                            </template>
+                            <template v-if="persona.fecha_nacimiento">
+                                <dt class="text-muted-foreground">Nacimiento</dt>
+                                <dd>{{ fechaLegible(persona.fecha_nacimiento) }}</dd>
+                            </template>
+                            <template v-if="persona.telefono">
+                                <dt class="text-muted-foreground">Teléfono</dt>
+                                <dd class="cifra text-[13px]">{{ persona.telefono }}</dd>
+                            </template>
+                            <template v-if="persona.telefono_fijo">
+                                <dt class="text-muted-foreground">Teléfono fijo</dt>
+                                <dd class="cifra text-[13px]">{{ persona.telefono_fijo }}</dd>
+                            </template>
+                            <template v-if="persona.direccion">
+                                <dt class="text-muted-foreground">Dirección</dt>
+                                <dd class="whitespace-pre-line">{{ persona.direccion }}</dd>
+                            </template>
+                        </dl>
+
+                        <div class="flex items-start gap-3" :class="hayDatosDeContacto && 'border-t pt-4'">
+                            <span
+                                class="flex size-9 shrink-0 items-center justify-center rounded-full"
+                                :class="persona.usuario ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'"
+                                aria-hidden="true"
+                            >
+                                <UserRoundIcon class="size-4" />
+                            </span>
+                            <div class="min-w-0">
+                                <p class="font-medium">{{ persona.usuario ? 'Cuenta de Statera' : 'Sin cuenta de Statera' }}</p>
+                                <p v-if="persona.usuario" class="truncate text-xs text-muted-foreground">{{ persona.usuario }}</p>
+                                <p v-else class="text-xs text-muted-foreground">
+                                    Lo normal: la mayoría de una plantilla no entra nunca en la herramienta.
+                                    Sin cuenta no se le pueden asignar tareas ni pedir el acuse de lectura.
+                                </p>
+                            </div>
+                        </div>
+
+                        <Aviso v-if="persona.seudonimizada_en" titulo="Datos personales suprimidos">
+                            El {{ fechaLegible(persona.seudonimizada_en) }}. Sus nombramientos, su formación y
+                            sus acuses siguen en el registro, sin nada que diga quién era.
+                        </Aviso>
+                    </CardContent>
+                </Card>
+
                 <!-- mp.per.2 -->
                 <Card>
                     <CardHeader>
-                        <CardTitle>Acuerdos de confidencialidad</CardTitle>
-                        <CardDescription>
-                            <span class="cifra">mp.per.2</span>. Sin fecha de caducidad es lo
-                            normal: el deber sobrevive a la relación laboral.
-                        </CardDescription>
+                        <CardTitle>Confidencialidad</CardTitle>
+                        <CardAction>
+                            <span class="cifra rounded-md bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">mp.per.2</span>
+                        </CardAction>
                     </CardHeader>
-                    <CardContent class="space-y-3">
+                    <CardContent class="space-y-4">
                         <EstadoVacio
                             v-if="acuerdos.length === 0"
                             :icono="FileSignatureIcon"
                             titulo="Sin acuerdo firmado"
                             descripcion="Los deberes tienen que constar por escrito: sin papel, la medida está declarada y no probada."
                         />
-                        <TransitionGroup v-else tag="ul" name="paso" class="divide-y divide-border">
+                        <!--
+                            Cada acuerdo se cita con la regla de 2 px a la
+                            izquierda (DESIGN.md §9) y no con una caja dentro
+                            de la tarjeta.
+                        -->
+                        <TransitionGroup v-else tag="ul" name="paso" class="space-y-4">
                             <li
                                 v-for="item in acuerdos"
                                 :key="item.id"
-                                class="flex flex-wrap items-center gap-2 py-2 text-sm"
+                                class="space-y-1.5 border-l-2 pl-3 text-sm"
                             >
-                                <CeldaBadge
-                                    :valor="{
-                                        valor: item.vigente ? 'vigente' : 'caducado',
-                                        etiqueta: item.vigente ? 'Vigente' : 'Caducado',
-                                        tono: item.vigente ? 'implantado' : 'no_iniciado',
-                                        icono: item.vigente ? 'FileCheck' : 'FileX',
-                                    }"
-                                />
-                                <span>Firmado el {{ fechaLegible(item.fecha_firma) }}</span>
-                                <span v-if="item.vigente_hasta" class="text-xs text-muted-foreground">
-                                    hasta el {{ item.vigente_hasta }}
-                                </span>
-                                <Button
-                                    v-if="puedeGestionar"
-                                    variant="ghost"
-                                    size="sm"
-                                    @click="borrarAcuerdo(item.id)"
-                                >
-                                    Borrar
-                                </Button>
-
+                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                    <CeldaBadge
+                                        :valor="{
+                                            valor: item.vigente ? 'vigente' : 'caducado',
+                                            etiqueta: item.vigente ? 'Vigente' : 'Caducado',
+                                            tono: item.vigente ? 'implantado' : 'no_iniciado',
+                                            icono: item.vigente ? 'FileCheck' : 'FileX',
+                                        }"
+                                    />
+                                    <span class="text-xs text-muted-foreground">
+                                        {{ item.vigente_hasta ? `Hasta el ${item.vigente_hasta}` : 'Sin vencimiento' }}
+                                    </span>
+                                </div>
+                                <p class="font-medium">Firmado el {{ item.fecha_firma }}</p>
                                 <!--
-                                    El documento y la nota se escribían y no se
-                                    pintaban en ninguna parte. Son las dos cosas
-                                    que un auditor pide al lado de una firma:
-                                    dónde consta y qué papel lo prueba.
+                                    El documento y la nota son las dos cosas que
+                                    un auditor pide al lado de una firma: dónde
+                                    consta y qué papel lo prueba.
                                 -->
                                 <Link
                                     v-if="item.evidencia_id"
                                     :href="`/evidencias/${item.evidencia_id}`"
-                                    class="w-full text-xs underline underline-offset-4"
+                                    class="inline-flex items-center gap-1.5 text-[13px] text-primary underline-offset-4 hover:underline"
                                 >
+                                    <FileTextIcon class="size-3.5 shrink-0" />
                                     {{ item.evidencia }}
                                 </Link>
-                                <span v-if="item.nota" class="w-full text-xs text-muted-foreground">
-                                    {{ item.nota }}
-                                </span>
+                                <p v-else class="text-xs text-muted-foreground">Sin documento: declarada y no probada.</p>
+                                <p v-if="item.nota" class="text-xs text-muted-foreground">{{ item.nota }}</p>
+                                <Button
+                                    v-if="puedeGestionar"
+                                    variant="ghost"
+                                    size="sm"
+                                    class="-ml-2.5"
+                                    @click="borrarAcuerdo(item.id)"
+                                >
+                                    Borrar
+                                </Button>
                             </li>
                         </TransitionGroup>
 
                         <Button v-if="puedeGestionar" variant="outline" size="sm" @click="abrirAcuerdo">
                             Registrar acuerdo
                         </Button>
-                    </CardContent>
-                </Card>
-
-                <!--
-                    Los datos personales van en la columna lateral y no en la
-                    cabecera: identifican y localizan a quien figura en un
-                    nombramiento, pero no son lo que se viene a mirar a esta
-                    ficha. Los que no hay no se pintan — cinco guiones no dicen
-                    nada que su ausencia no diga —, y la cuenta de Statera va
-                    con ellos: es otro dato de quién es, y en su propia tarjeta
-                    era un bloque para una sola línea.
-                -->
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Identificación y cuenta</CardTitle>
-                    </CardHeader>
-                    <CardContent class="text-sm">
-                        <dl class="grid gap-3">
-                            <div v-if="persona.nif" class="grid gap-1">
-                                <dt class="text-muted-foreground">NIF o documento</dt>
-                                <dd class="cifra font-medium">{{ persona.nif }}</dd>
-                            </div>
-                            <div v-if="persona.fecha_nacimiento" class="grid gap-1">
-                                <dt class="text-muted-foreground">Fecha de nacimiento</dt>
-                                <dd class="font-medium">{{ persona.fecha_nacimiento }}</dd>
-                            </div>
-                            <div v-if="persona.telefono" class="grid gap-1">
-                                <dt class="text-muted-foreground">Teléfono</dt>
-                                <dd class="font-medium">{{ persona.telefono }}</dd>
-                            </div>
-                            <div v-if="persona.telefono_fijo" class="grid gap-1">
-                                <dt class="text-muted-foreground">Teléfono fijo</dt>
-                                <dd class="font-medium">{{ persona.telefono_fijo }}</dd>
-                            </div>
-                            <div v-if="persona.direccion" class="grid gap-1">
-                                <dt class="text-muted-foreground">Dirección</dt>
-                                <dd class="font-medium whitespace-pre-line">{{ persona.direccion }}</dd>
-                            </div>
-                            <div class="grid gap-1" :class="hayDatosDeContacto && 'border-t pt-3'">
-                                <dt class="text-muted-foreground">Cuenta de Statera</dt>
-                                <dd v-if="persona.usuario" class="font-medium">{{ persona.usuario }}</dd>
-                                <dd v-else class="text-muted-foreground">
-                                    Sin cuenta, que es lo normal: la mayoría de una plantilla no entra
-                                    nunca en la herramienta. Sin cuenta no se le pueden asignar tareas ni
-                                    pedir el acuse de lectura de un documento.
-                                </dd>
-                            </div>
-                        </dl>
-
-                        <Aviso v-if="persona.seudonimizada_en" class="mt-4" titulo="Datos personales suprimidos">
-                            El {{ fechaLegible(persona.seudonimizada_en) }}. Sus nombramientos, su formación y
-                            sus acuses siguen en el registro, sin nada que diga quién era.
-                        </Aviso>
-
-                        <div v-else-if="puedeGestionar && !persona.activa" class="mt-4 border-t pt-4">
-                            <Button variant="destructive" size="sm" @click="suprimiendo = true">
-                                Suprimir datos personales
-                            </Button>
-                        </div>
                     </CardContent>
                 </Card>
 
@@ -916,6 +1182,26 @@ const listasOrdenadas = computed(() =>
                     </CardContent>
                 </Card>
 
+                <!--
+                    Lo que no se deshace va aparte y al final, sin tarjeta: la
+                    regla de Protección (DESIGN.md §1) pide separar lo
+                    destructivo del resto.
+                -->
+                <section
+                    v-if="!persona.seudonimizada_en && puedeGestionar && !persona.activa"
+                    class="space-y-3 rounded-xl border px-6 py-5"
+                    aria-labelledby="titulo-supresion"
+                >
+                    <h2 id="titulo-supresion" class="text-sm font-semibold">Derecho de supresión</h2>
+                    <p class="text-[13px] text-muted-foreground">
+                        Borra sus datos personales y sus adjuntos. Queda como «Persona
+                        <span class="cifra">{{ persona.codigo }}</span>», con sus nombramientos, su formación y
+                        sus acuses. No se deshace.
+                    </p>
+                    <Button variant="destructive" size="sm" @click="suprimiendo = true">
+                        Suprimir datos personales
+                    </Button>
+                </section>
             </div>
         </div>
 
