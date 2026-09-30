@@ -6,7 +6,6 @@ namespace App\Http\Requests;
 
 use App\Domain\Evidencia\Enums\PeriodicidadRenovacion;
 use App\Domain\Evidencia\Enums\TipoEvidencia;
-use App\Domain\Evidencia\Models\Evidencia;
 use App\Http\Requests\Concerns\NormalizaSeleccionVacia;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -107,8 +106,12 @@ class GuardarEvidenciaRequest extends FormRequest
         return ['responsable_id', 'periodicidad_renovacion'];
     }
 
+    /**
+     * Por el nombre de la ruta y no por traer `{evidencia}`: la renovación
+     * también la trae, y es un alta con su propio fichero o enlace.
+     */
     private function esEdicion(): bool
     {
-        return $this->route('evidencia') instanceof Evidencia;
+        return $this->routeIs('evidencias.update');
     }
 }

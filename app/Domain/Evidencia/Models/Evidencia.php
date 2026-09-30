@@ -7,6 +7,7 @@ namespace App\Domain\Evidencia\Models;
 use App\Domain\Autorizacion\Concerns\AcotadoPorAlcance;
 use App\Domain\Evidencia\Enums\PeriodicidadRenovacion;
 use App\Domain\Evidencia\Enums\TipoEvidencia;
+use App\Domain\Evidencia\Vigencia;
 use App\Domain\Implantacion\Models\Implantacion;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
 use App\Domain\Traza\Concerns\RegistraTraza;
@@ -17,6 +18,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -47,6 +49,7 @@ use Illuminate\Support\Carbon;
  * @property ?Carbon $fecha_caducidad
  * @property ?PeriodicidadRenovacion $periodicidad_renovacion
  * @property ?int $responsable_id
+ * @property ?int $renovada_por_id
  */
 class Evidencia extends Model
 {
@@ -90,12 +93,33 @@ class Evidencia extends Model
         'fecha_caducidad',
         'periodicidad_renovacion',
         'responsable_id',
+        'renovada_por_id',
     ];
 
     /** @return BelongsTo<User, $this> */
     public function responsable(): BelongsTo
     {
         return $this->belongsTo(User::class, 'responsable_id');
+    }
+
+    /**
+     * La que la sustituyó al renovarla. Ver `RegistrarEvidencia::renovar()`.
+     *
+     * @return BelongsTo<Evidencia, $this>
+     */
+    public function renovadaPor(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'renovada_por_id');
+    }
+
+    /**
+     * La que esta renueva, si renueva alguna.
+     *
+     * @return HasOne<Evidencia, $this>
+     */
+    public function renuevaA(): HasOne
+    {
+        return $this->hasOne(self::class, 'renovada_por_id');
     }
 
     /**
@@ -126,10 +150,32 @@ class Evidencia extends Model
         return $this->fecha_caducidad !== null && $this->fecha_caducidad->isPast();
     }
 
+    public function estaRenovada(): bool
+    {
+        return $this->renovada_por_id !== null;
+    }
+
+    /**
+     * Las que siguen siendo la prueba vigente de lo que prueban.
+     *
+     * Una renovada ya tiene sustituta, así que su vencimiento no pide nada a
+     * nadie: sin esto, renovar a tiempo seguiría encendiendo el rojo del panel
+     * el día que venciera la vieja. Lo usan los dos scopes de abajo y el
+     * calendario, para que las tres cuentas digan lo mismo.
+     *
+     * @param  Builder<$this>  $query
+     */
+    public function scopeSinRenovar(Builder $query): void
+    {
+        $query->whereNull('renovada_por_id');
+    }
+
     /** @param  Builder<$this>  $query */
     public function scopeCaducadas(Builder $query): void
     {
-        $query->whereNotNull('fecha_caducidad')->whereDate('fecha_caducidad', '<', Carbon::today());
+        $query->sinRenovar()
+            ->whereNotNull('fecha_caducidad')
+            ->whereDate('fecha_caducidad', '<', Carbon::today());
     }
 
     /**
@@ -137,9 +183,10 @@ class Evidencia extends Model
      *
      * @param  Builder<$this>  $query
      */
-    public function scopePorCaducar(Builder $query, int $dias = 30): void
+    public function scopePorCaducar(Builder $query, int $dias = Vigencia::DIAS_DE_AVISO): void
     {
-        $query->whereNotNull('fecha_caducidad')
+        $query->sinRenovar()
+            ->whereNotNull('fecha_caducidad')
             ->whereDate('fecha_caducidad', '>=', Carbon::today())
             ->whereDate('fecha_caducidad', '<=', Carbon::today()->addDays($dias));
     }

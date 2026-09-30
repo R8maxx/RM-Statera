@@ -432,7 +432,21 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/evidencias/{evidencia}/editar', [EvidenciaController::class, 'edit'])->name('evidencias.edit');
         Route::put('/evidencias/{evidencia}', [EvidenciaController::class, 'update'])->name('evidencias.update');
         Route::delete('/evidencias/{evidencia}', [EvidenciaController::class, 'destroy'])->name('evidencias.destroy');
+
+        // Renovar es registrar otra con los mismos vínculos: el fichero de una
+        // evidencia no se reemplaza (Object Lock).
+        Route::get('/evidencias/{evidencia}/renovar', [EvidenciaController::class, 'renovar'])->name('evidencias.renovar');
+        Route::post('/evidencias/{evidencia}/renovacion', [EvidenciaController::class, 'guardarRenovacion'])
+            ->name('evidencias.renovacion');
     });
+
+    // El mismo vínculo que `implantaciones.evidencias.vincular`, desde la ficha
+    // de la evidencia y de varios en varios. Pide el permiso de quien vincula,
+    // y la regla de «escribe lo suyo» la aplica el controlador por fila, como
+    // en las acciones masivas: aquí no hay implantación en la ruta.
+    Route::post('/evidencias/{evidencia}/requisitos', [EvidenciaController::class, 'vincularRequisitos'])
+        ->middleware(['can:implantaciones.gestionar', ExigirDosFactores::class])
+        ->name('evidencias.requisitos.vincular');
 
     /*
     |--------------------------------------------------------------------------

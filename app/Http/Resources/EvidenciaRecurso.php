@@ -8,6 +8,7 @@ use App\Domain\Autorizacion\Enums\Permiso;
 use App\Domain\Evidencia\Enums\PeriodicidadRenovacion;
 use App\Domain\Evidencia\Enums\TipoEvidencia;
 use App\Domain\Evidencia\Models\Evidencia;
+use App\Domain\Evidencia\Vigencia;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Http\Resources\Definicion\Accion;
 use App\Http\Resources\Definicion\Columna;
@@ -75,7 +76,7 @@ final class EvidenciaRecurso extends Recurso
             Columna::badge('vigencia', 'Vigencia')
                 ->ordenable('fecha_caducidad')
                 ->ayuda('Una evidencia sin fecha de caducidad no vale para siempre: es que nadie ha dicho cuándo deja de valer.')
-                ->formato(fn (Evidencia $evidencia): ValorEtiquetado => $this->vigencia($evidencia)),
+                ->formato(fn (Evidencia $evidencia): ValorEtiquetado => Vigencia::de($evidencia)->badge()),
             Columna::fecha('fecha_caducidad', 'Caduca')->ordenable()->oculta(),
             Columna::texto('responsable', 'Responsable')
                 ->formato(fn (Evidencia $evidencia): ?string => $evidencia->responsable?->name),
@@ -155,35 +156,5 @@ final class EvidenciaRecurso extends Recurso
     public function ordenPorDefecto(): string
     {
         return '-fecha_obtencion';
-    }
-
-    /**
-     * Cuatro estados, y «sin caducidad» es uno de ellos a propósito: no es lo
-     * mismo que vigente, y colapsarlos escondería justo las que nadie ha
-     * revisado nunca.
-     */
-    private function vigencia(Evidencia $evidencia): ValorEtiquetado
-    {
-        if ($evidencia->fecha_caducidad === null) {
-            return new ValorEtiquetado(null, 'Sin caducidad', 'no_iniciado', 'CircleHelp');
-        }
-
-        if ($evidencia->haCaducado()) {
-            return new ValorEtiquetado(
-                $evidencia->fecha_caducidad->toDateString(),
-                'Caducada',
-                'caducada',
-                'TriangleAlert',
-            );
-        }
-
-        $dias = (int) now()->startOfDay()->diffInDays($evidencia->fecha_caducidad, absolute: false);
-
-        return new ValorEtiquetado(
-            $evidencia->fecha_caducidad->toDateString(),
-            $dias <= 30 ? "Caduca en {$dias} días" : 'Vigente',
-            $dias <= 30 ? 'en_progreso' : 'implantado',
-            $dias <= 30 ? 'Clock' : 'CircleCheck',
-        );
     }
 }

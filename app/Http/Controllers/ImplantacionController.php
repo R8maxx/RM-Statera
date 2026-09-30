@@ -123,15 +123,18 @@ class ImplantacionController extends Controller
                 'excluibleAMano' => $aplicabilidad->esExcluibleAMano($implantacion),
             ],
             /*
-             * Aquí el cambio de estado es un formulario —desplegable, nota y
-             * enviar— y no cuatro botones como en una tarea, así que las
-             * opciones van con lo que un `Opcion` lleva y nada más. El badge del
-             * estado actual sí gana su icono, por el respaldo de `lib/tonos.ts`.
+             * Aquí el cambio de estado es un formulario —elegir, nota y
+             * enviar— y no botones que actúan al pulsarse como en una tarea,
+             * porque la nota va al histórico. Pero cada destino se pinta como
+             * el estado al que lleva (DESIGN.md §3), así que viaja con su tono
+             * y su icono, que los conoce el enum y no el cliente.
              */
             'transicionesPermitidas' => array_map(
                 static fn (EstadoImplantacion $estado): array => [
                     'valor' => $estado->value,
                     'etiqueta' => $estado->etiqueta(),
+                    'tono' => $estado->tono(),
+                    'icono' => $estado->icono(),
                 ],
                 $implantacion->estado->transicionesPermitidas(),
             ),
@@ -181,6 +184,9 @@ class ImplantacionController extends Controller
                     'responsable' => $tarea->responsable?->name,
                     'fecha_limite' => $tarea->fecha_limite?->toDateString(),
                     'haVencido' => $tarea->haVencido(),
+                    // La ficha cuenta las abiertas en su resumen y enseña
+                    // todas: una tarea hecha también explica el estado.
+                    'abierta' => ! $tarea->estado->esCerrada(),
                 ])
                 ->all(),
 

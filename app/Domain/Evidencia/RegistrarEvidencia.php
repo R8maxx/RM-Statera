@@ -7,8 +7,10 @@ namespace App\Domain\Evidencia;
 use App\Domain\Evidencia\Enums\PeriodicidadRenovacion;
 use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Organizacion\ContextoOrganizacion;
+use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -34,7 +36,10 @@ final class RegistrarEvidencia
 {
     private const DISCO = 'evidencias';
 
-    public function __construct(private readonly ContextoOrganizacion $contexto) {}
+    public function __construct(
+        private readonly ContextoOrganizacion $contexto,
+        private readonly VincularEvidencia $vinculos,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $atributos
@@ -49,6 +54,42 @@ final class RegistrarEvidencia
         }
 
         return Evidencia::query()->create($atributos);
+    }
+
+    /**
+     * Da de alta la sustituta de una evidencia, con sus mismos vínculos.
+     *
+     * **Renovar es registrar otra, no editar ésta**: el fichero no se reemplaza
+     * (decisión 2), y la anterior probó lo que probó durante su periodo. Se queda
+     * con sus vínculos y apuntando a la nueva, y eso es lo que la saca de
+     * `caducadas()` y `porCaducar()`: renovar a tiempo apaga el aviso sin borrar
+     * la historia.
+     *
+     * Los vínculos se copian con su nota, porque el motivo por el que la prueba
+     * cubría cada requisito no cambia al volver a obtenerla. Todo en una
+     * transacción: una renovación a medias dejaría la vieja sin sustituta o la
+     * nueva sin nada que probar.
+     *
+     * @param  array<string, mixed>  $atributos
+     */
+    public function renovar(Evidencia $anterior, array $atributos, ?UploadedFile $fichero = null, ?User $usuario = null): Evidencia
+    {
+        return DB::transaction(function () use ($anterior, $atributos, $fichero, $usuario): Evidencia {
+            $nueva = $this->crear($atributos, $fichero);
+
+            foreach ($anterior->implantaciones()->get() as $implantacion) {
+                $this->vinculos->vincular(
+                    $nueva,
+                    $implantacion,
+                    $usuario,
+                    $implantacion->getRelationValue('pivot')?->getAttribute('nota'),
+                );
+            }
+
+            $anterior->update(['renovada_por_id' => $nueva->id]);
+
+            return $nueva;
+        });
     }
 
     /**

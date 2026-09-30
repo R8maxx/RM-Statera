@@ -24,34 +24,54 @@ interface Evidencia {
     responsable_id: number | null;
 }
 
+/**
+ * La renovación es un alta: otra obtención con su fichero o su enlace. Llega
+ * rellena con lo que no cambia —título, tipo, periodicidad, responsable— y el
+ * servidor copia los vínculos al guardar.
+ */
+interface Renovacion {
+    id: number;
+    titulo: string;
+    requisitos: number;
+    plantilla: Evidencia;
+}
+
 const props = defineProps<{
     evidencia: Evidencia | null;
+    renueva?: Renovacion | null;
     tipos: Opcion[];
     periodicidades: Opcion[];
     responsables: Opcion[];
 }>();
 
 const edicion = props.evidencia !== null;
+const renueva = props.renueva ?? null;
+const base = props.evidencia ?? renueva?.plantilla ?? null;
+
+const titulo = edicion ? 'Editar evidencia' : renueva ? 'Renovar evidencia' : 'Nueva evidencia';
+const accion = edicion ? `/evidencias/${props.evidencia!.id}` : renueva ? `/evidencias/${renueva.id}/renovacion` : '/evidencias';
+const cancelar = edicion ? `/evidencias/${props.evidencia!.id}` : renueva ? `/evidencias/${renueva.id}` : '/evidencias';
+const descripcion = renueva
+    ? `Sustituye a «${renueva.titulo}» y prueba lo mismo: se vincula a sus ${renueva.requisitos} requisitos con las mismas notas. La anterior se conserva y deja de avisar al caducar.`
+    : 'Se registra una vez y cuenta en todos los marcos donde aplique. Los requisitos que prueba se vinculan después, desde su ficha o desde la de cada requisito.';
 
 const responsables = conOpcionVacia(props.responsables, 'Sin responsable');
 const periodicidades = conOpcionVacia(props.periodicidades, 'No se renueva');
 
-const tipo = ref(props.evidencia?.tipo ?? 'captura');
-const responsable = ref(
-    props.evidencia?.responsable_id ? String(props.evidencia.responsable_id) : SIN_VALOR,
-);
-const periodicidad = ref(props.evidencia?.periodicidad_renovacion ?? SIN_VALOR);
+const tipo = ref(base?.tipo ?? 'captura');
+const responsable = ref(base?.responsable_id ? String(base.responsable_id) : SIN_VALOR);
+const periodicidad = ref(base?.periodicidad_renovacion ?? SIN_VALOR);
 </script>
 
 <template>
-    <AppLayout :titulo="edicion ? `Editar ${evidencia!.titulo}` : 'Nueva evidencia'">
+    <AppLayout :titulo="edicion ? `Editar ${evidencia!.titulo}` : titulo">
         <FormularioRecurso
-            :titulo="edicion ? 'Editar evidencia' : 'Nueva evidencia'"
-            descripcion="Se registra una vez y cuenta en todos los marcos donde aplique. Los requisitos que prueba se vinculan después, desde su ficha o desde la de cada requisito."
-            :action="edicion ? `/evidencias/${evidencia!.id}` : '/evidencias'"
+            :titulo="titulo"
+            :descripcion="descripcion"
+            :action="accion"
             :method="edicion ? 'put' : 'post'"
-            :etiqueta-enviar="edicion ? 'Guardar cambios' : 'Registrar evidencia'"
-            :url-cancelar="edicion ? `/evidencias/${evidencia!.id}` : '/evidencias'"
+            :etiqueta-enviar="edicion ? 'Guardar cambios' : renueva ? 'Registrar la renovación' : 'Registrar evidencia'"
+            :url-cancelar="cancelar"
             #default="{ errors }"
         >
             <SeccionFormulario
@@ -62,7 +82,7 @@ const periodicidad = ref(props.evidencia?.periodicidad_renovacion ?? SIN_VALOR);
                 <CampoTexto
                     nombre="titulo"
                     etiqueta="Título"
-                    :valor-inicial="evidencia?.titulo"
+                    :valor-inicial="base?.titulo"
                     :error="errors.titulo"
                     requerido
                     autofocus
@@ -80,7 +100,7 @@ const periodicidad = ref(props.evidencia?.periodicidad_renovacion ?? SIN_VALOR);
                 <CampoTextarea
                     nombre="descripcion"
                     etiqueta="Descripción"
-                    :valor-inicial="evidencia?.descripcion ?? ''"
+                    :valor-inicial="base?.descripcion ?? ''"
                     :error="errors.descripcion"
                     :filas="3"
                     ayuda="Qué se ve en la prueba y en qué condiciones se obtuvo."
@@ -104,6 +124,7 @@ const periodicidad = ref(props.evidencia?.periodicidad_renovacion ?? SIN_VALOR);
                     nombre="url_externa"
                     etiqueta="Enlace"
                     tipo="url"
+                    :valor-inicial="renueva && !renueva.plantilla.esFichero ? (renueva.plantilla.url_externa ?? '') : ''"
                     :error="errors.url_externa"
                     placeholder="https://…"
                     ayuda="Para lo que vive fuera: el panel de un proveedor, un registro de un servicio en la nube."
@@ -138,7 +159,7 @@ const periodicidad = ref(props.evidencia?.periodicidad_renovacion ?? SIN_VALOR);
                         nombre="fecha_obtencion"
                         etiqueta="Fecha de obtención"
                         tipo="date"
-                        :valor-inicial="evidencia?.fecha_obtencion"
+                        :valor-inicial="base?.fecha_obtencion"
                         :error="errors.fecha_obtencion"
                         requerido
                     />
@@ -147,7 +168,7 @@ const periodicidad = ref(props.evidencia?.periodicidad_renovacion ?? SIN_VALOR);
                         nombre="fecha_caducidad"
                         etiqueta="Caduca el"
                         tipo="date"
-                        :valor-inicial="evidencia?.fecha_caducidad ?? ''"
+                        :valor-inicial="base?.fecha_caducidad ?? ''"
                         :error="errors.fecha_caducidad"
                     />
                 </FilaCampos>

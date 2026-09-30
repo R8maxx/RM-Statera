@@ -175,6 +175,7 @@ final readonly class CalendarioVencimientos
 
             Fuente::Evidencia => $this->deEvidencias($filtros->acotar(
                 Evidencia::query()
+                    ->sinRenovar()
                     ->whereNotNull('fecha_caducidad')
                     ->whereDate('fecha_caducidad', '>=', $desde)
                     ->whereDate('fecha_caducidad', '<=', $hasta),

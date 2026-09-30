@@ -13,6 +13,8 @@ use App\Domain\Implantacion\Models\Implantacion;
 use App\Domain\Implantacion\Models\ImplantacionTransicion;
 use App\Domain\Organizacion\Models\Organizacion;
 use App\Domain\Sistema\Models\Sistema;
+use App\Domain\Tarea\Enums\EstadoTarea;
+use App\Domain\Tarea\Models\Tarea;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia;
 
@@ -70,6 +72,29 @@ it('sirve la ficha con el requisito, la exigencia y su origen', function (): voi
             // Deriva del motor: no se excluye a mano.
             ->where('exigencia.excluibleAMano', false)
             ->has('transicionesPermitidas', 3)
+            // Cada destino se pinta como el estado al que lleva: el tono y el
+            // icono los conoce el enum, no el cliente.
+            ->has('transicionesPermitidas.0', fn (AssertableInertia $destino) => $destino
+                ->hasAll(['valor', 'etiqueta', 'tono', 'icono'])
+            )
+        );
+});
+
+it('enseña todas las tareas y dice cuáles siguen abiertas', function (): void {
+    foreach ([EstadoTarea::Pendiente, EstadoTarea::Hecha] as $estado) {
+        Tarea::factory()->enEstado($estado)->create()->implantaciones()->attach($this->implantacion->id, [
+            'organizacion_id' => $this->organizacion->id,
+        ]);
+    }
+
+    // El resumen cuenta las abiertas; la lista sigue enseñando la hecha, que
+    // también explica el estado. Las abiertas llegan primero.
+    $this->actingAs($this->usuario)
+        ->get("/implantaciones/{$this->implantacion->id}")
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->has('tareas', 2)
+            ->where('tareas.0.abierta', true)
+            ->where('tareas.1.abierta', false)
         );
 });
 

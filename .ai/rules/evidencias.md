@@ -20,6 +20,29 @@ que sus reglas viven donde muerden:
 - **El disco `evidencias` lleva Object Lock**, y de ahí que `destroy()` deje el fichero
   a propósito — la diferencia con el disco de adjuntos está en `.ai/rules/adjuntos.md`.
 
+## La ficha, la vigencia y la renovación
+
+- **La vigencia se decide una vez, en `Evidencia\Vigencia`**, y la leen la columna de la tabla
+  (`badge()`) y la ficha (`toArray()`, con el periodo en días para la barra). Antes cada una tenía
+  su regla, y la ficha decía «Sin caducidad» de una evidencia semestral. El umbral de «por caducar»
+  es `Vigencia::DIAS_DE_AVISO`, el mismo que usa por defecto `Evidencia::porCaducar()`.
+- **Con periodicidad siempre hay caducidad**: la deriva `RegistrarEvidencia` al guardar. Lo que no
+  pase por él —el seeder— tiene que escribirla, o la ficha dice «Sin caducidad».
+- **Renovar es dar de alta otra, no editar** (`RegistrarEvidencia::renovar()`): el fichero no se
+  reemplaza. La nueva hereda los vínculos con su nota; la anterior **conserva los suyos** —probó
+  lo que probó durante su periodo— y apunta a la nueva con `renovada_por_id` (única, `SET NULL`).
+  **`sinRenovar()` es lo que la saca de los avisos**: lo aplican `caducadas()`, `porCaducar()` y
+  `CalendarioVencimientos`. Una consulta nueva de vencimientos de evidencias que no pase por
+  esos scopes vuelve a encender el rojo de lo ya renovado.
+- **Vincular desde la ficha de la evidencia** va por `POST /evidencias/{evidencia}/requisitos`, de
+  varios en varios. No hay implantación en la ruta, así que `EscribeLoSuyo` no decide: el
+  controlador salta y cuenta las ajenas del técnico, como el cambio de estado en bloque, y las
+  candidatas ya llegan filtradas. **Quitar** usa la ruta de siempre,
+  `DELETE /implantaciones/{implantacion}/evidencias/{evidencia}`, que sí lleva el middleware.
+- **`GuardarEvidenciaRequest` distingue la edición por el nombre de la ruta**
+  (`evidencias.update`), no por traer `{evidencia}`: la renovación también la trae y es un alta
+  que exige su propio fichero o enlace.
+
 ## Desvíos respecto al stack
 
 Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y por qué, para que nadie lo "arregle" sin contexto.

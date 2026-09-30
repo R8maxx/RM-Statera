@@ -113,8 +113,9 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
 - **Los botones de transición se pintan como el estado al que llevan** (`BotonEstado.vue`). Pulsa el que
   se parece al que quieres. A intensidad de badge —fondo suave y texto del tono, como ya hace la variante
   `destructive`— y **nunca de relleno**: un solo primario por vista, y dos botones de color lleno hacen
-  que no mande ninguno. En implantaciones el cambio de estado es un formulario con desplegable y nota,
-  no cuatro botones, así que ahí se queda como está.
+  que no mande ninguno. En implantaciones el cambio de estado es un formulario con nota, no botones
+  que actúan al pulsarse: los destinos son un grupo de radio (Reka) con el mismo tinte e icono, y el
+  servidor manda `tono` e `icono` en `transicionesPermitidas` para pintarlos.
 
 - **El ancho es por tipo de pantalla, no uno para todas.** `AppLayout` tiene `ancho`: `contenido`
   (por defecto, 1440 px centrados) para panel, fichas y formularios, y `completo` para toda página

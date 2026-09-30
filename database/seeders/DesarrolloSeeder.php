@@ -2432,6 +2432,10 @@ class DesarrolloSeeder extends Seeder
                 'url_externa' => 'https://idp.interno.ejemplo/administracion/mfa',
                 'fecha_obtencion' => Carbon::today()->subMonth(),
                 'periodicidad_renovacion' => PeriodicidadRenovacion::Semestral->value,
+                // La que `RegistrarEvidencia` derivaría: el seeder no pasa por
+                // él, y sin fecha la ficha decía «Sin caducidad» de una
+                // evidencia que se renueva cada seis meses.
+                'fecha_caducidad' => PeriodicidadRenovacion::Semestral->caducidadDesde(Carbon::today()->subMonth()),
             ],
         );
 
