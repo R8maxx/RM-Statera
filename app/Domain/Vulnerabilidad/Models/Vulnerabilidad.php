@@ -41,6 +41,10 @@ use Illuminate\Support\Carbon;
  * @property ?string $cve
  * @property ?string $cvss_puntuacion
  * @property ?string $cvss_vector
+ * @property ?string $cwe
+ * @property ?list<string> $referencias
+ * @property ?Carbon $kev_desde
+ * @property ?Carbon $nvd_consultado_el
  * @property Severidad $severidad
  * @property OrigenVulnerabilidad $origen
  * @property Carbon $fecha_deteccion
@@ -78,6 +82,10 @@ class Vulnerabilidad extends Model
         'cve',
         'cvss_puntuacion',
         'cvss_vector',
+        'cwe',
+        'referencias',
+        'kev_desde',
+        'nvd_consultado_el',
         'severidad',
         'origen',
         'fecha_deteccion',
@@ -233,6 +241,9 @@ class Vulnerabilidad extends Model
             'estado' => EstadoVulnerabilidad::class,
             'fecha_deteccion' => 'date',
             'fecha_limite' => 'date',
+            'referencias' => 'array',
+            'kev_desde' => 'date',
+            'nvd_consultado_el' => 'date',
             'aceptada_en' => 'datetime',
             'cerrada_en' => 'datetime',
         ];

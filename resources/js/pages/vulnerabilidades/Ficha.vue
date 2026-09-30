@@ -24,7 +24,7 @@ import { fechaLegible, formatoFechaHora } from '@/lib/celdas';
 import type { Opcion } from '@/lib/formularios';
 import { tono } from '@/lib/tonos';
 import { Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { InfoIcon, PlusIcon } from '@lucide/vue';
+import { ExternalLinkIcon, InfoIcon, PlusIcon, ShieldAlertIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 /**
@@ -66,6 +66,11 @@ interface Vulnerabilidad {
     vector: string | null;
     /** `null` si no hay vector o no es de la v3: entonces se enseña la cadena tal cual. */
     vectorDesglose: { metrica: string; valor: string }[] | null;
+    cwe: string | null;
+    referencias: string[];
+    /** La fecha en que CISA la metió en KEV, tal como se vio al consultarla. */
+    kevDesde: string | null;
+    nvdConsultadoEl: string | null;
     severidad: string;
     severidadEtiqueta: string;
     severidadTono: string;
@@ -183,6 +188,9 @@ const desde = computed(() => props.historial.at(-1)?.fecha ?? null);
 const terminal = computed(() => ['cerrada', 'aceptada', 'falso_positivo'].includes(props.vulnerabilidad.estado));
 
 const pasoSeveridad = computed(() => props.severidades.findIndex((una) => una.valor === props.vulnerabilidad.severidad));
+
+/** El dominio y la ruta, sin el esquema: una URL entera de NVD no cabe en la columna. */
+const legible = (url: string): string => url.replace(/^https?:\/\//i, '').replace(/\/$/, '');
 
 const dias = (n: number): string => (n === 1 ? '1 día' : `${n} días`);
 
@@ -372,6 +380,52 @@ const rotuloPaso = (paso: PasoCamino): string => {
                                 <dd class="mt-0.5 font-medium">{{ metrica.valor }}</dd>
                             </div>
                         </dl>
+
+                        <dl
+                            v-if="vulnerabilidad.cwe || vulnerabilidad.referencias.length > 0"
+                            class="grid gap-x-6 gap-y-3.5 sm:grid-cols-[11rem_minmax(0,1fr)]"
+                        >
+                            <template v-if="vulnerabilidad.cwe">
+                                <dt class="text-muted-foreground">Debilidad</dt>
+                                <dd>
+                                    <a
+                                        :href="`https://cwe.mitre.org/data/definitions/${vulnerabilidad.cwe.replace('CWE-', '')}.html`"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="cifra inline-flex items-center gap-1 text-[13px] text-primary hover:underline hover:underline-offset-4"
+                                    >
+                                        {{ vulnerabilidad.cwe }}
+                                        <ExternalLinkIcon class="size-3.5" aria-hidden="true" />
+                                        <span class="sr-only">(se abre en otra pestaña)</span>
+                                    </a>
+                                </dd>
+                            </template>
+                            <template v-if="vulnerabilidad.referencias.length > 0">
+                                <dt class="text-muted-foreground">Referencias</dt>
+                                <dd>
+                                    <ul class="space-y-1">
+                                        <li v-for="url in vulnerabilidad.referencias" :key="url" class="min-w-0">
+                                            <a
+                                                :href="url"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                class="inline-flex max-w-full items-center gap-1 text-primary hover:underline hover:underline-offset-4"
+                                                :title="url"
+                                            >
+                                                <span class="truncate">{{ legible(url) }}</span>
+                                                <ExternalLinkIcon class="size-3.5 shrink-0" aria-hidden="true" />
+                                                <span class="sr-only">(se abre en otra pestaña)</span>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </dd>
+                            </template>
+                        </dl>
+
+                        <p v-if="vulnerabilidad.nvdConsultadoEl" class="text-xs text-muted-foreground">
+                            Datos de NVD consultados el {{ fechaLegible(vulnerabilidad.nvdConsultadoEl) }} y revisados por quien la
+                            registró.
+                        </p>
                     </CardContent>
                 </Card>
 
@@ -505,6 +559,15 @@ const rotuloPaso = (paso: PasoCamino): string => {
                             </div>
                         </div>
 
+                        <!-- Explotarse pesa más que la puntuación al priorizar: va pegado a la severidad. -->
+                        <p v-if="vulnerabilidad.kevDesde" class="flex items-start gap-2 rounded-md bg-superficie px-3 py-2.5 text-[13px] leading-[18px]">
+                            <ShieldAlertIcon class="mt-px size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                            <span>
+                                <span class="font-semibold">Se está explotando.</span>
+                                En el catálogo KEV de CISA desde el {{ fechaLegible(vulnerabilidad.kevDesde) }}.
+                            </span>
+                        </p>
+
                         <dl class="grid grid-cols-[7rem_minmax(0,1fr)] gap-x-3 gap-y-3 border-t pt-4">
                             <dt class="text-muted-foreground">Responsable</dt>
                             <dd v-if="vulnerabilidad.responsable">{{ vulnerabilidad.responsable }}</dd>
@@ -514,7 +577,19 @@ const rotuloPaso = (paso: PasoCamino): string => {
                                 </span>
                             </dd>
                             <dt class="text-muted-foreground">CVE</dt>
-                            <dd :class="vulnerabilidad.cve ? 'cifra text-[13px]' : 'text-muted-foreground'">{{ vulnerabilidad.cve ?? 'No tiene' }}</dd>
+                            <dd v-if="vulnerabilidad.cve">
+                                <a
+                                    :href="`https://nvd.nist.gov/vuln/detail/${vulnerabilidad.cve}`"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="cifra inline-flex items-center gap-1 text-[13px] text-primary hover:underline hover:underline-offset-4"
+                                >
+                                    {{ vulnerabilidad.cve }}
+                                    <ExternalLinkIcon class="size-3.5" aria-hidden="true" />
+                                    <span class="sr-only">(NVD, se abre en otra pestaña)</span>
+                                </a>
+                            </dd>
+                            <dd v-else class="text-muted-foreground">No tiene</dd>
                             <dt class="text-muted-foreground">Origen</dt>
                             <dd>{{ vulnerabilidad.origen }}</dd>
                             <dt class="text-muted-foreground">Detectada</dt>

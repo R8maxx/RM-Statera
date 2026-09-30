@@ -1309,6 +1309,10 @@ Route::middleware('auth')->group(function (): void {
 
     Route::middleware(['can:vulnerabilidades.gestionar', ExigirDosFactores::class])->group(function (): void {
         Route::post('/vulnerabilidades', [VulnerabilidadController::class, 'store'])->name('vulnerabilidades.store');
+        // La única salida del producto hacia fuera: NVD y CISA KEV, a petición y con freno.
+        Route::post('/vulnerabilidades/consulta-cve', [VulnerabilidadController::class, 'consultarCve'])
+            ->middleware('throttle:20,1')
+            ->name('vulnerabilidades.consulta-cve');
         Route::get('/vulnerabilidades/{vulnerabilidad}/editar', [VulnerabilidadController::class, 'edit'])->name('vulnerabilidades.edit');
         Route::put('/vulnerabilidades/{vulnerabilidad}', [VulnerabilidadController::class, 'update'])->name('vulnerabilidades.update');
         Route::post('/vulnerabilidades/{vulnerabilidad}/estado', [VulnerabilidadController::class, 'transicion'])

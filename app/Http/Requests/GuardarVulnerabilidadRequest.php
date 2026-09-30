@@ -22,6 +22,9 @@ use Illuminate\Validation\Rule;
  * histórico y exige motivo o verificación. **La severidad sólo se pide sin
  * CVSS**: con puntuación la deriva `Severidad::desdeCvss()` y lo que llegue en
  * el campo se ignora, que es lo que el `CHECK` de la tabla exigiría igual.
+ *
+ * **Lo que trae la consulta del CVE entra por aquí como un campo más**: quien
+ * guarda ya puede escribir la puntuación que quiera, y la traza dice quién fue.
  */
 class GuardarVulnerabilidadRequest extends FormRequest
 {
@@ -48,6 +51,13 @@ class GuardarVulnerabilidadRequest extends FormRequest
             'cve' => ['nullable', 'string', 'max:32', 'regex:/^CVE-\d{4}-\d{4,}$/i'],
             'cvss_puntuacion' => ['nullable', 'numeric', 'between:0,10'],
             'cvss_vector' => ['nullable', 'string', 'max:255'],
+            'cwe' => ['nullable', 'string', 'max:20', 'regex:/^CWE-\d+$/i'],
+            // Se pintan como enlaces en la ficha: sólo http y https, nunca `javascript:`.
+            'referencias' => ['nullable', 'array', 'max:20'],
+            'referencias.*' => ['string', 'max:2048', 'url:http,https'],
+            // Lo que trajo la consulta del CVE: la marca de CISA KEV y el día en que se miró NVD.
+            'kev_desde' => ['nullable', 'date', 'before_or_equal:today'],
+            'nvd_consultado_el' => ['nullable', 'date', 'before_or_equal:today'],
             'severidad' => [$conCvss ? 'nullable' : 'required', Rule::enum(Severidad::class)],
 
             'origen' => ['required', Rule::enum(OrigenVulnerabilidad::class)],
@@ -84,6 +94,9 @@ class GuardarVulnerabilidadRequest extends FormRequest
     {
         return [
             'cve.regex' => 'Un CVE se escribe CVE-AAAA-NNNN, por ejemplo CVE-2024-3094.',
+            'cwe.regex' => 'Un CWE se escribe CWE-NNN, por ejemplo CWE-362.',
+            'referencias.*.url' => 'Cada referencia tiene que ser una dirección http o https, una por línea.',
+            'referencias.max' => 'Como mucho veinte referencias.',
             'severidad.required' => 'Sin puntuación CVSS, la severidad hay que declararla.',
             'fecha_deteccion.before_or_equal' => 'Una vulnerabilidad se registra cuando ya se ha detectado.',
         ];
@@ -103,6 +116,8 @@ class GuardarVulnerabilidadRequest extends FormRequest
             'incidente_id' => 'incidente',
             'responsable_id' => 'responsable',
             'remediacion' => 'remediación',
+            'kev_desde' => 'fecha de inclusión en KEV',
+            'nvd_consultado_el' => 'fecha de consulta a NVD',
         ];
     }
 
@@ -124,6 +139,21 @@ class GuardarVulnerabilidadRequest extends FormRequest
 
         if (isset($datos['cve']) && is_string($datos['cve'])) {
             $datos['cve'] = mb_strtoupper($datos['cve']);
+        }
+
+        if (isset($datos['cwe']) && is_string($datos['cwe'])) {
+            $datos['cwe'] = mb_strtoupper($datos['cwe']);
+        }
+
+        $datos['referencias'] = ($datos['referencias'] ?? []) === [] ? null : array_values($datos['referencias']);
+
+        /*
+         * La procedencia va con el CVE: sin CVE no hay de qué haberla consultado,
+         * y una marca de KEV suelta sería de otro.
+         */
+        if (($datos['cve'] ?? null) === null) {
+            $datos['kev_desde'] = null;
+            $datos['nvd_consultado_el'] = null;
         }
 
         return $datos;
@@ -148,6 +178,16 @@ class GuardarVulnerabilidadRequest extends FormRequest
 
         if (is_string($cvss)) {
             $this->merge(['cvss_puntuacion' => str_replace(',', '.', trim($cvss))]);
+        }
+
+        // Las referencias llegan de un textarea, una por línea.
+        $referencias = $this->input('referencias');
+
+        if (is_string($referencias)) {
+            $this->merge(['referencias' => array_values(array_filter(
+                array_map(trim(...), preg_split('/\R/', $referencias) ?: []),
+                static fn (string $linea): bool => $linea !== '',
+            ))]);
         }
 
         $this->normalizarCentinelas();

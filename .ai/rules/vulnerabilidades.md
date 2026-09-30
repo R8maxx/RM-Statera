@@ -112,8 +112,9 @@ avisa.
 
 - **No se integra con escáneres**, que está fuera de alcance, ni importa CSV. Todo
   hallazgo se registra a mano.
-- **No consulta ninguna base de CVE.** El CVE se valida por forma
-  (`CVE-AAAA-NNNN`), no porque exista, y la puntuación la escribe quien la registra.
+- **No valida contra ninguna base de CVE.** El CVE se valida por forma
+  (`CVE-AAAA-NNNN`), no porque exista. La consulta a NVD rellena el formulario,
+  pero lo que se guarda es lo que quede en el campo (ver «La consulta del CVE»).
 - **Sólo CVSS v3.1.** El vector se guarda como texto y no puntúa nada, así que
   un vector de la v4 entra, pero la severidad sigue los tramos de la v3.1. La
   ficha lo **lee** en castellano (`VectorCvss`) cuando es de la v3; si no lo
@@ -132,3 +133,34 @@ para cuando sale de abierta y de remediación —la mitigada ya cumplió—; la 
 AEPD. El camino abierta → remediación → mitigada → cerrada cuenta desde la
 última reapertura y dice el paso **saltado** en vez de pintarlo hecho sin
 fecha. La severidad, ordinal, va en escala de pasos y no en badge (§ 9).
+
+## La consulta del CVE: NVD y CISA KEV
+
+**Es la única salida del producto hacia fuera**, y por eso tiene cuatro
+límites escritos: sale **sólo el identificador**, **desde el servidor**, **a
+petición** —el botón «Traer datos» del formulario, con `throttle:20,1`— y **se
+apaga entera** con `CVE_CONSULTA_ACTIVA=false` (`config/services.php`). Un CVE
+con mala forma no sale: lo para `ConsultarCveRequest`.
+
+- **NVD da los datos** (`Fuentes/ConsultaNvd`): la descripción en castellano si
+  la tiene —muchas la tienen—, el CVSS de la v3.1 o la v3.0 con la puntuación
+  primaria de NVD, un CWE concreto y ocho referencias, las útiles primero y una
+  por sitio en la primera vuelta. **De la v4 sólo el vector**: la severidad
+  sigue los tramos de la v3.1. Una hora de caché por CVE; los fallos no se
+  guardan.
+- **KEV dice si se explota** (`Fuentes/CatalogoKev`), y pesa más que el CVSS al
+  priorizar. Se baja el catálogo entero y se busca en local, doce horas en
+  caché: **CISA no llega a saber qué CVE interesa**. Si no contesta se rellena
+  igual y se dice que no se ha comprobado, que no es «no se explota».
+- **No escribe nada.** Rellena sólo lo vacío y dice qué ha tocado y qué no; se
+  revisa y se registra como siempre. Avisa si el CVE ya está registrado.
+- **La procedencia se guarda**: `kev_desde` —foto de la fecha de CISA al
+  consultar— y `nvd_consultado_el`. Viajan en dos campos ocultos que el
+  formulario **sólo manda para el CVE consultado**, y el `FormRequest` los
+  borra si no hay CVE. Entran como un campo más: quien guarda ya puede escribir
+  la puntuación que quiera, y la traza dice quién fue.
+- **Las referencias son enlaces en la ficha**: sólo `http` y `https`, lo exige
+  el `FormRequest` (`url:http,https`), nunca un `javascript:`.
+- Los tests (`ConsultaCveTest`) usan `Http::preventStrayRequests()` y datos
+  sintéticos: la suite no sale a la red.
+

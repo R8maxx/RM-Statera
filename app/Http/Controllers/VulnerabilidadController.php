@@ -21,17 +21,20 @@ use App\Domain\Vulnerabilidad\Enums\EstadoVulnerabilidad;
 use App\Domain\Vulnerabilidad\Enums\OrigenVulnerabilidad;
 use App\Domain\Vulnerabilidad\Enums\Severidad;
 use App\Domain\Vulnerabilidad\Excepciones\OperacionDeVulnerabilidadNoPermitida;
+use App\Domain\Vulnerabilidad\Fuentes\ConsultarCve;
 use App\Domain\Vulnerabilidad\Models\Vulnerabilidad;
 use App\Domain\Vulnerabilidad\Models\VulnerabilidadTransicion;
 use App\Domain\Vulnerabilidad\PlazoRemediacion;
 use App\Domain\Vulnerabilidad\RegistroVulnerabilidades;
 use App\Domain\Vulnerabilidad\VectorCvss;
 use App\Http\Requests\CambiarEstadoVulnerabilidadRequest;
+use App\Http\Requests\ConsultarCveRequest;
 use App\Http\Requests\DerivarTareaDeVulnerabilidadRequest;
 use App\Http\Requests\GuardarVulnerabilidadRequest;
 use App\Http\Resources\Concerns\RespondeConRecurso;
 use App\Http\Resources\VulnerabilidadRecurso;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -135,6 +138,10 @@ class VulnerabilidadController extends Controller
                 'cvss' => $vulnerabilidad->cvss_puntuacion,
                 'vector' => $vulnerabilidad->cvss_vector,
                 'vectorDesglose' => $vector->desglose($vulnerabilidad->cvss_vector),
+                'cwe' => $vulnerabilidad->cwe,
+                'referencias' => $vulnerabilidad->referencias ?? [],
+                'kevDesde' => $vulnerabilidad->kev_desde?->toDateString(),
+                'nvdConsultadoEl' => $vulnerabilidad->nvd_consultado_el?->toDateString(),
                 'severidad' => $vulnerabilidad->severidad->value,
                 'severidadEtiqueta' => $vulnerabilidad->severidad->etiqueta(),
                 'severidadTono' => $vulnerabilidad->severidad->tono(),
@@ -218,6 +225,20 @@ class VulnerabilidadController extends Controller
         ]);
     }
 
+    /**
+     * Lo que NVD y CISA KEV saben de un CVE, para rellenar el formulario. No
+     * guarda nada: quien registra revisa y guarda como siempre.
+     */
+    public function consultarCve(ConsultarCveRequest $request, ConsultarCve $consulta): JsonResponse
+    {
+        $excepto = $request->validated('vulnerabilidad_id');
+
+        return response()->json($consulta->consultar(
+            (string) $request->validated('cve'),
+            $excepto === null ? null : (int) $excepto,
+        ));
+    }
+
     public function edit(Vulnerabilidad $vulnerabilidad): Response
     {
         return Inertia::render('vulnerabilidades/Formulario', [
@@ -229,6 +250,10 @@ class VulnerabilidadController extends Controller
                 'cve' => $vulnerabilidad->cve,
                 'cvss_puntuacion' => $vulnerabilidad->cvss_puntuacion,
                 'cvss_vector' => $vulnerabilidad->cvss_vector,
+                'cwe' => $vulnerabilidad->cwe,
+                'referencias' => $vulnerabilidad->referencias ?? [],
+                'kev_desde' => $vulnerabilidad->kev_desde?->toDateString(),
+                'nvd_consultado_el' => $vulnerabilidad->nvd_consultado_el?->toDateString(),
                 'severidad' => $vulnerabilidad->severidad->value,
                 'origen' => $vulnerabilidad->origen->value,
                 'fecha_deteccion' => $vulnerabilidad->fecha_deteccion->toDateString(),

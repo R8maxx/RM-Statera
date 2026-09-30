@@ -64,4 +64,23 @@ return [
         ],
     ],
 
+    /*
+    | Las dos fuentes que rellenan el alta de una vulnerabilidad a partir de su
+    | CVE. **Sólo se les manda el identificador**, desde el servidor, y sólo
+    | cuando alguien pulsa «Traer datos»: es la única salida del producto hacia
+    | fuera, y por eso se apaga entera con `CVE_CONSULTA_ACTIVA=false`.
+    */
+    'nvd' => [
+        'activa' => (bool) env('CVE_CONSULTA_ACTIVA', true),
+        'url' => env('NVD_URL', 'https://services.nvd.nist.gov/rest/json/cves/2.0'),
+        // Sin clave, NVD admite unas 5 consultas cada 30 s: sobra para dar de alta a mano.
+        'clave' => env('NVD_API_KEY'),
+        'timeout' => (int) env('NVD_TIMEOUT', 8),
+    ],
+
+    'kev' => [
+        'url' => env('KEV_URL', 'https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json'),
+        'timeout' => (int) env('KEV_TIMEOUT', 8),
+    ],
+
 ];
