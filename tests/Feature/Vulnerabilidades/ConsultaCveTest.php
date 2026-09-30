@@ -224,6 +224,36 @@ it('rechaza una referencia que no sea http o https', function (): void {
     ])->assertSessionHasErrors('referencias.1');
 });
 
+/*
+| Las referencias llegan una por fila (`CampoLista`, `referencias[]`). La lista
+| vacía viaja como un `referencias[]` en blanco para que vaciarla en una edición
+| la vacíe, y el middleware lo convierte en nulo: sin filtrarlo, la validación de
+| cada URL fallaba sobre un hueco que nadie escribió.
+*/
+it('admite las referencias en lista y vaciarlas en una edición', function (): void {
+    $datos = [
+        'codigo' => 'VUL-2031-0004',
+        'titulo' => 'Sintética con lista',
+        'severidad' => 'media',
+        'origen' => 'interna',
+        'fecha_deteccion' => now()->toDateString(),
+    ];
+
+    $this->actingAs($this->responsable)->post('/vulnerabilidades', [
+        ...$datos,
+        'referencias' => ['https://example.test/aviso', '  http://example.test/parche  '],
+    ])->assertSessionHasNoErrors();
+
+    $guardada = Vulnerabilidad::query()->sole();
+    expect($guardada->referencias)->toBe(['https://example.test/aviso', 'http://example.test/parche']);
+
+    $this->actingAs($this->responsable)
+        ->put("/vulnerabilidades/{$guardada->id}", [...$datos, 'referencias' => ['']])
+        ->assertSessionHasNoErrors();
+
+    expect($guardada->refresh()->referencias)->toBeNull();
+});
+
 it('sin CVE no guarda procedencia', function (): void {
     $this->actingAs($this->responsable)->post('/vulnerabilidades', [
         'codigo' => 'VUL-2031-0003',

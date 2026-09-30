@@ -37,6 +37,13 @@ const props = defineProps<{
     sucio?: boolean;
     /** El formulario se está enviando: ahí salir no es perder nada. */
     enviando?: boolean;
+    /**
+     * Dónde va: pegada al pie (por defecto) o al final del carril de
+     * `FormularioRecurso`, apilada bajo el resumen. En el carril el envío va
+     * a lo ancho y «Cancelar» baja junto a la nota: es la última línea que se
+     * lee antes de irse.
+     */
+    disposicion?: 'pie' | 'carril';
 }>();
 
 const confirmando = ref(false);
@@ -93,7 +100,23 @@ onUnmounted(() => window.removeEventListener('beforeunload', alDescargar));
         desplazada del botón que acompañaba, y en los formularios anchos era
         más estrecha que ellos. Pegajosa, hereda el ancho de quien la contiene.
     -->
+    <div v-if="disposicion === 'carril'" class="grid gap-2">
+        <div class="grid [&>button]:w-full">
+            <slot />
+        </div>
+
+        <div class="flex items-center justify-between gap-3 text-sm text-muted-foreground">
+            <span class="min-w-0"><slot name="nota" /></span>
+            <span class="shrink-0" @click.capture="alCancelar">
+                <Button as-child variant="ghost" size="sm">
+                    <Link :href="urlCancelar">{{ etiquetaCancelar ?? 'Cancelar' }}</Link>
+                </Button>
+            </span>
+        </div>
+    </div>
+
     <div
+        v-else
         class="sticky bottom-0 z-(--z-barra-acciones) mt-8 border-t bg-background/90 py-3 backdrop-blur-sm"
     >
         <!-- Los dos botones van juntos, siempre: a 375 px el envío caía solo a

@@ -65,6 +65,15 @@ enum TipoActivo: string
     }
 
     /**
+     * El tono de `--tipo-*` con el que se pinta, en el vocabulario de
+     * `lib/tonos.ts`: el mismo que la columna «Tipo» de la tabla de activos.
+     */
+    public function tono(): string
+    {
+        return 'tipo:'.$this->value;
+    }
+
+    /**
      * Si el activo tiene una carcasa donde pegar una etiqueta.
      *
      * Lo decide quién entra en la hoja de etiquetas QR: una instancia EC2 y una

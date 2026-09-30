@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
 import BarraAcciones from '@/components/formulario/BarraAcciones.vue';
+import IndiceFormulario from '@/components/formulario/IndiceFormulario.vue';
 import { Button } from '@/components/ui/button';
 import { proveerObligatorios } from '@/composables/useCamposObligatorios';
+import { proveerIndice } from '@/composables/useIndiceFormulario';
 import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
 import { Form } from '@inertiajs/vue3';
 import type { Method } from '@inertiajs/core';
 import { AlertCircleIcon } from '@lucide/vue';
+import { useMediaQuery } from '@vueuse/core';
 import { motion } from 'motion-v';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, useSlots } from 'vue';
 
 /**
  * La envoltura común de los formularios de un recurso.
@@ -20,8 +23,20 @@ import { computed, onMounted, ref } from 'vue';
  *
  * El pie lo pone `BarraAcciones`, que comparte con las pantallas de este tipo
  * que no son un `<Form>`.
+ *
+ * **El carril.** Con tres secciones o más, o con un `#resumen`, las acciones
+ * dejan el pie y suben a una columna de 20 rem a la derecha, pegajosa, con el
+ * índice de secciones (lo que falta en cada una) y, si el formulario lo trae,
+ * «Lo que sale de aquí»: lo que el sistema deriva de lo que se escribe —la
+ * severidad y el plazo de una vulnerabilidad—. Un formulario de una o dos
+ * secciones no tiene nada que recorrer y se queda con el pie.
+ *
+ * Por debajo de `lg` no hay sitio para dos columnas: el índice desaparece, el
+ * resumen baja al final de los campos y las acciones vuelven al pie. Una sola
+ * `BarraAcciones` en el DOM a la vez —es la que registra el `beforeunload`—,
+ * de ahí `useMediaQuery` y no dos copias escondidas con clases.
  */
-withDefaults(
+const props = withDefaults(
     defineProps<{
         titulo: string;
         descripcion?: string;
@@ -32,8 +47,8 @@ withDefaults(
         /**
          * Una columna más ancha, para los formularios que además del campo
          * llevan algo al lado —hoy sólo el índice de la plantilla de un
-         * documento—. `SeccionFormulario` ya gasta 16rem en su explicación; con
-         * un índice delante, la caja de texto se queda sin sitio para escribir.
+         * documento—. Con un índice delante, y con el carril si lo hay, la caja
+         * de texto se quedaba sin sitio para escribir.
          */
         ancho?: boolean;
         /**
@@ -43,11 +58,19 @@ withDefaults(
          * la misma vista, contra «uno por pantalla» de DESIGN.md §6.
          */
         seccion?: boolean;
+        /** El título del bloque `#resumen`. */
+        tituloResumen?: string;
     }>(),
-    { method: 'post', etiquetaEnviar: 'Guardar', ancho: false, seccion: false },
+    { method: 'post', etiquetaEnviar: 'Guardar', ancho: false, seccion: false, tituloResumen: 'Lo que sale de aquí' },
 );
 
 const { variantesEntrada } = useMovimientoReducido();
+const slots = useSlots();
+const { secciones } = proveerIndice();
+const pantallaAncha = useMediaQuery('(min-width: 1024px)');
+
+const conCarril = computed(() => !props.seccion && (secciones.value.length >= 3 || slots.resumen !== undefined));
+const carrilVisible = computed(() => conCarril.value && pantallaAncha.value);
 
 /*
  * El `<form>` se alcanza desde dentro con `closest` y no por el `$el` del
@@ -116,59 +139,101 @@ function irAlCampo(nombre: string): void {
         :method="method"
         #default="{ errors, processing, hasErrors }"
         class="mx-auto w-full"
-        :class="ancho ? 'max-w-7xl' : 'max-w-6xl'"
+        :class="ancho ? 'max-w-7xl' : conCarril || seccion ? 'max-w-6xl' : 'max-w-4xl'"
     >
         <div ref="ancla" class="contents" />
 
-        <!-- El ritmo del formulario, igual que el de la página: 32 px entre
-             la cabecera, el resumen de errores y las secciones. Sin esto, la
-             primera sección salía pegada a la leyenda de obligatorios. -->
-        <motion.div :variants="variantesEntrada" initial="oculto" animate="visible" class="space-y-8">
-            <div v-if="seccion">
-                <h2 class="text-base font-semibold tracking-[-0.01em]">{{ titulo }}</h2>
-                <p v-if="descripcion" class="mt-1 max-w-2xl text-sm text-pretty text-muted-foreground">
-                    {{ descripcion }}
-                </p>
-                <p v-if="hayObligatorios" class="mt-2 text-xs text-muted-foreground">
-                    {{ leyendaObligatorios }}
-                </p>
-            </div>
+        <!-- Con `seccion` se queda en `max-w-6xl`, el ancho de la pantalla que lo
+             contiene: más estrecho, quedaba centrado bajo tarjetas más anchas. -->
+        <div :class="carrilVisible ? 'grid grid-cols-[minmax(0,1fr)_20rem] items-start gap-x-12' : undefined">
+            <!-- El ritmo del formulario, igual que el de la página: 32 px entre
+                 la cabecera, el resumen de errores y las secciones. Sin esto, la
+                 primera sección salía pegada a la leyenda de obligatorios. -->
+            <motion.div :variants="variantesEntrada" initial="oculto" animate="visible" class="min-w-0 space-y-8">
+                <div v-if="seccion">
+                    <h2 class="text-base font-semibold tracking-[-0.01em]">{{ titulo }}</h2>
+                    <p v-if="descripcion" class="mt-1 max-w-2xl text-sm text-pretty text-muted-foreground">
+                        {{ descripcion }}
+                    </p>
+                    <p v-if="hayObligatorios" class="mt-2 text-xs text-muted-foreground">
+                        {{ leyendaObligatorios }}
+                    </p>
+                </div>
 
-            <CabeceraPagina v-else :titulo="titulo" :descripcion="descripcion">
-                <!-- Un formulario sin campos obligatorios no anuncia asteriscos. -->
-                <p v-if="hayObligatorios" class="mt-2 text-xs text-muted-foreground">
-                    {{ leyendaObligatorios }}
-                </p>
-            </CabeceraPagina>
+                <CabeceraPagina v-else :titulo="titulo" :descripcion="descripcion">
+                    <!-- Un formulario sin campos obligatorios no anuncia asteriscos. -->
+                    <p v-if="hayObligatorios" class="mt-2 text-xs text-muted-foreground">
+                        {{ leyendaObligatorios }}
+                    </p>
+                </CabeceraPagina>
 
-            <div
-                v-if="hasErrors"
-                role="alert"
-                class="rounded-xl border border-destructive/40 bg-destructive/5 p-4"
-            >
-                <p class="flex items-center gap-2 text-sm font-medium text-destructive">
-                    <AlertCircleIcon class="size-4" />
-                    Revisa {{ Object.keys(errors).length === 1 ? 'este campo' : 'estos campos' }}
-                </p>
-                <ul class="mt-2.5 space-y-1">
-                    <li v-for="(mensaje, campo) in errors" :key="campo">
-                        <button
-                            type="button"
-                            class="rounded text-left text-sm text-destructive underline-offset-4 hover:underline"
-                            @click="irAlCampo(String(campo))"
-                        >
-                            {{ mensaje }}
-                        </button>
-                    </li>
-                </ul>
-            </div>
+                <div
+                    v-if="hasErrors"
+                    role="alert"
+                    class="rounded-xl border border-destructive/40 bg-destructive/5 p-4"
+                >
+                    <p class="flex items-center gap-2 text-sm font-medium text-destructive">
+                        <AlertCircleIcon class="size-4" />
+                        Revisa {{ Object.keys(errors).length === 1 ? 'este campo' : 'estos campos' }}
+                    </p>
+                    <ul class="mt-2.5 space-y-1">
+                        <li v-for="(mensaje, campo) in errors" :key="campo">
+                            <button
+                                type="button"
+                                class="rounded text-left text-sm text-destructive underline-offset-4 hover:underline"
+                                @click="irAlCampo(String(campo))"
+                            >
+                                {{ mensaje }}
+                            </button>
+                        </li>
+                    </ul>
+                </div>
 
-            <div class="space-y-6">
-                <slot :errors="errors" :processing="processing" />
-            </div>
-        </motion.div>
+                <div class="space-y-6">
+                    <slot :errors="errors" :processing="processing" />
+                </div>
 
-        <BarraAcciones :url-cancelar="urlCancelar" :sucio="sucio" :enviando="processing">
+                <!-- Sin carril, lo que se deriva se lee justo antes de enviar. -->
+                <section
+                    v-if="$slots.resumen && !carrilVisible"
+                    aria-labelledby="resumen-formulario"
+                    class="grid gap-4 rounded-xl bg-card p-5 ring-1 ring-foreground/10"
+                >
+                    <h2 id="resumen-formulario" class="text-sm font-semibold">{{ tituloResumen }}</h2>
+                    <slot name="resumen" />
+                </section>
+            </motion.div>
+
+            <!--
+                `top-24`: 64 px de la cabecera de la aplicación y 32 de aire. El
+                carril no se desplaza por dentro: si no cabe en la ventana, lo que
+                sobra es el resumen, y eso se arregla recortando el resumen.
+            -->
+            <aside v-if="carrilVisible" aria-label="Resumen y acciones" class="sticky top-24 grid gap-5 pt-1">
+                <IndiceFormulario v-if="secciones.length >= 3" :secciones="secciones" />
+
+                <section
+                    v-if="$slots.resumen"
+                    aria-labelledby="resumen-formulario"
+                    class="grid gap-4 rounded-xl bg-card p-5 ring-1 ring-foreground/10"
+                >
+                    <h2 id="resumen-formulario" class="text-sm font-semibold">{{ tituloResumen }}</h2>
+                    <slot name="resumen" />
+                </section>
+
+                <BarraAcciones :url-cancelar="urlCancelar" :sucio="sucio" :enviando="processing" disposicion="carril">
+                    <template v-if="pendientes > 0" #nota>
+                        {{ pendientes === 1 ? 'Falta 1 obligatorio' : `Faltan ${pendientes} obligatorios` }}
+                    </template>
+
+                    <Button type="submit" size="lg" :disabled="processing">
+                        {{ processing ? 'Guardando…' : etiquetaEnviar }}
+                    </Button>
+                </BarraAcciones>
+            </aside>
+        </div>
+
+        <BarraAcciones v-if="!carrilVisible" :url-cancelar="urlCancelar" :sucio="sucio" :enviando="processing">
             <template v-if="pendientes > 0" #nota>
                 {{ pendientes === 1 ? 'Falta 1 campo obligatorio' : `Faltan ${pendientes} campos obligatorios` }}
             </template>

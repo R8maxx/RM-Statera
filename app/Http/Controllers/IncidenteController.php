@@ -464,10 +464,13 @@ class IncidenteController extends Controller
                 ->all(),
             'activosDisponibles' => Activo::query()
                 ->orderBy('codigo')
-                ->get(['id', 'codigo', 'nombre'])
+                ->get(['id', 'codigo', 'nombre', 'tipo'])
                 ->map(static fn (Activo $activo): array => [
                     'valor' => (string) $activo->id,
                     'etiqueta' => "{$activo->codigo} · {$activo->nombre}",
+                    'tono' => $activo->tipo->tono(),
+                    'icono' => $activo->tipo->icono(),
+                    'descripcion' => $activo->tipo->etiqueta(),
                 ])
                 ->all(),
             // Las cinco del Anexo I, con el nombre de su columna como valor:

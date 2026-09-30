@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\Activo\Enums\TipoActivo;
 use App\Domain\Activo\Models\Activo;
 use App\Domain\Autorizacion\Enums\Rol;
 use App\Domain\Vulnerabilidad\Enums\EstadoVulnerabilidad;
@@ -149,6 +150,39 @@ it('las pantallas se pintan, también desde la ficha de un activo', function ():
     $this->actingAs($this->responsable)->get("/vulnerabilidades/{$vulnerabilidad->id}")->assertOk();
     $this->actingAs($this->responsable)->get("/vulnerabilidades/{$vulnerabilidad->id}/editar")->assertOk();
     $this->actingAs($this->responsable)->get("/activos/{$activo->id}")->assertOk();
+});
+
+/*
+| El carril del formulario dice el plazo y la fecha límite antes de registrar.
+| Tienen que ser los días de la política de la organización, los mismos que
+| aplica `PlazoRemediacion` al guardar, y ninguno para la informativa.
+*/
+it('el formulario recibe los plazos de la política de la organización', function (): void {
+    $this->organizacion->forceFill(['plazo_vulnerabilidad_critica_dias' => 3, 'plazo_vulnerabilidad_baja_dias' => 120])->save();
+
+    $this->actingAs($this->responsable)
+        ->get('/vulnerabilidades/crear')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->where('plazos.critica', 3)
+            ->where('plazos.baja', 120)
+            ->where('plazos.informativa', null));
+});
+
+/*
+| El selector de activos pinta cada uno con el color y el icono de su tipo
+| MAGERIT, los mismos que la columna «Tipo» del inventario, y dice el tipo en
+| texto: el color sólo agrupa (DESIGN.md §3).
+*/
+it('los activos llegan al formulario con el tono, el icono y el nombre de su tipo', function (): void {
+    $activo = Activo::factory()->create(['tipo' => TipoActivo::Software]);
+
+    $this->actingAs($this->responsable)
+        ->get('/vulnerabilidades/crear')
+        ->assertInertia(function (AssertableInertia $pagina) use ($activo): void {
+            $opcion = collect($pagina->toArray()['props']['activos'])->firstWhere('valor', (string) $activo->id);
+
+            expect($opcion)->toMatchArray(['tono' => 'tipo:software', 'icono' => 'AppWindow', 'descripcion' => 'Software']);
+        });
 });
 
 /*

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import FilaCampos from '@/components/formulario/FilaCampos.vue';
-import CampoCasillas from '@/components/formulario/CampoCasillas.vue';
+import CampoSeleccionMultiple, { type OpcionTipada } from '@/components/formulario/CampoSeleccionMultiple.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
@@ -44,7 +44,7 @@ interface Riesgo {
 const props = defineProps<{
     riesgo: Riesgo | null;
     amenazas: (Opcion & { grupo: string })[];
-    activos: Opcion[];
+    activos: OpcionTipada[];
     personas: Opcion[];
 }>();
 
@@ -147,7 +147,7 @@ const alcance = ref<string[]>(props.riesgo?.activos.map((activo) => String(activ
                 titulo="Sobre qué pesa"
                 ayuda="Un riesgo puede pesar sobre treinta activos y sigue siendo uno solo. Duplicarlo por activo haría que el indicador dijera treinta donde hay una cosa que decidir."
             >
-                <CampoCasillas
+                <CampoSeleccionMultiple
                     v-model="alcance"
                     nombre="activos"
                     etiqueta="Activos afectados"

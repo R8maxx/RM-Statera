@@ -39,6 +39,9 @@ withDefaults(
          * nombre accesible.
          */
         etiquetaOculta?: boolean;
+        /** De dónde salió el valor (ver `CampoBase`). */
+        procedencia?: string | null;
+        procedenciaEditada?: boolean;
     }>(),
     { tipo: 'text' },
 );
@@ -53,10 +56,38 @@ const modelo = defineModel<string | number | undefined>();
         :error="error"
         :ayuda="ayuda"
         :requerido="requerido"
+        :procedencia="procedencia"
+        :procedencia-editada="procedenciaEditada"
         :etiqueta-oculta="etiquetaOculta"
         #default="{ atributos }"
     >
+        <!--
+            `#accion`: un botón pegado al campo que lo alimenta —«Traer de NVD»
+            junto al CVE—. Antes iba al lado, en una fila aparte, y bajado a mano
+            con un margen para que coincidiera con el control.
+        -->
+        <div v-if="$slots.accion" class="flex">
+            <Input
+                v-model="modelo"
+                :name="nombre"
+                :type="tipo"
+                :required="requerido"
+                :disabled="deshabilitado"
+                :readonly="soloLectura"
+                :placeholder="placeholder"
+                :autocomplete="autocomplete"
+                :autofocus="autofocus"
+                :default-value="valorInicial"
+                class="relative rounded-r-none focus-visible:z-10"
+                v-bind="{ ...atributos, ...$attrs }"
+            />
+            <div class="-ml-px flex shrink-0 *:rounded-l-none">
+                <slot name="accion" />
+            </div>
+        </div>
+
         <Input
+            v-else
             v-model="modelo"
             :name="nombre"
             :type="tipo"

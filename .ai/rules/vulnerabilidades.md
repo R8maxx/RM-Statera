@@ -164,3 +164,17 @@ con mala forma no sale: lo para `ConsultarCveRequest`.
 - Los tests (`ConsultaCveTest`) usan `Http::preventStrayRequests()` y datos
   sintéticos: la suite no sale a la red.
 
+## El resumen del formulario
+
+El carril de `vulnerabilidades/Formulario.vue` dice, antes de registrar, la severidad (derivada del CVSS
+o la declarada), los días de la política, la fecha límite y si está en KEV. Los días llegan en el prop
+`plazos` desde `VulnerabilidadController::plazos()`, que lee `Organizacion::diasRemediacion()` igual que
+`PlazoRemediacion`. **Es una previsión**: la fecha que vale es la que guarda el servidor. La marca de
+KEV sólo cuenta para el CVE consultado, con la misma regla que los campos ocultos. La severidad derivada
+dejó de ser un `Aviso` dentro de «Cuánto pesa»: vive en el resumen.
+
+Los campos que rellena «Traer de NVD» llevan el chip «NVD» (`traidos` guarda el valor traído por campo;
+«editado» cuando ya no coincide), y sólo mientras el CVE sea el consultado. Las referencias van en
+`CampoLista` y el `FormRequest` admite las dos formas: array por fila o texto por líneas. Riesgo,
+incidente y proveedor son `CampoRelacion`; los activos, `CampoSeleccionMultiple`.
+

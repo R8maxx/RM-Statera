@@ -180,13 +180,19 @@ class GuardarVulnerabilidadRequest extends FormRequest
             $this->merge(['cvss_puntuacion' => str_replace(',', '.', trim($cvss))]);
         }
 
-        // Las referencias llegan de un textarea, una por línea.
+        // Una por fila (`CampoLista`), o una por línea si llegan como texto. La
+        // lista vacía viaja como un `referencias[]` en blanco, que el middleware
+        // convierte en nulo: sin filtrarlo, vaciar la lista fallaría la validación.
         $referencias = $this->input('referencias');
 
         if (is_string($referencias)) {
+            $referencias = preg_split('/\R/', $referencias) ?: [];
+        }
+
+        if (is_array($referencias)) {
             $this->merge(['referencias' => array_values(array_filter(
-                array_map(trim(...), preg_split('/\R/', $referencias) ?: []),
-                static fn (string $linea): bool => $linea !== '',
+                array_map(static fn (mixed $linea): mixed => is_string($linea) ? trim($linea) : $linea, $referencias),
+                static fn (mixed $linea): bool => $linea !== '' && $linea !== null,
             ))]);
         }
 

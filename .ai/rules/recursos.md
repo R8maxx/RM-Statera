@@ -84,3 +84,27 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
   modificado. **No se lanza ningún evento sintético desde el campo oculto**: se probó y colgó la
   pestaña en un bucle con Reka.
 
+- **El formulario tiene carril, y la explicación de la sección sube encima de los campos.** Con tres
+  secciones o más, o con un `#resumen`, `FormularioRecurso` pone a la derecha el índice
+  (`IndiceFormulario`), «Lo que sale de aquí» y las acciones (`BarraAcciones` con
+  `disposicion="carril"`). Las secciones se dan de alta solas (`useIndiceFormulario`) y se ordenan por
+  posición en el documento, no por orden de montaje. **Una sola `BarraAcciones` montada a la vez**
+  —la que registra el `beforeunload`—, por eso el cambio de disposición va por `useMediaQuery` y no por
+  dos copias con `hidden lg:block`. Con `seccion` (el formulario dentro de otra pantalla) nunca hay
+  carril. La sección que se lee se mide al desplazar y no con un `IntersectionObserver`: con «la primera
+  visible en una franja» una sección larga retenía el índice con la siguiente ya a media pantalla.
+
+- **Un formulario con `#resumen` no puede llevar `#default="{ errors }"` en la etiqueta.** Vue sólo lo
+  admite ahí cuando es el único slot, y el error sale al compilar («Codegen node is missing for
+  element/if/for node»), no en `vue-tsc`. El contenido va en `<template #default="{ errors }">` y el
+  resumen en `<template #resumen>` a su lado (`vulnerabilidades/Formulario.vue`).
+
+- **Cuatro campos nuevos en `components/formulario/`**, con el contrato de envío de los que ya había:
+  `CampoSeleccionMultiple` viaja como `CampoCasillas` (un oculto por valor y un `nombre[]` vacío sin
+  ninguno); `CampoRelacion` envía `SIN_VALOR` plegado, que `NormalizaSeleccionVacia` pasa a nulo —el
+  campo tiene que estar en `seleccionesOpcionales()` del `FormRequest`—; `CampoLista` deja sin `name` la
+  fila vacía y manda un `nombre[]` en blanco con todas vacías, así que **el `FormRequest` tiene que
+  filtrar nulos del array** (el middleware convierte ese blanco en nulo); y `MarcaProcedencia` es el chip
+  que pintan `CampoBase` y `CampoLista`. El `ComboboxInput` recibe `atributos` de `CampoBase`: es el
+  elemento enfocable, el que busca `irAlCampo`.
+

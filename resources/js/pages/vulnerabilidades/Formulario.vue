@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import Aviso from '@/components/Aviso.vue';
-import CampoCasillas from '@/components/formulario/CampoCasillas.vue';
+import CampoLista from '@/components/formulario/CampoLista.vue';
+import CampoRelacion from '@/components/formulario/CampoRelacion.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
+import CampoSeleccionMultiple, { type OpcionTipada } from '@/components/formulario/CampoSeleccionMultiple.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import FilaCampos from '@/components/formulario/FilaCampos.vue';
@@ -12,7 +14,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { fechaLegible } from '@/lib/celdas';
 import { conOpcionVacia, type Opcion } from '@/lib/formularios';
 import { Link, useHttp } from '@inertiajs/vue3';
-import { SearchIcon } from '@lucide/vue';
+import { RefreshCwIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 /**
@@ -30,6 +32,11 @@ import { computed, ref } from 'vue';
  * registra como siempre. La procedencia —el día de la consulta y la marca de
  * KEV— viaja en dos campos ocultos que **sólo valen para el CVE consultado**:
  * si se cambia el CVE después, se caen.
+ *
+ * **«Lo que sale de aquí»** (el `#resumen` del carril) dice antes de registrar
+ * lo que el sistema va a derivar: la severidad, los días que da la política de
+ * la organización (`plazos`, los mismos que aplica `PlazoRemediacion`) y la
+ * fecha límite. Es una previsión: la que vale es la que calcula el servidor.
  */
 interface Vulnerabilidad {
     id: number;
@@ -59,11 +66,13 @@ const props = defineProps<{
     sugerencia: { codigo: string; activos: string[]; titulo: string | null } | null;
     severidades: Opcion[];
     origenes: Opcion[];
-    activos: Opcion[];
+    activos: OpcionTipada[];
     proveedores: Opcion[];
     riesgos: Opcion[];
     incidentes: Opcion[];
     responsables: Opcion[];
+    /** Días de remediación por severidad; nulo donde no hay plazo. */
+    plazos: Record<string, number | null>;
     hoy: string;
 }>();
 
@@ -98,7 +107,7 @@ const cve = ref(props.vulnerabilidad?.cve ?? '');
 const cvss = ref(props.vulnerabilidad?.cvss_puntuacion ?? '');
 const vector = ref(props.vulnerabilidad?.cvss_vector ?? '');
 const cwe = ref(props.vulnerabilidad?.cwe ?? '');
-const referencias = ref((props.vulnerabilidad?.referencias ?? []).join('\n'));
+const referencias = ref<string[]>([...(props.vulnerabilidad?.referencias ?? [])]);
 
 /* ------------------------------------------------------------ Consulta del CVE */
 
@@ -117,6 +126,31 @@ const respuesta = ref<RespuestaCve | null>(null);
 const rellenados = ref<string[]>([]);
 const respetados = ref<string[]>([]);
 
+/*
+ * Lo que trajo NVD, por campo, para la marca de procedencia de cada uno
+ * (`MarcaProcedencia`): «NVD» mientras siga el valor traído, «editado» cuando
+ * alguien lo cambie. Sólo los que se rellenaron: los respetados no son de NVD.
+ */
+type CampoNvd = 'titulo' | 'descripcion' | 'cvss' | 'vector' | 'cwe' | 'referencias';
+const traidos = ref<Partial<Record<CampoNvd, string>>>({});
+
+function textoDe(campo: CampoNvd): string {
+    const valores = { titulo, descripcion, cvss, vector, cwe };
+
+    return campo === 'referencias'
+        ? referencias.value.map((linea) => linea.trim()).filter(Boolean).join('\n')
+        : String(valores[campo].value).trim();
+}
+
+/** El chip que lleva cada campo: nada si no lo trajo NVD. */
+function procedencia(campo: CampoNvd): { procedencia: string | null; procedenciaEditada: boolean } {
+    const traido = procedenciaVigente.value ? traidos.value[campo] : undefined;
+
+    return traido === undefined
+        ? { procedencia: null, procedenciaEditada: false }
+        : { procedencia: 'NVD', procedenciaEditada: textoDe(campo) !== traido };
+}
+
 function lista(nombres: string[]): string {
     return nombres.length <= 1 ? (nombres[0] ?? '') : `${nombres.slice(0, -1).join(', ')} y ${nombres.at(-1)}`;
 }
@@ -124,34 +158,43 @@ function lista(nombres: string[]): string {
 function rellenar(datos: DatosCve): void {
     const hechos: string[] = [];
     const sinTocar: string[] = [];
-    const campos: { nombre: string; campo: typeof titulo; valor: string | null }[] = [
-        { nombre: 'título', campo: titulo, valor: datos.titulo },
-        { nombre: datos.idioma === 'en' ? 'descripción (en inglés)' : 'descripción', campo: descripcion, valor: datos.descripcion },
-        { nombre: 'puntuación CVSS', campo: cvss, valor: datos.cvssPuntuacion },
-        { nombre: 'vector CVSS', campo: vector, valor: datos.cvssVector },
-        { nombre: 'CWE', campo: cwe, valor: datos.cwe },
+    const nuevos: Partial<Record<CampoNvd, string>> = {};
+    const campos: { clave: CampoNvd; nombre: string; valor: string | null; poner: (valor: string) => void }[] = [
+        { clave: 'titulo', nombre: 'título', valor: datos.titulo, poner: (valor) => (titulo.value = valor) },
         {
-            nombre: datos.referencias.length === 1 ? '1 referencia' : `${datos.referencias.length} referencias`,
-            campo: referencias,
+            clave: 'descripcion',
+            nombre: datos.idioma === 'en' ? 'descripción (en inglés)' : 'descripción',
+            valor: datos.descripcion,
+            poner: (valor) => (descripcion.value = valor),
+        },
+        { clave: 'cvss', nombre: 'puntuación CVSS', valor: datos.cvssPuntuacion, poner: (valor) => (cvss.value = valor) },
+        { clave: 'vector', nombre: 'vector CVSS', valor: datos.cvssVector, poner: (valor) => (vector.value = valor) },
+        { clave: 'cwe', nombre: 'CWE', valor: datos.cwe, poner: (valor) => (cwe.value = valor) },
+        {
+            clave: 'referencias',
+            nombre: 'referencias',
             valor: datos.referencias.length > 0 ? datos.referencias.join('\n') : null,
+            poner: (valor) => (referencias.value = valor.split('\n')),
         },
     ];
 
-    for (const { nombre, campo, valor } of campos) {
+    for (const { clave, nombre, valor, poner } of campos) {
         if (valor === null) {
             continue;
         }
 
-        if (String(campo.value).trim() === '') {
-            campo.value = valor;
+        if (textoDe(clave) === '') {
+            poner(valor);
+            nuevos[clave] = valor;
             hechos.push(nombre);
-        } else if (String(campo.value).trim() !== valor) {
+        } else if (textoDe(clave) !== valor) {
             sinTocar.push(nombre);
         }
     }
 
     rellenados.value = hechos;
     respetados.value = sinTocar;
+    traidos.value = nuevos;
     cve.value = datos.cve;
     consultado.value = datos.cve;
     kevDesde.value = datos.kev?.desde ?? null;
@@ -178,7 +221,7 @@ const datosCve = computed(() => (respuesta.value?.estado === 'encontrado' ? resp
 const activosElegidos = ref<string[]>(props.vulnerabilidad?.activos ?? props.sugerencia?.activos ?? []);
 
 /** Los tramos de FIRST (CVSS v3.1, § 5), los mismos que `Severidad::desdeCvss()`. */
-const derivada = computed((): string | null => {
+const derivada = computed((): 'critica' | 'alta' | 'media' | 'baja' | 'informativa' | null => {
     const texto = String(cvss.value).trim().replace(',', '.');
 
     if (texto === '') {
@@ -191,19 +234,50 @@ const derivada = computed((): string | null => {
         return null;
     }
 
-    if (puntuacion >= 9) return 'Crítica';
-    if (puntuacion >= 7) return 'Alta';
-    if (puntuacion >= 4) return 'Media';
-    if (puntuacion > 0) return 'Baja';
+    if (puntuacion >= 9) return 'critica';
+    if (puntuacion >= 7) return 'alta';
+    if (puntuacion >= 4) return 'media';
+    if (puntuacion > 0) return 'baja';
 
-    return 'Informativa';
+    return 'informativa';
 });
 
 const hayCvss = computed(() => String(cvss.value).trim() !== '');
 
-const proveedores = computed(() => conOpcionVacia(props.proveedores, 'Ninguno'));
-const riesgos = computed(() => conOpcionVacia(props.riesgos, 'Ninguno'));
-const incidentes = computed(() => conOpcionVacia(props.incidentes, 'Ninguno'));
+/* ------------------------------------------------------------ Lo que sale de aquí */
+
+const declarada = ref<string | undefined>(props.vulnerabilidad?.severidad ?? undefined);
+const deteccion = ref<string>(props.vulnerabilidad?.fecha_deteccion ?? props.hoy);
+
+/** La severidad que se va a guardar: la derivada si hay CVSS, la declarada si no. */
+const severidad = computed(() => (hayCvss.value ? derivada.value : (declarada.value ?? null)));
+
+/** El peso de `Severidad::peso()`, para la escala de cuatro pasos. */
+const PESOS: Record<string, number> = { informativa: 0, baja: 1, media: 2, alta: 3, critica: 4 };
+
+const etiquetaSeveridad = computed(
+    () => props.severidades.find((opcion) => opcion.valor === severidad.value)?.etiqueta ?? null,
+);
+
+const dias = computed(() => (severidad.value ? (props.plazos[severidad.value] ?? null) : null));
+
+const fechaLimite = computed((): string | null => {
+    const fecha = /^\d{4}-\d{2}-\d{2}$/.test(deteccion.value) ? new Date(`${deteccion.value}T00:00:00Z`) : null;
+
+    if (fecha === null || Number.isNaN(fecha.getTime()) || dias.value === null) {
+        return null;
+    }
+
+    fecha.setUTCDate(fecha.getUTCDate() + dias.value);
+
+    return fecha.toISOString().slice(0, 10);
+});
+
+const vencida = computed(() => fechaLimite.value !== null && fechaLimite.value < props.hoy);
+
+/** Sólo cuenta la marca de KEV del CVE consultado, como los campos ocultos. */
+const enKev = computed(() => (procedenciaVigente.value ? kevDesde.value : null));
+
 const responsables = computed(() => conOpcionVacia(props.responsables, 'Sin responsable'));
 </script>
 
@@ -216,235 +290,319 @@ const responsables = computed(() => conOpcionVacia(props.responsables, 'Sin resp
             :method="edicion ? 'put' : 'post'"
             :etiqueta-enviar="edicion ? 'Guardar' : 'Registrar'"
             :url-cancelar="edicion ? `/vulnerabilidades/${vulnerabilidad?.id}` : '/vulnerabilidades'"
-            #default="{ errors }"
         >
-            <SeccionFormulario
-                titulo="Qué es"
-                ayuda="Con el CVE, «Traer datos» rellena lo que NVD sabe de ella y mira si está en el catálogo KEV de CISA. Sólo sale el identificador, y sólo se rellena lo que está vacío."
-            >
-                <div class="flex flex-wrap items-start gap-3">
-                    <div class="min-w-0 flex-1 basis-60">
+            <!-- Con `#resumen` al lado, el slot por defecto no puede ir en la
+                 etiqueta: Vue sólo lo admite ahí cuando es el único. -->
+            <template #default="{ errors }">
+                <SeccionFormulario
+                    titulo="Qué es"
+                    ayuda="Con el CVE, «Traer de NVD» rellena lo que NVD sabe de ella y mira si está en el catálogo KEV de CISA. Sólo sale el identificador, y sólo se rellena lo que está vacío."
+                >
+                    <CampoTexto
+                        v-model="cve"
+                        nombre="cve"
+                        etiqueta="CVE"
+                        :error="errors.cve ?? consulta.errors.cve"
+                        placeholder="CVE-2024-3094"
+                        class="cifra"
+                        :autofocus="!edicion"
+                        :ayuda="
+                            procedenciaVigente && nvdConsultadoEl
+                                ? `Datos de NVD consultados el ${fechaLegible(nvdConsultadoEl)}.`
+                                : 'Si no tiene —un sistema sin soporte, un hallazgo de auditoría—, se deja en blanco.'
+                        "
+                    >
+                        <template #accion>
+                            <Button type="button" variant="outline" :disabled="consulta.processing" @click="traer">
+                                <RefreshCwIcon aria-hidden="true" :class="consulta.processing ? 'animate-spin' : undefined" />
+                                {{ consulta.processing ? 'Consultando…' : 'Traer de NVD' }}
+                            </Button>
+                        </template>
+                    </CampoTexto>
+                    <!--
+                        Para quien no sabe el código: el buscador de NVD en otra pestaña. La
+                        búsqueda la hace su navegador; desde aquí no sale nada. Sin texto
+                        precargado: el buscador nuevo de NVD no lo admite por la dirección.
+                    -->
+                    <p class="-mt-2 text-xs text-muted-foreground">
+                        ¿No lo sabes?
+                        <a
+                            href="https://nvd.nist.gov/vuln/search"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="text-primary underline-offset-4 hover:underline"
+                            >Búscalo en NVD<span class="sr-only"> (se abre en otra pestaña)</span></a
+                        >
+                        por producto y versión —«openssh 8.9», «fortios 7.2»—, copia el CVE-AAAA-NNNN y pulsa «Traer de NVD». Las
+                        que se están explotando están en el
+                        <a
+                            href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="text-primary underline-offset-4 hover:underline"
+                            >catálogo KEV de CISA<span class="sr-only"> (se abre en otra pestaña)</span></a
+                        >.
+                    </p>
+
+                    <input type="hidden" name="kev_desde" :value="procedenciaVigente ? (kevDesde ?? '') : ''" />
+                    <input type="hidden" name="nvd_consultado_el" :value="procedenciaVigente ? (nvdConsultadoEl ?? '') : ''" />
+
+                    <div v-if="respuesta" class="space-y-3" aria-live="polite">
+                        <Aviso v-if="datosCve" tono="exito" :titulo="`Datos de ${datosCve.cve} traídos de NVD`">
+                            <template v-if="rellenados.length > 0">
+                                {{ rellenados.length === 1 ? 'Rellenado 1 campo' : `Rellenados ${rellenados.length} campos` }}, marcados con
+                                «NVD» junto a su etiqueta.
+                            </template>
+                            <template v-else>No había nada vacío que rellenar.</template>
+                            <template v-if="respetados.length > 0"> Sin tocar, porque ya tenían otro valor: {{ lista(respetados) }}.</template>
+                            <template v-if="datosCve.cvssVersion === '4.0'">
+                                NVD sólo la puntúa con CVSS 4.0: se trae el vector, y la puntuación, si la hay, se escribe con la v3.1.
+                            </template>
+                            <template v-if="datosCve.kevConsultado && !datosCve.kev"> No está en el catálogo KEV de CISA.</template>
+                            Revísalo antes de registrar.
+                        </Aviso>
+                        <Aviso v-if="datosCve?.rechazada" tono="info" titulo="CVE rechazado">{{ respuesta.mensaje }}</Aviso>
+                        <Aviso v-if="datosCve?.kev" tono="info" titulo="Se está explotando">
+                            Está en el catálogo KEV de CISA desde el {{ fechaLegible(datosCve.kev.desde) }} como «{{ datosCve.kev.nombre }}»<template
+                                v-if="datosCve.kev.ransomware"
+                                >, y se ha usado en campañas de ransomware</template
+                            >. Pesa más que la puntuación al decidir por dónde empezar.
+                        </Aviso>
+                        <Aviso v-if="datosCve && !datosCve.kevConsultado" tono="info" titulo="Sin comprobar en KEV">
+                            El catálogo de CISA no ha contestado. Que no aparezca no quiere decir que no se esté explotando.
+                        </Aviso>
+                        <Aviso v-if="!datosCve" tono="info" :titulo="respuesta.estado === 'no_encontrado' ? 'No está en NVD' : 'NVD no disponible'">
+                            {{ respuesta.mensaje }}
+                        </Aviso>
+                        <Aviso v-if="respuesta.yaRegistrada" tono="info" titulo="Ya está registrada">
+                            Este CVE ya es
+                            <Link :href="`/vulnerabilidades/${respuesta.yaRegistrada.id}`" class="font-medium underline underline-offset-4">
+                                {{ respuesta.yaRegistrada.codigo }}</Link
+                            >. Si afecta a más activos, se añaden allí.
+                        </Aviso>
+                    </div>
+
+                    <FilaCampos codigo>
                         <CampoTexto
-                            v-model="cve"
-                            nombre="cve"
-                            etiqueta="CVE"
-                            :error="errors.cve ?? consulta.errors.cve"
-                            placeholder="CVE-2024-3094"
-                            :autofocus="!edicion"
-                            :ayuda="
-                                procedenciaVigente && nvdConsultadoEl
-                                    ? `Datos de NVD consultados el ${fechaLegible(nvdConsultadoEl)}.`
-                                    : 'Si no tiene —un sistema sin soporte, un hallazgo de auditoría—, se deja en blanco.'
-                            "
+                            nombre="codigo"
+                            etiqueta="Código"
+                            :valor-inicial="vulnerabilidad?.codigo ?? sugerencia?.codigo ?? ''"
+                            :error="errors.codigo"
+                            requerido
+                        />
+                        <CampoTexto
+                            v-model="titulo"
+                            nombre="titulo"
+                            etiqueta="Título"
+                            :error="errors.titulo"
+                            requerido
+                            :autofocus="edicion"
+                            v-bind="procedencia('titulo')"
+                        />
+                    </FilaCampos>
+
+                    <CampoTextarea
+                        v-model="descripcion"
+                        nombre="descripcion"
+                        etiqueta="Descripción"
+                        :filas="3"
+                        :error="errors.descripcion"
+                        v-bind="procedencia('descripcion')"
+                    />
+
+                    <CampoLista
+                        v-model="referencias"
+                        nombre="referencias"
+                        etiqueta="Referencias"
+                        :errores="errors"
+                        placeholder="https://"
+                        etiqueta-anadir="Añadir dirección"
+                        ayuda="El aviso del fabricante, el parche, el análisis."
+                        v-bind="procedencia('referencias')"
+                    />
+
+                    <FilaCampos>
+                        <CampoSelect
+                            nombre="origen"
+                            etiqueta="Cómo se supo"
+                            :opciones="origenes"
+                            :valor-inicial="vulnerabilidad?.origen ?? undefined"
+                            :error="errors.origen"
+                            requerido
+                        />
+                        <CampoTexto
+                            v-model="deteccion"
+                            nombre="fecha_deteccion"
+                            etiqueta="Detectada el"
+                            tipo="date"
+                            :error="errors.fecha_deteccion"
+                            requerido
+                            ayuda="El plazo de remediación cuenta desde aquí."
+                        />
+                    </FilaCampos>
+                </SeccionFormulario>
+
+                <SeccionFormulario
+                    titulo="Cuánto pesa"
+                    ayuda="Con puntuación CVSS la severidad sale sola, con los tramos de la especificación de FIRST. Sin puntuación —un boletín, un hallazgo de auditoría— se declara."
+                >
+                    <FilaCampos>
+                        <CampoTexto
+                            v-model="cvss"
+                            nombre="cvss_puntuacion"
+                            etiqueta="Puntuación CVSS"
+                            :error="errors.cvss_puntuacion"
+                            placeholder="De 0 a 10"
+                            class="cifra"
+                            v-bind="procedencia('cvss')"
+                        />
+                        <CampoTexto
+                            v-model="cwe"
+                            nombre="cwe"
+                            etiqueta="CWE"
+                            :error="errors.cwe"
+                            placeholder="CWE-362"
+                            class="cifra"
+                            v-bind="procedencia('cwe')"
+                        />
+                    </FilaCampos>
+
+                    <CampoTexto
+                        v-model="vector"
+                        nombre="cvss_vector"
+                        etiqueta="Vector CVSS"
+                        :error="errors.cvss_vector"
+                        placeholder="CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+                        class="cifra"
+                        v-bind="procedencia('vector')"
+                    />
+
+                    <CampoSelect
+                        v-if="!hayCvss"
+                        v-model="declarada"
+                        nombre="severidad"
+                        etiqueta="Severidad"
+                        :opciones="severidades"
+                        :valor-inicial="vulnerabilidad?.severidad ?? undefined"
+                        :error="errors.severidad"
+                        requerido
+                    />
+                </SeccionFormulario>
+
+                <SeccionFormulario
+                    titulo="Dónde está"
+                    ayuda="Los activos afectados. Son también los que deciden qué ve un auditor externo: sólo las de los sistemas que audita."
+                >
+                    <CampoSeleccionMultiple
+                        v-model="activosElegidos"
+                        nombre="activos"
+                        etiqueta="Activos afectados"
+                        :opciones="activos"
+                        :error="errors.activos ?? errors['activos.0']"
+                        vacio="No hay activos en el inventario."
+                    />
+
+                    <div class="flex flex-wrap gap-2">
+                        <CampoRelacion
+                            nombre="proveedor_id"
+                            etiqueta="Proveedor"
+                            :opciones="proveedores"
+                            :valor-inicial="vulnerabilidad?.proveedor_id ? String(vulnerabilidad.proveedor_id) : null"
+                            :error="errors.proveedor_id"
+                            ayuda="Si el arreglo tiene que llegar de fuera: un parche del fabricante, un cambio del proveedor de nube."
                         />
                     </div>
-                    <div class="mt-[1.625rem] flex flex-wrap gap-2">
-                        <Button type="button" variant="outline" :disabled="consulta.processing" @click="traer">
-                            {{ consulta.processing ? 'Consultando…' : 'Traer datos' }}
-                        </Button>
-                        <!--
-                            Para quien no sabe el código: el buscador de NVD en otra pestaña. La
-                            búsqueda la hace su navegador; desde aquí no sale nada. Sin texto
-                            precargado: el buscador nuevo de NVD no lo admite por la dirección.
-                        -->
-                        <Button as-child variant="ghost">
-                            <a href="https://nvd.nist.gov/vuln/search" target="_blank" rel="noopener noreferrer">
-                                <SearchIcon aria-hidden="true" />
-                                Buscar el código
-                                <span class="sr-only">en NVD (se abre en otra pestaña)</span>
-                            </a>
-                        </Button>
+                </SeccionFormulario>
+
+                <SeccionFormulario titulo="Con qué se relaciona y quién la lleva">
+                    <div class="flex flex-wrap gap-2">
+                        <CampoRelacion
+                            nombre="riesgo_id"
+                            etiqueta="Riesgo"
+                            :opciones="riesgos"
+                            :valor-inicial="vulnerabilidad?.riesgo_id ? String(vulnerabilidad.riesgo_id) : null"
+                            :error="errors.riesgo_id"
+                            ayuda="El escenario del análisis de riesgos que la hace creíble, si lo hay."
+                        />
+                        <CampoRelacion
+                            nombre="incidente_id"
+                            etiqueta="Incidente"
+                            :opciones="incidentes"
+                            :valor-inicial="vulnerabilidad?.incidente_id ? String(vulnerabilidad.incidente_id) : null"
+                            :error="errors.incidente_id"
+                            ayuda="Si se descubrió por un incidente, o si llegó a explotarse."
+                        />
                     </div>
+
+                    <CampoSelect
+                        nombre="responsable_id"
+                        etiqueta="Responsable"
+                        :opciones="responsables"
+                        :valor-inicial="vulnerabilidad?.responsable_id ? String(vulnerabilidad.responsable_id) : undefined"
+                        :error="errors.responsable_id"
+                    />
+
+                    <CampoTextarea
+                        nombre="remediacion"
+                        etiqueta="Cómo se arregla"
+                        :filas="3"
+                        :valor-inicial="vulnerabilidad?.remediacion ?? ''"
+                        :error="errors.remediacion"
+                        ayuda="El parche, la versión, el cambio de configuración o la medida que la mitiga."
+                    />
+                </SeccionFormulario>
+            </template>
+
+            <template #resumen>
+                <div class="grid gap-2">
+                    <p class="text-xs text-muted-foreground">Severidad</p>
+                    <div v-if="severidad" class="flex items-center gap-2.5">
+                        <span class="flex gap-0.5" role="img" :aria-label="`${PESOS[severidad]} de 4`">
+                            <span
+                                v-for="paso in 4"
+                                :key="paso"
+                                class="h-2 w-6 rounded-full transition-colors"
+                                :class="paso <= PESOS[severidad] ? 'bg-primary' : 'bg-muted'"
+                            />
+                        </span>
+                        <span class="text-base font-semibold">{{ etiquetaSeveridad }}</span>
+                    </div>
+                    <p v-else class="text-sm text-muted-foreground">Sale al escribir la puntuación CVSS, o se declara sin ella.</p>
+                    <p v-if="severidad && hayCvss" class="text-xs text-muted-foreground">
+                        Sale del CVSS <span class="cifra">{{ cvss }}</span>: 9 o más es crítica, de 7 a 8,9 alta, de 4 a 6,9 media y por
+                        debajo de 4 baja.
+                    </p>
                 </div>
-                <p class="-mt-2 text-xs text-muted-foreground">
-                    ¿No lo sabes? Búscalo en NVD por producto y versión —«openssh 8.9», «fortios 7.2»—, copia el CVE-AAAA-NNNN y
-                    pulsa «Traer datos». Las que se están explotando están en el
-                    <a
-                        href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="text-primary underline-offset-4 hover:underline"
-                        >catálogo KEV de CISA<span class="sr-only"> (se abre en otra pestaña)</span></a
-                    >.
-                </p>
 
-                <input type="hidden" name="kev_desde" :value="procedenciaVigente ? (kevDesde ?? '') : ''" />
-                <input type="hidden" name="nvd_consultado_el" :value="procedenciaVigente ? (nvdConsultadoEl ?? '') : ''" />
+                <dl class="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-3 gap-y-2.5 border-t pt-4 text-sm">
+                    <dt class="text-muted-foreground">Plazo</dt>
+                    <dd>
+                        <template v-if="severidad === 'informativa'">Ninguno: es informativa.</template>
+                        <template v-else-if="dias !== null"><span class="cifra">{{ dias }}</span> días, según la política</template>
+                        <template v-else>—</template>
+                    </dd>
 
-                <div v-if="respuesta" class="space-y-3" aria-live="polite">
-                    <Aviso v-if="datosCve" tono="exito" :titulo="`Datos de ${datosCve.cve} traídos de NVD`">
-                        <template v-if="rellenados.length > 0">Rellenado: {{ lista(rellenados) }}.</template>
-                        <template v-else>No había nada vacío que rellenar.</template>
-                        <template v-if="respetados.length > 0"> Sin tocar, porque ya tenían otro valor: {{ lista(respetados) }}.</template>
-                        <template v-if="datosCve.cvssVersion === '4.0'">
-                            NVD sólo la puntúa con CVSS 4.0: se trae el vector, y la puntuación, si la hay, se escribe con la v3.1.
+                    <dt class="text-muted-foreground">Vence el</dt>
+                    <dd>
+                        <template v-if="fechaLimite">
+                            <span class="font-medium">{{ fechaLegible(fechaLimite) }}</span>
+                            <span v-if="vencida" class="block text-xs text-destructive">Llega ya fuera de plazo.</span>
                         </template>
-                        <template v-if="datosCve.kevConsultado && !datosCve.kev"> No está en el catálogo KEV de CISA.</template>
-                        Revísalo antes de registrar.
-                    </Aviso>
-                    <Aviso v-if="datosCve?.rechazada" tono="info" titulo="CVE rechazado">{{ respuesta.mensaje }}</Aviso>
-                    <Aviso v-if="datosCve?.kev" tono="info" titulo="Se está explotando">
-                        Está en el catálogo KEV de CISA desde el {{ fechaLegible(datosCve.kev.desde) }} como «{{ datosCve.kev.nombre }}»<template
-                            v-if="datosCve.kev.ransomware"
-                            >, y se ha usado en campañas de ransomware</template
-                        >. Pesa más que la puntuación al decidir por dónde empezar.
-                    </Aviso>
-                    <Aviso v-if="datosCve && !datosCve.kevConsultado" tono="info" titulo="Sin comprobar en KEV">
-                        El catálogo de CISA no ha contestado. Que no aparezca no quiere decir que no se esté explotando.
-                    </Aviso>
-                    <Aviso v-if="!datosCve" tono="info" :titulo="respuesta.estado === 'no_encontrado' ? 'No está en NVD' : 'NVD no disponible'">
-                        {{ respuesta.mensaje }}
-                    </Aviso>
-                    <Aviso v-if="respuesta.yaRegistrada" tono="info" titulo="Ya está registrada">
-                        Este CVE ya es
-                        <Link :href="`/vulnerabilidades/${respuesta.yaRegistrada.id}`" class="font-medium underline underline-offset-4">
-                            {{ respuesta.yaRegistrada.codigo }}</Link
-                        >. Si afecta a más activos, se añaden allí.
-                    </Aviso>
-                </div>
+                        <template v-else>—</template>
+                    </dd>
 
-                <FilaCampos codigo>
-                    <CampoTexto
-                        nombre="codigo"
-                        etiqueta="Código"
-                        :valor-inicial="vulnerabilidad?.codigo ?? sugerencia?.codigo ?? ''"
-                        :error="errors.codigo"
-                        requerido
-                    />
-                    <CampoTexto v-model="titulo" nombre="titulo" etiqueta="Título" :error="errors.titulo" requerido :autofocus="edicion" />
-                </FilaCampos>
+                    <template v-if="enKev">
+                        <dt class="text-muted-foreground">Prioridad</dt>
+                        <dd>En el catálogo KEV de CISA desde el {{ fechaLegible(enKev) }}: por delante de las no explotadas.</dd>
+                    </template>
 
-                <CampoTextarea v-model="descripcion" nombre="descripcion" etiqueta="Descripción" :filas="3" :error="errors.descripcion" />
-
-                <CampoTextarea
-                    v-model="referencias"
-                    nombre="referencias"
-                    etiqueta="Referencias"
-                    :filas="3"
-                    :error="errors.referencias ?? Object.entries(errors).find(([clave]) => clave.startsWith('referencias.'))?.[1]"
-                    ayuda="Una dirección por línea: el aviso del fabricante, el parche, el análisis."
-                />
-
-                <FilaCampos>
-                    <CampoSelect
-                        nombre="origen"
-                        etiqueta="Cómo se supo"
-                        :opciones="origenes"
-                        :valor-inicial="vulnerabilidad?.origen ?? undefined"
-                        :error="errors.origen"
-                        requerido
-                    />
-                    <CampoTexto
-                        nombre="fecha_deteccion"
-                        etiqueta="Detectada el"
-                        tipo="date"
-                        :valor-inicial="vulnerabilidad?.fecha_deteccion ?? hoy"
-                        :error="errors.fecha_deteccion"
-                        requerido
-                        ayuda="El plazo de remediación cuenta desde aquí."
-                    />
-                </FilaCampos>
-            </SeccionFormulario>
-
-            <SeccionFormulario
-                titulo="Cuánto pesa"
-                ayuda="Con puntuación CVSS la severidad sale sola, con los tramos de la especificación de FIRST. Sin puntuación —un boletín, un hallazgo de auditoría— se declara."
-            >
-                <FilaCampos>
-                    <CampoTexto
-                        v-model="cvss"
-                        nombre="cvss_puntuacion"
-                        etiqueta="Puntuación CVSS"
-                        :error="errors.cvss_puntuacion"
-                        placeholder="De 0 a 10"
-                    />
-                    <CampoTexto v-model="cwe" nombre="cwe" etiqueta="CWE" :error="errors.cwe" placeholder="CWE-362" />
-                </FilaCampos>
-
-                <CampoTexto
-                    v-model="vector"
-                    nombre="cvss_vector"
-                    etiqueta="Vector CVSS"
-                    :error="errors.cvss_vector"
-                    placeholder="CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
-                />
-
-                <Aviso v-if="derivada" tono="info" :titulo="`Severidad ${derivada.toLowerCase()}`">
-                    Sale de la puntuación: 9 o más es crítica, de 7 a 8,9 alta, de 4 a 6,9 media y por debajo de 4 baja.
-                </Aviso>
-
-                <CampoSelect
-                    v-if="!hayCvss"
-                    nombre="severidad"
-                    etiqueta="Severidad"
-                    :opciones="severidades"
-                    :valor-inicial="vulnerabilidad?.severidad ?? undefined"
-                    :error="errors.severidad"
-                    requerido
-                />
-            </SeccionFormulario>
-
-            <SeccionFormulario
-                titulo="Dónde está"
-                ayuda="Los activos afectados. Son también los que deciden qué ve un auditor externo: sólo las de los sistemas que audita."
-            >
-                <CampoCasillas
-                    v-model="activosElegidos"
-                    nombre="activos"
-                    etiqueta="Activos afectados"
-                    :opciones="activos"
-                    :error="errors.activos ?? errors['activos.0']"
-                    vacio="No hay activos en el inventario."
-                    desplazable
-                />
-
-                <CampoSelect
-                    nombre="proveedor_id"
-                    etiqueta="Depende de un proveedor"
-                    :opciones="proveedores"
-                    :valor-inicial="vulnerabilidad?.proveedor_id ? String(vulnerabilidad.proveedor_id) : undefined"
-                    :error="errors.proveedor_id"
-                    ayuda="Si el arreglo tiene que llegar de fuera: un parche del fabricante, un cambio del proveedor de nube."
-                />
-            </SeccionFormulario>
-
-            <SeccionFormulario titulo="Con qué se relaciona y quién la lleva">
-                <FilaCampos>
-                    <CampoSelect
-                        nombre="riesgo_id"
-                        etiqueta="Riesgo"
-                        :opciones="riesgos"
-                        :valor-inicial="vulnerabilidad?.riesgo_id ? String(vulnerabilidad.riesgo_id) : undefined"
-                        :error="errors.riesgo_id"
-                        ayuda="El escenario del análisis de riesgos que la hace creíble, si lo hay."
-                    />
-                    <CampoSelect
-                        nombre="incidente_id"
-                        etiqueta="Incidente"
-                        :opciones="incidentes"
-                        :valor-inicial="vulnerabilidad?.incidente_id ? String(vulnerabilidad.incidente_id) : undefined"
-                        :error="errors.incidente_id"
-                        ayuda="Si se descubrió por un incidente, o si llegó a explotarse."
-                    />
-                </FilaCampos>
-
-                <CampoSelect
-                    nombre="responsable_id"
-                    etiqueta="Responsable"
-                    :opciones="responsables"
-                    :valor-inicial="vulnerabilidad?.responsable_id ? String(vulnerabilidad.responsable_id) : undefined"
-                    :error="errors.responsable_id"
-                />
-
-                <CampoTextarea
-                    nombre="remediacion"
-                    etiqueta="Cómo se arregla"
-                    :filas="3"
-                    :valor-inicial="vulnerabilidad?.remediacion ?? ''"
-                    :error="errors.remediacion"
-                    ayuda="El parche, la versión, el cambio de configuración o la medida que la mitiga."
-                />
-            </SeccionFormulario>
+                    <dt class="text-muted-foreground">Activos</dt>
+                    <dd>
+                        <template v-if="activosElegidos.length === 0">Ninguno todavía</template>
+                        <template v-else>{{ activosElegidos.length === 1 ? '1 afectado' : `${activosElegidos.length} afectados` }}</template>
+                    </dd>
+                </dl>
+            </template>
         </FormularioRecurso>
     </AppLayout>
 </template>

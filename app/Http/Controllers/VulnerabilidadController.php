@@ -7,6 +7,8 @@ namespace App\Http\Controllers;
 use App\Domain\Activo\Models\Activo;
 use App\Domain\Autorizacion\Enums\Permiso;
 use App\Domain\Incidente\Models\Incidente;
+use App\Domain\Organizacion\ContextoOrganizacion;
+use App\Domain\Organizacion\Models\Organizacion;
 use App\Domain\Proveedor\Enums\EstadoProveedor;
 use App\Domain\Proveedor\Models\Proveedor;
 use App\Domain\Riesgo\Models\Riesgo;
@@ -354,8 +356,14 @@ class VulnerabilidadController extends Controller
             ),
             'activos' => Activo::query()
                 ->orderBy('codigo')
-                ->get(['id', 'codigo', 'nombre'])
-                ->map(fn (Activo $activo): array => ['valor' => (string) $activo->id, 'etiqueta' => "{$activo->codigo} · {$activo->nombre}"])
+                ->get(['id', 'codigo', 'nombre', 'tipo'])
+                ->map(fn (Activo $activo): array => [
+                    'valor' => (string) $activo->id,
+                    'etiqueta' => "{$activo->codigo} · {$activo->nombre}",
+                    'tono' => $activo->tipo->tono(),
+                    'icono' => $activo->tipo->icono(),
+                    'descripcion' => $activo->tipo->etiqueta(),
+                ])
                 ->values()->all(),
             'proveedores' => Proveedor::query()
                 ->where('estado', '<>', EstadoProveedor::Retirado->value)
@@ -375,7 +383,28 @@ class VulnerabilidadController extends Controller
                 ->map(fn (Incidente $incidente): array => ['valor' => (string) $incidente->id, 'etiqueta' => "{$incidente->codigo} · {$incidente->titulo}"])
                 ->values()->all(),
             'responsables' => app(CuentasAsignables::class)->opciones(Permiso::VulnerabilidadesGestionar, $responsableActual),
+            'plazos' => $this->plazos(),
             'hoy' => Carbon::today()->toDateString(),
         ];
+    }
+
+    /**
+     * Los días de remediación por severidad, para que el formulario diga el plazo
+     * y la fecha límite antes de registrar. Es la misma política que aplica
+     * `PlazoRemediacion` al guardar; nulo donde no hay plazo (la informativa).
+     *
+     * @return array<string, int|null>
+     */
+    private function plazos(): array
+    {
+        $organizacion = Organizacion::query()->findOrFail(app(ContextoOrganizacion::class)->idObligatorio());
+
+        $plazos = [];
+
+        foreach (Severidad::cases() as $severidad) {
+            $plazos[$severidad->value] = $organizacion->diasRemediacion($severidad);
+        }
+
+        return $plazos;
     }
 }

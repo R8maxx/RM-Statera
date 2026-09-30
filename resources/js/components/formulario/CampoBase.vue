@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import MarcaProcedencia from '@/components/formulario/MarcaProcedencia.vue';
 import MensajeError from '@/components/formulario/MensajeError.vue';
 import { Label } from '@/components/ui/label';
 import { registrarCampoObligatorio } from '@/composables/useCamposObligatorios';
@@ -42,6 +43,16 @@ const props = defineProps<{
      * quitarlo dejaría el control sin nombre accesible.
      */
     etiquetaOculta?: boolean;
+    /**
+     * De dónde salió el valor, cuando no lo escribió nadie: «NVD» en una
+     * vulnerabilidad rellenada con «Traer de NVD». Va en un chip teal junto a
+     * la etiqueta, y **sólo mientras el valor sea el traído**: con
+     * `procedenciaEditada` pasa a un chip neutro «editado», que es lo que un
+     * revisor quiere saber —esto ya no es lo que dice la fuente—. Sustituye a la
+     * lista «Rellenado: …» del aviso, que había que cruzar a mano con los campos.
+     */
+    procedencia?: string | null;
+    procedenciaEditada?: boolean;
 }>();
 
 const id = `${props.nombre}-${useId()}`;
@@ -85,6 +96,7 @@ registrarCampoObligatorio(props.nombre, () => props.requerido === true);
             {{ etiqueta }}
             <span v-if="requerido" class="text-primary" aria-hidden="true">*</span>
             <span v-if="requerido" class="sr-only">(obligatorio)</span>
+            <MarcaProcedencia v-if="procedencia" :fuente="procedencia" :editado="procedenciaEditada" />
         </Label>
 
         <slot :atributos="atributos" :id="id" :descrito="descrito" />

@@ -382,6 +382,9 @@ class RiesgoController extends Controller
                     'valor' => (string) $activo->id,
                     'etiqueta' => $activo->nombre,
                     'tipo' => $activo->tipo->value,
+                    'tono' => $activo->tipo->tono(),
+                    'icono' => $activo->tipo->icono(),
+                    'descripcion' => $activo->tipo->etiqueta(),
                 ])
                 ->all(),
             'personas' => User::query()

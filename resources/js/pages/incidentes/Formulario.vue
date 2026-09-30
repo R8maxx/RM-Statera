@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import FilaCampos from '@/components/formulario/FilaCampos.vue';
 import CampoCasillas from '@/components/formulario/CampoCasillas.vue';
+import CampoSeleccionMultiple, { type OpcionTipada } from '@/components/formulario/CampoSeleccionMultiple.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
@@ -44,7 +45,7 @@ const props = defineProps<{
     clasificaciones: { valor: string; etiqueta: string; descripcion: string }[];
     peligrosidades: Opcion[];
     sistemas: Opcion[];
-    activosDisponibles: Opcion[];
+    activosDisponibles: OpcionTipada[];
     responsables: Opcion[];
     /** Las cinco del Anexo I, con el nombre de su columna como valor. */
     dimensionesDisponibles: Opcion[];
@@ -70,8 +71,10 @@ const valor = computed(() => ({
 const clasificacion = ref(props.incidente?.clasificacion ?? 'otros');
 
 /*
- * Los tres grupos de casillas viajan como arrays y los pinta `CampoCasillas`,
- * que es el componente del producto: aporta el `fieldset`, la `legend`, el
+ * Los tres grupos viajan como arrays. Dimensiones y supervisores los pinta
+ * `CampoCasillas`; los activos, que los decide el inventario y pueden ser
+ * doscientos, `CampoSeleccionMultiple`, con búsqueda. Las casillas son el
+ * componente del producto: aporta el `fieldset`, la `legend`, el
  * `aria-invalid`, el mensaje de error y el `data-campo` que el resumen de
  * errores necesita para poder enfocar. Antes eran tres bloques a mano sin nada
  * de eso.
@@ -252,19 +255,19 @@ const ayudaClasificacion = computed(
                 </FilaCampos>
 
                 <!--
-                    El centinela de «ninguno» lo pone `CampoCasillas` y lo
+                    El centinela de «ninguno» lo pone `CampoSeleccionMultiple`
+                    —el mismo contrato que `CampoCasillas`— y lo
                     traduce `NormalizaSeleccionVacia`. A mano estaba mal: el
                     campo oculto era escalar —`activos`, sin `[]`— y llegaba
                     como nulo, así que desmarcarlos todos no desvinculaba nada
                     y la edición entera fallaba en silencio.
                 -->
-                <CampoCasillas
+                <CampoSeleccionMultiple
                     v-model="activos"
                     nombre="activos"
                     etiqueta="Activos afectados"
                     :opciones="activosDisponibles"
                     :error="errors.activos"
-                    desplazable
                     ayuda="Un cifrado por ransomware toca treinta equipos y sigue siendo un solo incidente."
                     vacio="Todavía no hay activos en el inventario a los que apuntar."
                 />

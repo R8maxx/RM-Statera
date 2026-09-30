@@ -13,6 +13,9 @@ withDefaults(
         placeholder?: string;
         filas?: number;
         valorInicial?: string;
+        /** De dónde salió el valor (ver `CampoBase`). */
+        procedencia?: string | null;
+        procedenciaEditada?: boolean;
     }>(),
     { filas: 4 },
 );
@@ -27,6 +30,8 @@ const modelo = defineModel<string | undefined>();
         :error="error"
         :ayuda="ayuda"
         :requerido="requerido"
+        :procedencia="procedencia"
+        :procedencia-editada="procedenciaEditada"
         #default="{ atributos }"
     >
         <Textarea
