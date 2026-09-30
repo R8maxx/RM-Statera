@@ -11,7 +11,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { distanciaLegible, fechaDe, fechaLegible } from '@/lib/celdas';
 import { conOpcionVacia, SIN_VALOR } from '@/lib/formularios';
+import { FileTextIcon, FileWarningIcon, InfoIcon, ListTodoIcon, PencilIcon } from '@lucide/vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Link, router, useForm } from '@inertiajs/vue3';
 import { computed, reactive, ref } from 'vue';
@@ -27,6 +29,9 @@ interface TareaDerivada {
     estado: string;
     estadoEtiqueta: string;
     estadoTono: string;
+    estadoIcono: string;
+    prioridad: string;
+    fechaLimite: string | null;
     responsable: string | null;
 }
 
@@ -49,6 +54,7 @@ interface Prueba {
     tipoEtiqueta: string;
     tipoTono: string;
     tipoIcono: string;
+    tipoDescripcion: string;
     estado: string;
     estadoEtiqueta: string;
     estadoTono: string;
@@ -78,6 +84,15 @@ interface Prueba {
  * distintos porque piden datos distintos, y colapsarlos en un único paso con
  * `estado` escondería esa diferencia.
  *
+ * **La recuperación por servicio es la tarjeta fuerte**, con el titular que
+ * cuenta cuántos servicios pasaron de su RTO y, debajo, las barras sobre un
+ * mismo eje. Las conclusiones van dentro de «Lo que dejó esta prueba», junto a
+ * lo que se derivó de ellas: son el mismo hecho contado dos veces.
+ *
+ * **Sin cambio de estado genérico, pero con tarjeta «Estado»** arriba en la
+ * columna lateral, como el resto de fichas: dice cómo se cierra la prueba si
+ * sigue planificada y, si ya no, lleva a planificar la siguiente.
+ *
  * **«Editar» sólo aparece mientras la prueba sigue planificada.** El
  * guardián de verdad está en `PruebaContinuidadController::update()`; esto es
  * sólo evitarle a alguien un 403 con el que no contaba.
@@ -86,6 +101,7 @@ const props = defineProps<{
     prueba: Prueba;
     servicios: ServicioComparado[];
     historial: Transicion[];
+    pendientes: string[];
     evidencias: Opcion[];
     resultados: Opcion[];
     tareasDerivadas: TareaDerivada[];
@@ -102,6 +118,45 @@ const props = defineProps<{
 }>();
 
 const planificada = computed(() => props.prueba.estado === 'planificada');
+
+/* --- Lo que se lee de un vistazo --- */
+
+const medidos = computed(() => props.servicios.filter((servicio) => servicio.excedeRto !== null).length);
+const excedidos = computed(() => props.servicios.filter((servicio) => servicio.excedeRto === true).length);
+
+/** Cuánto se desvió la realización de lo previsto, en días: «Dos días después de lo previsto». */
+const desvio = computed(() => {
+    const prevista = fechaDe(props.prueba.fecha_prevista);
+    const realizada = fechaDe(props.prueba.fecha_realizacion);
+
+    if (prevista === null || realizada === null) {
+        return null;
+    }
+
+    const dias = Math.round((realizada.getTime() - prevista.getTime()) / 86_400_000);
+
+    if (dias === 0) {
+        return 'El día previsto';
+    }
+
+    const cuantos = Math.abs(dias) === 1 ? 'Un día' : `${Math.abs(dias)} días`;
+
+    return `${cuantos} ${dias > 0 ? 'después' : 'antes'} de lo previsto`;
+});
+
+function detalleTarea(tarea: TareaDerivada): string {
+    const partes = ['Tarea', `prioridad ${tarea.prioridad.toLowerCase()}`];
+
+    if (tarea.responsable) {
+        partes.push(tarea.responsable);
+    }
+
+    if (tarea.fechaLimite) {
+        partes.push(`vence el ${fechaLegible(tarea.fechaLimite)} (${distanciaLegible(tarea.fechaLimite)})`);
+    }
+
+    return partes.join(' · ');
+}
 
 /* --- Registrar resultado --- */
 
@@ -268,45 +323,69 @@ function crearMejora(): void {
         <CabeceraPagina :titulo="prueba.titulo" :codigo="prueba.codigo">
             <template #acciones>
                 <Button v-if="puedeGestionar && planificada" as-child variant="outline">
-                    <Link :href="`/continuidad/pruebas/${prueba.id}/editar`">Editar</Link>
+                    <Link :href="`/continuidad/pruebas/${prueba.id}/editar`">
+                        <PencilIcon aria-hidden="true" />
+                        Editar
+                    </Link>
                 </Button>
             </template>
         </CabeceraPagina>
 
-        <div class="flex flex-wrap items-center gap-2">
+        <div class="-mt-2 flex flex-wrap items-center gap-2">
             <CeldaBadge
                 :valor="{ valor: prueba.estado, etiqueta: prueba.estadoEtiqueta, tono: prueba.estadoTono, icono: prueba.estadoIcono }"
-            />
-            <CeldaBadge
-                :valor="{ valor: prueba.tipo, etiqueta: prueba.tipoEtiqueta, tono: prueba.tipoTono, icono: prueba.tipoIcono }"
             />
             <CeldaBadge
                 v-if="prueba.resultado"
                 :valor="{ valor: prueba.resultado, etiqueta: prueba.resultadoEtiqueta ?? prueba.resultado, tono: prueba.resultadoTono, icono: prueba.resultadoIcono }"
             />
-            <span class="text-sm text-muted-foreground">Prevista: {{ prueba.fechaPrevistaEtiqueta }}</span>
+            <span class="text-[13px] text-muted-foreground">
+                {{ prueba.tipoEtiqueta }} · {{ fechaLegible(prueba.fecha_realizacion ?? prueba.fecha_prevista) }}
+            </span>
         </div>
+
+        <section
+            v-if="pendientes.length > 0"
+            aria-labelledby="pendientes"
+            class="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border bg-card px-5 py-3.5"
+        >
+            <InfoIcon class="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+            <h2 id="pendientes" class="text-sm font-semibold">
+                {{ pendientes.length }} {{ pendientes.length === 1 ? 'dato sin completar' : 'datos sin completar' }}
+            </h2>
+            <p class="text-[13px] text-muted-foreground">
+                Una prueba realizada sin evidencia es difícil de demostrar ante el auditor.
+            </p>
+            <ul class="ml-auto flex flex-wrap gap-2">
+                <li v-for="pendiente in pendientes" :key="pendiente">
+                    <span class="inline-flex h-7 items-center rounded-full bg-muted px-2.5 text-[13px] font-medium text-secondary-foreground">
+                        {{ pendiente }}
+                    </span>
+                </li>
+            </ul>
+        </section>
 
         <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
             <div class="space-y-6">
                 <Card>
                     <CardHeader>
                         <CardTitle>Recuperación por servicio</CardTitle>
-                        <CardDescription>
-                            Lo que el BIA prometía frente a lo que se alcanzó de verdad.
+                        <CardDescription v-if="medidos === 0">
+                            Lo que el BIA promete a cada servicio. Lo alcanzado se mide al registrar el resultado.
                         </CardDescription>
+                        <p v-else class="text-sm text-secondary-foreground">
+                            <template v-if="excedidos > 0">
+                                <span class="cifra font-medium text-destructive">{{ excedidos }} de {{ medidos }}</span>
+                                {{ excedidos === 1 ? 'servicio volvió' : 'servicios volvieron' }} más tarde de lo que promete su BIA.
+                            </template>
+                            <template v-else>
+                                <span class="cifra font-medium">{{ medidos }} de {{ medidos }}</span>
+                                {{ medidos === 1 ? 'servicio volvió' : 'servicios volvieron' }} dentro de lo que promete su BIA.
+                            </template>
+                        </p>
                     </CardHeader>
                     <CardContent>
                         <ComparativaRecuperacion :servicios="servicios" />
-                    </CardContent>
-                </Card>
-
-                <Card v-if="prueba.conclusiones">
-                    <CardHeader>
-                        <CardTitle>Conclusiones</CardTitle>
-                    </CardHeader>
-                    <CardContent class="text-sm whitespace-pre-line text-muted-foreground">
-                        {{ prueba.conclusiones }}
                     </CardContent>
                 </Card>
 
@@ -470,11 +549,18 @@ function crearMejora(): void {
                     <CardHeader>
                         <CardTitle>Lo que dejó esta prueba</CardTitle>
                         <CardDescription>
-                            Una prueba parcial o fallida es la que de verdad tiene algo que corregir:
-                            op.cont.3 pregunta si se probó, no si salió bien.
+                            op.cont.3 pregunta si se probó, no si salió bien: una prueba parcial o fallida es la que
+                            tiene algo que corregir.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent class="space-y-4">
+                    <CardContent class="space-y-5">
+                        <blockquote v-if="prueba.conclusiones" class="space-y-1 border-l-2 pl-4">
+                            <p class="text-[13px] font-medium text-secondary-foreground">Conclusiones</p>
+                            <p class="max-w-prose text-sm whitespace-pre-line text-pretty text-muted-foreground">
+                                {{ prueba.conclusiones }}
+                            </p>
+                        </blockquote>
+
                         <EstadoVacio
                             v-if="tareasDerivadas.length === 0 && !noConformidadDerivada"
                             titulo="Nada derivado todavía"
@@ -485,47 +571,53 @@ function crearMejora(): void {
                             "
                         />
 
-                        <ul v-if="tareasDerivadas.length > 0" class="divide-y divide-border">
-                            <li
-                                v-for="tarea in tareasDerivadas"
-                                :key="tarea.id"
-                                class="flex items-center justify-between gap-4 py-2"
-                            >
-                                <Link
-                                    :href="`/tareas/${tarea.id}`"
-                                    class="text-sm font-medium underline-offset-4 hover:underline"
-                                >
-                                    {{ tarea.titulo }}
-                                </Link>
+                        <ul
+                            v-if="tareasDerivadas.length > 0 || noConformidadDerivada"
+                            class="divide-y divide-border border-y"
+                        >
+                            <li v-for="tarea in tareasDerivadas" :key="tarea.id" class="flex items-center gap-3 py-3">
+                                <ListTodoIcon class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                                <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+                                    <Link
+                                        :href="`/tareas/${tarea.id}`"
+                                        class="text-sm font-medium underline-offset-4 hover:underline"
+                                    >
+                                        {{ tarea.titulo }}
+                                    </Link>
+                                    <span class="text-xs text-muted-foreground">{{ detalleTarea(tarea) }}</span>
+                                </div>
                                 <CeldaBadge
                                     :valor="{
                                         valor: tarea.estado,
                                         etiqueta: tarea.estadoEtiqueta,
                                         tono: tarea.estadoTono,
-                                        icono: null,
+                                        icono: tarea.estadoIcono,
+                                    }"
+                                />
+                            </li>
+                            <li v-if="noConformidadDerivada" class="flex items-center gap-3 py-3">
+                                <FileWarningIcon class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                                <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+                                    <Link
+                                        :href="`/no-conformidades/${noConformidadDerivada.id}`"
+                                        class="cifra text-sm font-medium underline-offset-4 hover:underline"
+                                    >
+                                        {{ noConformidadDerivada.codigo }}
+                                    </Link>
+                                    <span class="text-xs text-muted-foreground">No conformidad</span>
+                                </div>
+                                <CeldaBadge
+                                    :valor="{
+                                        valor: noConformidadDerivada.estado,
+                                        etiqueta: noConformidadDerivada.estadoEtiqueta,
+                                        tono: noConformidadDerivada.estadoTono,
+                                        icono: noConformidadDerivada.estadoIcono,
                                     }"
                                 />
                             </li>
                         </ul>
 
-                        <div v-if="noConformidadDerivada" class="flex items-center justify-between gap-4 border-t pt-4">
-                            <Link
-                                :href="`/no-conformidades/${noConformidadDerivada.id}`"
-                                class="cifra text-sm font-medium underline-offset-4 hover:underline"
-                            >
-                                {{ noConformidadDerivada.codigo }}
-                            </Link>
-                            <CeldaBadge
-                                :valor="{
-                                    valor: noConformidadDerivada.estado,
-                                    etiqueta: noConformidadDerivada.estadoEtiqueta,
-                                    tono: noConformidadDerivada.estadoTono,
-                                    icono: noConformidadDerivada.estadoIcono,
-                                }"
-                            />
-                        </div>
-
-                        <div v-if="puedeDerivar" class="flex flex-wrap gap-2 border-t pt-4">
+                        <div v-if="puedeDerivar" class="flex flex-wrap gap-2">
                             <Button v-if="puedeAbrirTarea" variant="outline" size="sm" @click="abrirTarea">
                                 Abrir tarea
                             </Button>
@@ -558,39 +650,107 @@ function crearMejora(): void {
             </div>
 
             <div class="space-y-6">
-                <Card v-if="prueba.responsable || prueba.evidencia">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Estado</CardTitle>
+                    </CardHeader>
+                    <CardContent class="space-y-3 text-sm">
+                        <p v-if="planificada" class="text-secondary-foreground">
+                            Planificada para el {{ fechaLegible(prueba.fecha_prevista) }}
+                            <span class="text-muted-foreground">({{ distanciaLegible(prueba.fecha_prevista) }})</span>.
+                            Se cierra registrando el resultado o cancelándola.
+                        </p>
+                        <p v-else-if="prueba.estado === 'realizada'" class="text-secondary-foreground">
+                            Realizada y cerrada. Una prueba terminada no se reabre: lo que sigue es planificar la
+                            siguiente.
+                        </p>
+                        <p v-else class="text-secondary-foreground">
+                            Cancelada sin llegar a realizarse. Lo que sigue es planificar otra.
+                        </p>
+                        <Button v-if="puedeGestionar && !planificada" as-child class="w-full">
+                            <Link href="/continuidad/pruebas/crear">Planificar la siguiente prueba</Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+
+                <Card>
                     <CardHeader>
                         <CardTitle>Ficha</CardTitle>
                     </CardHeader>
                     <CardContent class="text-sm">
-                        <dl class="grid gap-2">
-                            <div v-if="prueba.responsable" class="flex flex-wrap gap-x-2">
-                                <dt class="text-muted-foreground">Responsable</dt>
-                                <dd>{{ prueba.responsable }}</dd>
-                            </div>
-                            <div v-if="prueba.fechaRealizacionEtiqueta" class="flex flex-wrap gap-x-2">
-                                <dt class="text-muted-foreground">Realizada el</dt>
-                                <dd>{{ prueba.fechaRealizacionEtiqueta }}</dd>
-                            </div>
-                            <div v-if="prueba.evidencia" class="flex flex-wrap gap-x-2">
+                        <dl class="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-3 gap-y-2.5">
+                            <dt class="text-muted-foreground">Tipo</dt>
+                            <dd class="flex flex-col gap-0.5">
+                                <span>{{ prueba.tipoEtiqueta }}</span>
+                                <span class="text-xs text-muted-foreground">{{ prueba.tipoDescripcion }}</span>
+                            </dd>
+                            <dt class="text-muted-foreground">Responsable</dt>
+                            <dd :class="prueba.responsable ? undefined : 'text-muted-foreground'">
+                                {{ prueba.responsable ?? 'Sin asignar' }}
+                            </dd>
+                            <dt class="text-muted-foreground">Prevista</dt>
+                            <dd class="cifra">{{ fechaLegible(prueba.fecha_prevista) }}</dd>
+                            <template v-if="prueba.fecha_realizacion">
+                                <dt class="text-muted-foreground">Realizada</dt>
+                                <dd class="flex flex-col gap-0.5">
+                                    <span class="cifra">{{ fechaLegible(prueba.fecha_realizacion) }}</span>
+                                    <span v-if="desvio" class="text-xs text-muted-foreground">{{ desvio }}</span>
+                                </dd>
+                            </template>
+                            <template v-if="prueba.estado === 'realizada'">
                                 <dt class="text-muted-foreground">Evidencia</dt>
-                                <dd>{{ prueba.evidencia }}</dd>
-                            </div>
+                                <dd :class="prueba.evidencia ? undefined : 'text-muted-foreground'">
+                                    {{ prueba.evidencia ?? 'Sin evidencia' }}
+                                </dd>
+                            </template>
                         </dl>
                     </CardContent>
                 </Card>
 
                 <Card v-if="prueba.plan">
                     <CardHeader>
-                        <CardTitle>Plan de continuidad</CardTitle>
+                        <CardTitle>Plan que pone a prueba</CardTitle>
                     </CardHeader>
                     <CardContent class="text-sm">
-                        <Link :href="`/documentos/${prueba.documento_id}`" class="underline-offset-4 hover:underline">
-                            <span class="cifra">{{ prueba.plan.codigo }}</span> · {{ prueba.plan.titulo }}
+                        <Link :href="`/documentos/${prueba.documento_id}`" class="flex items-center gap-2.5 underline-offset-4 hover:underline">
+                            <FileTextIcon class="size-4 shrink-0 text-marca-500" aria-hidden="true" />
+                            <span class="flex flex-col">
+                                <span>{{ prueba.plan.titulo }}</span>
+                                <span class="cifra text-xs text-muted-foreground">{{ prueba.plan.codigo }}</span>
+                            </span>
                         </Link>
                     </CardContent>
                 </Card>
 
+                <Card v-if="servicios.length > 0">
+                    <CardHeader>
+                        <CardTitle>BIA de los servicios</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <ul class="divide-y divide-border text-sm">
+                            <li
+                                v-for="servicio in servicios"
+                                :key="servicio.id"
+                                class="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0"
+                            >
+                                <Link
+                                    v-if="servicio.biaId"
+                                    :href="`/continuidad/bia/${servicio.biaId}`"
+                                    class="min-w-0 truncate underline-offset-4 hover:underline"
+                                >
+                                    {{ servicio.nombre }}
+                                </Link>
+                                <span v-else class="min-w-0 truncate">{{ servicio.nombre }}</span>
+                                <span class="cifra shrink-0 text-xs text-muted-foreground">
+                                    <template v-if="servicio.rtoObjetivo !== null">
+                                        RTO {{ servicio.rtoObjetivo }} h · RPO {{ servicio.rpoObjetivo }} h
+                                    </template>
+                                    <template v-else>Sin BIA</template>
+                                </span>
+                            </li>
+                        </ul>
+                    </CardContent>
+                </Card>
             </div>
         </div>
 

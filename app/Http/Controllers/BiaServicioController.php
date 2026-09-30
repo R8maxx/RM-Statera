@@ -29,6 +29,7 @@ use App\Http\Resources\BiaServicioRecurso;
 use App\Http\Resources\Concerns\RespondeConRecurso;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -105,10 +106,13 @@ class BiaServicioController extends Controller
                     'nivelEtiqueta' => $bia->{$tramo->value}->etiqueta(),
                     'nivelTono' => $bia->{$tramo->value}->tono(),
                     'nivelIcono' => $bia->{$tramo->value}->icono(),
+                    'nivelPeso' => $bia->{$tramo->value}->peso(),
                     'esUmbral' => $umbral === $tramo,
                 ],
                 TramoImpacto::cases(),
             ),
+            // La altura de cada paso de la escala es su peso sobre éste.
+            'pesoMaximo' => max(array_map(static fn (NivelImpacto $nivel): int => $nivel->peso(), NivelImpacto::cases())),
             'dependencias' => app(GrafoActivos::class)->dependenciasDe($bia->activo)
                 ->map(static fn (Activo $activo): array => [
                     'id' => $activo->id,
@@ -140,9 +144,15 @@ class BiaServicioController extends Controller
              * mínimo que la tarjeta necesita para no reabrir la consulta
              * larga de `PruebaContinuidadRecurso`. Por fecha prevista
              * descendente: lo último que se planificó o probó primero.
+             *
+             * **Con el RTO que alcanzó este servicio en cada una**, que es lo
+             * que la ficha enfrenta al objetivo: los servicios se cargan
+             * acotados a éste, así que la pivote que llega es la suya y
+             * `excedeRto()` no dispara otra consulta con el BIA ya en mano.
              */
             'pruebas' => PruebaContinuidad::query()
                 ->whereHas('servicios', fn (Builder $query) => $query->where('activos.id', $bia->activo_id))
+                ->with(['servicios' => fn (Relation $query) => $query->where('activos.id', $bia->activo_id)])
                 ->orderByDesc('fecha_prevista')
                 ->limit(5)
                 ->get()
@@ -150,6 +160,9 @@ class BiaServicioController extends Controller
                     'id' => $prueba->id,
                     'codigo' => $prueba->codigo,
                     'titulo' => $prueba->titulo,
+                    'tipoEtiqueta' => $prueba->tipo->etiqueta(),
+                    'rtoAlcanzado' => $prueba->servicios->first()?->getAttribute('pivot')?->getAttribute('rto_alcanzado_horas'),
+                    'excedeRto' => $bia->activo === null ? null : $prueba->excedeRto($bia->activo, $bia),
                     'estado' => $prueba->estado->value,
                     'estadoEtiqueta' => $prueba->estado->etiqueta(),
                     'estadoTono' => $prueba->estado->tono(),
@@ -166,7 +179,7 @@ class BiaServicioController extends Controller
                         'tono' => $prueba->resultado->tono(),
                         'icono' => $prueba->resultado->icono(),
                     ],
-                    'fecha' => ($prueba->fecha_realizacion ?? $prueba->fecha_prevista)->format('d/m/Y'),
+                    'fecha' => ($prueba->fecha_realizacion ?? $prueba->fecha_prevista)->format('Y-m-d'),
                 ])
                 ->values()
                 ->all(),
@@ -300,8 +313,8 @@ class BiaServicioController extends Controller
             'responsable_id' => $bia->responsable_id,
             'responsable' => $bia->responsable?->name,
             'aprobadoPor' => $bia->aprobadoPor?->name,
-            'fechaAprobacion' => $bia->fecha_aprobacion?->format('d/m/Y'),
-            'fechaRevision' => $bia->fecha_revision?->format('d/m/Y'),
+            'fechaAprobacion' => $bia->fecha_aprobacion?->format('Y-m-d'),
+            'fechaRevision' => $bia->fecha_revision?->format('Y-m-d'),
             'rtoIncoherente' => $bia->rtoIncoherente(),
         ];
     }

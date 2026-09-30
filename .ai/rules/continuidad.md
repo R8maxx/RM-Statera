@@ -157,6 +157,34 @@ documentos `plan_continuidad` sin mantenimiento, cero filas sin error, y el
 `ALTER TABLE` moría con el `PLN-CONT-01` sembrado. Todo `down()` que toque
 filas de una tabla con RLS va por `comoMantenimiento()`.
 
+### Las dos fichas
+
+**Cada una tiene una tarjeta fuerte, y es la que contesta la pregunta.** En el
+BIA, «Cuánto aguanta caído»: RTO, MTPD y RPO en cifra, los cinco tramos como
+escala de pasos en teal (el nivel es ordinal; el badge de cada tramo sigue
+debajo con su tono) y el RTO y el umbral puestos sobre el mismo eje, con la
+franja entre los dos —margen si el RTO queda dentro, ámbar si lo pasa—. En la
+prueba, «Recuperación por servicio»: barras sobre **un solo eje de horas para
+todos los servicios**, partidas en la marca del objetivo, y un titular «N de M
+servicios volvió más tarde…».
+
+**El BIA enseña lo que midió la última prueba.** `pruebas` trae, por prueba,
+`rtoAlcanzado` y `excedeRto` **de este servicio**: los servicios se cargan
+acotados al del BIA, así que la pivote que llega es la suya y `excedeRto()` no
+dispara otra consulta. El rojo es el mismo que en la prueba: sólo el RTO
+alcanzado por encima del objetivo.
+
+**El BIA ya no tiene tarjeta «Ciclo».** Estado arriba en el lateral —con la
+revisión y su distancia, los botones de transición y la nota cuando se
+exige— e histórico en la columna principal, como el resto de fichas. Era una
+excepción escrita en `DESIGN.md` § 9 y se retiró con el rediseño.
+
+**La prueba realizada sin evidencia lo dice en la tira de «Lo que falta»**
+(`pendientes`), pero **el chip no lleva a ningún sitio**: una prueba terminal no
+se edita y no hay ruta para adjuntar la evidencia después. Es un hueco
+declarado, no un olvido: si llega, entra como acción propia sobre la prueba
+realizada, no reabriendo `EditarPrueba`.
+
 ### Navegación: una entrada y dos pestañas
 
 **Una sola entrada «Continuidad»** y las pestañas BIA | Pruebas dentro

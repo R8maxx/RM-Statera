@@ -349,3 +349,37 @@ it('manda el RTO y el RPO como números para la celda numérica', function (): v
             ->where('filas.0.rto', 72)
             ->where('filas.0.rpo', 24));
 });
+
+it('la ficha del BIA trae lo que alcanzó el servicio en cada prueba', function (): void {
+    $servicio = Activo::factory()->create(['tipo' => 'servicios']);
+    $otro = Activo::factory()->create(['tipo' => 'servicios']);
+    $bia = BiaServicio::factory()->create(['activo_id' => $servicio->id, 'rto_horas' => 24]);
+
+    $prueba = PruebaContinuidad::factory()->realizada(ResultadoPrueba::Parcial)->create();
+    $prueba->servicios()->attach([
+        $servicio->id => ['organizacion_id' => $prueba->organizacion_id, 'rto_alcanzado_horas' => 30],
+        $otro->id => ['organizacion_id' => $prueba->organizacion_id, 'rto_alcanzado_horas' => 2],
+    ]);
+
+    $this->actingAs($this->usuario)
+        ->get("/continuidad/bia/{$bia->id}")
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->component('continuidad/bia/Ficha')
+            ->where('pesoMaximo', 4)
+            ->where('pruebas.0.rtoAlcanzado', 30)
+            ->where('pruebas.0.excedeRto', true)
+            ->where('tramos.0.nivelPeso', $bia->impacto_4h->peso()));
+});
+
+it('la ficha de una prueba realizada sin evidencia la pide', function (): void {
+    $realizada = PruebaContinuidad::factory()->realizada()->create(['evidencia_id' => null]);
+    $planificada = PruebaContinuidad::factory()->planificada()->create(['documento_id' => $realizada->documento_id]);
+
+    $this->actingAs($this->usuario)
+        ->get("/continuidad/pruebas/{$realizada->id}")
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina->where('pendientes', ['Evidencia']));
+
+    $this->actingAs($this->usuario)
+        ->get("/continuidad/pruebas/{$planificada->id}")
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina->where('pendientes', []));
+});

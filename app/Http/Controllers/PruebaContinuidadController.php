@@ -145,6 +145,7 @@ class PruebaContinuidadController extends Controller
                         'rpoObjetivo' => $bia?->rpo_horas,
                         'rpoAlcanzado' => $pivot?->getAttribute('rpo_alcanzado_horas'),
                         'excedeRto' => $prueba->excedeRto($servicio, $bia),
+                        'biaId' => $bia?->id,
                     ];
                 })
                 ->values()
@@ -183,6 +184,9 @@ class PruebaContinuidadController extends Controller
                     'estado' => $tarea->estado->value,
                     'estadoEtiqueta' => $tarea->estado->etiqueta(),
                     'estadoTono' => $tarea->estado->tono(),
+                    'estadoIcono' => $tarea->estado->icono(),
+                    'prioridad' => $tarea->prioridad->etiqueta(),
+                    'fechaLimite' => $tarea->fecha_limite?->format('Y-m-d'),
                     'responsable' => $tarea->responsable?->name,
                 ])
                 ->values()
@@ -219,6 +223,15 @@ class PruebaContinuidadController extends Controller
                     'etiqueta' => $usuario->name,
                 ])
                 ->all(),
+            /*
+             * Lo que un auditor va a pedir y falta, para la tira de la ficha
+             * (DESIGN.md § 9, «Lo que falta»). Sólo la evidencia de una prueba
+             * realizada: la planificada todavía no tiene nada que demostrar,
+             * y la cancelada no lo tendrá nunca.
+             */
+            'pendientes' => $prueba->estado === EstadoPrueba::Realizada && $prueba->evidencia_id === null
+                ? ['Evidencia']
+                : [],
             'puedeGestionar' => $this->puede(Permiso::ContinuidadGestionar),
             'puedeDerivar' => $puedeDerivar,
             'puedeAbrirTarea' => $puedeDerivar && $this->puede(Permiso::TareasGestionar),
@@ -369,6 +382,7 @@ class PruebaContinuidadController extends Controller
             'tipoEtiqueta' => $prueba->tipo->etiqueta(),
             'tipoTono' => $prueba->tipo->tono(),
             'tipoIcono' => $prueba->tipo->icono(),
+            'tipoDescripcion' => $prueba->tipo->descripcion(),
             'estado' => $prueba->estado->value,
             'estadoEtiqueta' => $prueba->estado->etiqueta(),
             'estadoTono' => $prueba->estado->tono(),
