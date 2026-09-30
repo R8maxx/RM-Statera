@@ -114,9 +114,21 @@ avisa.
   hallazgo se registra a mano.
 - **No consulta ninguna base de CVE.** El CVE se valida por forma
   (`CVE-AAAA-NNNN`), no porque exista, y la puntuación la escribe quien la registra.
-- **Sólo CVSS v3.1.** El vector se guarda como texto y no se interpreta, así que
-  un vector de la v4 entra, pero la severidad sigue los tramos de la v3.1.
+- **Sólo CVSS v3.1.** El vector se guarda como texto y no puntúa nada, así que
+  un vector de la v4 entra, pero la severidad sigue los tramos de la v3.1. La
+  ficha lo **lee** en castellano (`VectorCvss`) cuando es de la v3; si no lo
+  entiende, enseña la cadena tal cual.
 - **Aceptar no tiene caducidad.** Una aceptación no obliga a revisarla pasado un
   tiempo; si hace falta, se reabre a mano.
 - **Una vulnerabilidad no crea ni actualiza un riesgo.** El enlace es informativo:
   el riesgo sigue valorándose en su módulo.
+
+## La ficha
+
+**Lo que manda es el plazo**, porque el auditor no pregunta si está cerrada,
+sino cuánto tardó. `CicloRemediacion` cuenta los días contra el límite y los
+para cuando sale de abierta y de remediación —la mitigada ya cumplió—; la barra
+(`components/vulnerabilidad/BarraPlazo.vue`) usa la gramática del reloj de la
+AEPD. El camino abierta → remediación → mitigada → cerrada cuenta desde la
+última reapertura y dice el paso **saltado** en vez de pintarlo hecho sin
+fecha. La severidad, ordinal, va en escala de pasos y no en badge (§ 9).

@@ -14,6 +14,7 @@ use App\Domain\Tarea\Enums\PrioridadTarea;
 use App\Domain\Tarea\Models\Tarea;
 use App\Domain\Usuario\CuentasAsignables;
 use App\Domain\Vulnerabilidad\CambiarEstadoVulnerabilidad;
+use App\Domain\Vulnerabilidad\CicloRemediacion;
 use App\Domain\Vulnerabilidad\CodigoVulnerabilidad;
 use App\Domain\Vulnerabilidad\DerivarTareaDeVulnerabilidad;
 use App\Domain\Vulnerabilidad\Enums\EstadoVulnerabilidad;
@@ -24,6 +25,7 @@ use App\Domain\Vulnerabilidad\Models\Vulnerabilidad;
 use App\Domain\Vulnerabilidad\Models\VulnerabilidadTransicion;
 use App\Domain\Vulnerabilidad\PlazoRemediacion;
 use App\Domain\Vulnerabilidad\RegistroVulnerabilidades;
+use App\Domain\Vulnerabilidad\VectorCvss;
 use App\Http\Requests\CambiarEstadoVulnerabilidadRequest;
 use App\Http\Requests\DerivarTareaDeVulnerabilidadRequest;
 use App\Http\Requests\GuardarVulnerabilidadRequest;
@@ -111,12 +113,17 @@ class VulnerabilidadController extends Controller
         return to_route('vulnerabilidades.show', $vulnerabilidad);
     }
 
-    public function show(Request $request, Vulnerabilidad $vulnerabilidad): Response
+    public function show(Request $request, Vulnerabilidad $vulnerabilidad, CicloRemediacion $ciclo, VectorCvss $vector): Response
     {
         $vulnerabilidad->load(['activos', 'responsable:id,name', 'proveedor:id,codigo,nombre', 'riesgo:id,codigo,titulo',
             'incidente:id,codigo,titulo', 'aceptadaPor:id,name', 'verificadaPor:id,name', 'tareas']);
 
         $usuario = $request->user();
+        $transicionesHechas = $vulnerabilidad->transiciones()
+            ->with('usuario:id,name')
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get();
 
         return Inertia::render('vulnerabilidades/Ficha', [
             'vulnerabilidad' => [
@@ -127,6 +134,7 @@ class VulnerabilidadController extends Controller
                 'cve' => $vulnerabilidad->cve,
                 'cvss' => $vulnerabilidad->cvss_puntuacion,
                 'vector' => $vulnerabilidad->cvss_vector,
+                'vectorDesglose' => $vector->desglose($vulnerabilidad->cvss_vector),
                 'severidad' => $vulnerabilidad->severidad->value,
                 'severidadEtiqueta' => $vulnerabilidad->severidad->etiqueta(),
                 'severidadTono' => $vulnerabilidad->severidad->tono(),
@@ -136,7 +144,7 @@ class VulnerabilidadController extends Controller
                 'estadoIcono' => $vulnerabilidad->estado->icono(),
                 'origen' => $vulnerabilidad->origen->etiqueta(),
                 'fechaDeteccion' => $vulnerabilidad->fecha_deteccion->toDateString(),
-                'fechaLimite' => $vulnerabilidad->estado->correPlazo() ? $vulnerabilidad->fecha_limite?->toDateString() : null,
+                'fechaLimite' => $vulnerabilidad->fecha_limite?->toDateString(),
                 'fueraDePlazo' => $vulnerabilidad->fueraDePlazo(),
                 'responsable' => $vulnerabilidad->responsable?->name,
                 'proveedor' => $vulnerabilidad->proveedor?->only(['id', 'codigo', 'nombre']),
@@ -150,9 +158,22 @@ class VulnerabilidadController extends Controller
                 'verificadaPor' => $vulnerabilidad->verificadaPor?->name,
                 'cerradaEn' => $vulnerabilidad->cerrada_en?->toIso8601String(),
             ],
+            'severidades' => array_map(
+                static fn (Severidad $severidad): array => ['valor' => $severidad->value, 'etiqueta' => $severidad->etiqueta()],
+                Severidad::cases(),
+            ),
+            'plazo' => $ciclo->plazo($vulnerabilidad, $transicionesHechas),
+            'camino' => $ciclo->camino($vulnerabilidad, $transicionesHechas),
             'activos' => $vulnerabilidad->activos
                 ->sortBy('codigo')
-                ->map(fn (Activo $activo): array => ['id' => $activo->id, 'codigo' => $activo->codigo, 'nombre' => $activo->nombre])
+                ->map(fn (Activo $activo): array => [
+                    'id' => $activo->id,
+                    'codigo' => $activo->codigo,
+                    'nombre' => $activo->nombre,
+                    'tipo' => $activo->tipo->etiqueta(),
+                    'tipoTono' => 'tipo:'.$activo->tipo->value,
+                    'tipoIcono' => $activo->tipo->icono(),
+                ])
                 ->values()->all(),
             'transiciones' => array_map(
                 static fn (EstadoVulnerabilidad $estado): array => [
@@ -168,11 +189,7 @@ class VulnerabilidadController extends Controller
                         || ($usuario?->can(Permiso::VulnerabilidadesAceptar->value) ?? false),
                 )),
             ),
-            'historial' => $vulnerabilidad->transiciones()
-                ->with('usuario:id,name')
-                ->orderBy('created_at')
-                ->orderBy('id')
-                ->get()
+            'historial' => $transicionesHechas
                 ->map(fn (VulnerabilidadTransicion $transicion): array => [
                     'id' => $transicion->id,
                     'anterior' => $transicion->estado_anterior?->etiqueta(),
