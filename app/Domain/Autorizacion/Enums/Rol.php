@@ -150,6 +150,13 @@ enum Rol: string
                 Permiso::ObjetivosVer,
                 Permiso::ObjetivosGestionar,
                 /*
+                 * Propone y planifica los cambios del SGSI, los lleva a cabo y
+                 * mira si sirvieron, y **no los aprueba**: cambiar el sistema de
+                 * gestión es una decisión de dirección.
+                 */
+                Permiso::CambiosSgsiVer,
+                Permiso::CambiosSgsiGestionar,
+                /*
                  * Prepara la revisión por la dirección y **no firma el acta**.
                  * Recoger las entradas y redactar las conclusiones es trabajo de
                  * quien lleva el SGSI; que la dirección haya revisado el sistema
@@ -235,6 +242,7 @@ enum Rol: string
                 Permiso::MejorasVer,
                 Permiso::IndicadoresVer,
                 Permiso::ObjetivosVer,
+                Permiso::CambiosSgsiVer,
                 Permiso::PersonasVer,
                 Permiso::IncidentesVer,
                 Permiso::ProveedoresVer,

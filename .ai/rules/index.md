@@ -8,6 +8,7 @@ Before planning or editing, find the row whose globs match the file's path and r
 | app/Domain/Adjunto/**, resources/js/components/adjunto/** | .ai/rules/adjuntos.md |
 | app/Domain/**, app/Http/Middleware/**, app/Models/**, database/factories/**, database/seeders/** | .ai/rules/aislamiento.md |
 | app/Domain/Auditoria/**, resources/js/pages/auditorias/** | .ai/rules/auditorias.md |
+| app/Domain/Cambio/**, resources/js/pages/cambios-sgsi/**, app/Http/Controllers/CambioSgsiController.php, app/Http/Resources/CambioSgsiRecurso.php | .ai/rules/cambios.md |
 | app/Domain/Catalogo/**, app/Domain/Categorizacion/**, catalogo/** | .ai/rules/catalogo.md |
 | app/Domain/Conformidad/**, resources/js/pages/conformidad/**, resources/js/components/conformidad/**, app/Domain/Documento/Contenido/DeclaracionConformidadEns.php | .ai/rules/conformidad.md |
 | resources/js/pages/cuentas/**, resources/js/pages/auth/AceptarInvitacion.vue, app/Domain/Usuario/**, app/Http/Controllers/CuentaController.php, app/Http/Controllers/InvitacionController.php, app/Http/Middleware/CuentaVigente.php, app/Http/Middleware/BloqueoPorInactividad.php, app/Http/Middleware/EscribeLoSuyo.php, app/Domain/Autorizacion/EscrituraPropia.php, app/Domain/Autorizacion/Concerns/AcotadoPorAlcance.php | .ai/rules/cuentas.md |

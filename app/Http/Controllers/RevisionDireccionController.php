@@ -129,6 +129,12 @@ class RevisionDireccionController extends Controller
                 && $revision_direccion->estado === EstadoRevision::EnCurso,
             'puedeGestionar' => $this->puede(Permiso::RevisionDireccionGestionar),
             /*
+             * La 9.3.3 pide decidir también sobre «cualquier necesidad de cambio en
+             * el SGSI», y ésa tiene registro propio desde la 6.3. Sólo el enlace y
+             * el origen: sin clave foránea, como una mejora que sale de aquí.
+             */
+            'puedeRegistrarCambio' => $this->puede(Permiso::CambiosSgsiGestionar),
+            /*
              * El acta (§ 4.18). Prepararla crea un documento, así que pide además
              * `documentos.generar`, igual que el informe de una auditoría. La
              * generación y la firma de sus versiones siguen en `/documentos`.

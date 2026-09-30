@@ -94,6 +94,7 @@ const props = defineProps<{
     /** El documento del acta, una vez preparado: uno por revisión. */
     acta: { id: number; codigo: string } | null;
     puedePrepararActa: boolean;
+    puedeRegistrarCambio: boolean;
     prioridades: Opcion[];
     responsables: Opcion[];
 }>();
@@ -433,6 +434,18 @@ const abiertas = computed(
                                 </li>
                             </ul>
                         </template>
+
+                        <p v-if="puedeRegistrarCambio" class="text-[13px] text-muted-foreground">
+                            Si lo que se decide es cambiar el propio sistema de gestión —el alcance, la política,
+                            los roles—,
+                            <Link
+                                href="/cambios-sgsi/crear?origen=revision_direccion"
+                                class="text-primary underline-offset-4 hover:underline"
+                            >
+                                regístralo como cambio del SGSI
+                            </Link>
+                            para planificarlo como pide la cláusula 6.3.
+                        </p>
                     </CardContent>
                 </Card>
 

@@ -7,6 +7,7 @@ use App\Http\Controllers\ActivoController;
 use App\Http\Controllers\AuditoriaController;
 use App\Http\Controllers\BiaServicioController;
 use App\Http\Controllers\CalendarioController;
+use App\Http\Controllers\CambioSgsiController;
 use App\Http\Controllers\ConformidadController;
 use App\Http\Controllers\ContextoController;
 use App\Http\Controllers\CuentaController;
@@ -839,6 +840,59 @@ Route::middleware('auth')->group(function (): void {
                 ->name('mejoras.actuaciones.abrir');
             Route::delete('/mejoras/{mejora}/actuaciones/{tarea}', [MejoraController::class, 'desvincularActuacion'])
                 ->name('mejoras.actuaciones.desvincular');
+        });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cambios del SGSI (cláusula 6.3)
+    |--------------------------------------------------------------------------
+    |
+    | **Tres permisos**, como objetivos: aprobar un cambio —y renunciar a uno ya
+    | aprobado— es de dirección, y lo comprueba el controlador porque la ruta de
+    | transición es una sola.
+    |
+    | `scopeBindings()` en lo que cuelga de `{cambio}`: la actuación de otro
+    | cambio no se desvincula desde éste. `{tarea}` resuelve por `tareas()`, cuyo
+    | plural inglés coincide con el español.
+    |
+    */
+
+    Route::middleware('can:cambios_sgsi.ver')->group(function (): void {
+        Route::get('/cambios-sgsi', [CambioSgsiController::class, 'index'])
+            ->name('cambios-sgsi.index');
+
+        // Antes que `{cambio}`, para que `crear` no se lea como un id.
+        Route::get('/cambios-sgsi/crear', [CambioSgsiController::class, 'create'])
+            ->middleware(['can:cambios_sgsi.gestionar', ExigirDosFactores::class])
+            ->name('cambios-sgsi.create');
+
+        Route::get('/cambios-sgsi/{cambio}', [CambioSgsiController::class, 'show'])
+            ->name('cambios-sgsi.show');
+    });
+
+    Route::middleware(['can:cambios_sgsi.gestionar', ExigirDosFactores::class])
+        ->scopeBindings()
+        ->group(function (): void {
+            Route::post('/cambios-sgsi', [CambioSgsiController::class, 'store'])
+                ->name('cambios-sgsi.store');
+            Route::get('/cambios-sgsi/{cambio}/editar', [CambioSgsiController::class, 'edit'])
+                ->name('cambios-sgsi.edit');
+            Route::put('/cambios-sgsi/{cambio}', [CambioSgsiController::class, 'update'])
+                ->name('cambios-sgsi.update');
+            Route::delete('/cambios-sgsi/{cambio}', [CambioSgsiController::class, 'destroy'])
+                ->name('cambios-sgsi.destroy');
+
+            Route::post('/cambios-sgsi/{cambio}/estado', [CambioSgsiController::class, 'transicion'])
+                ->name('cambios-sgsi.transicion');
+
+            // Antes que `{tarea}`: `vincular` no es un identificador.
+            Route::post('/cambios-sgsi/{cambio}/actuaciones/vincular', [CambioSgsiController::class, 'vincularActuacion'])
+                ->name('cambios-sgsi.actuaciones.vincular');
+
+            Route::post('/cambios-sgsi/{cambio}/actuaciones', [CambioSgsiController::class, 'abrirActuacion'])
+                ->name('cambios-sgsi.actuaciones.abrir');
+            Route::delete('/cambios-sgsi/{cambio}/actuaciones/{tarea}', [CambioSgsiController::class, 'desvincularActuacion'])
+                ->name('cambios-sgsi.actuaciones.desvincular');
         });
 
     /*

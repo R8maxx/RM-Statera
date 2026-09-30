@@ -557,3 +557,22 @@ y 36 retención RGPD.
     en el navegador encontró además que Vite llevaba días sin publicar su
     puerto. No era del punto: el contenedor había perdido la publicación tras
     varios reinicios por cambios en `.env`, y se resolvió recreándolo.
+
+37. ✅ Planificación de cambios del SGSI (cláusula 6.3). **El primero de los huecos
+    de `PRODUCT.md`**, y va antes que la 7.4 porque es más pequeño y porque la
+    9.3.3 ya producía «necesidades de cambio» sin tener dónde dejarlas.
+
+    **César acotó el alcance a los cambios del propio SGSI.** Los técnicos
+    —A.8.32, `op.exp.5`— se cuentan por decenas y ahogarían los pocos que la 6.3
+    quiere ver planificados; cuando haga falta, serán otro registro. Por eso el
+    permiso se llama `cambios_sgsi.*` y deja libre `cambios.*`.
+
+    No hubo que inventar nada: es el esqueleto de mejoras con la firma de
+    objetivos, y las dos decisiones propias del módulo son que **revisar es un
+    estado aparte que exige decir si el cambio sirvió**, y que **un implantado
+    sin revisar no es rojo**, porque la norma no fija plazo para esa
+    comprobación y pintarlo sería inventarse una obligación.
+
+    De paso, el filtro por atributos de la ISO 27002 (sin número propio) destapó
+    que A.8.24 llevaba una capacidad operativa que no existe en la norma. La
+    encontró la validación nueva del vocabulario, no una revisión.

@@ -24,6 +24,13 @@ use App\Domain\Auditoria\RegistrarHallazgo;
 use App\Domain\Auditoria\RevisarPunto;
 use App\Domain\Autorizacion\Enums\Rol;
 use App\Domain\Autorizacion\SembrarRoles;
+use App\Domain\Cambio\AbrirActuacionDeCambio;
+use App\Domain\Cambio\CambiarEstadoCambio;
+use App\Domain\Cambio\Enums\AmbitoCambio;
+use App\Domain\Cambio\Enums\EstadoCambio;
+use App\Domain\Cambio\Enums\OrigenCambio;
+use App\Domain\Cambio\Models\CambioSgsi;
+use App\Domain\Cambio\RegistrarCambio;
 use App\Domain\Catalogo\Enums\Dimension;
 use App\Domain\Catalogo\Models\Marco;
 use App\Domain\Categorizacion\Enums\NivelDimension;
@@ -297,6 +304,9 @@ class DesarrolloSeeder extends Seeder
         // Detrás de las no conformidades porque comparte auditoría con ellas: la
         // oportunidad de mejora cuelga del hallazgo de la auditoría en curso.
         $this->mejorasDeEjemplo();
+        // Detrás de las mejoras, por vecindad y no por dependencia: el cambio
+        // del SGSI no cuelga de ningún otro registro.
+        $this->cambiosDelSgsiDeEjemplo();
         // Después de riesgos y de implantaciones: el contexto se vincula a los
         // dos, y sembrarlo antes dejaría el DAFO suelto, que es justo lo que este
         // módulo existe para evitar.
@@ -1545,6 +1555,89 @@ class DesarrolloSeeder extends Seeder
         $this->command->info(sprintf(
             'Oportunidades de mejora: %d registradas, 1 de un hallazgo, 1 descartada con motivo y 1 sin empezar.',
             Mejora::query()->count(),
+        ));
+    }
+
+    /**
+     * Tres cambios del SGSI, y cada uno enseña un tramo de la 6.3.
+     *
+     * Uno propuesto y esperando firma, uno aprobado y en marcha con su actuación,
+     * y uno revisado con lo que se comprobó. Todo por las acciones del dominio,
+     * para que cada uno tenga su histórico. Sintéticos: ni uno de ningún cliente.
+     */
+    private function cambiosDelSgsiDeEjemplo(): void
+    {
+        if (CambioSgsi::query()->count() > 0) {
+            return;
+        }
+
+        $registrar = app(RegistrarCambio::class);
+        $cambiar = app(CambiarEstadoCambio::class);
+
+        $responsable = User::query()->where('email', 'responsable@statera.test')->first();
+        $tecnica = User::query()->where('email', 'tecnico@statera.test')->first();
+
+        $anio = Carbon::today()->year;
+
+        // --- El que espera firma, con la planificación a medias -------------
+        $registrar([
+            'codigo' => sprintf('CS-%d-01', $anio),
+            'titulo' => 'Ampliar el alcance del SGSI a la oficina de soporte',
+            'ambito' => AmbitoCambio::Alcance->value,
+            'origen' => OrigenCambio::RevisionDireccion->value,
+            'proposito' => 'Que el servicio de soporte, que ya trata datos de clientes, quede dentro del sistema.',
+            'responsable_id' => $tecnica?->id,
+            'fecha_propuesta' => Carbon::today()->subDays(5),
+            'fecha_prevista' => Carbon::today()->addMonths(3),
+        ], $tecnica);
+
+        // --- El aprobado y en marcha ----------------------------------------
+        $aprobado = $registrar([
+            'codigo' => sprintf('CS-%d-02', $anio),
+            'titulo' => 'Separar el rol de responsable del sistema del de seguridad',
+            'ambito' => AmbitoCambio::Organizacion->value,
+            'origen' => OrigenCambio::Auditoria->value,
+            'proposito' => 'El ENS exige que no recaigan en la misma persona.',
+            'consecuencias' => 'Cambian dos nombramientos, la política y el procedimiento de gestión de incidentes.',
+            'integridad' => 'El responsable actual sigue en funciones hasta que se firme el nombramiento nuevo.',
+            'recursos' => 'Una persona más con formación en seguridad.',
+            'responsable_id' => $responsable?->id,
+            'fecha_propuesta' => Carbon::today()->subMonth(),
+            'fecha_prevista' => Carbon::today()->addMonth(),
+        ], $tecnica);
+
+        $cambiar($aprobado, EstadoCambio::Aprobado, $responsable);
+
+        app(AbrirActuacionDeCambio::class)($aprobado, [
+            'titulo' => 'Actualizar la política de seguridad con el nuevo reparto de roles',
+            'prioridad' => PrioridadTarea::Alta->value,
+            'responsable_id' => $responsable?->id,
+            'fecha_limite' => Carbon::today()->addWeeks(3),
+        ], $responsable);
+
+        // --- El revisado, con lo que se comprobó ----------------------------
+        $revisado = $registrar([
+            'codigo' => sprintf('CS-%d-03', $anio),
+            'titulo' => 'Pasar la revisión del análisis de riesgos de anual a semestral',
+            'ambito' => AmbitoCambio::Proceso->value,
+            'origen' => OrigenCambio::Propio->value,
+            'proposito' => 'Que los riesgos nuevos no esperen un año a valorarse.',
+            'fecha_propuesta' => Carbon::today()->subMonths(5),
+            'fecha_prevista' => Carbon::today()->subMonths(2),
+        ], $tecnica);
+
+        $cambiar($revisado, EstadoCambio::Aprobado, $responsable);
+        $cambiar($revisado, EstadoCambio::Implantado, $tecnica);
+        $cambiar(
+            $revisado,
+            EstadoCambio::Revisado,
+            $tecnica,
+            'La primera revisión semestral encontró dos riesgos nuevos que la anual habría dejado para el año siguiente.',
+        );
+
+        $this->command->info(sprintf(
+            'Cambios del SGSI: %d registrados, 1 esperando firma, 1 aprobado y 1 revisado.',
+            CambioSgsi::query()->count(),
         ));
     }
 

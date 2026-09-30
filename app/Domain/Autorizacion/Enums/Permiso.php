@@ -148,6 +148,18 @@ enum Permiso: string
     case ObjetivosAprobar = 'objetivos.aprobar';
 
     /*
+     * Los cambios del SGSI de la cláusula 6.3, con su verbo de supervisión.
+     * Proponer un cambio y planificarlo es trabajo de quien lleva el sistema;
+     * **aprobarlo es comprometer a la organización** con un cambio de su propio
+     * sistema de gestión, y eso es de dirección — la misma línea que separa
+     * proponer un objetivo de firmarlo. También es de quien firma renunciar a un
+     * cambio ya aprobado.
+     */
+    case CambiosSgsiVer = 'cambios_sgsi.ver';
+    case CambiosSgsiGestionar = 'cambios_sgsi.gestionar';
+    case CambiosSgsiAprobar = 'cambios_sgsi.aprobar';
+
+    /*
      * La revisión por la dirección (cláusula 9.3), y **el octavo verbo de
      * supervisión**. Es el más literal de todos: la cláusula se llama «revisión
      * por la dirección», así que aprobar el acta no es que convenga que lo haga la
@@ -331,6 +343,9 @@ enum Permiso: string
             self::ObjetivosVer => 'Ver los objetivos de seguridad y su avance',
             self::ObjetivosGestionar => 'Proponer objetivos, planificarlos y vincular indicadores y actuaciones',
             self::ObjetivosAprobar => 'Aprobar objetivos y declarar si se alcanzaron',
+            self::CambiosSgsiVer => 'Ver los cambios del SGSI y su planificación',
+            self::CambiosSgsiGestionar => 'Proponer cambios del SGSI, planificarlos y revisarlos',
+            self::CambiosSgsiAprobar => 'Aprobar cambios del SGSI y descartar los ya aprobados',
             self::PersonasVer => 'Ver el registro de personas, su formación y sus roles ENS',
             self::PersonasGestionar => 'Dar de alta personas, registrar formación, acuerdos y checklists',
             self::PersonasDesignar => 'Designar y revocar los roles ENS de un sistema',

@@ -21,6 +21,7 @@ import {
     LightbulbIcon,
     ListTodoIcon,
     MapIcon,
+    MilestoneIcon,
     NetworkIcon,
     PaperclipIcon,
     RefreshCwIcon,
@@ -342,6 +343,17 @@ export const navegacion: GrupoNavegacion[] = [
                  * con qué medir y luego a qué comprometerse.
                  */
                 alias: ['6.2', 'metas', 'compromisos', 'objetivos de seguridad'],
+            },
+            {
+                titulo: 'Cambios del SGSI',
+                href: '/cambios-sgsi',
+                icono: MilestoneIcon,
+                /*
+                 * `6.3` es lo que se teclea sabiendo de qué va. **Sin «cambio» a
+                 * secas**: «cambio climático» es del contexto, y los cambios
+                 * técnicos de A.8.32 no viven aquí.
+                 */
+                alias: ['6.3', 'planificación de cambios', 'cambios del sgsi', 'gestión del cambio'],
             },
             {
                 titulo: 'Revisión por la dirección',

@@ -7,6 +7,7 @@ namespace App\Domain\Panel;
 use App\Domain\Activo\ResumenInventario;
 use App\Domain\Auditoria\RegistroAuditorias;
 use App\Domain\Autorizacion\Enums\Permiso;
+use App\Domain\Cambio\RegistroCambios;
 use App\Domain\Continuidad\RegistroContinuidad;
 use App\Domain\Documento\ResumenDocumental;
 use App\Domain\Evidencia\RegistroEvidencias;
@@ -101,6 +102,8 @@ final readonly class AlertasDelPanel
         [Permiso::RiesgosVer, RegistroRiesgos::class],
         [Permiso::NoConformidadesVer, RegistroNoConformidades::class],
         [Permiso::ObjetivosVer, RegistroObjetivos::class],
+        // Lo mismo que un objetivo: un compromiso firmado con fecha.
+        [Permiso::CambiosSgsiVer, RegistroCambios::class],
         [Permiso::IndicadoresVer, RegistroIndicadores::class],
         [Permiso::PersonasVer, RegistroPersonas::class],
         [Permiso::DocumentosVer, ResumenDocumental::class],
@@ -124,7 +127,7 @@ final readonly class AlertasDelPanel
         'ciclo' => [
             '/tareas', '/obligaciones', '/no-conformidades', '/mejoras', '/incidentes',
             '/vulnerabilidades', '/continuidad/bia', '/continuidad/pruebas',
-            '/indicadores', '/objetivos', '/auditorias',
+            '/indicadores', '/objetivos', '/cambios-sgsi', '/auditorias',
         ],
         'organizacion' => [
             '/contexto', '/contexto/cuestiones', '/partes-interesadas', '/personas',

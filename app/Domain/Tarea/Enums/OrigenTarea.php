@@ -73,6 +73,11 @@ namespace App\Domain\Tarea\Enums;
  * un parche o sustituir un equipo sin soporte es trabajo con responsable y plazo
  * —el de remediación, que la tarea hereda—, con su pivote
  * `vulnerabilidad_tarea`.
+ *
+ * **`CambioSgsi` es el octavo, con la cláusula 6.3.** Reescribir el procedimiento
+ * que cambia o formar a quien asume un rol nuevo es trabajo con responsable y
+ * plazo, y lleva su pivote `cambio_sgsi_tarea`. Es planificado y no reactivo: un
+ * cambio del SGSI se decide, no se sufre.
  */
 enum OrigenTarea: string
 {
@@ -88,6 +93,7 @@ enum OrigenTarea: string
     case Continuidad = 'continuidad';
     case Proveedor = 'proveedor';
     case Vulnerabilidad = 'vulnerabilidad';
+    case CambioSgsi = 'cambio_sgsi';
     case Propia = 'propia';
 
     public function etiqueta(): string
@@ -105,6 +111,7 @@ enum OrigenTarea: string
             self::Continuidad => 'Prueba de continuidad',
             self::Proveedor => 'Proveedor',
             self::Vulnerabilidad => 'Vulnerabilidad',
+            self::CambioSgsi => 'Cambio del SGSI',
             self::Propia => 'Iniciativa propia',
         };
     }
@@ -121,7 +128,7 @@ enum OrigenTarea: string
         return match ($this) {
             self::BrechaImplantacion, self::Continuidad, self::Contexto, self::Incidente, self::Mejora,
             self::NoConformidad, self::Objetivo, self::Propia, self::Proveedor, self::RevisionDireccion, self::Vulnerabilidad,
-            self::Riesgo => true,
+            self::Riesgo, self::CambioSgsi => true,
             /*
              * `Hallazgo` sigue sin ofrecerse, y desde el § 4.13 **por otro
              * motivo**: no es que falte su módulo —llegó con el § 4.12—, es que
@@ -179,7 +186,7 @@ enum OrigenTarea: string
         return match ($this) {
             self::Hallazgo, self::NoConformidad, self::Incidente, self::Continuidad, self::Vulnerabilidad => 'en_progreso',
             self::BrechaImplantacion, self::Riesgo, self::Contexto, self::Objetivo, self::Mejora, self::RevisionDireccion,
-            self::Proveedor => 'planificado',
+            self::Proveedor, self::CambioSgsi => 'planificado',
             self::Propia => 'no_iniciado',
         };
     }
