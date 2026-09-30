@@ -180,10 +180,24 @@ exige— e histórico en la columna principal, como el resto de fichas. Era una
 excepción escrita en `DESIGN.md` § 9 y se retiró con el rediseño.
 
 **La prueba realizada sin evidencia lo dice en la tira de «Lo que falta»**
-(`pendientes`), pero **el chip no lleva a ningún sitio**: una prueba terminal no
-se edita y no hay ruta para adjuntar la evidencia después. Es un hueco
-declarado, no un olvido: si llega, entra como acción propia sobre la prueba
-realizada, no reabriendo `EditarPrueba`.
+(`pendientes`), y el chip abre el diálogo que la adjunta.
+
+### La evidencia llega después del resultado
+
+**`AdjuntarEvidenciaPrueba` es la única escritura sobre una prueba terminal**
+(`POST /continuidad/pruebas/{prueba}/evidencia`, tras `continuidad.gestionar`
+y segundo factor). El informe del restore o el acta del simulacro se redactan
+días después, y `EditarPrueba` no admite nada que no esté planificado: sin esta
+puerta la tira pedía un dato que nadie podía poner.
+
+- **Sólo `realizada`.** La planificada adjunta la suya al registrar el
+  resultado; la cancelada no tiene nada que demostrar. Las dos lanzan
+  `TransicionDePruebaNoPermitida::sinEvidenciaQueAdjuntar()`.
+- **Sólo toca `evidencia_id`**, y **reemplaza** la que hubiera: adjuntar la
+  equivocada tiene que poder corregirse, y el valor anterior lo guarda la
+  traza. No quita la evidencia —`evidencia_id` es obligatorio en
+  `AdjuntarEvidenciaPruebaRequest`— y **no escribe en el histórico**: no es un
+  cambio de estado.
 
 ### Navegación: una entrada y dos pestañas
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domain\Continuidad\Models\BiaServicio;
 use App\Domain\Continuidad\Models\PruebaContinuidad;
 use App\Domain\Documento\Models\Documento;
+use App\Domain\Evidencia\Models\Evidencia;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Organizacion\Models\Organizacion;
 use App\Models\User;
@@ -100,4 +101,17 @@ it('rechaza planificar una prueba sobre el plan de otra organización', function
         ->assertSessionHasErrors('documento_id');
 
     expect(PruebaContinuidad::query()->count())->toBe(0);
+});
+
+it('no adjunta a una prueba la evidencia de otra organización', function (): void {
+    $prueba = PruebaContinuidad::factory()->realizada()->create(['evidencia_id' => null]);
+    $ajena = ($this->enLaAjena)(fn (): Evidencia => Evidencia::factory()->create());
+
+    app(ContextoOrganizacion::class)->establecer($this->propia);
+
+    $this->actingAs($this->usuario)
+        ->post("/continuidad/pruebas/{$prueba->id}/evidencia", ['evidencia_id' => $ajena->id])
+        ->assertSessionHasErrors('evidencia_id');
+
+    expect($prueba->fresh()->evidencia_id)->toBeNull();
 });

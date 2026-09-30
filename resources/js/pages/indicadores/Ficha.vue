@@ -5,6 +5,7 @@ import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
 import EstadoVacio from '@/components/EstadoVacio.vue';
 import GraficaSerie from '@/components/grafica/GraficaSerie.vue';
 import IconoTipo from '@/components/IconoTipo.vue';
+import SituacionIndicador from '@/components/metrica/SituacionIndicador.vue';
 import CeldaBadge from '@/components/tabla/celdas/CeldaBadge.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,7 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Link, router, useForm } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { onBeforeUnmount, ref } from 'vue';
 
 interface Indicador {
     id: number;
@@ -52,6 +53,9 @@ interface Indicador {
 
 interface Medicion {
     id: number;
+    cumplimientoEtiqueta: string;
+    cumplimientoTono: string;
+    cumplimientoIcono: string;
     periodo: string;
     valor: string;
     fraccion: string | null;
@@ -65,6 +69,7 @@ interface Medicion {
 const props = defineProps<{
     indicador: Indicador;
     serie: App.Http.Resources.Metrica.PuntoSerie[];
+    situacion: App.Http.Resources.Metrica.SituacionIndicador | null;
     mediciones: Medicion[];
     puedeGestionar: boolean;
 }>();
@@ -102,6 +107,30 @@ const medirAhora = (): void => {
 const borrar = (medicion: Medicion): void => {
     router.delete(`/indicadores/${props.indicador.id}/mediciones/${medicion.id}`, { preserveScroll: true });
 };
+
+/**
+ * El periodo que la gráfica y la lista señalan a la vez: pasar por un punto
+ * resalta su fila, y pasar por una fila enciende su punto.
+ */
+const resaltado = ref<string | null>(null);
+
+/**
+ * La fila que acaba de entrar, resaltada un momento y luego en calma.
+ *
+ * La marca la gráfica, que es quien sabe que un periodo es nuevo y no una
+ * corrección. Es el acuse de que la cifra se guardó: sin él, la fila aparece
+ * arriba y nada dice que sea la que acabas de sellar.
+ */
+const recienSellado = ref<string | null>(null);
+let temporizador: ReturnType<typeof setTimeout> | undefined;
+
+const alSellar = (etiqueta: string): void => {
+    recienSellado.value = etiqueta;
+    clearTimeout(temporizador);
+    temporizador = setTimeout(() => (recienSellado.value = null), 1400);
+};
+
+onBeforeUnmount(() => clearTimeout(temporizador));
 </script>
 
 <template>
@@ -152,7 +181,9 @@ const borrar = (medicion: Medicion): void => {
             </span>
         </div>
 
-        <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <SituacionIndicador v-if="situacion" :situacion="situacion" :unidad="indicador.unidad" />
+
+        <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
             <div class="space-y-6">
                 <Card>
                     <CardHeader>
@@ -163,7 +194,16 @@ const borrar = (medicion: Medicion): void => {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <GraficaSerie v-if="serie.length > 0" :puntos="serie" :nombre="indicador.nombre" />
+                        <GraficaSerie
+                            v-if="serie.length > 0"
+                            :puntos="serie"
+                            :nombre="indicador.nombre"
+                            :techo="indicador.unidad === 'porcentaje' ? 100 : null"
+                            :pendiente="indicador.periodoSinMedir ? indicador.periodoACerrar : null"
+                            :resaltado="resaltado"
+                            @enfocar="resaltado = $event"
+                            @sellado="alSellar"
+                        />
                         <EstadoVacio
                             v-else
                             titulo="Todavía no hay mediciones"
@@ -181,23 +221,45 @@ const borrar = (medicion: Medicion): void => {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <ul v-if="mediciones.length > 0" class="divide-y divide-border text-sm">
+                        <!--
+                            Entra por arriba, que es de donde viene: la lista va en
+                            orden inverso y la que se acaba de sellar es la primera.
+                            Y lleva salida, porque puede menguar: borrar una fila sin
+                            ella arrastra a las de abajo de un fotograma al siguiente.
+                        -->
+                        <TransitionGroup
+                            v-if="mediciones.length > 0"
+                            tag="ol"
+                            name="version"
+                            class="relative text-sm"
+                            leave-active-class="absolute inset-x-0 transition-opacity duration-(--duracion-salida)"
+                            leave-to-class="opacity-0"
+                        >
                             <li
                                 v-for="medicion in mediciones"
                                 :key="medicion.id"
-                                class="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-3"
+                                class="grid grid-cols-[5.5rem_4.5rem_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 rounded-md border-b border-border px-3 py-3 transition-colors duration-(--duracion-lenta) last:border-b-0"
+                                :class="{
+                                    'bg-superficie': resaltado === medicion.periodo,
+                                    'bg-accent': recienSellado === medicion.periodo,
+                                }"
+                                @mouseenter="resaltado = medicion.periodo"
+                                @mouseleave="resaltado = null"
                             >
-                                <span class="w-32 shrink-0 font-medium">{{ medicion.periodo }}</span>
-                                <span class="cifra font-medium">{{ medicion.valor }}</span>
-                                <span v-if="medicion.fraccion" class="cifra text-xs text-muted-foreground">
-                                    {{ medicion.fraccion }}
-                                </span>
-                                <span v-if="medicion.objetivo" class="cifra text-xs text-muted-foreground">
-                                    objetivo {{ medicion.objetivo }}
-                                </span>
-                                <span class="ml-auto text-xs text-muted-foreground">
-                                    {{ medicion.origen }} · {{ medicion.medidaEn }}
-                                    <template v-if="medicion.registradaPor"> · {{ medicion.registradaPor }}</template>
+                                <span class="font-semibold">{{ medicion.periodo }}</span>
+                                <span class="cifra font-semibold">{{ medicion.valor }}</span>
+                                <span class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+                                    <span v-if="medicion.fraccion" class="text-xs text-muted-foreground tabular-nums">
+                                        {{ medicion.fraccion }}
+                                    </span>
+                                    <CeldaBadge
+                                        :valor="{
+                                            valor: medicion.cumplimientoTono,
+                                            etiqueta: medicion.cumplimientoEtiqueta,
+                                            tono: medicion.cumplimientoTono,
+                                            icono: medicion.cumplimientoIcono,
+                                        }"
+                                    />
                                 </span>
                                 <Button
                                     v-if="puedeGestionar"
@@ -207,11 +269,19 @@ const borrar = (medicion: Medicion): void => {
                                 >
                                     Borrar
                                 </Button>
-                                <p v-if="medicion.nota" class="w-full text-xs text-muted-foreground">
+                                <span v-else />
+                                <p class="col-span-3 col-start-2 text-xs text-muted-foreground">
+                                    <template v-if="medicion.objetivo">
+                                        Objetivo aplicado <span class="cifra">{{ medicion.objetivo }}</span> ·
+                                    </template>
+                                    {{ medicion.origen }} · {{ medicion.medidaEn }}
+                                    <template v-if="medicion.registradaPor"> · {{ medicion.registradaPor }}</template>
+                                </p>
+                                <p v-if="medicion.nota" class="col-span-3 col-start-2 text-xs text-muted-foreground">
                                     {{ medicion.nota }}
                                 </p>
                             </li>
-                        </ul>
+                        </TransitionGroup>
                         <EstadoVacio
                             v-else
                             titulo="Sin mediciones"
@@ -226,6 +296,21 @@ const borrar = (medicion: Medicion): void => {
             </div>
 
             <div class="space-y-6">
+                <!-- Sólo cuando falta algo: un periodo medido no necesita tarjeta
+                     que lo diga, ya lo dicen la franja y la gráfica. -->
+                <Card v-if="indicador.periodoSinMedir">
+                    <CardHeader>
+                        <CardTitle class="text-destructive">{{ indicador.periodoACerrar }} cerró sin medición</CardTitle>
+                        <CardDescription>
+                            {{
+                                indicador.esCalculado
+                                    ? `Statera sella el periodo cada madrugada. «Medir ${indicador.periodoACerrar}» lo hace ahora, con el objetivo de hoy dentro.`
+                                    : 'La cifra de este indicador no sale de esta base de datos: se registra a mano, con una fecha cualquiera dentro del periodo.'
+                            }}
+                        </CardDescription>
+                    </CardHeader>
+                </Card>
+
                 <Card>
                     <CardHeader>
                         <CardTitle>Ficha</CardTitle>

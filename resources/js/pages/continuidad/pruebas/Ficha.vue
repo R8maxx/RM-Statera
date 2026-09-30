@@ -237,6 +237,34 @@ function cancelar(): void {
 }
 
 /*
+ * --- Adjuntar la evidencia ---
+ *
+ * La única escritura sobre una prueba realizada (`AdjuntarEvidenciaPrueba`):
+ * el informe del restore o el acta del simulacro suelen llegar días después
+ * del resultado. La abre el chip de la tira de «Lo que falta» y la fila
+ * «Evidencia» de la ficha; si ya hay una, la reemplaza.
+ */
+
+const adjuntandoEvidencia = ref(false);
+
+const evidenciaForm = useForm({ evidencia_id: '' });
+
+const puedeAdjuntar = computed(() => props.puedeGestionar && props.prueba.estado === 'realizada');
+
+function abrirEvidencia(): void {
+    evidenciaForm.evidencia_id = props.prueba.evidencia_id === null ? '' : String(props.prueba.evidencia_id);
+    evidenciaForm.clearErrors();
+    adjuntandoEvidencia.value = true;
+}
+
+function adjuntarEvidencia(): void {
+    evidenciaForm.post(`/continuidad/pruebas/${props.prueba.id}/evidencia`, {
+        preserveScroll: true,
+        onSuccess: () => (adjuntandoEvidencia.value = false),
+    });
+}
+
+/*
  * --- Las tres costuras: tareas, no conformidades y mejoras ---
  *
  * Mismo patrón que «Abrir acción correctiva» en la ficha de una no
@@ -358,7 +386,18 @@ function crearMejora(): void {
             </p>
             <ul class="ml-auto flex flex-wrap gap-2">
                 <li v-for="pendiente in pendientes" :key="pendiente">
-                    <span class="inline-flex h-7 items-center rounded-full bg-muted px-2.5 text-[13px] font-medium text-secondary-foreground">
+                    <button
+                        v-if="puedeAdjuntar"
+                        type="button"
+                        class="inline-flex h-7 cursor-pointer items-center rounded-full bg-muted px-2.5 text-[13px] font-medium text-secondary-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                        @click="abrirEvidencia"
+                    >
+                        {{ pendiente }}
+                    </button>
+                    <span
+                        v-else
+                        class="inline-flex h-7 items-center rounded-full bg-muted px-2.5 text-[13px] font-medium text-secondary-foreground"
+                    >
                         {{ pendiente }}
                     </span>
                 </li>
@@ -699,8 +738,25 @@ function crearMejora(): void {
                             </template>
                             <template v-if="prueba.estado === 'realizada'">
                                 <dt class="text-muted-foreground">Evidencia</dt>
-                                <dd :class="prueba.evidencia ? undefined : 'text-muted-foreground'">
-                                    {{ prueba.evidencia ?? 'Sin evidencia' }}
+                                <dd class="flex flex-wrap items-baseline gap-x-1.5">
+                                    <Link
+                                        v-if="prueba.evidencia_id !== null"
+                                        :href="`/evidencias/${prueba.evidencia_id}`"
+                                        class="text-primary underline-offset-4 hover:underline"
+                                    >
+                                        {{ prueba.evidencia }}
+                                    </Link>
+                                    <span v-else class="text-muted-foreground">Sin evidencia</span>
+                                    <template v-if="puedeAdjuntar">
+                                        <span aria-hidden="true" class="text-muted-foreground">·</span>
+                                        <button
+                                            type="button"
+                                            class="cursor-pointer text-primary underline-offset-4 hover:underline"
+                                            @click="abrirEvidencia"
+                                        >
+                                            {{ prueba.evidencia_id === null ? 'Adjuntar' : 'Cambiar' }}
+                                        </button>
+                                    </template>
                                 </dd>
                             </template>
                         </dl>
@@ -753,6 +809,45 @@ function crearMejora(): void {
                 </Card>
             </div>
         </div>
+
+        <Dialog v-model:open="adjuntandoEvidencia">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>{{ prueba.evidencia_id === null ? 'Adjuntar evidencia' : 'Cambiar la evidencia' }}</DialogTitle>
+                    <DialogDescription>
+                        Lo que demuestra que la prueba se hizo como dice el resultado: el informe del restore, el acta
+                        del simulacro. El resultado y lo alcanzado no cambian.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <CampoSelect
+                    v-if="evidencias.length > 0"
+                    v-model="evidenciaForm.evidencia_id"
+                    nombre="evidencia_id"
+                    etiqueta="Evidencia"
+                    :opciones="evidencias"
+                    :error="evidenciaForm.errors.evidencia_id"
+                    requerido
+                />
+                <EstadoVacio
+                    v-else
+                    titulo="Sin evidencias registradas"
+                    descripcion="Súbela primero al registro de evidencias y vuelve a adjuntarla aquí."
+                    :accion="{ etiqueta: 'Registrar evidencia', href: '/evidencias/crear' }"
+                />
+
+                <DialogFooter>
+                    <Button variant="outline" @click="adjuntandoEvidencia = false">Cancelar</Button>
+                    <Button
+                        v-if="evidencias.length > 0"
+                        :disabled="evidenciaForm.processing"
+                        @click="adjuntarEvidencia"
+                    >
+                        Adjuntar
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
 
         <Dialog v-model:open="abriendoTarea">
             <DialogContent>

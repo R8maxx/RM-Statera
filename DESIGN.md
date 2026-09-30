@@ -516,9 +516,9 @@ Los números viven en `resources/js/lib/motion.ts` y en `app.css`, una sola vez,
 | **Cien veces al día** — un atajo de teclado, la paleta de comandos, un hover de navegación | **Nada.** Una acción iniciada con el teclado no se anima nunca |
 | **Decenas de veces** — una fila, un badge, un botón | 120 ms y sólo color. Se nota que responde, no se nota que se mueve |
 | **Alguna vez al día** — un modal, un panel lateral, un despliegue, una tarjeta que cambia de columna | 180–380 ms con la curva que le toque |
-| **Una vez, o casi** — el primer acceso, emitir una versión al auditor, terminar el recorrido guiado | Presupuesto para que se recuerde |
+| **Una vez, o casi** — el primer acceso, emitir una versión al auditor, terminar el recorrido guiado, sellar el periodo de un indicador | Presupuesto para que se recuerde |
 
-**El presupuesto de deleite son cuatro sitios y están enumerados abajo.** Un quinto se añade a esa lista antes de escribirlo, o no se escribe.
+**El presupuesto de deleite son cinco sitios y están enumerados abajo.** Un sexto se añade a esa lista antes de escribirlo, o no se escribe.
 
 Y sigue en pie la mitad de la regla que protege la herramienta: **lo decorativo no entra en el chrome de trabajo**. Nada de entradas animadas por sección al hacer scroll, ni de transición en cada tarjeta de una tabla, ni de contadores en una celda. Alguien tiene esto abierto ocho horas.
 
@@ -553,18 +553,19 @@ Es una **disolución de 380 ms con `--curva-en-pantalla`**, y la cura la API de 
 
 Tres decisiones que la acotan:
 
-- **No es un barrido circular desde el botón**, que es el tratamiento que se ve por ahí. Sería un quinto momento de deleite, y el presupuesto son cuatro. Esto quita el fogonazo y no añade nada a esa lista.
+- **No es un barrido circular desde el botón**, que es el tratamiento que se ve por ahí. Sería un sexto momento de deleite, y el presupuesto son cinco. Esto quita el fogonazo y no añade nada a esa lista.
 - **`--curva-en-pantalla` y no `--curva`.** No aparece ni desaparece nada: son los mismos píxeles cambiando de aspecto. Con la curva de salida el fundido se consume en el primer cuarto y arrastra una cola que no se ve.
 - **Sólo cuando la luminancia cambia de verdad.** Las preferencias son tres y los temas son dos: elegir «el del sistema» estando ya en claro y con el sistema en claro no cambia un píxel, y disolver la pantalla para dejarla igual es una animación que miente sobre lo que ha pasado.
 
 Con `prefers-reduced-motion` se acorta a 120 ms y pasa a lineal, no se quita: aquí no hay desplazamiento que perder —es opacidad pura— y lo que se recuperaría quitándola es justamente el corte seco. Hay que declararlo aparte porque el `@media` global actúa sobre `*` y los pseudo-elementos de la transición de vista viven fuera del árbol del documento.
 
-### Los cuatro momentos, y sólo cuatro
+### Los cinco momentos, y sólo cinco
 
 1. **La entrada al acceso.** La pila del formulario escalona a 60 ms; la balanza se asienta al entrar bien y se desequilibra una vez al fallar.
 2. **Emitir una versión.** El sello de «Borrador» se convierte en el número, y la huella SHA-256 se revela carácter a carácter. La huella es la prueba de que ese PDF es ese PDF: verla escribirse es lo que la convierte en un hecho en lugar de en una cadena que nadie lee.
 3. **El recorrido guiado.** El panel acompaña al recorte del foco en vez de reaparecer, y el velo se retira desde el centro al terminar.
 4. **El 100 % del panel.** La cifra de implantación da un pulso, una vez, sin bucle y sólo en 100; lo mismo hace `AnilloProgreso` donde todavía se usa.
+5. **La serie de un indicador.** Al abrir la ficha, la línea se traza de izquierda a derecha en 700 ms con `--curva-en-pantalla` y cada punto aparece cuando la línea llega a él —una vez por visita; una recarga parcial no la repite—. Al sellar un periodo, el tramo nuevo se alarga en 520 ms, el punto aterriza y, si alcanza el objetivo, deja una onda que se abre una vez. La cifra de la franja cuenta hasta el valor nuevo, el marcador de la barra viaja y la fila entra por arriba con un resaltado que se apaga. Un periodo se sella una vez por trimestre: es el «una vez, o casi» de la tabla, y es el único acuse de que la cifra entró en la serie. Lo hace `grafica/GraficaSerie.vue`, con la API de animaciones web porque los retrasos salen de la geometría; esa API no la alcanza el `@media` global, así que con movimiento reducido lo resuelve el componente: nada se traza y el punto nuevo sólo se funde en 120 ms.
 
 ### Dos bucles en todo el producto
 

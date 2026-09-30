@@ -207,3 +207,30 @@ de este ciclo es `objetivos.aprobar`, y llegó con la 6.2: comprometerse a una c
 - **Una media se registra sin numerador**, con sólo el denominador al lado. Es correcto —«3,2 sobre 48
   requisitos valorados»— y por eso el `CHECK` es asimétrico: un numerador exige denominador, pero no
   al revés.
+
+### La ficha: la franja, la gráfica y el quinto momento
+
+**La franja de arriba sale de la serie, no de otra consulta** (`Domain\Metrica\Situacion` →
+`SituacionIndicador`): la cifra grande y el último punto de la gráfica tienen que ser el mismo
+número. Viaja **escrita** —la distancia y la variación—, porque la de un porcentaje son **puntos** y
+no por ciento (`UnidadIndicador::escribirDiferencia()`): pasar del 46 % al 63 % es subir diecisiete
+puntos, y «+17 %» se lee como llegar a 54. **«Faltan» sólo cuando más es mejor**; en «evidencias
+caducadas ≤ 0», estar en tres es que **sobran** tres. Y la distancia se mide contra el objetivo
+congelado en la fila, igual que el veredicto. Lo fija `Metricas/SituacionTest`.
+
+**La barra de la franja y el techo de la gráfica sólo en porcentaje**, que es lo único con techo
+natural. Con techo la escala va de 0 a 100; sin él se sigue recortando como antes. Un 63 % dibujado
+contra el techo calculado de 67 parecía casi lleno.
+
+**`GraficaSerie` mide su caja y dibuja en píxeles reales.** El `viewBox` estirado con
+`preserveAspectRatio="none"` obligaba a `vector-effect="non-scaling-stroke"`, y con él `pathLength`
+se calcula en el espacio estirado y la línea no se puede trazar. Los puntos fuera de objetivo van
+**huecos** y los que lo alcanzan, rellenos: la forma, no sólo el tono. Cada punto tiene un
+`<button>` encima, porque un `<circle>` no recibe foco.
+
+**Trazar la serie y sellar un periodo son el quinto momento de `DESIGN.md` § 10**, y se añadió a
+esa lista antes de escribirlo. Va con `element.animate()` porque los retrasos salen de la geometría
+—cuánto de línea hay antes de cada punto, pasado por la inversa de `--curva-en-pantalla`—, y **el
+`@media` global de `app.css` no alcanza a la API de animaciones web**: el componente mira
+`useMovimientoReducido` por su cuenta. Sólo se celebra lo que **entra**: un periodo que no estaba y
+va después del último. Corregir una cifra o borrar una fila no dispara nada.

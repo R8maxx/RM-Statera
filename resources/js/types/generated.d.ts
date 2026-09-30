@@ -355,6 +355,19 @@ readonly icono: string,
 readonly origen: string,
 readonly nota: string | null,
 };
+export type SituacionIndicador = {
+readonly periodo: string,
+readonly valor: number,
+readonly valorEscrito: string,
+readonly fraccion: string | null,
+readonly objetivoEscrito: string | null,
+readonly distancia: string | null,
+readonly alcanzado: boolean | null,
+readonly posicion: number | null,
+readonly posicionObjetivo: number | null,
+readonly variacion: string | null,
+readonly anterior: string | null,
+};
 }
 namespace Panel {
 export type AvanceDominio = {

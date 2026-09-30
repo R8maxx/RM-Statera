@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Domain\Activo\Enums\TipoActivo;
 use App\Domain\Activo\Models\Activo;
 use App\Domain\Autorizacion\Enums\Permiso;
+use App\Domain\Continuidad\AdjuntarEvidenciaPrueba;
 use App\Domain\Continuidad\CancelarPrueba;
 use App\Domain\Continuidad\CodigoPrueba;
 use App\Domain\Continuidad\DerivarDePrueba;
@@ -30,6 +31,7 @@ use App\Domain\NoConformidad\CodigoNoConformidad;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Tarea\Enums\PrioridadTarea;
 use App\Domain\Tarea\Models\Tarea;
+use App\Http\Requests\AdjuntarEvidenciaPruebaRequest;
 use App\Http\Requests\CancelarPruebaRequest;
 use App\Http\Requests\DerivarMejoraDePruebaRequest;
 use App\Http\Requests\DerivarNoConformidadDePruebaRequest;
@@ -227,7 +229,8 @@ class PruebaContinuidadController extends Controller
              * Lo que un auditor va a pedir y falta, para la tira de la ficha
              * (DESIGN.md § 9, «Lo que falta»). Sólo la evidencia de una prueba
              * realizada: la planificada todavía no tiene nada que demostrar,
-             * y la cancelada no lo tendrá nunca.
+             * y la cancelada no lo tendrá nunca. Se adjunta con
+             * `AdjuntarEvidenciaPrueba`, desde el chip de la propia tira.
              */
             'pendientes' => $prueba->estado === EstadoPrueba::Realizada && $prueba->evidencia_id === null
                 ? ['Evidencia']
@@ -309,6 +312,28 @@ class PruebaContinuidadController extends Controller
         }
 
         Inertia::flash('exito', 'Prueba cancelada.');
+
+        return to_route('continuidad.pruebas.show', $prueba);
+    }
+
+    /**
+     * La evidencia que llega después del resultado: la única escritura sobre
+     * una prueba realizada. Ver `AdjuntarEvidenciaPrueba`.
+     */
+    public function evidencia(
+        AdjuntarEvidenciaPruebaRequest $request,
+        PruebaContinuidad $prueba,
+        AdjuntarEvidenciaPrueba $adjuntar,
+    ): RedirectResponse {
+        $evidencia = Evidencia::query()->findOrFail($request->integer('evidencia_id'));
+
+        try {
+            $adjuntar($prueba, $evidencia);
+        } catch (TransicionDePruebaNoPermitida $error) {
+            return back()->withErrors(['evidencia_id' => $error->getMessage()]);
+        }
+
+        Inertia::flash('exito', "Evidencia «{$evidencia->titulo}» adjuntada.");
 
         return to_route('continuidad.pruebas.show', $prueba);
     }

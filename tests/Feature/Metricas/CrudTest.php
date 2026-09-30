@@ -218,6 +218,8 @@ it('la ficha enseña la serie y el método', function (): void {
         ->assertInertia(fn (AssertableInertia $pagina) => $pagina
             ->component('indicadores/Ficha')
             ->has('serie', 1)
+            ->where('situacion.valorEscrito', '3')
+            ->has('mediciones.0.cumplimientoTono')
             ->where('indicador.metodo', CalculoIndicador::TareasVencidas->metodo())
             ->where('indicador.esCalculado', true));
 });

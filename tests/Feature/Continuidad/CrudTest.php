@@ -10,6 +10,7 @@ use App\Domain\Continuidad\Enums\ResultadoPrueba;
 use App\Domain\Continuidad\Models\BiaServicio;
 use App\Domain\Continuidad\Models\PruebaContinuidad;
 use App\Domain\Documento\Models\Documento;
+use App\Domain\Evidencia\Models\Evidencia;
 use Inertia\Testing\AssertableInertia;
 
 /*
@@ -382,4 +383,52 @@ it('la ficha de una prueba realizada sin evidencia la pide', function (): void {
     $this->actingAs($this->usuario)
         ->get("/continuidad/pruebas/{$planificada->id}")
         ->assertInertia(fn (AssertableInertia $pagina) => $pagina->where('pendientes', []));
+});
+
+it('adjunta la evidencia a una prueba realizada, y la reemplaza', function (): void {
+    $prueba = PruebaContinuidad::factory()->realizada()->create(['evidencia_id' => null]);
+    [$primera, $segunda] = Evidencia::factory()->count(2)->create();
+
+    $this->actingAs($this->usuario)
+        ->post("/continuidad/pruebas/{$prueba->id}/evidencia", ['evidencia_id' => $primera->id])
+        ->assertRedirect("/continuidad/pruebas/{$prueba->id}");
+
+    expect($prueba->fresh()->evidencia_id)->toBe($primera->id);
+
+    $this->actingAs($this->usuario)
+        ->post("/continuidad/pruebas/{$prueba->id}/evidencia", ['evidencia_id' => $segunda->id])
+        ->assertRedirect();
+
+    $prueba->refresh();
+
+    expect($prueba->evidencia_id)->toBe($segunda->id)
+        ->and($prueba->estado)->toBe(EstadoPrueba::Realizada)
+        ->and($prueba->transiciones()->count())->toBe(0);
+});
+
+it('no adjunta evidencia a una prueba planificada ni a una cancelada', function (string $estado): void {
+    $prueba = PruebaContinuidad::factory()->{$estado}()->create();
+    $evidencia = Evidencia::factory()->create();
+
+    $this->actingAs($this->usuario)
+        ->from("/continuidad/pruebas/{$prueba->id}")
+        ->post("/continuidad/pruebas/{$prueba->id}/evidencia", ['evidencia_id' => $evidencia->id])
+        ->assertSessionHasErrors('evidencia_id');
+
+    expect($prueba->fresh()->evidencia_id)->toBeNull();
+})->with(['planificada', 'cancelada']);
+
+it('adjuntar la evidencia exige una y es escritura', function (): void {
+    $prueba = PruebaContinuidad::factory()->realizada()->create(['evidencia_id' => null]);
+    $evidencia = Evidencia::factory()->create();
+
+    $this->actingAs($this->usuario)
+        ->post("/continuidad/pruebas/{$prueba->id}/evidencia", [])
+        ->assertSessionHasErrors('evidencia_id');
+
+    $this->actingAs(usuarioCon(Rol::Auditor))
+        ->post("/continuidad/pruebas/{$prueba->id}/evidencia", ['evidencia_id' => $evidencia->id])
+        ->assertForbidden();
+
+    expect($prueba->fresh()->evidencia_id)->toBeNull();
 });

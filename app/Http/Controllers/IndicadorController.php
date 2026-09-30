@@ -18,6 +18,7 @@ use App\Domain\Metrica\RegistrarIndicador;
 use App\Domain\Metrica\RegistrarMedicion;
 use App\Domain\Metrica\RegistroIndicadores;
 use App\Domain\Metrica\SerieIndicador;
+use App\Domain\Metrica\Situacion;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Http\Requests\GuardarIndicadorRequest;
 use App\Http\Requests\RegistrarMedicionRequest;
@@ -74,9 +75,11 @@ class IndicadorController extends Controller
         return to_route('indicadores.show', $indicador);
     }
 
-    public function show(Request $request, Indicador $indicador, SerieIndicador $serie): Response
+    public function show(Request $request, Indicador $indicador, SerieIndicador $serie, Situacion $situacion): Response
     {
         $indicador->load(['responsable', 'marco', 'ultimaMedicion']);
+
+        $puntos = $serie->de($indicador);
 
         $cumplimiento = $indicador->cumplimiento();
 
@@ -117,21 +120,31 @@ class IndicadorController extends Controller
                 'periodoACerrar' => $indicador->periodicidad->etiquetaDe($indicador->periodoACerrar()[0]),
                 'esCalculado' => $indicador->origen === OrigenMedicion::Calculado,
             ],
-            'serie' => $serie->de($indicador),
+            'serie' => $puntos,
+            'situacion' => $situacion->de($indicador, $puntos),
             'mediciones' => $indicador->mediciones()->with('registradaPor')->limit(24)->get()
-                ->map(fn ($medicion): array => [
-                    'id' => $medicion->id,
-                    'periodo' => $indicador->periodicidad->etiquetaDe($medicion->periodo_inicio),
-                    'valor' => $indicador->unidad->escribir((float) $medicion->valor),
-                    'fraccion' => $medicion->fraccion(),
-                    'objetivo' => $medicion->objetivo === null
-                        ? null
-                        : $indicador->sentido->comparador().' '.$indicador->unidad->escribir((float) $medicion->objetivo),
-                    'origen' => $medicion->origen->etiqueta(),
-                    'medidaEn' => $medicion->medida_en->format('d/m/Y'),
-                    'nota' => $medicion->nota,
-                    'registradaPor' => $medicion->registradaPor?->name,
-                ])->all(),
+                ->map(function (Medicion $medicion) use ($indicador): array {
+                    // El veredicto de cada fila, contra el objetivo que llevaba
+                    // dentro: la lista y la gráfica tienen que juzgar igual.
+                    $cumplimiento = $indicador->cumplimiento($medicion);
+
+                    return [
+                        'id' => $medicion->id,
+                        'cumplimientoEtiqueta' => $cumplimiento->etiqueta(),
+                        'cumplimientoTono' => $cumplimiento->tono(),
+                        'cumplimientoIcono' => $cumplimiento->icono(),
+                        'periodo' => $indicador->periodicidad->etiquetaDe($medicion->periodo_inicio),
+                        'valor' => $indicador->unidad->escribir((float) $medicion->valor),
+                        'fraccion' => $medicion->fraccion(),
+                        'objetivo' => $medicion->objetivo === null
+                            ? null
+                            : $indicador->sentido->comparador().' '.$indicador->unidad->escribir((float) $medicion->objetivo),
+                        'origen' => $medicion->origen->etiqueta(),
+                        'medidaEn' => $medicion->medida_en->format('d/m/Y'),
+                        'nota' => $medicion->nota,
+                        'registradaPor' => $medicion->registradaPor?->name,
+                    ];
+                })->all(),
             'puedeGestionar' => $request->user()?->can(Permiso::IndicadoresGestionar->value) ?? false,
         ]);
     }

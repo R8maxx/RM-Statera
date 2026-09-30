@@ -52,4 +52,22 @@ enum UnidadIndicador: string
             self::Euros => Coste::escribir($valor),
         };
     }
+
+    /**
+     * Una diferencia entre dos cifras, sin signo: lo que falta hasta el objetivo
+     * o lo que se ha movido desde el periodo anterior.
+     *
+     * **La de un porcentaje son puntos, no por ciento.** Pasar del 46 % al 63 %
+     * es subir diecisiete puntos; escrito «17 %» se lee como que ha subido un
+     * diecisiete por ciento sobre 46, que sería llegar a 54.
+     */
+    public function escribirDiferencia(float $diferencia): string
+    {
+        $diferencia = abs($diferencia);
+
+        return match ($this) {
+            self::Porcentaje => number_format($diferencia, 0, ',', '.').' pts',
+            default => $this->escribir($diferencia),
+        };
+    }
 }

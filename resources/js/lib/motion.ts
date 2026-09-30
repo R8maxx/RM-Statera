@@ -36,6 +36,14 @@ export const duracion = {
     salida: 0.16,
     /** Sólo para el progreso, que cuenta algo mientras crece. */
     narrativa: 0.9,
+    /**
+     * La serie de un indicador trazándose al abrir la ficha, y el tramo nuevo
+     * al sellar un periodo. Es el quinto momento de DESIGN.md §10: la línea
+     * cuenta la historia de izquierda a derecha, y más corta que esto es un
+     * parpadeo que no se puede seguir.
+     */
+    trazo: 0.7,
+    sello: 0.52,
 } as const;
 
 /** Salida rápida y frenada larga: se percibe como respuesta, no como espera. */

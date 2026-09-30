@@ -32,6 +32,10 @@ use DomainException;
  * fallar es la prueba funcionando—, y una que sigue `planificada` o `cancelada`
  * no tiene resultado del que derivar nada todavía. Y su pareja, `yaTratada()`,
  * cuando la prueba ya tiene su no conformidad: una prueba se trata una vez.
+ *
+ * **Y `sinEvidenciaQueAdjuntar()`**, cuando `AdjuntarEvidenciaPrueba` recibe
+ * una prueba que no está `realizada`: la planificada adjunta la suya al
+ * registrar el resultado, y la cancelada no tiene nada que demostrar.
  */
 final class TransicionDePruebaNoPermitida extends DomainException
 {
@@ -77,5 +81,14 @@ final class TransicionDePruebaNoPermitida extends DomainException
             'Esta prueba ya tiene su no conformidad: una prueba se trata una vez. Lo que quede por '
             .'corregir se añade como acción correctiva de esa no conformidad.',
         );
+    }
+
+    public static function sinEvidenciaQueAdjuntar(EstadoPrueba $estado): self
+    {
+        return new self(sprintf(
+            'Una prueba «%s» no admite evidencia a posteriori: sólo la realizada tiene un resultado que '
+            .'demostrar, y la planificada la adjunta al registrarlo.',
+            $estado->etiqueta(),
+        ));
     }
 }

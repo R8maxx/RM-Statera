@@ -1409,6 +1409,8 @@ Route::middleware('auth')->group(function (): void {
                 ->name('continuidad.pruebas.resultado');
             Route::post('/continuidad/pruebas/{prueba}/cancelar', [PruebaContinuidadController::class, 'cancelar'])
                 ->name('continuidad.pruebas.cancelar');
+            Route::post('/continuidad/pruebas/{prueba}/evidencia', [PruebaContinuidadController::class, 'evidencia'])
+                ->name('continuidad.pruebas.evidencia');
         });
 
     /*

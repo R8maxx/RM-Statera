@@ -38,7 +38,7 @@ const mostrado = computed(() => (reducido.value ? props.valor : animado.value));
  * para mover: llegar al cien por cien de implantación es el trabajo de meses de
  * una organización, y que la pantalla lo trate igual que a un 62 % es dejar sin
  * decir lo único que había que decir. DESIGN.md §10 lo tiene enumerado como uno
- * de los cuatro momentos, y no hay un quinto sin pasar antes por ese documento.
+ * de los cinco momentos, y no hay un sexto sin pasar antes por ese documento.
  *
  * Espera a que el contador llegue: el pulso es la consecuencia de haber
  * llegado, no un aviso de que se va a llegar.
