@@ -47,7 +47,7 @@ it('manda de cada tipo su familia, sin dejar que el formulario la deduzca del ma
 
             return $porValor['informe_estado']['redactado'] === false
                 && $porValor['informe_estado']['exigeSistema'] === false
-                && $porValor['acta_revision']['redactado'] === false
+                && $porValor['analisis_contexto']['redactado'] === false
                 && $porValor['politica']['redactado'] === true
                 && $porValor['dda_ens']['exigeSistema'] === true;
         }));

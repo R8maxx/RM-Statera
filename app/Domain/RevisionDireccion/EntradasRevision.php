@@ -85,7 +85,7 @@ final readonly class EntradasRevision
         $anterior = $revision->anterior();
 
         if (! $anterior instanceof RevisionDireccion) {
-            return ['revision' => null, 'acciones' => [], 'abiertas' => 0];
+            return ['revision' => null, 'acciones' => [], 'abiertas' => 0, 'vencidas' => 0];
         }
 
         $tareas = $anterior->tareas()->with('responsable')->get();
@@ -100,12 +100,20 @@ final readonly class EntradasRevision
                     'titulo' => $tarea->titulo,
                     'estado' => $tarea->estado->etiqueta(),
                     'tono' => $tarea->estado->tono(),
+                    'icono' => $tarea->estado->icono(),
                     'responsable' => $tarea->responsable?->name,
                     'fecha' => $tarea->fecha_limite?->format('d/m/Y'),
+                    'vencida' => $tarea->haVencido(),
                 ])
                 ->values()
                 ->all(),
             'abiertas' => $tareas->filter(fn (Tarea $tarea): bool => ! $tarea->estado->esCerrada())->count(),
+            /*
+             * Vencida el día en que se recoge: congelada con el acta, dice que
+             * aquel día la dirección tuvo delante una acción fuera de plazo, que
+             * es lo que el auditor va a preguntar.
+             */
+            'vencidas' => $tareas->filter(fn (Tarea $tarea): bool => $tarea->haVencido())->count(),
         ];
     }
 
@@ -227,6 +235,7 @@ final readonly class EntradasRevision
                             'titulo' => $objetivo->titulo,
                             'estado' => $objetivo->estado->etiqueta(),
                             'tono' => $objetivo->estado->tono(),
+                            'icono' => $objetivo->estado->icono(),
                             'avance' => $avance->etiqueta(),
                             'fecha' => $objetivo->fecha_objetivo?->format('d/m/Y'),
                         ];
@@ -263,6 +272,7 @@ final readonly class EntradasRevision
                     'fecha' => $auditoria->fecha->format('d/m/Y'),
                     'estado' => $auditoria->estado->etiqueta(),
                     'tono' => $auditoria->estado->tono(),
+                    'icono' => $auditoria->estado->icono(),
                     'hallazgos' => (int) $auditoria->getAttribute('hallazgos_count'),
                 ])
                 ->values()
@@ -318,6 +328,7 @@ final readonly class EntradasRevision
                     'titulo' => $mejora->titulo,
                     'estado' => $mejora->estado->etiqueta(),
                     'tono' => $mejora->estado->tono(),
+                    'icono' => $mejora->estado->icono(),
                     'origen' => $mejora->origen->etiqueta(),
                     'responsable' => $mejora->responsable?->name,
                 ])

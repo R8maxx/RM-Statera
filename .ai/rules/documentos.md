@@ -307,9 +307,10 @@ El séptimo calculado, y la cláusula 9.2.2. Se prepara desde la ficha de la aud
 (`Auditoria\PrepararInformeAuditoria`) y se genera y se firma aquí, como la Declaración de
 Conformidad.
 
-**Es el único tipo que nombra su fuente: `documentos.auditoria_id`.** El acta imprime la última
-revisión aprobada y la DdC la conformidad viva del sistema; un informe no, porque dos auditorías
-cerradas del mismo sistema son dos informes y no dos versiones del mismo. **El FK va en
+**Nombra su fuente: `documentos.auditoria_id`.** La DdC imprime la conformidad viva del sistema;
+un informe no, porque dos auditorías cerradas del mismo sistema son dos informes y no dos versiones
+del mismo. **El acta de revisión siguió el mismo camino después** (`revision_direccion_id`, ver
+abajo), así que ya son dos los tipos que nacen de su fuente. **El FK va en
 `documentos` y no en `auditorias`** porque la fila de una auditoría cerrada es inmutable —su
 trigger compara la fila entera— y el informe se prepara justo después de cerrarla.
 
@@ -334,6 +335,30 @@ fecha de extracción, porque la no conformidad avanza después del cierre.
 **El recuento de la checklist vive en `Auditoria\ResultadoAuditoria`** y lo usan el informe y la DdC,
 y en el cuerpo los pinta el mismo `tablasDeResultado()`: con dos copias, la declaración y el informe
 en que se apoya contarían distinto la misma checklist.
+
+## El acta de revisión: de serie a una por revisión
+
+Nació como serie —un solo `ACT-REV-01` cuyas versiones imprimían **la última** revisión aprobada—
+y se cambió a **una acta por revisión**, `documentos.revision_direccion_id`, calcada del informe de
+auditoría: índice único parcial `documentos_revision_direccion_unica`, `CHECK` en las dos
+direcciones `documentos_revision_direccion_check`, `ON DELETE NO ACTION` y
+`TipoDocumento::nacePorSuFuente()`.
+
+**Por qué se reabrió.** La serie mezclaba reuniones distintas en las versiones de un documento —la
+v2 no corregía la v1, era otro año— y no dejaba regenerar el acta de una revisión anterior. Y
+contradecía al propio módulo: **cada revisión es un acto con su fecha** (`revision-direccion.md`),
+no un estado de cosas que se sustituye como el contexto o la DdC.
+
+- **Se prepara desde la ficha de la revisión aprobada** (`RevisionDireccion\PrepararActa`, ruta
+  `revision-direccion.acta`), con el mismo par de permisos que el informe: `revision_direccion.gestionar`
+  y `documentos.generar`. Generar y firmar siguen aquí.
+- **El generador lo vuelve a comprobar**: entre preparar y generar se puede reabrir, y la instantánea
+  de una revisión reabierta es la de la firma anterior.
+- **El mensaje del formulario sale de `TipoDocumento::fuente()`**, no de un texto que diga
+  «auditoría»; y la guarda de `sistema_id` es sólo del informe, porque el acta no tiene sistema.
+- **La migración reparte las actas que ya existían**: a la revisión que imprimió su última versión
+  emitida, si no a la última aprobada, si no a la más reciente. Con algo emitido y ninguna revisión,
+  para en vez de borrar.
 
 ## El informe de estado
 

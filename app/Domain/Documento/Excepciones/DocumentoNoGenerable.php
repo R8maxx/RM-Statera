@@ -30,16 +30,25 @@ final class DocumentoNoGenerable extends RuntimeException
         );
     }
 
-    /**
-     * El mismo caso en la revisión por la dirección: sin acta firmada no hay
-     * documento que entregar.
-     */
-    public static function sinRevisionAprobada(): self
+    /** El acta cuelga de su revisión, como el informe de su auditoría. */
+    public static function sinRevision(): self
     {
         return new self(
-            'No hay ninguna revisión por la dirección con el acta aprobada. Apruébala antes de generar el '
-            .'documento: lo que se imprime son las siete entradas tal como quedaron congeladas al firmarla.'
+            'Esta acta no está vinculada a ninguna revisión por la dirección. Prepárala desde la ficha de la revisión aprobada.'
         );
+    }
+
+    /**
+     * El acta se imprime desde una revisión **aprobada**: es la firma lo que
+     * congela las siete entradas. Si se reabrió después de preparar el acta, hay
+     * que volver a aprobarla.
+     */
+    public static function revisionSinAprobar(string $codigo): self
+    {
+        return new self(sprintf(
+            'La revisión %s no está aprobada. El acta imprime las siete entradas tal como quedaron congeladas al firmarla: vuelve a aprobarla antes de generarla.',
+            $codigo,
+        ));
     }
 
     /**

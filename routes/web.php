@@ -893,6 +893,16 @@ Route::middleware('auth')->group(function (): void {
         ->name('revision-direccion.aprobar');
 
     /*
+     * El acta de la revisión (§ 4.18). Prepararla crea un documento, que es
+     * trabajo de `documentos.generar` además del de la revisión: el mismo par de
+     * permisos que el informe de una auditoría. La generación y la firma siguen
+     * en `/documentos`.
+     */
+    Route::post('/revision-direccion/{revision_direccion}/acta', [RevisionDireccionController::class, 'prepararActa'])
+        ->middleware(['can:revision_direccion.gestionar', 'can:documentos.generar', ExigirDosFactores::class])
+        ->name('revision-direccion.acta');
+
+    /*
     |--------------------------------------------------------------------------
     | Documentos
     |--------------------------------------------------------------------------

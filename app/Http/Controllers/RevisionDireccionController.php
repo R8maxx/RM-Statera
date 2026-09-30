@@ -12,9 +12,11 @@ use App\Domain\RevisionDireccion\CambiarEstadoRevision;
 use App\Domain\RevisionDireccion\CodigoRevision;
 use App\Domain\RevisionDireccion\EntradasRevision;
 use App\Domain\RevisionDireccion\Enums\EstadoRevision;
+use App\Domain\RevisionDireccion\Excepciones\ActaNoPreparable;
 use App\Domain\RevisionDireccion\Excepciones\RevisionNoAprobable;
 use App\Domain\RevisionDireccion\Excepciones\TransicionDeRevisionNoPermitida;
 use App\Domain\RevisionDireccion\Models\RevisionDireccion;
+use App\Domain\RevisionDireccion\PrepararActa;
 use App\Domain\RevisionDireccion\RegistrarRevision;
 use App\Domain\RevisionDireccion\VincularDecision;
 use App\Domain\Tarea\Coste;
@@ -86,7 +88,7 @@ class RevisionDireccionController extends Controller
 
     public function show(RevisionDireccion $revision_direccion, EntradasRevision $entradas): Response
     {
-        $revision_direccion->load(['aprobadaPor', 'tareas.responsable']);
+        $revision_direccion->load(['aprobadaPor', 'tareas.responsable', 'acta']);
 
         /*
          * En vivo mientras se prepara, congeladas cuando está firmada. Ver la
@@ -126,6 +128,17 @@ class RevisionDireccionController extends Controller
             'puedeAprobar' => $this->puede(Permiso::RevisionDireccionAprobar)
                 && $revision_direccion->estado === EstadoRevision::EnCurso,
             'puedeGestionar' => $this->puede(Permiso::RevisionDireccionGestionar),
+            /*
+             * El acta (§ 4.18). Prepararla crea un documento, así que pide además
+             * `documentos.generar`, igual que el informe de una auditoría. La
+             * generación y la firma de sus versiones siguen en `/documentos`.
+             */
+            'acta' => $revision_direccion->acta === null ? null : [
+                'id' => $revision_direccion->acta->id,
+                'codigo' => $revision_direccion->acta->codigo,
+            ],
+            'puedePrepararActa' => $this->puede(Permiso::RevisionDireccionGestionar)
+                && $this->puede(Permiso::DocumentosGenerar),
             'prioridades' => array_map(
                 static fn (PrioridadTarea $prioridad): array => [
                     'valor' => $prioridad->value,
@@ -171,6 +184,15 @@ class RevisionDireccionController extends Controller
 
     public function destroy(RevisionDireccion $revision_direccion): RedirectResponse
     {
+        /*
+         * Con acta no se borra. La clave foránea también lo impide, pero con un
+         * error de base de datos; y el acta es el registro de lo que la dirección
+         * revisó, que es justo lo que no puede desaparecer con la revisión.
+         */
+        if ($revision_direccion->acta()->exists()) {
+            return back()->withErrors(['revision' => ActaNoPreparable::conActa($revision_direccion)->getMessage()]);
+        }
+
         $codigo = $revision_direccion->codigo;
         $revision_direccion->delete();
 
@@ -222,6 +244,23 @@ class RevisionDireccionController extends Controller
         Inertia::flash('exito', "Acta de {$revision_direccion->codigo} aprobada. Las entradas quedan congeladas.");
 
         return back();
+    }
+
+    /** El documento del acta: lo encuentra o lo crea, y lleva a él. */
+    public function prepararActa(
+        Request $request,
+        RevisionDireccion $revision_direccion,
+        PrepararActa $preparar,
+    ): RedirectResponse {
+        try {
+            $documento = $preparar($revision_direccion, $request->user());
+        } catch (ActaNoPreparable $error) {
+            return back()->withErrors(['acta' => $error->getMessage()]);
+        }
+
+        Inertia::flash('exito', "Documento {$documento->codigo} listo. Genera un borrador para ver cómo queda.");
+
+        return to_route('documentos.show', $documento);
     }
 
     // --- Las salidas (9.3.3) ------------------------------------------------

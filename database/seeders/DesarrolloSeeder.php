@@ -138,6 +138,7 @@ use App\Domain\RevisionDireccion\AprobarRevision;
 use App\Domain\RevisionDireccion\CambiarEstadoRevision;
 use App\Domain\RevisionDireccion\Enums\EstadoRevision;
 use App\Domain\RevisionDireccion\Models\RevisionDireccion;
+use App\Domain\RevisionDireccion\PrepararActa;
 use App\Domain\RevisionDireccion\RegistrarRevision;
 use App\Domain\Riesgo\AceptarRiesgo;
 use App\Domain\Riesgo\CrearRiesgo;
@@ -1967,29 +1968,26 @@ class DesarrolloSeeder extends Seeder
 
         /*
          * Y el acta de la revisión por la dirección, el **quinto** calculado y el
-         * segundo sin sistema. Imprime siempre la última revisión aprobada, así
-         * que con el seeder recién pasado sale la del año anterior — que es la
-         * que tiene decisiones y entradas de verdad.
+         * segundo sin sistema. **Cuelga de su revisión**, así que se prepara la
+         * de la del año anterior —la aprobada, con decisiones y entradas de
+         * verdad—; la de este año sigue en curso y no tiene acta todavía.
          *
          * Periodicidad anual, como el contexto: lo que vence no es la revisión
          * sino la revisión de su acta, y eso lo recoge `Fuente::Documento` sin
          * que haga falta una cuarta fuente.
          */
-        $acta = Documento::query()->firstOrCreate(
-            ['codigo' => 'ACT-REV-01'],
-            [
-                'sistema_id' => null,
-                'titulo' => 'Acta de revisión por la dirección',
-                'tipo' => TipoDocumento::ActaRevision->value,
-                'periodicidad_revision_meses' => 12,
-            ],
-        );
+        $aprobada = RevisionDireccion::query()->aprobadas()->orderByDesc('fecha')->first();
 
-        $this->command->info(sprintf(
-            'Acta de revisión %s lista para generar (php artisan documentos:generar %s --html).',
-            $acta->codigo,
-            $acta->codigo,
-        ));
+        if ($aprobada instanceof RevisionDireccion) {
+            $acta = app(PrepararActa::class)($aprobada);
+
+            $this->command->info(sprintf(
+                'Acta %s de la revisión %s lista para generar (php artisan documentos:generar %s --html).',
+                $acta->codigo,
+                $aprobada->codigo,
+                $acta->codigo,
+            ));
+        }
     }
 
     /**

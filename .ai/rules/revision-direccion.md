@@ -158,6 +158,12 @@ no se tocó**, y eso es la noticia: la migración del § 4.1 lo rehízo por terc
 para cambiar su motor a `exigeSistema()` precisamente para que un tipo nuevo de
 ámbito organizativo no obligara a rehacerlo otra vez. Aquella decisión se paga aquí.
 
+**Una acta por revisión**, `documentos.revision_direccion_id`: se prepara desde la ficha una vez
+aprobada (`PrepararActa`) y el generador imprime **su** revisión, no la última aprobada. Empezó como
+serie y se cambió por lo que dice «Y no hay vigente», más arriba: cada revisión es un acto, y dos
+revisiones son dos actas, no dos versiones de la misma. El detalle, en `documentos.md`. **Con acta,
+la revisión no se borra** (`ActaNoPreparable::conActa`), como una auditoría con informe.
+
 `ActaRevisionDireccion` implementa `GeneradorDocumento` **directamente**, como
 `AnalisisDelContexto` y `DocumentoRedactado`. Los apartados del cuerpo van **en el
 orden en que la norma enumera las entradas**, de la a) a la g): un auditor las

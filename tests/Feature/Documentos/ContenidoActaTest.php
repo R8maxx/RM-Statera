@@ -33,14 +33,15 @@ beforeEach(function (): void {
     $this->usuario = usuarioCon();
 
     /*
-     * El documento y su borrador se reutilizan entre llamadas: `documentos` tiene
-     * índice único por código y `documento_versiones` un índice único parcial que
-     * deja **un solo borrador** por documento. Un test que genere dos veces
-     * —porque compara el antes y el después— chocaría con los dos.
+     * El acta de la revisión y su borrador se reutilizan entre llamadas:
+     * `documentos` tiene índice único por revisión y `documento_versiones` un
+     * índice único parcial que deja **un solo borrador** por documento. Un test
+     * que genere dos veces —porque compara el antes y el después— chocaría con
+     * los dos.
      */
-    $this->contenido = function (): ContenidoDocumento {
-        $documento = Documento::query()->where('codigo', 'ACT-REV-01')->first()
-            ?? Documento::factory()->actaRevision()->create();
+    $this->contenido = function (RevisionDireccion $revision): ContenidoDocumento {
+        $documento = Documento::query()->where('revision_direccion_id', $revision->id)->first()
+            ?? Documento::factory()->actaRevision($revision)->create();
 
         $version = $documento->versiones()->whereNull('numero')->first()
             ?? DocumentoVersion::factory()->delDocumento($documento->id)->create();
@@ -49,10 +50,10 @@ beforeEach(function (): void {
     };
 });
 
-it('no se genera sin una revisión aprobada', function (): void {
-    RevisionDireccion::factory()->enCurso()->create();
+it('no se genera con su revisión sin aprobar', function (): void {
+    $revision = RevisionDireccion::factory()->enCurso()->create();
 
-    expect(fn () => ($this->contenido)())->toThrow(DocumentoNoGenerable::class, 'acta aprobada');
+    expect(fn () => ($this->contenido)($revision))->toThrow(DocumentoNoGenerable::class, 'no está aprobada');
 });
 
 it('imprime la ficha de la reunión con su periodo revisado', function (): void {
@@ -61,7 +62,7 @@ it('imprime la ficha de la reunión con su periodo revisado', function (): void 
     ]);
     app(AprobarRevision::class)($revision, $this->usuario);
 
-    $extras = ($this->contenido)()->extras;
+    $extras = ($this->contenido)($revision)->extras;
 
     expect($extras['revision']['codigo'])->toBe($revision->codigo)
         // El dato que no se deduce de ninguna otra parte: de qué habla el acta.
@@ -74,7 +75,7 @@ it('imprime las siete entradas de la cláusula 9.3.2', function (): void {
     $revision = RevisionDireccion::factory()->enCurso()->create();
     app(AprobarRevision::class)($revision, $this->usuario);
 
-    expect(array_keys(($this->contenido)()->extras['entradas']))->toContain(
+    expect(array_keys(($this->contenido)($revision)->extras['entradas']))->toContain(
         'accionesPrevias',
         'contexto',
         'partesInteresadas',
@@ -99,7 +100,7 @@ it('se construye desde la instantánea y no de una consulta nueva', function ():
     NoConformidad::factory()->count(3)->create();
     Mejora::factory()->count(2)->create();
 
-    $entradas = ($this->contenido)()->extras['entradas'];
+    $entradas = ($this->contenido)($revision)->extras['entradas'];
 
     expect($entradas['desempeno']['noConformidades']['abiertas'])->toBe(1)
         ->and($entradas['mejoras']['total'])->toBe(1);
@@ -117,12 +118,12 @@ it('las decisiones se leen en vivo, a diferencia de las entradas', function (): 
     $revision = RevisionDireccion::factory()->enCurso()->create();
     app(AprobarRevision::class)($revision, $this->usuario);
 
-    expect(($this->contenido)()->extras['decisiones'])->toHaveCount(0);
+    expect(($this->contenido)($revision)->extras['decisiones'])->toHaveCount(0);
 
     $tarea = Tarea::factory()->create(['titulo' => 'Revisar el contrato de copias']);
     app(VincularDecision::class)->vincular($revision->refresh(), $tarea, $this->usuario);
 
-    $decisiones = ($this->contenido)()->extras['decisiones'];
+    $decisiones = ($this->contenido)($revision)->extras['decisiones'];
 
     expect($decisiones)->toHaveCount(1)
         ->and($decisiones[0]['titulo'])->toBe('Revisar el contrato de copias');
@@ -132,7 +133,7 @@ it('declara por escrito lo que la herramienta no puede afirmar', function (): vo
     $revision = RevisionDireccion::factory()->enCurso()->create();
     app(AprobarRevision::class)($revision, $this->usuario);
 
-    $limitaciones = implode(' ', ($this->contenido)()->limitaciones);
+    $limitaciones = implode(' ', ($this->contenido)($revision)->limitaciones);
 
     // Las cuatro que el módulo declara, y la del medio es la que más importa:
     // la 9.3.2 e) se aporta fuera de la herramienta.
@@ -142,7 +143,7 @@ it('declara por escrito lo que la herramienta no puede afirmar', function (): vo
         ->and($limitaciones)->toContain('periodicidad comprometida');
 });
 
-it('imprime la revisión aprobada más reciente', function (): void {
+it('imprime su revisión y no la aprobada más reciente', function (): void {
     $vieja = RevisionDireccion::factory()
         ->delPeriodo(now()->subYear(), now()->subMonths(6))
         ->enCurso()
@@ -155,7 +156,8 @@ it('imprime la revisión aprobada más reciente', function (): void {
         ->create(['codigo' => 'RD-NUEVA']);
     app(AprobarRevision::class)($nueva, $this->usuario);
 
-    // Un documento es una serie: cada generación entrega la foto más reciente, y
-    // el histórico de lo anterior vive en `documento_versiones`.
-    expect(($this->contenido)()->extras['revision']['codigo'])->toBe('RD-NUEVA');
+    // Cada revisión es un acto con su fecha, y cada una tiene su acta: la de la
+    // reunión del año pasado sigue imprimiendo la del año pasado.
+    expect(($this->contenido)($vieja)->extras['revision']['codigo'])->toBe('RD-VIEJA')
+        ->and(($this->contenido)($nueva)->extras['revision']['codigo'])->toBe('RD-NUEVA');
 });

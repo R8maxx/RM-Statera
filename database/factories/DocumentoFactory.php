@@ -8,6 +8,7 @@ use App\Domain\Auditoria\Models\Auditoria;
 use App\Domain\Documento\Enums\ClasificacionDocumental;
 use App\Domain\Documento\Enums\TipoDocumento;
 use App\Domain\Documento\Models\Documento;
+use App\Domain\RevisionDireccion\Models\RevisionDireccion;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -105,13 +106,18 @@ class DocumentoFactory extends Factory
      * Es el segundo documento de ámbito organizativo, y el que confirma que la
      * frontera que abrió aquél no era un caso aislado: lo que la dirección revisa
      * es el sistema de gestión entero, no un sistema concreto.
+     *
+     * **Cuelga de su revisión**, como el informe de su auditoría. Sin una, crea
+     * una en curso: el `CHECK` sólo pide que exista, y quien necesite generarla
+     * la aprueba antes.
      */
-    public function actaRevision(): self
+    public function actaRevision(?RevisionDireccion $revision = null): self
     {
         return $this->deTipo(TipoDocumento::ActaRevision)->state(fn (): array => [
-            'codigo' => 'ACT-REV-01',
+            'codigo' => 'ACT-'.($revision !== null ? $revision->codigo : fake()->unique()->numerify('RD-####')),
             'titulo' => 'Acta de revisión por la dirección',
             'sistema_id' => null,
+            'revision_direccion_id' => $revision !== null ? $revision->id : RevisionDireccion::factory()->enCurso(),
             'periodicidad_revision_meses' => 12,
         ]);
     }

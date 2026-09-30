@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import BotonEstado from '@/components/BotonEstado.vue';
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
+import Cifra from '@/components/Cifra.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import EstadoVacio from '@/components/EstadoVacio.vue';
@@ -17,6 +18,8 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { tono } from '@/lib/tonos';
+import { BadgeCheckIcon, FileTextIcon, InfoIcon, LockIcon, PencilLineIcon, PlusIcon } from '@lucide/vue';
 import { Link, router, useForm } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
@@ -70,7 +73,14 @@ interface Revision {
  * congeladas cuando el acta está firmada.** Es la distinción que hace el módulo:
  * antes de firmar, lo que se mira es cómo está la cosa hoy —que es para lo que se
  * convoca la reunión—; después, lo que se mira es lo que se revisó aquel día.
- * Mezclar las dos haría que el acta cambiara sola.
+ * Mezclar las dos haría que el acta cambiara sola. Por eso la distinción va en una
+ * tira bajo la cabecera y no en la letra pequeña de una tarjeta: es lo primero que
+ * hay que saber al leer cualquier cifra de la pantalla.
+ *
+ * **Aprobar pide confirmación.** Es la única acción del módulo que no se deshace
+ * del todo —reabrir devuelve la revisión a «en curso», pero la firma y la
+ * instantánea se quedan hasta la siguiente aprobación—, y un clic suelto en el
+ * carril no puede sellar un acta (DESIGN.md §1, Protección).
  */
 const props = defineProps<{
     revision: Revision;
@@ -81,6 +91,9 @@ const props = defineProps<{
     transiciones: Destino[];
     puedeAprobar: boolean;
     puedeGestionar: boolean;
+    /** El documento del acta, una vez preparado: uno por revisión. */
+    acta: { id: number; codigo: string } | null;
+    puedePrepararActa: boolean;
     prioridades: Opcion[];
     responsables: Opcion[];
 }>();
@@ -97,15 +110,94 @@ function mover(paso: Destino): void {
     );
 }
 
+/* --- La firma --- */
+
+const confirmando = ref(false);
+
 function aprobar(): void {
     enviando.value = true;
 
     router.post(
         `/revision-direccion/${props.revision.id}/aprobacion`,
         {},
-        { preserveScroll: true, onFinish: () => (enviando.value = false) },
+        {
+            preserveScroll: true,
+            onSuccess: () => (confirmando.value = false),
+            onFinish: () => (enviando.value = false),
+        },
     );
 }
+
+/* --- El acta --- */
+
+/*
+ * Se prepara una vez, con la revisión aprobada, y lleva al documento: generar,
+ * mandar a revisión y firmar sus versiones sigue siendo trabajo de `/documentos`.
+ * Reabierta la revisión, el acta se sigue enlazando —existe y tiene su
+ * histórico—, pero no se ofrece prepararla.
+ */
+const preparando = ref(false);
+
+function prepararActa(): void {
+    preparando.value = true;
+
+    router.post(
+        `/revision-direccion/${props.revision.id}/acta`,
+        {},
+        { preserveScroll: true, onFinish: () => (preparando.value = false) },
+    );
+}
+
+const ofrecerActa = computed(
+    () => props.acta === null && props.puedePrepararActa && props.revision.estado === 'aprobada',
+);
+
+const editable = computed(() => props.puedeGestionar && props.revision.admiteCambios);
+
+/** Los tres pasos de la revisión, y dónde está ésta. */
+const pasos = computed(() => {
+    const orden = ['planificada', 'en_curso', 'aprobada'];
+    const actual = orden.indexOf(props.revision.estado);
+
+    return [
+        { valor: 'planificada', etiqueta: 'Planificada', tono: 'planificado' },
+        { valor: 'en_curso', etiqueta: 'En curso', tono: 'en_revision' },
+        { valor: 'aprobada', etiqueta: 'Aprobada', tono: 'implantado' },
+    ].map((paso, i) => ({
+        ...paso,
+        actual: i === actual,
+        // Lo ya recorrido en el teal de marca; el paso actual, en el tono de su estado.
+        relleno: i === actual ? tono(paso.tono).relleno : i < actual ? 'bg-primary' : 'bg-border',
+    }));
+});
+
+/* --- Lo que falta --- */
+
+/*
+ * Sólo mientras el acta admite cambios: de un acta firmada no falta nada que se
+ * pueda completar, y pedirlo sería invitar a reabrirla.
+ */
+const pendientes = computed(() => {
+    if (!props.revision.admiteCambios) {
+        return [];
+    }
+
+    return [
+        props.revision.asistentes ? null : 'Asistentes',
+        props.revision.conclusiones ? null : 'Conclusiones',
+    ].filter((uno): uno is string => uno !== null);
+});
+
+/** «los asistentes y las conclusiones», para el aviso del diálogo de firma. */
+const faltan = computed(() =>
+    pendientes.value.map((uno) => (uno === 'Asistentes' ? 'los asistentes' : 'las conclusiones')).join(' y '),
+);
+
+const anterior = computed(() => {
+    const previas = props.entradas.accionesPrevias as { revision?: { codigo: string; fecha: string } | null } | undefined;
+
+    return previas?.revision ?? null;
+});
 
 /* --- Las salidas (9.3.3) --- */
 
@@ -151,57 +243,131 @@ const abiertas = computed(
 
 <template>
     <AppLayout :titulo="revision.codigo">
-        <CabeceraPagina :titulo="revision.codigo" :descripcion="`Periodo revisado ${revision.periodo}`">
+        <CabeceraPagina
+            :titulo="revision.codigo"
+            :descripcion="`Celebrada el ${revision.fechaLarga} · periodo revisado ${revision.periodo} · cláusula 9.3`"
+        >
+            <div class="mt-3">
+                <CeldaBadge
+                    anunciar
+                    :valor="{
+                        valor: revision.estado,
+                        etiqueta: revision.estadoEtiqueta,
+                        tono: revision.estadoTono,
+                        icono: revision.estadoIcono,
+                    }"
+                />
+            </div>
+
             <template #acciones>
-                <Button v-if="puedeGestionar && revision.admiteCambios" as-child variant="outline">
-                    <Link :href="`/revision-direccion/${revision.id}/editar`">Editar</Link>
+                <Button v-if="acta" as-child variant="outline">
+                    <Link :href="`/documentos/${acta.id}`">
+                        <FileTextIcon aria-hidden="true" />
+                        Ver el acta
+                    </Link>
+                </Button>
+                <Button v-else-if="ofrecerActa" :disabled="preparando" @click="prepararActa">
+                    <FileTextIcon aria-hidden="true" />
+                    Preparar el acta
+                </Button>
+                <Button v-if="editable" as-child variant="outline">
+                    <Link :href="`/revision-direccion/${revision.id}/editar`">
+                        <PencilLineIcon aria-hidden="true" />
+                        Editar
+                    </Link>
                 </Button>
             </template>
         </CabeceraPagina>
 
-        <div class="flex flex-wrap items-center gap-2">
-            <CeldaBadge anunciar
-                :valor="{
-                    valor: revision.estado,
-                    etiqueta: revision.estadoEtiqueta,
-                    tono: revision.estadoTono,
-                    icono: revision.estadoIcono,
-                }"
-            />
-            <span class="text-sm text-muted-foreground">
-                Celebrada el {{ revision.fechaLarga }}
-            </span>
+        <div class="grid gap-4" :class="pendientes.length > 0 ? 'lg:grid-cols-2' : ''">
+            <!-- En vivo o congeladas: lo primero que hay que saber de cada cifra. -->
+            <section
+                aria-labelledby="lectura"
+                class="flex items-start gap-3 rounded-xl border bg-card px-5 py-3.5"
+            >
+                <LockIcon
+                    v-if="congeladas"
+                    class="mt-0.5 size-5 shrink-0 text-muted-foreground"
+                    aria-hidden="true"
+                />
+                <span
+                    v-else
+                    class="mt-1.5 size-2.5 shrink-0 rounded-full bg-acento ring-4 ring-acento-suave"
+                    aria-hidden="true"
+                />
+                <div class="space-y-0.5">
+                    <h2 id="lectura" class="text-sm font-semibold">
+                        <template v-if="congeladas">
+                            Entradas congeladas el {{ revision.aprobadaEn }}
+                        </template>
+                        <template v-else>Las entradas se leen en vivo</template>
+                    </h2>
+                    <p class="text-[13px] leading-[18px] text-muted-foreground">
+                        <template v-if="congeladas">
+                            Es lo que la dirección tuvo delante. No cambia aunque los registros sigan vivos;
+                            las decisiones sí, porque se ejecutan después.
+                        </template>
+                        <template v-else>
+                            Es la situación de hoy y no la del día de la reunión. Se congelan al aprobar el
+                            acta.
+                        </template>
+                    </p>
+                </div>
+            </section>
+
+            <section
+                v-if="pendientes.length > 0"
+                aria-labelledby="pendientes"
+                class="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border bg-card px-5 py-3.5"
+            >
+                <InfoIcon class="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                <h2 id="pendientes" class="text-sm font-semibold">
+                    {{ pendientes.length }}
+                    {{ pendientes.length === 1 ? 'dato sin completar' : 'datos sin completar' }}
+                </h2>
+                <ul class="flex flex-1 flex-wrap gap-2">
+                    <li v-for="pendiente in pendientes" :key="pendiente">
+                        <Link
+                            v-if="editable"
+                            :href="`/revision-direccion/${revision.id}/editar`"
+                            class="inline-flex h-7 items-center rounded-full bg-muted px-2.5 text-[13px] font-medium text-secondary-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                        >
+                            {{ pendiente }}
+                        </Link>
+                        <span
+                            v-else
+                            class="inline-flex h-7 items-center rounded-full bg-muted px-2.5 text-[13px] font-medium text-secondary-foreground"
+                        >
+                            {{ pendiente }}
+                        </span>
+                    </li>
+                </ul>
+            </section>
         </div>
 
         <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-            <div class="space-y-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Entradas de la revisión</CardTitle>
-                        <CardDescription>
-                            <template v-if="congeladas">
-                                Las siete entradas de la cláusula 9.3.2, tal como se recogieron al
-                                aprobar el acta. No cambian aunque los registros sigan vivos.
-                            </template>
-                            <template v-else>
-                                Las siete entradas de la cláusula 9.3.2, ahora mismo. Se congelan al
-                                aprobar el acta y a partir de ahí no cambian.
-                            </template>
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <EntradasRevision :entradas="entradas" />
-                    </CardContent>
-                </Card>
+            <div class="min-w-0 space-y-6">
+                <EntradasRevision :entradas="entradas" :congeladas="congeladas" />
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Decisiones y acciones</CardTitle>
-                        <CardDescription>
-                            Las salidas de la revisión (9.3.3). Son tareas del plan de acción, y su
-                            estado será la primera entrada del acta siguiente: es lo que permite
-                            comprobar un año después si lo que se decidió se hizo.
-                        </CardDescription>
+                <Card id="decisiones" class="scroll-mt-24">
+                    <CardHeader class="flex flex-wrap items-start justify-between gap-4">
+                        <div class="space-y-1.5">
+                            <CardTitle>Decisiones y acciones</CardTitle>
+                            <CardDescription class="max-w-xl">
+                                Las salidas de la revisión (9.3.3). Nacen como tareas del plan de acción y su
+                                estado será la entrada a) del acta siguiente: es lo que permite comprobar un año
+                                después si lo que se decidió se hizo.
+                            </CardDescription>
+                        </div>
+                        <!--
+                            Se pueden registrar decisiones sobre un acta ya firmada:
+                            el trigger blinda el acta, no lo que cuelga de ella, y una
+                            decisión se ejecuta en las semanas siguientes.
+                        -->
+                        <Button v-if="puedeGestionar" variant="outline" @click="abrirDecision">
+                            <PlusIcon aria-hidden="true" />
+                            Registrar decisión
+                        </Button>
                     </CardHeader>
                     <CardContent class="space-y-4">
                         <EstadoVacio
@@ -211,58 +377,55 @@ const abiertas = computed(
                         />
 
                         <template v-else>
-                            <p class="text-sm">
-                                <span class="cifra text-2xl font-semibold">{{ abiertas }}</span>
-                                <span class="text-muted-foreground">
-                                    de {{ decisiones.length }} abiertas · {{ coste.total }}
+                            <p class="flex flex-wrap items-baseline gap-x-8 gap-y-1 text-[13px] text-muted-foreground">
+                                <span>
+                                    <Cifra class="cifra text-[22px] font-medium text-foreground" :valor="abiertas" />
+                                    {{ abiertas === 1 ? 'abierta' : 'abiertas' }} de {{ decisiones.length }}
+                                </span>
+                                <span>
+                                    Coste estimado: <span class="text-foreground">{{ coste.total }}</span>
                                     <template v-if="coste.sinEstimar > 0">
                                         ({{ coste.sinEstimar }} sin estimar)
                                     </template>
                                 </span>
                             </p>
 
-                            <ul class="divide-y divide-border">
+                            <ul class="divide-y border-t">
                                 <li
                                     v-for="item in decisiones"
                                     :key="item.id"
-                                    class="flex items-start justify-between gap-4 py-3"
+                                    class="grid gap-x-3 gap-y-1.5 py-3 text-[13px] sm:grid-cols-[minmax(0,1fr)_9rem_auto_auto] sm:items-center"
                                 >
-                                    <div class="space-y-1">
-                                        <Link
-                                            :href="`/tareas/${item.id}`"
-                                            class="text-sm font-medium underline-offset-4 hover:underline"
-                                        >
-                                            {{ item.titulo }}
-                                        </Link>
-                                        <div class="flex flex-wrap items-center gap-2">
-                                            <CeldaBadge
-                                                :valor="{
-                                                    valor: item.estado,
-                                                    etiqueta: item.estadoEtiqueta,
-                                                    tono: item.estadoTono,
-                                                    icono: item.estadoIcono,
-                                                }"
-                                            />
-                                            <CeldaBadge
-                                                :valor="{
-                                                    valor: 'plazo',
-                                                    etiqueta: item.plazoEtiqueta,
-                                                    tono: item.plazoTono,
-                                                    icono: null,
-                                                }"
-                                            />
-                                            <span
-                                                v-if="item.responsable"
-                                                class="text-xs text-muted-foreground"
-                                            >
-                                                {{ item.responsable }}
-                                            </span>
-                                        </div>
-                                    </div>
+                                    <Link
+                                        :href="`/tareas/${item.id}`"
+                                        class="font-medium underline-offset-4 hover:underline"
+                                    >
+                                        {{ item.titulo }}
+                                    </Link>
+                                    <span class="text-muted-foreground">{{ item.responsable ?? 'Sin responsable' }}</span>
+                                    <span class="flex flex-wrap items-center gap-2">
+                                        <CeldaBadge
+                                            :valor="{
+                                                valor: 'plazo',
+                                                etiqueta: item.plazoEtiqueta,
+                                                tono: item.plazoTono,
+                                                icono: null,
+                                            }"
+                                        />
+                                        <CeldaBadge
+                                            :valor="{
+                                                valor: item.estado,
+                                                etiqueta: item.estadoEtiqueta,
+                                                tono: item.estadoTono,
+                                                icono: item.estadoIcono,
+                                            }"
+                                        />
+                                    </span>
                                     <Button
                                         v-if="puedeGestionar"
                                         variant="ghost"
                                         size="sm"
+                                        class="justify-self-start text-muted-foreground sm:justify-self-end"
                                         @click="desvincular(item.id)"
                                     >
                                         Desvincular
@@ -270,49 +433,119 @@ const abiertas = computed(
                                 </li>
                             </ul>
                         </template>
-
-                        <!--
-                            Se pueden registrar decisiones sobre un acta ya firmada:
-                            el trigger blinda el acta, no lo que cuelga de ella, y una
-                            decisión se ejecuta en las semanas siguientes.
-                        -->
-                        <Button v-if="puedeGestionar" variant="outline" @click="abrirDecision">
-                            Registrar decisión
-                        </Button>
                     </CardContent>
                 </Card>
 
-                <Card v-if="revision.conclusiones">
+                <Card id="conclusiones" class="scroll-mt-24">
                     <CardHeader>
                         <CardTitle>Conclusiones</CardTitle>
-                        <CardDescription>
-                            La única parte del acta que escribe una persona.
-                        </CardDescription>
+                        <CardDescription>La única parte del acta que escribe una persona.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <p class="text-sm whitespace-pre-line">{{ revision.conclusiones }}</p>
+                        <p v-if="revision.conclusiones" class="max-w-prose text-sm whitespace-pre-line">
+                            {{ revision.conclusiones }}
+                        </p>
+                        <!--
+                            No se esconde vacía: es lo primero que el acta necesita de
+                            una persona, y una tarjeta ausente no dice que falta.
+                        -->
+                        <EstadoVacio
+                            v-else
+                            titulo="Sin conclusiones"
+                            descripcion="Lo que la dirección concluye sobre la idoneidad, adecuación y eficacia del sistema, y la retroalimentación que se aportó fuera."
+                            :accion="
+                                editable
+                                    ? { etiqueta: 'Redactar conclusiones', href: `/revision-direccion/${revision.id}/editar` }
+                                    : undefined
+                            "
+                        />
                     </CardContent>
                 </Card>
             </div>
 
             <div class="h-fit space-y-6">
-                <Card v-if="puedeGestionar && transiciones.length > 0">
+                <Card>
                     <CardHeader>
                         <CardTitle>Estado</CardTitle>
-                        <CardDescription>
-                            De aprobada sólo se vuelve a «en curso»: decir que la reunión no se
-                            celebró sería reescribir el pasado.
-                        </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                        <div class="flex flex-wrap gap-2">
-                            <BotonEstado
-                                v-for="paso in transiciones"
+                    <CardContent class="space-y-4">
+                        <ol aria-label="Recorrido de la revisión" class="grid grid-cols-3 gap-1">
+                            <li
+                                v-for="paso in pasos"
                                 :key="paso.valor"
-                                :destino="paso"
-                                :deshabilitado="enviando"
-                                @click="mover(paso)"
-                            />
+                                :aria-current="paso.actual ? 'step' : undefined"
+                                class="flex flex-col gap-1.5"
+                            >
+                                <span class="h-1 rounded-full" :class="paso.relleno" aria-hidden="true" />
+                                <span
+                                    class="text-xs"
+                                    :class="paso.actual ? 'font-semibold text-foreground' : 'text-muted-foreground'"
+                                >
+                                    {{ paso.etiqueta }}
+                                </span>
+                            </li>
+                        </ol>
+
+                        <!-- La firma, cuando la hay. -->
+                        <div v-if="revision.aprobadaEn" class="flex items-center gap-3 rounded-lg border p-3.5">
+                            <span
+                                class="flex size-10 shrink-0 items-center justify-center rounded-full"
+                                :class="tono('implantado').badge"
+                            >
+                                <BadgeCheckIcon class="size-5" aria-hidden="true" />
+                            </span>
+                            <div class="text-[13px]">
+                                <p class="font-semibold">
+                                    {{ revision.aprobadaPor ? `Firmada por ${revision.aprobadaPor}` : 'Firmada' }}
+                                </p>
+                                <p class="text-muted-foreground">
+                                    {{ revision.aprobadaEn }}
+                                    <template v-if="!congeladas">· firma anterior, antes de reabrir</template>
+                                </p>
+                            </div>
+                        </div>
+
+                        <div
+                            v-if="puedeAprobar"
+                            class="space-y-3 rounded-lg border border-acento-borde bg-acento-suave p-4"
+                        >
+                            <p class="text-sm font-semibold">Firmar el acta</p>
+                            <p class="text-[13px] leading-[18px] text-secondary-foreground">
+                                Congela las siete entradas tal como están ahora y deja el acta firmada a tu
+                                nombre. Las decisiones se pueden seguir registrando después.
+                            </p>
+                            <Button variant="acento" class="w-full" :disabled="enviando" @click="confirmando = true">
+                                <BadgeCheckIcon aria-hidden="true" />
+                                Aprobar el acta
+                            </Button>
+                        </div>
+
+                        <p
+                            v-else-if="revision.estado === 'en_curso'"
+                            class="text-[13px] leading-[18px] text-muted-foreground"
+                        >
+                            Pendiente de que la dirección firme el acta. Hasta entonces, lo que se ve es la
+                            situación de hoy y no la del día de la reunión.
+                        </p>
+
+                        <div v-if="puedeGestionar && transiciones.length > 0" class="space-y-2 border-t pt-4">
+                            <p class="text-xs text-muted-foreground">
+                                <template v-if="revision.estado === 'aprobada'">
+                                    De aprobada sólo se vuelve a «en curso»: decir que la reunión no se celebró
+                                    sería reescribir el pasado.
+                                </template>
+                                <template v-else-if="revision.estado === 'en_curso'">¿Se aplaza la reunión?</template>
+                                <template v-else>Cuando empiece la reunión:</template>
+                            </p>
+                            <div class="flex flex-wrap gap-2">
+                                <BotonEstado
+                                    v-for="paso in transiciones"
+                                    :key="paso.valor"
+                                    :destino="paso"
+                                    :deshabilitado="enviando"
+                                    @click="mover(paso)"
+                                />
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
@@ -321,55 +554,105 @@ const abiertas = computed(
                     <CardHeader>
                         <CardTitle>Ficha</CardTitle>
                     </CardHeader>
-                    <CardContent class="space-y-3 text-sm">
-                        <div>
-                            <dt class="text-muted-foreground">Periodo revisado</dt>
-                            <dd>{{ revision.periodo }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-muted-foreground">Asistentes</dt>
-                            <!--
-                                «Sin registrar» y no un hueco: quién asistió es lo
-                                primero que un auditor comprueba, y una línea ausente
-                                se lee como que el dato no aplica.
-                            -->
-                            <dd :class="revision.asistentes ? '' : 'text-muted-foreground'">
-                                {{ revision.asistentes ?? 'Sin registrar' }}
-                            </dd>
-                        </div>
+                    <CardContent>
+                        <dl class="space-y-3.5 text-[13px]">
+                            <div class="space-y-0.5">
+                                <dt class="text-muted-foreground">Celebrada</dt>
+                                <dd>{{ revision.fechaLarga }}</dd>
+                            </div>
+                            <div class="space-y-0.5">
+                                <dt class="text-muted-foreground">Periodo revisado</dt>
+                                <dd>{{ revision.periodo }}</dd>
+                            </div>
+                            <div class="space-y-0.5">
+                                <dt class="text-muted-foreground">Asistentes</dt>
+                                <!--
+                                    «Sin registrar» y no un hueco: quién asistió es lo
+                                    primero que un auditor comprueba, y una línea ausente
+                                    se lee como que el dato no aplica.
+                                -->
+                                <dd :class="revision.asistentes ? '' : 'text-muted-foreground'">
+                                    {{ revision.asistentes ?? 'Sin registrar' }}
+                                </dd>
+                            </div>
+                            <div class="space-y-0.5">
+                                <dt class="text-muted-foreground">Revisión anterior</dt>
+                                <dd v-if="anterior">
+                                    <span class="cifra">{{ anterior.codigo }}</span>
+                                    <span class="text-muted-foreground">, celebrada el {{ anterior.fecha }}</span>
+                                </dd>
+                                <dd v-else class="text-muted-foreground">Es la primera</dd>
+                            </div>
+                            <div class="space-y-0.5">
+                                <dt class="text-muted-foreground">Acta</dt>
+                                <dd v-if="acta">
+                                    <Link
+                                        :href="`/documentos/${acta.id}`"
+                                        class="cifra text-primary underline-offset-4 hover:underline"
+                                    >
+                                        {{ acta.codigo }}
+                                    </Link>
+                                </dd>
+                                <dd v-else-if="revision.estado === 'aprobada'" class="text-muted-foreground">
+                                    Sin preparar
+                                </dd>
+                                <dd v-else class="text-muted-foreground">Se prepara al aprobar la revisión</dd>
+                            </div>
+                        </dl>
                     </CardContent>
                 </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Aprobación del acta</CardTitle>
-                        <CardDescription>
-                            Aprobar es lo que congela las siete entradas. A partir de ahí el acta no
-                            se modifica.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent class="space-y-3 text-sm">
-                        <template v-if="revision.aprobadaEn">
-                            <p class="text-muted-foreground">
-                                {{ revision.aprobadaEn }}
-                                <template v-if="revision.aprobadaPor">
-                                    · {{ revision.aprobadaPor }}
-                                </template>
-                            </p>
-                        </template>
-                        <p v-else class="text-muted-foreground">
-                            Todavía sin aprobar. Hasta que se firme, lo que se ve arriba es la
-                            situación de hoy y no la del día de la reunión.
-                        </p>
-
-                        <Button v-if="puedeAprobar" variant="acento" :disabled="enviando" @click="aprobar">
-                            Aprobar el acta
-                        </Button>
-                    </CardContent>
-                </Card>
-
             </div>
         </div>
+
+        <Dialog v-model:open="confirmando">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Aprobar el acta {{ revision.codigo }}</DialogTitle>
+                    <DialogDescription>
+                        Se recogen las siete entradas tal como están ahora y se sellan con tu firma. A partir de
+                        aquí el acta no cambia aunque los registros sigan vivos.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <ul class="space-y-2 text-[13px] text-secondary-foreground">
+                    <li class="flex gap-2">
+                        <LockIcon class="mt-0.5 size-4 shrink-0 text-acento" aria-hidden="true" />
+                        Las entradas a) a g) quedan congeladas con la fecha de hoy.
+                    </li>
+                    <li class="flex gap-2">
+                        <BadgeCheckIcon class="mt-0.5 size-4 shrink-0 text-acento" aria-hidden="true" />
+                        El acta no admite cambios. Corregirla obliga a reabrir la revisión.
+                    </li>
+                    <li class="flex gap-2">
+                        <PlusIcon class="mt-0.5 size-4 shrink-0 text-acento" aria-hidden="true" />
+                        {{
+                            decisiones.length === 0
+                                ? 'Sin decisiones registradas todavía; se pueden añadir después.'
+                                : `${decisiones.length} ${decisiones.length === 1 ? 'decisión vinculada, que sigue' : 'decisiones vinculadas, que siguen'} abierta${decisiones.length === 1 ? '' : 's'} a cambios.`
+                        }}
+                    </li>
+                </ul>
+
+                <div
+                    v-if="pendientes.length > 0"
+                    class="flex items-start gap-2.5 rounded-lg border bg-superficie px-3.5 py-3 text-[13px] text-secondary-foreground"
+                >
+                    <InfoIcon class="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                    <p>
+                        Faltan {{ faltan }}. Se puede aprobar igualmente, pero el
+                        acta saldrá sin ello y añadirlo después obliga a reabrirla.
+                    </p>
+                </div>
+
+                <DialogFooter>
+                    <Button variant="outline" @click="confirmando = false">Cancelar</Button>
+                    <Button variant="acento" :disabled="enviando" @click="aprobar">
+                        <BadgeCheckIcon aria-hidden="true" />
+                        Aprobar y congelar
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
 
         <Dialog v-model:open="abierto">
             <DialogContent>

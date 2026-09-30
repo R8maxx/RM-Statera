@@ -56,6 +56,13 @@ enum TipoDocumento: string
     case DdaEns = 'dda_ens';
     case PlanAdecuacionEns = 'plan_adecuacion_ens';
     case AnalisisContexto = 'analisis_contexto';
+    /**
+     * El acta de la revisión por la dirección: § 4.15 y la cláusula 9.3.
+     *
+     * **Nombra su fuente**, en `documentos.revision_direccion_id`, como el
+     * informe de auditoría: cada revisión es un acto con su fecha, y dos
+     * revisiones aprobadas son dos actas, no dos versiones de la misma.
+     */
     case ActaRevision = 'acta_revision';
 
     case Politica = 'politica';
@@ -96,11 +103,10 @@ enum TipoDocumento: string
      * El informe de auditoría interna: § 4.18 y la cláusula 9.2.2, el séptimo
      * documento calculado.
      *
-     * **Es el único tipo que nombra su fuente**, en `documentos.auditoria_id`. El
-     * acta imprime la última revisión aprobada y la Declaración de Conformidad la
-     * conformidad viva del sistema; aquí cada auditoría tiene su propio informe,
-     * y dos auditorías cerradas del mismo sistema son dos documentos, no dos
-     * versiones del mismo.
+     * **Nombra su fuente**, en `documentos.auditoria_id`, como el acta la suya.
+     * La Declaración de Conformidad imprime la conformidad viva del sistema;
+     * aquí cada auditoría tiene su propio informe, y dos auditorías cerradas del
+     * mismo sistema son dos documentos, no dos versiones del mismo.
      *
      * **Con sistema**, porque la auditoría lo lleva siempre, y **sin marco
      * esperado**, porque la auditoría no lleva `marco_id`: lo que se audita es el
@@ -270,13 +276,23 @@ enum TipoDocumento: string
      * formulario de documentos.
      *
      * El informe de auditoría nace de la ficha de una auditoría cerrada, que es
-     * la que pone `auditoria_id`: desde el formulario no hay forma de nombrarla,
-     * y el `CHECK` `documentos_auditoria_check` lo rechazaría con un error de
-     * base de datos.
+     * la que pone `auditoria_id`, y el acta de la de una revisión aprobada, que
+     * pone `revision_direccion_id`: desde el formulario no hay forma de
+     * nombrarlas, y los dos `CHECK` lo rechazarían con un error de base de datos.
      */
     public function nacePorSuFuente(): bool
     {
-        return $this === self::InformeAuditoria;
+        return $this === self::InformeAuditoria || $this === self::ActaRevision;
+    }
+
+    /** Desde dónde se prepara, para el mensaje del formulario. */
+    public function fuente(): ?string
+    {
+        return match ($this) {
+            self::InformeAuditoria => 'la ficha de la auditoría cerrada',
+            self::ActaRevision => 'la ficha de la revisión por la dirección aprobada',
+            default => null,
+        };
     }
 
     /*

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\RevisionDireccion\Models;
 
+use App\Domain\Documento\Models\Documento;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
 use App\Domain\RevisionDireccion\Enums\EstadoRevision;
 use App\Domain\Tarea\Models\Tarea;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -88,6 +90,17 @@ class RevisionDireccion extends Model
     {
         return $this->belongsToMany(Tarea::class, 'revision_tarea', 'revision_direccion_id')
             ->withPivot(['vinculada_por_id', 'created_at']);
+    }
+
+    /**
+     * El documento del acta, una vez preparado: uno por revisión, y lo garantiza
+     * `documentos_revision_direccion_unica`.
+     *
+     * @return HasOne<Documento, $this>
+     */
+    public function acta(): HasOne
+    {
+        return $this->hasOne(Documento::class);
     }
 
     /** Si todavía se le pueden tocar las entradas, los asistentes y el acta. */

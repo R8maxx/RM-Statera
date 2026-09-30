@@ -127,6 +127,38 @@ it('la entrada a) son las decisiones de la revisión anterior', function (): voi
         ->and($previas['abiertas'])->toBe(1);
 });
 
+/*
+ * Lo que la ficha pone delante en la fila a): cuántas de las acciones previas
+ * están fuera de plazo el día que se recogen. Una cerrada tarde no cuenta: ya
+ * no es algo que vaya mal.
+ */
+it('la entrada a) cuenta las acciones previas vencidas', function (): void {
+    $anterior = RevisionDireccion::factory()
+        ->delPeriodo(Carbon::today()->subYear(), Carbon::today()->subMonths(6))
+        ->enCurso()
+        ->create(['codigo' => 'RD-2025-01']);
+
+    $vencida = Tarea::factory()->create(['fecha_limite' => Carbon::today()->subDays(10)]);
+    $enPlazo = Tarea::factory()->create(['fecha_limite' => Carbon::today()->addDays(10)]);
+    $vincular = app(VincularDecision::class);
+    $vincular->vincular($anterior, $vencida, $this->usuario);
+    $vincular->vincular($anterior, $enPlazo, $this->usuario);
+
+    app(AprobarRevision::class)($anterior, $this->usuario);
+
+    $actual = RevisionDireccion::factory()
+        ->delPeriodo(Carbon::today()->subMonths(5), Carbon::today())
+        ->enCurso()
+        ->create();
+
+    $previas = $this->entradas->para($actual)['accionesPrevias'];
+
+    expect($previas['vencidas'])->toBe(1)
+        ->and(collect($previas['acciones'])->pluck('vencida')->sort()->values()->all())->toBe([false, true])
+        // Con su icono: el badge lleva los tres canales (DESIGN.md §3).
+        ->and($previas['acciones'][0]['icono'])->toBeString();
+});
+
 it('la revisión anterior se busca por fecha de celebración y no por cuándo se tecleó', function (): void {
     // La de 2026 se registra ANTES que la de 2025, que es lo que pasa cuando
     // alguien mete el histórico en la herramienta después de empezar a usarla.

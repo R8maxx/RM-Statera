@@ -10,6 +10,7 @@ use App\Domain\Documento\Models\Documento;
 use App\Domain\Documento\Models\DocumentoVersion;
 use App\Domain\Documento\Narrativa\MarkdownDocumento;
 use App\Domain\Documento\Narrativa\ResolverNarrativa;
+use App\Domain\RevisionDireccion\Enums\EstadoRevision;
 use App\Domain\RevisionDireccion\Models\RevisionDireccion;
 use App\Domain\Tarea\Models\Tarea;
 
@@ -34,12 +35,14 @@ use App\Domain\Tarea\Models\Tarea;
  * Sin revisión aprobada no hay acta, y se dice: generar una desde una reunión que
  * no se ha celebrado sería entregar un acta que nadie ha firmado.
  *
- * ### La revisión que se imprime es la última aprobada
+ * ### La revisión que se imprime es la suya
  *
- * Igual que el análisis del contexto imprime el vigente. Un documento es una
- * **serie**, y cada generación entrega la foto más reciente que existe; el
- * histórico de lo anterior vive en `documento_versiones`, que es donde tiene que
- * estar.
+ * `documentos.revision_direccion_id`, como el informe de auditoría. Hasta el
+ * cambio que lo introdujo el acta era una serie que imprimía la última revisión
+ * aprobada, y eso mezclaba reuniones distintas en las versiones de un mismo
+ * documento: la v2 no era una corrección de la v1, era otro año. Cada revisión es
+ * un acto con su fecha, así que cada una tiene su acta, y el histórico de una
+ * acta son sus propias correcciones.
  */
 final class ActaRevisionDireccion implements GeneradorDocumento
 {
@@ -60,16 +63,8 @@ final class ActaRevisionDireccion implements GeneradorDocumento
      */
     public function construir(Documento $documento, DocumentoVersion $version, array $parametros = []): ContenidoDocumento
     {
-        $revision = RevisionDireccion::query()
-            ->aprobadas()
-            ->with(['aprobadaPor', 'tareas.responsable'])
-            ->orderByDesc('fecha')
-            ->orderByDesc('id')
-            ->first();
-
-        if (! $revision instanceof RevisionDireccion) {
-            throw DocumentoNoGenerable::sinRevisionAprobada();
-        }
+        $revision = $this->revisionDe($documento);
+        $revision->loadMissing(['aprobadaPor', 'tareas.responsable']);
 
         return new ContenidoDocumento(
             titulo: $documento->titulo,
@@ -102,6 +97,28 @@ final class ActaRevisionDireccion implements GeneradorDocumento
                 $this->markdown,
             ),
         );
+    }
+
+    /**
+     * La revisión del acta, aprobada.
+     *
+     * Se vuelve a comprobar aquí aunque `PrepararActa` ya lo hiciera: entre
+     * preparar y generar la revisión se puede reabrir, y la instantánea de una
+     * revisión reabierta es la de la firma anterior, no la que se va a firmar.
+     */
+    private function revisionDe(Documento $documento): RevisionDireccion
+    {
+        $revision = $documento->revisionDireccion;
+
+        if (! $revision instanceof RevisionDireccion) {
+            throw DocumentoNoGenerable::sinRevision();
+        }
+
+        if ($revision->estado !== EstadoRevision::Aprobada) {
+            throw DocumentoNoGenerable::revisionSinAprobar($revision->codigo);
+        }
+
+        return $revision;
     }
 
     /**

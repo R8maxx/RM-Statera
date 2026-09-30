@@ -11,6 +11,7 @@ use App\Domain\Documento\Enums\ClasificacionDocumental;
 use App\Domain\Documento\Enums\EstadoDocumental;
 use App\Domain\Documento\Enums\TipoDocumento;
 use App\Domain\Organizacion\Concerns\PerteneceAOrganizacion;
+use App\Domain\RevisionDireccion\Models\RevisionDireccion;
 use App\Domain\Sistema\Models\Sistema;
 use App\Domain\Traza\Concerns\RegistraTraza;
 use App\Models\User;
@@ -38,6 +39,7 @@ use Illuminate\Support\Facades\Auth;
  * @property int $organizacion_id
  * @property ?int $sistema_id
  * @property ?int $auditoria_id
+ * @property ?int $revision_direccion_id
  * @property string $codigo
  * @property string $titulo
  * @property TipoDocumento $tipo
@@ -78,6 +80,7 @@ class Documento extends Model
         'organizacion_id',
         'sistema_id',
         'auditoria_id',
+        'revision_direccion_id',
         'codigo',
         'titulo',
         'tipo',
@@ -104,6 +107,19 @@ class Documento extends Model
     public function auditoria(): BelongsTo
     {
         return $this->belongsTo(Auditoria::class);
+    }
+
+    /**
+     * La revisión por la dirección que recoge, si es un acta.
+     *
+     * Sólo ese tipo la lleva, y lo dice el `CHECK`
+     * `documentos_revision_direccion_check`.
+     *
+     * @return BelongsTo<RevisionDireccion, $this>
+     */
+    public function revisionDireccion(): BelongsTo
+    {
+        return $this->belongsTo(RevisionDireccion::class);
     }
 
     /** @return BelongsTo<User, $this> */

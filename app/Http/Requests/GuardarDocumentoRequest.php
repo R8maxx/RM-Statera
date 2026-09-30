@@ -156,8 +156,9 @@ class GuardarDocumentoRequest extends FormRequest
 
         if ($tipo->nacePorSuFuente() && $actual !== $tipo) {
             $validator->errors()->add('tipo', sprintf(
-                '«%s» se prepara desde la ficha de la auditoría cerrada, no desde aquí.',
+                '«%s» se prepara desde %s, no desde aquí.',
                 $tipo->etiqueta(),
+                $tipo->fuente(),
             ));
 
             return;
@@ -165,14 +166,15 @@ class GuardarDocumentoRequest extends FormRequest
 
         if ($actual !== null && $actual->nacePorSuFuente() && $actual !== $tipo) {
             $validator->errors()->add('tipo', sprintf(
-                'Un «%s» no cambia de tipo: recoge una auditoría concreta.',
+                '«%s» no cambia de tipo: nace de su fuente y la recoge.',
                 $actual->etiqueta(),
             ));
 
             return;
         }
 
-        if ($documento instanceof Documento && $actual?->nacePorSuFuente() === true
+        // El acta no tiene sistema: el `sistema_id` es cosa sólo del informe.
+        if ($documento instanceof Documento && $actual === TipoDocumento::InformeAuditoria
             && (int) $this->input('sistema_id') !== $documento->sistema_id) {
             $validator->errors()->add('sistema_id', 'El sistema de un informe de auditoría es el de su auditoría.');
         }
