@@ -576,3 +576,19 @@ y 36 retención RGPD.
     De paso, el filtro por atributos de la ISO 27002 (sin número propio) destapó
     que A.8.24 llevaba una capacidad operativa que no existe en la norma. La
     encontró la validación nueva del vocabulario, no una revisión.
+
+38. ✅ Comunicación (cláusula 7.4). **Cierra los dos huecos de cláusula** que
+    anotaba `PRODUCT.md`. Dos pantallas: el plan —qué, cuándo, a quién, quién y
+    cómo— y lo comunicado.
+
+    **César decidió registrar también lo recibido**, y fue la decisión que más
+    dio de sí: con las quejas, sugerencias y encuestas dentro, la 9.3.2 e) del
+    acta deja de aportarse fuera. Las actas ya aprobadas no cambian —su
+    instantánea no lleva la clave nueva y se siguen pintando como entonces—, y
+    eso hubo que hacerlo en los tres sitios que pintan la entrada.
+
+    Lo demás es el patrón de los compromisos del § 4.16 copiado entero —meses y
+    `Cadencia`, próxima fecha derivada, `cubre_hasta` congelado, nada con fecha
+    futura— más una `Fuente` propia. Lo único que mordió fue PostgreSQL
+    recortando a 63 caracteres los nombres de la pivote, que dejó la clave
+    foránea y el índice único llamándose igual.

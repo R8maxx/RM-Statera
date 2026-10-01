@@ -21,6 +21,8 @@ import {
     LightbulbIcon,
     ListTodoIcon,
     MapIcon,
+    MegaphoneIcon,
+    MessagesSquareIcon,
     MilestoneIcon,
     NetworkIcon,
     PaperclipIcon,
@@ -401,6 +403,23 @@ export const navegacion: GrupoNavegacion[] = [
                 href: '/partes-interesadas',
                 icono: HandshakeIcon,
                 alias: ['4.2', 'requisitos legales', 'reguladores', 'expectativas', 'clientes', 'stakeholders'],
+            },
+            {
+                titulo: 'Plan de comunicación',
+                href: '/plan-comunicacion',
+                icono: MegaphoneIcon,
+                /*
+                 * Detrás de Partes interesadas porque el «a quién» de la 7.4 sale
+                 * de ahí. El icono es el de su fuente en el calendario.
+                 */
+                alias: ['7.4', 'comunicación', 'difusión', 'informar'],
+            },
+            {
+                titulo: 'Comunicaciones',
+                href: '/comunicaciones',
+                icono: MessagesSquareIcon,
+                // Lo recibido es lo que se busca sin saber dónde vive.
+                alias: ['quejas', 'encuestas', 'sugerencias', 'retroalimentación', 'recibidas'],
             },
             {
                 titulo: 'Sistemas',

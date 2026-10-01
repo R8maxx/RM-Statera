@@ -8,6 +8,7 @@ use App\Domain\Activo\ResumenInventario;
 use App\Domain\Auditoria\RegistroAuditorias;
 use App\Domain\Autorizacion\Enums\Permiso;
 use App\Domain\Cambio\RegistroCambios;
+use App\Domain\Comunicacion\RegistroComunicacion;
 use App\Domain\Continuidad\RegistroContinuidad;
 use App\Domain\Documento\ResumenDocumental;
 use App\Domain\Evidencia\RegistroEvidencias;
@@ -93,6 +94,8 @@ final readonly class AlertasDelPanel
         // Tercera y no última: un compromiso se pasa de fecha sin que nadie lo
         // toque, igual que una evidencia y que una tarea.
         [Permiso::ObligacionesVer, RegistroObligaciones::class],
+        // Una comunicación periódica se pasa de fecha sola, como un compromiso.
+        [Permiso::ComunicacionVer, RegistroComunicacion::class],
         [Permiso::IncidentesVer, RegistroIncidentes::class],
         [Permiso::ContinuidadVer, RegistroContinuidad::class],
         // Una reevaluación y un certificado caducan solos, como una evidencia.
@@ -130,7 +133,7 @@ final readonly class AlertasDelPanel
             '/indicadores', '/objetivos', '/cambios-sgsi', '/auditorias',
         ],
         'organizacion' => [
-            '/contexto', '/contexto/cuestiones', '/partes-interesadas', '/personas',
+            '/contexto', '/contexto/cuestiones', '/partes-interesadas', '/plan-comunicacion', '/personas',
             '/formacion', '/activos', '/riesgos', '/proveedores',
         ],
     ];

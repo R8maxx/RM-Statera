@@ -88,6 +88,14 @@ enum Permiso: string
     case ContextoGestionar = 'contexto.gestionar';
     case ContextoAprobar = 'contexto.aprobar';
 
+    /*
+     * La comunicación de la cláusula 7.4: el plan y lo que se comunicó o se
+     * recibió. **Dos verbos y no tres**: un plan de comunicación no se firma, y
+     * lo que se registra son hechos.
+     */
+    case ComunicacionVer = 'plan_comunicacion.ver';
+    case ComunicacionGestionar = 'plan_comunicacion.gestionar';
+
     case SistemasVer = 'sistemas.ver';
     case SistemasGestionar = 'sistemas.gestionar';
     case SistemasValorar = 'sistemas.valorar';
@@ -317,6 +325,8 @@ enum Permiso: string
             self::ContextoVer => 'Ver el contexto y las partes interesadas',
             self::ContextoGestionar => 'Registrar cuestiones, partes interesadas y sus requisitos',
             self::ContextoAprobar => 'Aprobar el análisis del contexto',
+            self::ComunicacionVer => 'Ver el plan de comunicación y lo comunicado o recibido',
+            self::ComunicacionGestionar => 'Planificar comunicaciones y registrar lo comunicado o recibido',
             self::SistemasVer => 'Ver los sistemas',
             self::SistemasGestionar => 'Dar de alta y editar sistemas',
             self::SistemasValorar => 'Valorar dimensiones y recalcular',

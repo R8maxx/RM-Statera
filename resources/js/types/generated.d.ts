@@ -18,12 +18,12 @@ export type TipoHallazgo = 'nc_mayor' | 'nc_menor' | 'observacion' | 'oportunida
 }
 namespace Autorizacion {
 namespace Enums {
-export type Permiso = 'panel.ver' | 'contexto.ver' | 'contexto.gestionar' | 'contexto.aprobar' | 'sistemas.ver' | 'sistemas.gestionar' | 'sistemas.valorar' | 'implantaciones.ver' | 'implantaciones.gestionar' | 'evidencias.ver' | 'evidencias.gestionar' | 'activos.ver' | 'activos.gestionar' | 'riesgos.ver' | 'riesgos.gestionar' | 'riesgos.aceptar' | 'tareas.ver' | 'tareas.gestionar' | 'auditorias.ver' | 'auditorias.gestionar' | 'no_conformidades.ver' | 'no_conformidades.gestionar' | 'no_conformidades.verificar' | 'mejoras.ver' | 'mejoras.gestionar' | 'indicadores.ver' | 'indicadores.gestionar' | 'objetivos.ver' | 'objetivos.gestionar' | 'objetivos.aprobar' | 'cambios_sgsi.ver' | 'cambios_sgsi.gestionar' | 'cambios_sgsi.aprobar' | 'personas.ver' | 'personas.gestionar' | 'personas.designar' | 'incidentes.ver' | 'incidentes.gestionar' | 'proveedores.ver' | 'proveedores.gestionar' | 'proveedores.evaluar' | 'vulnerabilidades.ver' | 'vulnerabilidades.gestionar' | 'vulnerabilidades.aceptar' | 'continuidad.ver' | 'continuidad.gestionar' | 'continuidad.aprobar' | 'conformidad.ver' | 'conformidad.gestionar' | 'revision_direccion.ver' | 'revision_direccion.gestionar' | 'revision_direccion.aprobar' | 'documentos.ver' | 'documentos.generar' | 'documentos.aprobar' | 'documentos.redactar' | 'documentos.plantillas' | 'organizacion.gestionar' | 'cuentas.gestionar' | 'calendario.ver' | 'obligaciones.ver' | 'obligaciones.gestionar';
+export type Permiso = 'panel.ver' | 'contexto.ver' | 'contexto.gestionar' | 'contexto.aprobar' | 'plan_comunicacion.ver' | 'plan_comunicacion.gestionar' | 'sistemas.ver' | 'sistemas.gestionar' | 'sistemas.valorar' | 'implantaciones.ver' | 'implantaciones.gestionar' | 'evidencias.ver' | 'evidencias.gestionar' | 'activos.ver' | 'activos.gestionar' | 'riesgos.ver' | 'riesgos.gestionar' | 'riesgos.aceptar' | 'tareas.ver' | 'tareas.gestionar' | 'auditorias.ver' | 'auditorias.gestionar' | 'no_conformidades.ver' | 'no_conformidades.gestionar' | 'no_conformidades.verificar' | 'mejoras.ver' | 'mejoras.gestionar' | 'indicadores.ver' | 'indicadores.gestionar' | 'objetivos.ver' | 'objetivos.gestionar' | 'objetivos.aprobar' | 'cambios_sgsi.ver' | 'cambios_sgsi.gestionar' | 'cambios_sgsi.aprobar' | 'personas.ver' | 'personas.gestionar' | 'personas.designar' | 'incidentes.ver' | 'incidentes.gestionar' | 'proveedores.ver' | 'proveedores.gestionar' | 'proveedores.evaluar' | 'vulnerabilidades.ver' | 'vulnerabilidades.gestionar' | 'vulnerabilidades.aceptar' | 'continuidad.ver' | 'continuidad.gestionar' | 'continuidad.aprobar' | 'conformidad.ver' | 'conformidad.gestionar' | 'revision_direccion.ver' | 'revision_direccion.gestionar' | 'revision_direccion.aprobar' | 'documentos.ver' | 'documentos.generar' | 'documentos.aprobar' | 'documentos.redactar' | 'documentos.plantillas' | 'organizacion.gestionar' | 'cuentas.gestionar' | 'calendario.ver' | 'obligaciones.ver' | 'obligaciones.gestionar';
 export type Rol = 'responsable_seguridad' | 'tecnico' | 'auditor';
 }
 }
 namespace Aviso {
-export type Fuente = 'tarea' | 'evidencia' | 'documento' | 'formacion' | 'indicador' | 'implantacion' | 'obligacion' | 'prueba_continuidad' | 'bia' | 'proveedor' | 'vulnerabilidad';
+export type Fuente = 'tarea' | 'evidencia' | 'documento' | 'formacion' | 'indicador' | 'implantacion' | 'obligacion' | 'prueba_continuidad' | 'bia' | 'proveedor' | 'vulnerabilidad' | 'comunicacion';
 export type Vencimiento = {
 readonly url: string,
 readonly icono: string,
@@ -60,6 +60,13 @@ namespace Categorizacion {
 namespace Enums {
 export type NivelDimension = 'na' | 'bajo' | 'medio' | 'alto';
 export type OrigenExigencia = 'categoria' | 'modulacion_dimension' | 'perfil' | 'catalogo';
+}
+}
+namespace Comunicacion {
+namespace Enums {
+export type CanalComunicacion = 'correo' | 'reunion' | 'intranet' | 'formacion' | 'documento' | 'web' | 'telefono' | 'otro';
+export type SentidoComunicacion = 'emitida' | 'recibida';
+export type TipoRetroalimentacion = 'queja' | 'sugerencia' | 'consulta' | 'encuesta' | 'felicitacion' | 'otra';
 }
 }
 namespace Conformidad {

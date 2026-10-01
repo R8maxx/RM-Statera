@@ -87,7 +87,7 @@ final class ActaRevisionDireccion implements GeneradorDocumento
             filas: [],
 
             limitaciones: [
-                ...$this->limitacionesPropias(),
+                ...$this->limitacionesPropias($revision),
                 ...$this->limitacionesBase($version),
             ],
             historial: $this->historialDe($documento),
@@ -129,18 +129,31 @@ final class ActaRevisionDireccion implements GeneradorDocumento
      *
      * @return list<string>
      */
-    private function limitacionesPropias(): array
+    private function limitacionesPropias(RevisionDireccion $revision): array
     {
+        /*
+         * **La de la retroalimentación depende de la instantánea**, no del día en
+         * que se genera el PDF: un acta aprobada antes de la 7.4 no llevaba la
+         * e) y tiene que seguir diciéndolo. Las nuevas la llevan, y lo que queda
+         * por declarar es otra cosa: que el registro sólo sabe lo que se apuntó.
+         */
+        $retroalimentacion = array_key_exists('retroalimentacion', $revision->instantanea ?? [])
+            ? 'La entrada de **retroalimentación de las partes interesadas** (9.3.2 e) recoge lo que se '
+                .'registró como recibido en el periodo revisado: quejas, sugerencias, consultas y resultados de '
+                .'encuestas. Statera **no comprueba que se haya registrado todo lo recibido**; lo que llegó y no '
+                .'se apuntó no figura aquí.'
+            : 'La entrada de **retroalimentación de las partes interesadas** (9.3.2 e) se recoge del registro '
+                .'de partes interesadas y de sus requisitos, que es lo que Statera tiene: **qué exige cada una**. '
+                .'La herramienta **no registra quejas, encuestas de satisfacción ni comunicaciones recibidas**, '
+                .'así que esa entrada se aporta fuera de este documento.';
+
         return [
             'Este acta recoge las siete entradas de la cláusula 9.3.2 **tal como estaban el día en que se '
             .'aprobó**, no como están hoy en la herramienta. Los registros de los que salen —riesgos, '
             .'auditorías, no conformidades, objetivos y mejoras— siguen vivos; lo que aquí figura quedó '
             .'congelado, y los cambios posteriores los recogerá la revisión siguiente.',
 
-            'La entrada de **retroalimentación de las partes interesadas** (9.3.2 e) se recoge del registro '
-            .'de partes interesadas y de sus requisitos, que es lo que Statera tiene: **qué exige cada una**. '
-            .'La herramienta **no registra quejas, encuestas de satisfacción ni comunicaciones recibidas**, '
-            .'así que esa entrada se aporta fuera de este documento.',
+            $retroalimentacion,
 
             'Los **asistentes** son texto libre y Statera no comprueba que quien figura como asistente tenga '
             .'potestad para revisar el sistema de gestión, ni que la dirección estuviera representada. '

@@ -6,6 +6,7 @@ use App\Domain\Autorizacion\Enums\Rol;
 use App\Domain\Aviso\Fuente;
 use App\Domain\Aviso\Notifications\VencimientosDelDia;
 use App\Domain\Aviso\ResumenVencimientos;
+use App\Domain\Comunicacion\Models\ComunicacionPrevista;
 use App\Domain\Continuidad\Enums\EstadoBia;
 use App\Domain\Continuidad\Models\BiaServicio;
 use App\Domain\Continuidad\Models\PruebaContinuidad;
@@ -483,5 +484,8 @@ function sembrarPasadoDe(Fuente $fuente): void
 
         // Igual que el proveedor: la fecha es una copia derivada, puesta a mano.
         Fuente::Vulnerabilidad => Vulnerabilidad::factory()->create(['fecha_limite' => $fecha]),
+
+        // Como un compromiso: la próxima es `computa_desde` más la cadencia.
+        Fuente::Comunicacion => ComunicacionPrevista::factory()->cada(3, $fecha->copy()->subMonthsNoOverflow(3))->create(),
     };
 }

@@ -122,6 +122,17 @@ enum Fuente: string
     case Vulnerabilidad = 'vulnerabilidad';
 
     /**
+     * Una comunicación periódica del plan de la cláusula 7.4 a la que le toca.
+     *
+     * **Una `Fuente` y no un compromiso del catálogo**: lo que vence sale de un
+     * registro —la última vez que se comunicó y la cadencia que declara la
+     * línea del plan—, y la línea tiene destinatarios y canal, que un compromiso
+     * no tiene. Sólo las que tienen cadencia y no están retiradas: «al cambiar
+     * la política» no vence nunca.
+     */
+    case Comunicacion = 'comunicacion';
+
+    /**
      * Las fuentes que esta cuenta puede ver.
      *
      * **La rejilla enseña nueve registros con una sola llave**, así que el
@@ -154,6 +165,7 @@ enum Fuente: string
             self::PruebaContinuidad, self::Bia => Permiso::ContinuidadVer,
             self::Proveedor => Permiso::ProveedoresVer,
             self::Vulnerabilidad => Permiso::VulnerabilidadesVer,
+            self::Comunicacion => Permiso::ComunicacionVer,
         };
     }
 
@@ -171,6 +183,7 @@ enum Fuente: string
             self::Bia => 'BIA',
             self::Proveedor => 'Proveedor',
             self::Vulnerabilidad => 'Vulnerabilidad',
+            self::Comunicacion => 'Comunicación',
         };
     }
 
@@ -203,7 +216,8 @@ enum Fuente: string
      * declarados fuera de él —tienen tareas detrás y sus plazos ya pintan chip—.
      *
      * `Proveedor` y `Vulnerabilidad` coinciden con su entrada del sidebar,
-     * `Truck` y `Bug`: no se parecen a ninguna de las demás.
+     * `Truck` y `Bug`: no se parecen a ninguna de las demás. `Comunicacion`
+     * coincide con el suyo, `Megaphone`, por lo mismo.
      *
      * `PruebaContinuidad` y `Bia` tampoco coinciden con su módulo: el sidebar
      * lleva **una sola** entrada, «Continuidad», con `LifeBuoyIcon`, porque BIA
@@ -233,6 +247,7 @@ enum Fuente: string
             self::Bia => 'Timer',
             self::Proveedor => 'Truck',
             self::Vulnerabilidad => 'Bug',
+            self::Comunicacion => 'Megaphone',
         };
     }
 
@@ -263,6 +278,7 @@ enum Fuente: string
             self::Bia => '/continuidad/bia',
             self::Proveedor => '/proveedores',
             self::Vulnerabilidad => '/vulnerabilidades',
+            self::Comunicacion => '/plan-comunicacion',
         };
     }
 
@@ -284,6 +300,7 @@ enum Fuente: string
             self::Bia => 'BIA sin revisar a tiempo',
             self::Proveedor => 'Proveedores sin reevaluar a tiempo',
             self::Vulnerabilidad => 'Vulnerabilidades fuera de plazo',
+            self::Comunicacion => 'Comunicaciones sin hacer a tiempo',
         };
     }
 
@@ -302,6 +319,7 @@ enum Fuente: string
             self::Bia => 'BIA por revisar',
             self::Proveedor => 'Proveedores por reevaluar',
             self::Vulnerabilidad => 'Vulnerabilidades por remediar',
+            self::Comunicacion => 'Comunicaciones que tocan',
         };
     }
 
@@ -311,7 +329,7 @@ enum Fuente: string
         return match ($this) {
             self::Evidencia, self::Formacion => 'caduca',
             self::Documento => 'toca revisarlo',
-            self::Indicador, self::Obligacion, self::PruebaContinuidad, self::Bia, self::Proveedor => 'toca',
+            self::Indicador, self::Obligacion, self::PruebaContinuidad, self::Bia, self::Proveedor, self::Comunicacion => 'toca',
             self::Tarea, self::Implantacion, self::Vulnerabilidad => 'vence',
         };
     }
@@ -321,7 +339,7 @@ enum Fuente: string
         return match ($this) {
             self::Evidencia, self::Formacion => 'caducó',
             self::Documento => 'tocaba revisarlo',
-            self::Indicador, self::Obligacion, self::PruebaContinuidad, self::Bia, self::Proveedor => 'tocaba',
+            self::Indicador, self::Obligacion, self::PruebaContinuidad, self::Bia, self::Proveedor, self::Comunicacion => 'tocaba',
             self::Tarea, self::Implantacion, self::Vulnerabilidad => 'venció',
         };
     }

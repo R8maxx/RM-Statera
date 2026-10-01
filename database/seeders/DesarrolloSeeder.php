@@ -34,6 +34,13 @@ use App\Domain\Cambio\RegistrarCambio;
 use App\Domain\Catalogo\Enums\Dimension;
 use App\Domain\Catalogo\Models\Marco;
 use App\Domain\Categorizacion\Enums\NivelDimension;
+use App\Domain\Comunicacion\Enums\CanalComunicacion;
+use App\Domain\Comunicacion\Enums\SentidoComunicacion;
+use App\Domain\Comunicacion\Enums\TipoRetroalimentacion;
+use App\Domain\Comunicacion\Models\Comunicacion;
+use App\Domain\Comunicacion\Models\ComunicacionPrevista;
+use App\Domain\Comunicacion\RegistrarComunicacion;
+use App\Domain\Comunicacion\SincronizarDestinatarios;
 use App\Domain\Conformidad\IniciarDeclaracion;
 use App\Domain\Conformidad\Models\Conformidad;
 use App\Domain\Conformidad\PrepararDocumentoDeclaracion;
@@ -311,6 +318,8 @@ class DesarrolloSeeder extends Seeder
         // dos, y sembrarlo antes dejaría el DAFO suelto, que es justo lo que este
         // módulo existe para evitar.
         $this->contextoDeEjemplo($organizacion);
+        // Detrás del contexto: el «a quién» del plan son sus partes interesadas.
+        $this->comunicacionDeEjemplo();
         // **Antes que los indicadores**, y no es una preferencia de orden: desde
         // el § 4.8 el IND-03 es calculado y cuenta sobre `personas`. Sembrado
         // después, la primera medición del personal formado sería un cero.
@@ -1555,6 +1564,99 @@ class DesarrolloSeeder extends Seeder
         $this->command->info(sprintf(
             'Oportunidades de mejora: %d registradas, 1 de un hallazgo, 1 descartada con motivo y 1 sin empezar.',
             Mejora::query()->count(),
+        ));
+    }
+
+    /**
+     * El plan de comunicación (7.4) con tres líneas y lo que se ha comunicado y
+     * recibido.
+     *
+     * Una trimestral al día, una anual **fuera de plazo** —el rojo del módulo— y
+     * una sin cadencia; y dos recibidas, una contestada y otra sin contestar, que
+     * son la entrada e) de la revisión por la dirección. Todo sintético.
+     */
+    private function comunicacionDeEjemplo(): void
+    {
+        if (ComunicacionPrevista::query()->count() > 0) {
+            return;
+        }
+
+        $responsable = User::query()->where('email', 'responsable@statera.test')->first();
+        $tecnica = User::query()->where('email', 'tecnico@statera.test')->first();
+        $registrar = app(RegistrarComunicacion::class);
+        $destinatarios = app(SincronizarDestinatarios::class);
+
+        $parte = fn (string $codigo): ?int => ParteInteresada::query()->where('codigo', $codigo)->value('id');
+
+        /** @return list<int> */
+        $partes = fn (string ...$codigos): array => ParteInteresada::query()
+            ->whereIn('codigo', $codigos)
+            ->pluck('id')
+            ->map(static fn (mixed $id): int => (int) $id)
+            ->values()
+            ->all();
+
+        // --- Al día: el informe trimestral a la dirección -------------------
+        $informe = ComunicacionPrevista::query()->create([
+            'codigo' => 'PC-01',
+            'titulo' => 'Informe trimestral de seguridad a la dirección',
+            'canal' => CanalComunicacion::Reunion->value,
+            'responsable_id' => $responsable?->id,
+            'periodicidad_meses' => 3,
+            'computa_desde' => Carbon::today()->subMonths(5),
+            'destinatarios_otros' => 'Comité de dirección',
+        ]);
+
+        $registrar(
+            SentidoComunicacion::Emitida,
+            Carbon::today()->subMonths(2),
+            ['asunto' => 'Informe del trimestre: incidentes, vulnerabilidades y avance del ENS'],
+            $responsable,
+            $informe,
+        );
+
+        // --- Fuera de plazo: el recordatorio anual de la política -----------
+        $politica = ComunicacionPrevista::query()->create([
+            'codigo' => 'PC-02',
+            'titulo' => 'Recordatorio anual de la política de seguridad al personal',
+            'canal' => CanalComunicacion::Correo->value,
+            'responsable_id' => $tecnica?->id,
+            'periodicidad_meses' => 12,
+            'computa_desde' => Carbon::today()->subMonths(13),
+        ]);
+
+        $destinatarios($politica, $partes('PI-03'));
+
+        // --- Sin cadencia: lo que se avisa cuando pasa ----------------------
+        $incidentes = ComunicacionPrevista::query()->create([
+            'codigo' => 'PC-03',
+            'titulo' => 'Aviso a los clientes de un incidente que les afecte',
+            'canal' => CanalComunicacion::Correo->value,
+            'responsable_id' => $responsable?->id,
+        ]);
+
+        $destinatarios($incidentes, $partes('PI-01'));
+
+        // --- Lo recibido: la retroalimentación de la 9.3.2 e) ---------------
+        $registrar(SentidoComunicacion::Recibida, Carbon::today()->subMonth(), [
+            'asunto' => 'Queja por el tiempo de respuesta del soporte',
+            'tipo_recibida' => TipoRetroalimentacion::Queja->value,
+            'canal' => CanalComunicacion::Correo->value,
+            'parte_interesada_id' => $parte('PI-01'),
+            'respuesta' => 'Se amplía el horario del soporte y se revisa en la próxima revisión por la dirección.',
+        ], $tecnica);
+
+        $registrar(SentidoComunicacion::Recibida, Carbon::today()->subWeeks(2), [
+            'asunto' => 'Resultado de la encuesta interna de concienciación',
+            'tipo_recibida' => TipoRetroalimentacion::Encuesta->value,
+            'canal' => CanalComunicacion::Documento->value,
+            'parte_interesada_id' => $parte('PI-03'),
+        ], $tecnica);
+
+        $this->command->info(sprintf(
+            'Plan de comunicación: %d líneas, 1 fuera de plazo; %d comunicaciones registradas.',
+            ComunicacionPrevista::query()->count(),
+            Comunicacion::query()->count(),
         ));
     }
 

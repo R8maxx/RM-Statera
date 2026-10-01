@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Aviso;
 
+use App\Domain\Comunicacion\Models\ComunicacionPrevista;
 use App\Domain\Continuidad\Models\BiaServicio;
 use App\Domain\Continuidad\Models\PruebaContinuidad;
 use App\Domain\Documento\Models\Documento;
@@ -114,6 +115,7 @@ final readonly class ResumenVencimientos
             Fuente::Bia => $this->calendario->deBias(BiaServicio::query()->revisionPorVencer($dias)),
             Fuente::Proveedor => $this->calendario->deProveedores(Proveedor::query()->reevaluacionPorVencer($dias)),
             Fuente::Vulnerabilidad => $this->calendario->deVulnerabilidades(Vulnerabilidad::query()->plazoPorVencer($dias)),
+            Fuente::Comunicacion => $this->calendario->deComunicaciones(ComunicacionPrevista::query()->porVencer($dias)),
         };
     }
 }

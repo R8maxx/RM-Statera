@@ -100,6 +100,9 @@ enum Rol: string
                  */
                 Permiso::ContextoVer,
                 Permiso::ContextoGestionar,
+                // El plan de comunicación lo lleva entero: no hay nada que firmar.
+                Permiso::ComunicacionVer,
+                Permiso::ComunicacionGestionar,
                 Permiso::SistemasVer,
                 Permiso::ImplantacionesVer,
                 Permiso::ImplantacionesGestionar,
@@ -231,6 +234,7 @@ enum Rol: string
             self::Auditor => [
                 Permiso::PanelVer,
                 Permiso::ContextoVer,
+                Permiso::ComunicacionVer,
                 Permiso::SistemasVer,
                 Permiso::ImplantacionesVer,
                 Permiso::EvidenciasVer,

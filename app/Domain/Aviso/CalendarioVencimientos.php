@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Aviso;
 
+use App\Domain\Comunicacion\Models\ComunicacionPrevista;
 use App\Domain\Continuidad\Models\BiaServicio;
 use App\Domain\Continuidad\Models\PruebaContinuidad;
 use App\Domain\Documento\Models\Documento;
@@ -148,6 +149,10 @@ final readonly class CalendarioVencimientos
             Fuente::Bia => $this->deBias($filtros->acotar(BiaServicio::query()->revisionVencida(), 'fecha_revision')),
             Fuente::Proveedor => $this->deProveedores($filtros->acotar(Proveedor::query()->reevaluacionVencida(), 'proxima_evaluacion')),
             Fuente::Vulnerabilidad => $this->deVulnerabilidades($filtros->acotar(Vulnerabilidad::query()->fueraDePlazo(), 'fecha_limite')),
+            Fuente::Comunicacion => $this->deComunicaciones($filtros->acotarCalculado(
+                ComunicacionPrevista::query()->vencidas(),
+                ComunicacionPrevista::expresionProxima(),
+            )),
         };
     }
 
@@ -229,6 +234,11 @@ final readonly class CalendarioVencimientos
             Fuente::Vulnerabilidad => $this->deVulnerabilidades($filtros->acotar(
                 Vulnerabilidad::query()->plazoEntre($desde, $hasta),
                 'fecha_limite',
+            )),
+
+            Fuente::Comunicacion => $this->deComunicaciones($filtros->acotarCalculado(
+                ComunicacionPrevista::query()->proximaEntre($desde, $hasta),
+                ComunicacionPrevista::expresionProxima(),
             )),
         };
     }
@@ -658,6 +668,47 @@ final readonly class CalendarioVencimientos
                     tono: $this->tono($dias),
                     estadoTono: $dias < 0 ? 'caducada' : $vulnerabilidad->estado->tono(),
                     estadoEtiqueta: $dias < 0 ? 'Fuera de plazo' : $vulnerabilidad->estado->etiqueta(),
+                );
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Las comunicaciones periódicas del plan (7.4) a las que les toca, o ya les
+     * tocaba.
+     *
+     * La fecha la calcula `ComunicacionPrevista::expresionProxima()`, la misma que
+     * usan los scopes, y viene como columna añadida, como en `deObligaciones()`.
+     *
+     * @param  Builder<ComunicacionPrevista>  $consulta
+     * @return list<Vencimiento>
+     */
+    public function deComunicaciones(Builder $consulta): array
+    {
+        $hoy = Carbon::today();
+
+        return $consulta
+            ->with('responsable:id,name')
+            ->select('comunicaciones_previstas.*')
+            ->selectRaw(ComunicacionPrevista::expresionProxima().' as proxima_fecha')
+            ->orderBy('proxima_fecha')
+            ->get()
+            ->map(function (ComunicacionPrevista $prevista) use ($hoy): Vencimiento {
+                $fecha = Carbon::parse((string) $prevista->getAttribute('proxima_fecha'))->startOfDay();
+                $dias = (int) $hoy->diffInDays($fecha, false);
+
+                return new Vencimiento(
+                    id: $prevista->id,
+                    fuente: Fuente::Comunicacion,
+                    titulo: $prevista->titulo,
+                    dia: $fecha->toDateString(),
+                    fecha: $fecha->format('d/m/Y'),
+                    dias: $dias,
+                    responsable: $prevista->responsable?->name,
+                    tono: $this->tono($dias),
+                    estadoTono: $dias < 0 ? 'caducada' : 'implantado',
+                    estadoEtiqueta: $dias < 0 ? 'Fuera de plazo' : 'Al día',
                 );
             })
             ->values()

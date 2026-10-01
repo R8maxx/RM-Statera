@@ -207,8 +207,9 @@ siguiente muere con «is violated by some row». Es el segundo sitio del product
 que atraviesa las tres capas, y el primero fue el recuento del importador.
 
 **El hueco del indicador manual lo ocupa la satisfacción de las partes
-interesadas**, que es honesto: es justo la entrada 9.3.2 e) que el acta de la
-revisión por la dirección declara que se aporta fuera de Statera.
+interesadas**, que es honesto: es una cifra que se mide fuera —una encuesta— y no
+se cuenta. Desde la 7.4, el resultado de esa encuesta se puede registrar además
+como comunicación recibida, y entonces entra en la 9.3.2 e) del acta.
 
 ### Las dos checklists
 

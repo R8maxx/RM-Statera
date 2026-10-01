@@ -140,6 +140,7 @@ completa con el razonamiento del orden, en `.ai/rules/orden-de-arranque.md`.
 | 35 | Cifrado en reposo: ficheros y datos personales | § 6 | `personas.md`, `infraestructura.md` |
 | 36 | Retención y supresión de los datos de personas — **cierra el tramo** | § 6 | `personas.md`, `aislamiento.md` |
 | 37 | Planificación de cambios del SGSI — **abre los huecos de `PRODUCT.md`** | 6.3 | `cambios.md` |
+| 38 | Comunicación: el plan, lo comunicado y lo recibido | 7.4 | `comunicacion.md`, `revision-direccion.md` |
 
 **La fase 3 está cerrada.** Con continuidad (§ 4.11) dentro —el BIA por servicio,
 el plan como documento y las pruebas que lo contrastan— el ciclo vivo se recorre
@@ -176,7 +177,8 @@ inmutable, horas bien escritas, copias con restauración probada, cifrado en
 reposo y retención RGPD de personas—. **Con el punto 36 está cerrado**: los siete
 requisitos no funcionales del § 6 tienen dónde vivir. El porqué de cada punto
 está en la bitácora. Lo que queda son los huecos que anota `PRODUCT.md`, y el
-punto 37 empezó por ellos: la 6.3 ya tiene dónde escribirse, y la 7.4 es la siguiente.
+punto 37 empezó por ellos: la 6.3 y la 7.4 ya tienen dónde escribirse, y con la 7.4
+la retroalimentación de la 9.3.2 e) sale del producto.
 
 ## El catálogo
 
@@ -287,6 +289,7 @@ sobre el directorio pilla lo que un encaje de ruta se deja.
 | `objetivos.md` | `app/Domain/Objetivo/**` y sus pantallas |
 | `mejoras.md` | `app/Domain/Mejora/**` y sus pantallas |
 | `cambios.md` | `app/Domain/Cambio/**` y sus pantallas |
+| `comunicacion.md` | `app/Domain/Comunicacion/**`, el plan de comunicación y las comunicaciones |
 | `revision-direccion.md` | `app/Domain/RevisionDireccion/**` y sus pantallas |
 | `personas.md` | `app/Domain/Persona/**`, personas, puestos, formación y `lib/organigrama.ts` |
 | `incidentes.md` | `app/Domain/Incidente/**` y sus pantallas |

@@ -73,6 +73,15 @@ const desempeno = computed(() => bloque('desempeno'));
 const riesgos = computed(() => bloque('riesgos'));
 const mejoras = computed(() => bloque('mejoras'));
 
+/*
+ * La e) tiene entrada propia desde la 7.4. Una instantánea anterior no la trae,
+ * y entonces se pinta como entonces: c) y e) juntas, con la limitación dicha.
+ */
+const conRetroalimentacion = computed(() => props.entradas.retroalimentacion !== undefined);
+const retroalimentacion = computed(() => bloque('retroalimentacion'));
+const recibidas = computed(() => lista(retroalimentacion.value, 'detalle'));
+const porTipo = computed(() => lista(retroalimentacion.value, 'porTipo'));
+
 const acciones = computed(() => lista(previas.value, 'acciones'));
 const listaPartes = computed(() => lista(partes.value, 'partes'));
 const auditorias = computed(() => lista(desempeno.value.auditorias ?? {}, 'detalle'));
@@ -151,12 +160,14 @@ const filas = computed<Fila[]>(() => {
         },
         {
             ancla: 'entrada-c',
-            letra: 'c) e)',
-            titulo: 'Partes interesadas: necesidades y retroalimentación',
+            letra: conRetroalimentacion.value ? 'c)' : 'c) e)',
+            titulo: conRetroalimentacion.value
+                ? 'Necesidades de las partes interesadas'
+                : 'Partes interesadas: necesidades y retroalimentación',
             resumen: `${plural(listaPartes.value.length, 'parte', 'partes')} · ${plural(requisitos.value, 'requisito', 'requisitos')}`,
-            // La limitación se dice también aquí: quien prepara la reunión tiene
-            // que saber de un vistazo que la e) la aporta él.
-            senales: [{ texto: 'e) se aporta fuera', vencida: false }],
+            // Sin la e) propia, la limitación se dice también aquí: quien prepara
+            // la reunión tiene que saber de un vistazo que la e) la aporta él.
+            senales: conRetroalimentacion.value ? [] : [{ texto: 'e) se aporta fuera', vencida: false }],
         },
         {
             ancla: 'entrada-d',
@@ -171,6 +182,20 @@ const filas = computed<Fila[]>(() => {
                 senal(numero(indicadores.periodoSinMedir), plural(numero(indicadores.periodoSinMedir), 'indicador sin medir', 'indicadores sin medir')),
             ),
         },
+        ...(conRetroalimentacion.value
+            ? [
+                  {
+                      ancla: 'entrada-e',
+                      letra: 'e)',
+                      titulo: 'Retroalimentación de las partes interesadas',
+                      resumen: `${plural(numero(retroalimentacion.value.total), 'recibida', 'recibidas')} en el periodo`,
+                      // Sin rojo: lo recibido no es una alarma, y no hay plazo para contestar.
+                      senales: senales(
+                          senal(numero(retroalimentacion.value.sinRespuesta), `${numero(retroalimentacion.value.sinRespuesta)} sin respuesta`),
+                      ),
+                  },
+              ]
+            : []),
         {
             ancla: 'entrada-f',
             letra: 'f)',
@@ -197,9 +222,9 @@ const filas = computed<Fila[]>(() => {
     ];
 });
 
-/** La c) y e) lleva siempre su limitación: no cuenta como fila que pida atención. */
+/** La c) y e) de antes lleva siempre su limitación: no cuenta como fila que pida atención. */
 const conAtencion = computed(
-    () => filas.value.filter((fila) => fila.ancla !== 'entrada-c' && fila.senales.length > 0).length,
+    () => filas.value.filter((fila) => (conRetroalimentacion.value || fila.ancla !== 'entrada-c') && fila.senales.length > 0).length,
 );
 
 function badge(texto: string): App.Http.Resources.Definicion.ValorEtiquetado {
@@ -360,12 +385,14 @@ function estado(fila: Record<string, any>): App.Http.Resources.Definicion.ValorE
                     </div>
                 </section>
 
-                <!-- c) y e) -->
+                <!-- c), y e) en las instantáneas anteriores a la 7.4 -->
                 <section id="entrada-c" class="grid scroll-mt-24 grid-cols-[2.5rem_minmax(0,1fr)] gap-4 py-6 first:pt-0 last:pb-0">
-                    <span class="cifra text-[13px] leading-6 text-muted-foreground">c) e)</span>
+                    <span class="cifra text-[13px] leading-6 text-muted-foreground">{{ conRetroalimentacion ? 'c)' : 'c) e)' }}</span>
                     <div class="space-y-3">
                         <div class="space-y-0.5">
-                            <h3 class="text-[15px] leading-6 font-semibold">Partes interesadas: necesidades y retroalimentación</h3>
+                            <h3 class="text-[15px] leading-6 font-semibold">
+                                {{ conRetroalimentacion ? 'Necesidades de las partes interesadas' : 'Partes interesadas: necesidades y retroalimentación' }}
+                            </h3>
                             <p v-if="listaPartes.length > 0" class="text-[13px] text-muted-foreground">
                                 <Cifra class="font-medium text-foreground" :valor="listaPartes.length" />
                                 partes interesadas con
@@ -398,7 +425,7 @@ function estado(fila: Record<string, any>): App.Http.Resources.Definicion.ValorE
                             La limitación se dice aquí y no sólo en el PDF: quien prepara la
                             reunión tiene que saber que esta entrada la aporta él.
                         -->
-                        <p class="border-l-2 pl-3 text-[13px] leading-5 text-secondary-foreground">
+                        <p v-if="!conRetroalimentacion" class="border-l-2 pl-3 text-[13px] leading-5 text-secondary-foreground">
                             <strong class="font-semibold">La retroalimentación (e) se aporta fuera.</strong>
                             Quejas, encuestas y comunicaciones recibidas no se registran en Statera: se traen a la
                             reunión y se recogen en las conclusiones.
@@ -494,6 +521,51 @@ function estado(fila: Record<string, any>): App.Http.Resources.Definicion.ValorE
                                 </li>
                             </ul>
                         </div>
+                    </div>
+                </section>
+
+                <!-- e) -->
+                <section
+                    v-if="conRetroalimentacion"
+                    id="entrada-e"
+                    class="grid scroll-mt-24 grid-cols-[2.5rem_minmax(0,1fr)] gap-4 py-6 first:pt-0 last:pb-0"
+                >
+                    <span class="cifra text-[13px] leading-6 text-muted-foreground">e)</span>
+                    <div class="space-y-3">
+                        <div class="space-y-0.5">
+                            <h3 class="text-[15px] leading-6 font-semibold">Retroalimentación de las partes interesadas</h3>
+                            <p v-if="recibidas.length > 0" class="text-[13px] text-muted-foreground">
+                                <template v-for="(grupo, i) in porTipo" :key="i">
+                                    <template v-if="i > 0"> · </template>
+                                    <Cifra class="font-medium text-foreground" :valor="numero(grupo.total)" />
+                                    {{ grupo.tipo }}
+                                </template>
+                            </p>
+                        </div>
+
+                        <EstadoVacio
+                            v-if="recibidas.length === 0"
+                            titulo="Nada recibido en el periodo"
+                            descripcion="Ninguna queja, sugerencia ni encuesta registrada entre estas fechas. Lo recibido se apunta en Comunicaciones."
+                        />
+                        <ul v-else class="divide-y border-t">
+                            <li
+                                v-for="(item, i) in recibidas"
+                                :key="i"
+                                class="grid gap-x-3 gap-y-0.5 py-2.5 text-[13px] sm:grid-cols-[6rem_minmax(0,1fr)_12rem] sm:items-baseline"
+                            >
+                                <span class="cifra text-muted-foreground">{{ item.fecha }}</span>
+                                <span>
+                                    <span class="font-medium">{{ item.asunto }}</span>
+                                    <span class="block text-muted-foreground">
+                                        {{ item.respuesta ?? 'Sin respuesta registrada' }}
+                                    </span>
+                                </span>
+                                <span class="text-muted-foreground sm:text-right">
+                                    {{ item.tipo }}<template v-if="item.parte"> · {{ item.parte }}</template>
+                                </span>
+                            </li>
+                        </ul>
                     </div>
                 </section>
 

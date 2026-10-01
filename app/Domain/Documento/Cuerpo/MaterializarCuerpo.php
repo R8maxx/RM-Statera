@@ -1268,6 +1268,7 @@ final class MaterializarCuerpo
             ...$this->entradaAccionesPrevias($e),
             ...$this->entradaContexto($e),
             ...$this->entradaPartes($e),
+            ...$this->entradaRetroalimentacion($e),
             ...$this->entradaDesempeno($e),
             ...$this->entradaRiesgos($e),
             ...$this->entradaMejoras($e),
@@ -1360,11 +1361,13 @@ final class MaterializarCuerpo
     }
 
     /**
-     * c) y e) Las partes interesadas: sus necesidades y su retroalimentación.
+     * c) Las partes interesadas: sus necesidades.
      *
-     * **Las dos entradas comparten apartado y el acta lo dice**, porque Statera
-     * sólo tiene la primera. Repartirlas en dos apartados con el mismo contenido
-     * daría la impresión de que las dos están cubiertas.
+     * **Las actas anteriores a la 7.4 juntaban aquí la c) y la e)**, y decían por
+     * escrito que la retroalimentación se aportaba fuera: no había dónde
+     * registrarla. Esas instantáneas no llevan la clave `retroalimentacion` y se
+     * siguen pintando igual, porque eso es lo que la dirección tuvo delante. Las
+     * nuevas la llevan, y la e) va en su propio apartado.
      *
      * @param  array<string, mixed>  $entradas
      * @return list<array<string, mixed>>
@@ -1374,7 +1377,11 @@ final class MaterializarCuerpo
         $bloque = is_array($entradas['partesInteresadas'] ?? null) ? $entradas['partesInteresadas'] : [];
         $partes = is_array($bloque['partes'] ?? null) ? $bloque['partes'] : [];
 
-        $nodos = [Nodo::encabezado(3, 'c) y e) Partes interesadas: necesidades y retroalimentación')];
+        $conRetroalimentacion = array_key_exists('retroalimentacion', $entradas);
+
+        $nodos = [Nodo::encabezado(3, $conRetroalimentacion
+            ? 'c) Partes interesadas: necesidades y expectativas'
+            : 'c) y e) Partes interesadas: necesidades y retroalimentación')];
 
         if ($partes === []) {
             $nodos[] = Nodo::parrafo('No hay partes interesadas registradas.', 'vacio');
@@ -1404,11 +1411,75 @@ final class MaterializarCuerpo
 
         $nodos[] = Nodo::de('table', [], $filas);
 
-        $nodos[] = Nodo::parrafo(
-            'La retroalimentación de las partes interesadas —quejas, encuestas y comunicaciones recibidas— '
-            .'no se registra en la herramienta y se aporta fuera de este documento.',
-            'suave',
-        );
+        if (! $conRetroalimentacion) {
+            $nodos[] = Nodo::parrafo(
+                'La retroalimentación de las partes interesadas —quejas, encuestas y comunicaciones recibidas— '
+                .'no se registra en la herramienta y se aporta fuera de este documento.',
+                'suave',
+            );
+        }
+
+        return $nodos;
+    }
+
+    /**
+     * e) La retroalimentación de las partes interesadas: lo recibido en el
+     * periodo revisado (§ 7.4).
+     *
+     * Vacío si la instantánea es anterior a la 7.4: ver `entradaPartes()`.
+     *
+     * @param  array<string, mixed>  $entradas
+     * @return list<array<string, mixed>>
+     */
+    private function entradaRetroalimentacion(array $entradas): array
+    {
+        if (! array_key_exists('retroalimentacion', $entradas)) {
+            return [];
+        }
+
+        $bloque = is_array($entradas['retroalimentacion']) ? $entradas['retroalimentacion'] : [];
+        $detalle = is_array($bloque['detalle'] ?? null) ? $bloque['detalle'] : [];
+
+        $nodos = [Nodo::encabezado(3, 'e) Retroalimentación de las partes interesadas')];
+
+        if ($detalle === []) {
+            $nodos[] = Nodo::parrafo(
+                'No consta ninguna queja, sugerencia, consulta ni resultado de encuesta recibido en el periodo revisado.',
+                'vacio',
+            );
+
+            return $nodos;
+        }
+
+        $nodos[] = Nodo::parrafo(sprintf(
+            '%d comunicaciones recibidas en el periodo, %d sin respuesta registrada.',
+            (int) ($bloque['total'] ?? 0),
+            (int) ($bloque['sinRespuesta'] ?? 0),
+        ));
+
+        $filas = [Nodo::fila([
+            Nodo::cabeceraCelda('Fecha', '0.9in', 'col'),
+            Nodo::cabeceraCelda('Tipo', '1.3in', 'col'),
+            Nodo::cabeceraCelda('De', '1.5in', 'col'),
+            Nodo::cabeceraCelda('Asunto', '2.0in', 'col'),
+            Nodo::cabeceraCelda('Respuesta', '1.3in', 'col'),
+        ])];
+
+        foreach ($detalle as $fila) {
+            if (! is_array($fila)) {
+                continue;
+            }
+
+            $filas[] = Nodo::fila([
+                Nodo::celdaTexto($this->cadena($fila, 'fecha') ?? '—', 'cifra'),
+                Nodo::celdaTexto($this->cadena($fila, 'tipo') ?? '—'),
+                Nodo::celdaTexto($this->cadena($fila, 'parte') ?? '—'),
+                Nodo::celdaTexto($this->cadena($fila, 'asunto') ?? '—'),
+                Nodo::celdaTexto($this->cadena($fila, 'respuesta') ?? 'Sin respuesta'),
+            ]);
+        }
+
+        $nodos[] = Nodo::de('table', [], $filas);
 
         return $nodos;
     }

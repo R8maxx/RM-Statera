@@ -8,6 +8,8 @@ use App\Http\Controllers\AuditoriaController;
 use App\Http\Controllers\BiaServicioController;
 use App\Http\Controllers\CalendarioController;
 use App\Http\Controllers\CambioSgsiController;
+use App\Http\Controllers\ComunicacionController;
+use App\Http\Controllers\ComunicacionPrevistaController;
 use App\Http\Controllers\ConformidadController;
 use App\Http\Controllers\ContextoController;
 use App\Http\Controllers\CuentaController;
@@ -894,6 +896,63 @@ Route::middleware('auth')->group(function (): void {
             Route::delete('/cambios-sgsi/{cambio}/actuaciones/{tarea}', [CambioSgsiController::class, 'desvincularActuacion'])
                 ->name('cambios-sgsi.actuaciones.desvincular');
         });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Comunicación (cláusula 7.4)
+    |--------------------------------------------------------------------------
+    |
+    | Dos superficies, como obligaciones y calendario: `/plan-comunicacion` es lo
+    | que se ha decidido comunicar y `/comunicaciones` lo que se comunicó o se
+    | recibió. **Dos permisos y no tres**: un plan de comunicación no se firma.
+    |
+    */
+
+    Route::middleware('can:plan_comunicacion.ver')->group(function (): void {
+        Route::get('/plan-comunicacion', [ComunicacionPrevistaController::class, 'index'])
+            ->name('plan-comunicacion.index');
+
+        // Antes que `{prevista}`, para que `crear` no se lea como un id.
+        Route::get('/plan-comunicacion/crear', [ComunicacionPrevistaController::class, 'create'])
+            ->middleware(['can:plan_comunicacion.gestionar', ExigirDosFactores::class])
+            ->name('plan-comunicacion.create');
+
+        Route::get('/plan-comunicacion/{prevista}', [ComunicacionPrevistaController::class, 'show'])
+            ->name('plan-comunicacion.show');
+
+        Route::get('/comunicaciones', [ComunicacionController::class, 'index'])
+            ->name('comunicaciones.index');
+
+        Route::get('/comunicaciones/crear', [ComunicacionController::class, 'create'])
+            ->middleware(['can:plan_comunicacion.gestionar', ExigirDosFactores::class])
+            ->name('comunicaciones.create');
+    });
+
+    Route::middleware(['can:plan_comunicacion.gestionar', ExigirDosFactores::class])->group(function (): void {
+        Route::post('/plan-comunicacion', [ComunicacionPrevistaController::class, 'store'])
+            ->name('plan-comunicacion.store');
+        Route::get('/plan-comunicacion/{prevista}/editar', [ComunicacionPrevistaController::class, 'edit'])
+            ->name('plan-comunicacion.edit');
+        Route::put('/plan-comunicacion/{prevista}', [ComunicacionPrevistaController::class, 'update'])
+            ->name('plan-comunicacion.update');
+        Route::delete('/plan-comunicacion/{prevista}', [ComunicacionPrevistaController::class, 'destroy'])
+            ->name('plan-comunicacion.destroy');
+        Route::post('/plan-comunicacion/{prevista}/retirar', [ComunicacionPrevistaController::class, 'retirar'])
+            ->name('plan-comunicacion.retirar');
+        Route::post('/plan-comunicacion/{prevista}/reactivar', [ComunicacionPrevistaController::class, 'reactivar'])
+            ->name('plan-comunicacion.reactivar');
+        Route::post('/plan-comunicacion/{prevista}/comunicaciones', [ComunicacionPrevistaController::class, 'comunicar'])
+            ->name('plan-comunicacion.comunicar');
+
+        Route::post('/comunicaciones', [ComunicacionController::class, 'store'])
+            ->name('comunicaciones.store');
+        Route::get('/comunicaciones/{comunicacion}/editar', [ComunicacionController::class, 'edit'])
+            ->name('comunicaciones.edit');
+        Route::put('/comunicaciones/{comunicacion}', [ComunicacionController::class, 'update'])
+            ->name('comunicaciones.update');
+        Route::delete('/comunicaciones/{comunicacion}', [ComunicacionController::class, 'destroy'])
+            ->name('comunicaciones.destroy');
+    });
 
     /*
     |--------------------------------------------------------------------------

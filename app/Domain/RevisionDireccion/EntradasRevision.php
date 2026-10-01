@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Domain\RevisionDireccion;
 
 use App\Domain\Auditoria\Models\Auditoria;
+use App\Domain\Comunicacion\Enums\TipoRetroalimentacion;
+use App\Domain\Comunicacion\Models\Comunicacion;
 use App\Domain\Contexto\AnalisisEnCurso;
 use App\Domain\Contexto\Models\AnalisisContexto;
 use App\Domain\Contexto\Models\ParteInteresada;
@@ -31,7 +33,7 @@ use Illuminate\Support\Carbon;
  * | b) Cambios en cuestiones internas y externas | `analisis_contexto` (§ 4.1) |
  * | c) Necesidades de las partes interesadas | `partes_interesadas` (§ 4.1) |
  * | d) Desempeño: no conformidades, seguimiento y medición, auditorías, objetivos | § 4.13, § 4.14, § 4.12 y la 6.2 |
- * | e) Retroalimentación de las partes interesadas | `partes_interesadas`, **con limitación declarada** |
+ * | e) Retroalimentación de las partes interesadas | `comunicaciones` recibidas en el periodo (§ 7.4) |
  * | f) Resultados de la apreciación de riesgos y estado del tratamiento | § 4.3 |
  * | g) Oportunidades de mejora | § 10.1 |
  *
@@ -64,6 +66,7 @@ final readonly class EntradasRevision
             'accionesPrevias' => $this->accionesPrevias($revision),
             'contexto' => $this->contexto(),
             'partesInteresadas' => $this->partesInteresadas(),
+            'retroalimentacion' => $this->retroalimentacion($revision),
             'desempeno' => $this->desempeno($revision),
             'riesgos' => $this->riesgos(),
             'mejoras' => $this->mejoras(),
@@ -155,14 +158,12 @@ final readonly class EntradasRevision
     }
 
     /**
-     * c) y e) Las necesidades y expectativas de las partes interesadas.
+     * c) Las necesidades y expectativas de las partes interesadas.
      *
-     * **Las dos entradas se recogen del mismo sitio, y eso es una limitación
-     * declarada.** La 9.3.2 c) pide los cambios en sus necesidades y la e) pide la
-     * retroalimentación —quejas, satisfacción, resultados de encuestas—, y Statera
-     * sólo tiene lo primero: `requisitos_interesados` registra qué exige cada
-     * parte, no qué ha dicho últimamente. El acta lo dice por escrito en vez de
-     * rellenar el hueco con lo que hay al lado.
+     * Qué exige cada parte, de `requisitos_interesados`. **Hasta la 7.4 servía
+     * también para la e)**, y el acta lo declaraba como limitación: aquello dice
+     * qué exige cada parte, no qué ha dicho últimamente. La e) tiene ahora su
+     * propia entrada, `retroalimentacion()`.
      *
      * @return array<string, mixed>
      */
@@ -182,6 +183,59 @@ final readonly class EntradasRevision
                     'tipo' => $parte->tipo->etiqueta(),
                     'ambito' => $parte->ambito->etiqueta(),
                     'requisitos' => (int) $parte->getAttribute('requisitos_count'),
+                ])
+                ->values()
+                ->all(),
+        ];
+    }
+
+    /**
+     * e) La retroalimentación de las partes interesadas.
+     *
+     * **Lo recibido dentro del periodo revisado**, que es lo que la dirección
+     * tiene que tener delante: las quejas, sugerencias y encuestas de esos meses,
+     * con lo que se contestó. Acotado al periodo como las auditorías, porque lo
+     * que se revisa es lo que llegó desde la revisión anterior.
+     *
+     * Las actas aprobadas antes de la 7.4 no llevan esta clave en su instantánea,
+     * y por eso quien la pinta mira si existe: esas siguen diciendo que la
+     * retroalimentación se aportó fuera, que es lo que pasó.
+     *
+     * @return array<string, mixed>
+     */
+    private function retroalimentacion(RevisionDireccion $revision): array
+    {
+        $recibidas = Comunicacion::query()
+            ->recibidas()
+            ->with('parteInteresada')
+            ->whereDate('fecha', '>=', $revision->periodo_desde)
+            ->whereDate('fecha', '<=', $revision->periodo_hasta)
+            ->orderBy('fecha')
+            ->get();
+
+        $porTipo = [];
+
+        foreach (TipoRetroalimentacion::cases() as $tipo) {
+            $cuantas = $recibidas->filter(fn (Comunicacion $comunicacion): bool => $comunicacion->tipo_recibida === $tipo)->count();
+
+            if ($cuantas > 0) {
+                $porTipo[] = ['tipo' => $tipo->etiqueta(), 'total' => $cuantas];
+            }
+        }
+
+        return [
+            'total' => $recibidas->count(),
+            'sinRespuesta' => $recibidas
+                ->filter(fn (Comunicacion $comunicacion): bool => $comunicacion->respuesta === null || trim($comunicacion->respuesta) === '')
+                ->count(),
+            'porTipo' => $porTipo,
+            'detalle' => $recibidas
+                ->map(fn (Comunicacion $comunicacion): array => [
+                    'fecha' => $comunicacion->fecha->format('d/m/Y'),
+                    'tipo' => $comunicacion->tipo_recibida?->etiqueta(),
+                    'parte' => $comunicacion->parteInteresada?->nombre,
+                    'asunto' => $comunicacion->asunto,
+                    'respuesta' => $comunicacion->respuesta,
                 ])
                 ->values()
                 ->all(),

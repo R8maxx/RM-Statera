@@ -135,8 +135,8 @@ it('declara por escrito lo que la herramienta no puede afirmar', function (): vo
 
     $limitaciones = implode(' ', ($this->contenido)($revision)->limitaciones);
 
-    // Las cuatro que el módulo declara, y la del medio es la que más importa:
-    // la 9.3.2 e) se aporta fuera de la herramienta.
+    // Las cuatro que el módulo declara. La de la 9.3.2 e) cambió con la 7.4: ya
+    // no dice que se aporta fuera, dice que sólo cuenta lo que se registró.
     expect($limitaciones)->toContain('congelado')
         ->and($limitaciones)->toContain('retroalimentación')
         ->and($limitaciones)->toContain('potestad')

@@ -50,7 +50,7 @@ año, así que no hay índice único parcial ni estado `obsoleta`.
 | b) Cambios en cuestiones internas y externas | § 4.1, desde el análisis **aprobado** |
 | c) Necesidades de las partes interesadas | § 4.1 |
 | d) Desempeño: NC, medición, auditorías y **objetivos** | § 4.13, § 4.14, § 4.12 y la **6.2** |
-| e) Retroalimentación de las partes interesadas | § 4.1, **con limitación declarada** |
+| e) Retroalimentación de las partes interesadas | lo recibido en el periodo, de `comunicaciones` (§ 7.4) |
 | f) Riesgos y estado del tratamiento | § 4.3 |
 | g) **Oportunidades de mejora** | **10.1** |
 
@@ -69,10 +69,16 @@ puede celebrar su primera revisión sin auditorías, sin no conformidades y sin
 objetivos, y el acta lo dirá. Exigir que haya contenido convertiría la primera
 revisión en imposible, que es cuando más falta hace.
 
-**La entrada e) comparte apartado con la c) y el acta lo dice.** Statera registra
-**qué exige** cada parte interesada, no **qué ha dicho** últimamente: no hay
-quejas, ni encuestas, ni comunicaciones recibidas. Repartirlas en dos apartados con
-el mismo contenido daría la impresión de que las dos están cubiertas.
+**La entrada e) tiene apartado propio desde la 7.4.** Hasta entonces compartía el de
+la c) y el acta lo declaraba: Statera registraba **qué exige** cada parte, no **qué
+ha dicho**. Ahora sale de lo **recibido dentro del periodo revisado** —quejas,
+sugerencias, consultas, encuestas—, con lo que se contestó.
+
+**Las actas aprobadas antes no cambian.** Su instantánea no lleva la clave
+`retroalimentacion`, y quien la pinta —`EntradasRevision.vue`,
+`MaterializarCuerpo::entradaPartes()` y la limitación de `ActaRevisionDireccion`—
+mira si existe: sin ella, sigue diciendo «c) y e)» y que la e) se aportó fuera, que
+es lo que la dirección tuvo delante. Un trigger blinda además el acta aprobada.
 
 ### Dos fechas y no una periodicidad
 
@@ -203,8 +209,9 @@ Tres cosas para cerrarlo, y las tres hacen falta:
 
 Las cuatro van impresas en el acta, no sólo aquí:
 
-- **La retroalimentación de las partes interesadas (9.3.2 e) se aporta fuera.**
-  Statera registra qué exige cada parte, no qué ha dicho.
+- ~~**La retroalimentación (9.3.2 e) se aporta fuera.**~~ Cerrado con la 7.4. Lo
+  que queda declarado es otra cosa: **sólo cuenta lo que se registró** como
+  recibido, y Statera no comprueba que esté todo.
 - **Los asistentes son texto libre**, y no se comprueba que quien figura tenga
   potestad para revisar el sistema de gestión ni que la dirección estuviera
   representada. Tampoco hay firma electrónica cualificada. `users` son cuentas de
