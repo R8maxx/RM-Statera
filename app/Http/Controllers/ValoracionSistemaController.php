@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Domain\Catalogo\Enums\Dimension;
+use App\Domain\Catalogo\Models\PerfilCumplimiento;
 use App\Domain\Categorizacion\Enums\NivelDimension;
 use App\Domain\Sistema\AplicarValoracion;
+use App\Domain\Sistema\Excepciones\PerfilNoAplicable;
 use App\Domain\Sistema\Models\Sistema;
 use App\Domain\Sistema\Models\ValoracionDimension;
 use App\Http\Requests\GuardarValoracionRequest;
@@ -30,7 +32,7 @@ class ValoracionSistemaController extends Controller
 {
     public function edit(Sistema $sistema): Response
     {
-        $sistema->load('marco', 'valoraciones');
+        $sistema->load('marco', 'valoraciones', 'perfil');
 
         $valoracion = $sistema->valoracion();
 
@@ -55,6 +57,27 @@ class ValoracionSistemaController extends Controller
                 ->where('aplica', true)
                 ->count(),
             'valorada' => $sistema->valoraciones->isNotEmpty(),
+            /*
+             * Sólo los del marco del sistema **que llevan medidas**. Un perfil
+             * vacío no se ofrece: el dominio lo rechazaría, y asignarlo dejaría
+             * el sistema sin nada exigible. Hoy el catálogo no trae ninguno con
+             * contenido —la serie CCN-STIC 890 está pendiente de contrastar— y la
+             * pantalla lo dice.
+             */
+            'perfil' => $sistema->perfil_id === null ? null : (string) $sistema->perfil_id,
+            'perfiles' => PerfilCumplimiento::query()
+                ->where('marco_id', $sistema->marco_id)
+                ->conContenido()
+                ->withCount('requisitos')
+                ->orderBy('nombre')
+                ->get()
+                ->map(static fn (PerfilCumplimiento $perfil): array => [
+                    'valor' => (string) $perfil->id,
+                    'etiqueta' => $perfil->nombre,
+                    'referencia' => $perfil->referencia,
+                    'medidas' => (int) $perfil->getAttribute('requisitos_count'),
+                ])
+                ->all(),
             'dimensiones' => array_map(
                 static fn (Dimension $dimension): array => [
                     'clave' => $dimension->value,
@@ -96,7 +119,13 @@ class ValoracionSistemaController extends Controller
         Sistema $sistema,
         AplicarValoracion $aplicar,
     ): JsonResponse {
-        $resultado = $aplicar->simular($sistema, $request->valoracion(), $request->justificaciones());
+        try {
+            $resultado = $aplicar->simular($sistema, $request->valoracion(), $request->justificaciones(), $request->perfil());
+        } catch (PerfilNoAplicable $error) {
+            // Con la forma de un error de validación, para que el formulario lo
+            // pinte en su campo como los demás.
+            return response()->json(['message' => $error->getMessage(), 'errors' => ['perfil_id' => [$error->getMessage()]]], 422);
+        }
 
         return response()->json(PrevisualizacionValoracion::desde($resultado));
     }
@@ -106,7 +135,11 @@ class ValoracionSistemaController extends Controller
         Sistema $sistema,
         AplicarValoracion $aplicar,
     ): RedirectResponse {
-        $resultado = $aplicar->aplicar($sistema, $request->valoracion(), $request->justificaciones());
+        try {
+            $resultado = $aplicar->aplicar($sistema, $request->valoracion(), $request->justificaciones(), $request->perfil());
+        } catch (PerfilNoAplicable $error) {
+            return back()->withErrors(['perfil_id' => $error->getMessage()]);
+        }
 
         Inertia::flash('exito', $this->resumir($sistema, $resultado->resumen()));
 

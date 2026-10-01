@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace App\Http\Requests;
 
 use App\Domain\Catalogo\Enums\Dimension;
+use App\Domain\Catalogo\Models\PerfilCumplimiento;
 use App\Domain\Categorizacion\Enums\NivelDimension;
 use App\Domain\Categorizacion\ValoracionDimensiones;
+use App\Domain\Sistema\Models\Sistema;
+use App\Http\Requests\Concerns\NormalizaSeleccionVacia;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -19,9 +22,15 @@ use Illuminate\Validation\Rule;
  * se le exige— sale de aquí.
  *
  * La categoría NO se acepta como entrada. Se deriva (invariante 4).
+ *
+ * **El perfil de cumplimiento es la otra entrada del motor**, y viaja con la
+ * valoración para que el diff enseñe las dos a la vez. Sólo uno del marco del
+ * sistema; que lleve medidas lo comprueba además el dominio.
  */
 class GuardarValoracionRequest extends FormRequest
 {
+    use NormalizaSeleccionVacia;
+
     /**
      * @return array<string, mixed>
      */
@@ -34,7 +43,37 @@ class GuardarValoracionRequest extends FormRequest
             $reglas[$this->claveJustificacion($dimension)] = ['nullable', 'string', 'max:2000'];
         }
 
+        $sistema = $this->route('sistema');
+
+        $reglas['perfil_id'] = [
+            'nullable',
+            'integer',
+            Rule::exists('perfiles_cumplimiento', 'id')
+                ->where('marco_id', $sistema instanceof Sistema ? $sistema->marco_id : 0),
+        ];
+
         return $reglas;
+    }
+
+    /**
+     * El perfil pedido: `false` si el formulario no lo trae —no se toca el que
+     * tenga—, `null` si se quita, o el modelo.
+     */
+    public function perfil(): PerfilCumplimiento|false|null
+    {
+        if (! $this->has('perfil_id')) {
+            return false;
+        }
+
+        $id = $this->validated('perfil_id');
+
+        return $id === null ? null : PerfilCumplimiento::query()->findOrFail($id);
+    }
+
+    /** @return list<string> */
+    protected function seleccionesOpcionales(): array
+    {
+        return ['perfil_id'];
     }
 
     /** La valoración validada, como value object: la entrada del motor. */
@@ -76,6 +115,8 @@ class GuardarValoracionRequest extends FormRequest
             $atributos[$this->claveNivel($dimension)] = "nivel de {$nombre}";
             $atributos[$this->claveJustificacion($dimension)] = "justificación de {$nombre}";
         }
+
+        $atributos['perfil_id'] = 'perfil de cumplimiento';
 
         return $atributos;
     }

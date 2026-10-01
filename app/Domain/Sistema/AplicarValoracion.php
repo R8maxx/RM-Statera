@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Domain\Sistema;
 
 use App\Domain\Catalogo\Enums\Dimension;
+use App\Domain\Catalogo\Models\PerfilCumplimiento;
 use App\Domain\Categorizacion\ValoracionDimensiones;
 use App\Domain\Implantacion\GeneradorImplantaciones;
 use App\Domain\Implantacion\ResultadoGeneracion;
+use App\Domain\Sistema\Excepciones\PerfilNoAplicable;
 use App\Domain\Sistema\Models\Sistema;
 use App\Domain\Sistema\Models\ValoracionDimension;
 use Illuminate\Support\Facades\DB;
@@ -26,6 +28,13 @@ use Throwable;
  * de exigírsele ANTES de aceptarlo. Y simula sobre la valoración escrita, no
  * sobre una copia en memoria, porque el motor lee de la base: es la única forma
  * de que el diff que se enseña sea el que se aplicará.
+ *
+ * **El perfil de cumplimiento va por aquí también**, porque es la otra entrada
+ * del motor (paso 4): cambiarlo recalcula lo exigible igual que cambiar una
+ * dimensión, y tiene que verse en el mismo diff antes de aceptarlo. `$perfil`
+ * distingue tres cosas: `false` es «no tocar el que tenga», `null` es «sin
+ * perfil» y un modelo es ése. Un perfil vacío o de otro marco **no se asigna**:
+ * ver `PerfilNoAplicable`.
  */
 final class AplicarValoracion
 {
@@ -36,8 +45,9 @@ final class AplicarValoracion
         Sistema $sistema,
         ValoracionDimensiones $valoracion,
         array $justificaciones = [],
+        PerfilCumplimiento|false|null $perfil = false,
     ): ResultadoGeneracion {
-        return $this->ejecutar($sistema, $valoracion, $justificaciones, simulacion: false);
+        return $this->ejecutar($sistema, $valoracion, $justificaciones, $perfil, simulacion: false);
     }
 
     /** @param  array<string, ?string>  $justificaciones */
@@ -45,8 +55,9 @@ final class AplicarValoracion
         Sistema $sistema,
         ValoracionDimensiones $valoracion,
         array $justificaciones = [],
+        PerfilCumplimiento|false|null $perfil = false,
     ): ResultadoGeneracion {
-        return $this->ejecutar($sistema, $valoracion, $justificaciones, simulacion: true);
+        return $this->ejecutar($sistema, $valoracion, $justificaciones, $perfil, simulacion: true);
     }
 
     /** @param  array<string, ?string>  $justificaciones */
@@ -54,12 +65,21 @@ final class AplicarValoracion
         Sistema $sistema,
         ValoracionDimensiones $valoracion,
         array $justificaciones,
+        PerfilCumplimiento|false|null $perfil,
         bool $simulacion,
     ): ResultadoGeneracion {
+        if ($perfil instanceof PerfilCumplimiento) {
+            $this->comprobarPerfil($sistema, $perfil);
+        }
+
         DB::beginTransaction();
 
         try {
             $this->escribir($sistema, $valoracion, $justificaciones);
+
+            if ($perfil !== false) {
+                $sistema->update(['perfil_id' => $perfil?->id]);
+            }
 
             // El generador abre su propia transacción, que aquí dentro es un
             // savepoint: si es simulación la revierte él, y la escritura de la
@@ -78,6 +98,22 @@ final class AplicarValoracion
             DB::rollBack();
 
             throw $e;
+        }
+    }
+
+    /**
+     * Un perfil se asigna sólo si es del marco del sistema y lleva medidas.
+     *
+     * @throws PerfilNoAplicable
+     */
+    private function comprobarPerfil(Sistema $sistema, PerfilCumplimiento $perfil): void
+    {
+        if ($perfil->marco_id !== $sistema->marco_id) {
+            throw PerfilNoAplicable::deOtroMarco($perfil->codigo);
+        }
+
+        if (! $perfil->requisitos()->exists()) {
+            throw PerfilNoAplicable::sinContenido($perfil->codigo);
         }
     }
 

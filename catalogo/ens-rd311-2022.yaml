@@ -60,6 +60,21 @@ marco:
 fuente: 'BOE-A-2022-7191, Real Decreto 311/2022 de 3 de mayo, Anexo II'
 revisado: false
 
+# ---------------------------------------------------------------------------
+# Perfiles de cumplimiento de la serie CCN-STIC 890. VACÍOS A PROPÓSITO hasta
+# contrastarlos con la guía, igual que se contrastó el Anexo II con el BOE: el
+# paso 4 del motor deja fuera lo que no está en el perfil, así que una medida
+# que falte aquí dejaría de exigirse sin que nadie se enterara. La pantalla de
+# valoración ya sabe asignarlos y sólo ofrece los que llevan medidas.
+#
+# Forma de cada uno:
+#   - codigo: <código del perfil>
+#     nombre: <nombre que le da la guía>
+#     referencia: '<guía CCN-STIC de la que sale>'
+#     requisitos: [<medida>, {codigo: <medida>, exigencia: R1}]
+# ---------------------------------------------------------------------------
+perfiles: []
+
 requisitos:
 
   # =========================================================================

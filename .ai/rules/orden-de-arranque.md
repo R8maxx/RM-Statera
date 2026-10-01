@@ -592,3 +592,15 @@ y 36 retención RGPD.
     futura— más una `Fuente` propia. Lo único que mordió fue PostgreSQL
     recortando a 63 caracteres los nombres de la pivote, que dejó la clave
     foránea y el índice único llamándose igual.
+
+39. ✅ Perfiles CCN-STIC 890, **la pantalla y no los datos**. El modelo, el
+    importador y el paso 4 del motor ya estaban; faltaba poder asignarlos. César
+    decidió no cargar ninguna medida hasta tener la guía contrastada, por el mismo
+    motivo que se contrastó el Anexo II con el BOE.
+
+    El perfil entra por la pantalla de valoración y no por la ficha del sistema,
+    porque es la otra entrada del motor: el diff que se previsualiza tiene que
+    contar las dos. Y la decisión que define el punto es una guarda: **un perfil
+    sin medidas no se asigna**, porque el paso 4 deja fuera lo que no está en él
+    y el sistema se quedaría sin nada exigible, en silencio. Está en el dominio
+    y no sólo en el desplegable.

@@ -3,12 +3,14 @@ import Aviso from '@/components/Aviso.vue';
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
 import BarraAcciones from '@/components/formulario/BarraAcciones.vue';
 import CampoOpciones from '@/components/formulario/CampoOpciones.vue';
+import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
 import SeccionFormulario from '@/components/formulario/SeccionFormulario.vue';
 import { Button } from '@/components/ui/button';
 import DiffValoracion from '@/components/valoracion/DiffValoracion.vue';
 import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { conOpcionVacia, SIN_VALOR } from '@/lib/formularios';
 import { router, useHttp } from '@inertiajs/vue3';
 import { motion } from 'motion-v';
 import { computed, ref } from 'vue';
@@ -23,7 +25,14 @@ type ClaveDimension = 'C' | 'I' | 'D' | 'A' | 'T';
  * clave del error del `FormRequest` sean la misma cosa.
  */
 type DatosValoracion = Record<`nivel_${ClaveDimension}`, string> &
-    Record<`justificacion_${ClaveDimension}`, string>;
+    Record<`justificacion_${ClaveDimension}`, string> & { perfil_id: string };
+
+interface Perfil {
+    valor: string;
+    etiqueta: string;
+    referencia: string | null;
+    medidas: number;
+}
 
 interface Nivel {
     valor: string;
@@ -47,6 +56,8 @@ const props = defineProps<{
     valorada: boolean;
     dimensiones: DimensionValorada[];
     niveles: Nivel[];
+    perfil: string | null;
+    perfiles: Perfil[];
 }>();
 
 const { variantesEntrada } = useMovimientoReducido();
@@ -64,7 +75,7 @@ const previa = useHttp<DatosValoracion, Previsualizacion>(
         props.dimensiones.flatMap((dimension) => [
             [`nivel_${dimension.clave}`, dimension.nivel],
             [`justificacion_${dimension.clave}`, dimension.justificacion],
-        ]),
+        ]).concat([['perfil_id', props.perfil ?? SIN_VALOR]]),
     ) as DatosValoracion,
 );
 
@@ -86,6 +97,21 @@ const categoriaDerivada = computed<string | null>(() => {
 
     return maximo?.categoria ?? null;
 });
+
+/*
+ * El perfil es la otra entrada del motor (paso 4): deja fuera lo que no está en
+ * él. Sólo se ofrecen los que llevan medidas; un perfil vacío dejaría el sistema
+ * sin nada exigible.
+ */
+const opcionesPerfil = computed(() =>
+    conOpcionVacia(
+        props.perfiles.map((perfil) => ({
+            valor: perfil.valor,
+            etiqueta: `${perfil.etiqueta} · ${perfil.medidas} medidas`,
+        })),
+        'Sin perfil: lo que exige la categoría',
+    ),
+);
 
 const diff = ref<Previsualizacion | null>(null);
 const guardando = ref(false);
@@ -169,6 +195,25 @@ function aplicar(): void {
                         :error="previa.errors[`justificacion_${dimension.clave}`]"
                         ayuda="Lo que el auditor contrasta cuando discute la categoría del sistema."
                     />
+                </SeccionFormulario>
+
+                <SeccionFormulario
+                    titulo="Perfil de cumplimiento"
+                    ayuda="Un perfil de la serie CCN-STIC 890 acota lo exigible a las medidas que recoge. Es opcional: sin perfil se exige lo que dicta la categoría."
+                >
+                    <CampoSelect
+                        v-if="perfiles.length > 0 || perfil !== null"
+                        v-model="previa.perfil_id"
+                        nombre="perfil_id"
+                        etiqueta="Perfil"
+                        :opciones="opcionesPerfil"
+                        :error="previa.errors.perfil_id"
+                    />
+                    <p v-else class="rounded-lg border border-dashed p-4 text-[13px] text-muted-foreground">
+                        El catálogo no trae todavía ningún perfil con medidas. Los de la serie CCN-STIC 890 se
+                        cargan cuando estén contrastados con la guía, como se hizo con el Anexo II: un perfil
+                        incompleto dejaría de exigir medidas que sí se exigen.
+                    </p>
                 </SeccionFormulario>
             </motion.div>
 
