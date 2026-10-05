@@ -31,6 +31,18 @@ use Illuminate\Support\Facades\DB;
 final class ResumenCumplimiento
 {
     /**
+     * El orden de los tramos de la barra por estado. Ver `porEstado()`.
+     *
+     * @var list<EstadoImplantacion>
+     */
+    public const ORDEN_DE_LA_BARRA = [
+        EstadoImplantacion::Implantado,
+        EstadoImplantacion::Planificado,
+        EstadoImplantacion::EnProgreso,
+        EstadoImplantacion::NoIniciado,
+    ];
+
+    /**
      * El reparto por estado de lo exigible.
      *
      * Devuelve los cuatro estados aunque alguno esté a cero: una barra a la que
@@ -58,18 +70,12 @@ final class ResumenCumplimiento
          * protanopia (ΔE 5.7, por debajo del suelo de 6), y basta con meter el
          * azul de `planificado` entre los dos para subir a 14.0. DESIGN.md §3
          * lo recoge. `no_aplica` no entra: por la restricción de la base no
-         * puede coexistir con `aplica = true`.
+         * puede coexistir con `aplica = true`. Es `ORDEN_DE_LA_BARRA`, que
+         * comparte con `ResumenPorAtributo`.
          */
-        $orden = [
-            EstadoImplantacion::Implantado,
-            EstadoImplantacion::Planificado,
-            EstadoImplantacion::EnProgreso,
-            EstadoImplantacion::NoIniciado,
-        ];
-
         $segmentos = [];
 
-        foreach ($orden as $estado) {
+        foreach (self::ORDEN_DE_LA_BARRA as $estado) {
             $segmentos[] = new SegmentoEstado(
                 $estado->value,
                 $estado->etiqueta(),

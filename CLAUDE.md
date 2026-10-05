@@ -142,6 +142,7 @@ completa con el razonamiento del orden, en `.ai/rules/orden-de-arranque.md`.
 | 37 | Planificación de cambios del SGSI — **abre los huecos de `PRODUCT.md`** | 6.3 | `cambios.md` |
 | 38 | Comunicación: el plan, lo comunicado y lo recibido | 7.4 | `comunicacion.md`, `revision-direccion.md` |
 | 39 | Perfiles CCN-STIC 890: la asignación, sin los datos | — | `catalogo.md` |
+| 40 | Implantaciones agrupadas por atributo de la ISO 27002 | 4.4 | `implantaciones.md` |
 
 **La fase 3 está cerrada.** Con continuidad (§ 4.11) dentro —el BIA por servicio,
 el plan como documento y las pruebas que lo contrastan— el ciclo vivo se recorre

@@ -604,3 +604,14 @@ y 36 retención RGPD.
     sin medidas no se asigna**, porque el paso 4 deja fuera lo que no está en él
     y el sistema se quedaría sin nada exigible, en silencio. Está en el dominio
     y no sólo en el desplegable.
+
+40. ✅ Agrupar por atributo de la ISO 27002, lo que le faltaba al § 4.4 después
+    del filtro. Una vista propia y no un modo de la tabla, porque `DataTable` no
+    tiene sub-filas y agrupar en servidor es otra consulta: una fila por valor,
+    con la misma barra por estado que el panel, enlazada al filtro que ya
+    existía. Lo único que hay que saber al leerla es que las filas no suman el
+    total, y la pantalla lo dice.
+
+    La lección fue de método: lancé los tests del módulo con la suite completa
+    corriendo y salieron interbloqueos, exactamente lo que la memoria del
+    proyecto avisa. Se repitió la suite sola.

@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { router } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
 type Accion = App.Http.Resources.Definicion.Accion;
@@ -76,7 +76,13 @@ function confirmar(): void {
         <CabeceraPagina
             :titulo="recurso.etiquetas.plural"
             :descripcion="recurso.etiquetas.descripcion"
-        />
+        >
+            <template #acciones>
+                <Button as-child variant="outline">
+                    <Link href="/implantaciones/atributos">Por atributo ISO 27002</Link>
+                </Button>
+            </template>
+        </CabeceraPagina>
 
         <DataTable :recurso="recurso" :filas="filas" :meta="meta" @masiva="abrir" />
 

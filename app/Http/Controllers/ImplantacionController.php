@@ -18,7 +18,9 @@ use App\Domain\Implantacion\Excepciones\ExclusionNoPermitida;
 use App\Domain\Implantacion\Excepciones\TransicionNoPermitida;
 use App\Domain\Implantacion\Models\Implantacion;
 use App\Domain\Implantacion\Models\ImplantacionTransicion;
+use App\Domain\Implantacion\ResumenPorAtributo;
 use App\Domain\Organizacion\ContextoOrganizacion;
+use App\Domain\Sistema\Models\Sistema;
 use App\Domain\Tarea\Models\Tarea;
 use App\Http\Controllers\Concerns\EmpiezaPorLoMio;
 use App\Http\Requests\CambiarEstadoImplantacionesRequest;
@@ -58,6 +60,39 @@ class ImplantacionController extends Controller
      * Las tres preguntas de una auditoría en una pantalla. La tercera —dónde
      * está la prueba— entra con el módulo de evidencias.
      */
+    /**
+     * Lo exigible agrupado por un atributo de la ISO 27002 (§ 4.4).
+     *
+     * Vista propia y no una forma de pintar la tabla: `DataTable` no tiene
+     * sub-filas, y agrupar en una tabla paginada en el servidor es otra consulta.
+     * Cada fila lleva a la tabla filtrada por su valor.
+     */
+    public function porAtributo(Request $request, ResumenPorAtributo $resumen): Response
+    {
+        $dimensiones = $resumen->dimensiones();
+        $pedida = (string) $request->query('dimension', '');
+        $dimension = array_key_exists($pedida, $dimensiones) ? $pedida : (array_key_first($dimensiones) ?? '');
+
+        $sistemaId = $request->integer('sistema') ?: null;
+        $sistema = $sistemaId === null ? null : Sistema::query()->find($sistemaId);
+
+        return Inertia::render('implantaciones/PorAtributo', [
+            'dimensiones' => array_map(
+                static fn (string $clave, array $datos): array => ['valor' => $clave, 'etiqueta' => $datos['etiqueta']],
+                array_keys($dimensiones),
+                $dimensiones,
+            ),
+            'dimension' => $dimension === '' ? null : $dimension,
+            'sistema' => $sistema?->id === null ? null : (string) $sistema->id,
+            'sistemas' => Sistema::query()
+                ->orderBy('codigo')
+                ->get()
+                ->map(static fn (Sistema $fila): array => ['valor' => (string) $fila->id, 'etiqueta' => "{$fila->codigo} — {$fila->nombre}"])
+                ->all(),
+            'filas' => $dimension === '' ? [] : ($resumen->para($dimension, $sistema?->id) ?? []),
+        ]);
+    }
+
     public function show(
         Request $request,
         Implantacion $implantacion,

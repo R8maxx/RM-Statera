@@ -311,6 +311,10 @@ Route::middleware('auth')->group(function (): void {
     Route::middleware('can:implantaciones.ver')->group(function (): void {
         Route::get('/implantaciones', [ImplantacionController::class, 'index'])->name('implantaciones.index');
 
+        // Antes que `{implantacion}`, para que `atributos` no se lea como un id.
+        Route::get('/implantaciones/atributos', [ImplantacionController::class, 'porAtributo'])
+            ->name('implantaciones.atributos');
+
         // La ficha se declara después de la acción masiva para que `estado` no
         // se lea como el identificador de una implantación.
         Route::get('/implantaciones/{implantacion}', [ImplantacionController::class, 'show'])
