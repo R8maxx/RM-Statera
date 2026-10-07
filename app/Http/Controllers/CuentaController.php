@@ -186,7 +186,11 @@ class CuentaController extends Controller
 
     public function reactivar(User $cuenta, ReactivarCuenta $reactivar): RedirectResponse
     {
-        $reactivar($cuenta);
+        try {
+            $reactivar($cuenta);
+        } catch (OperacionDeCuentaNoPermitida $error) {
+            return back()->withErrors(['cuenta' => $error->getMessage()]);
+        }
 
         Inertia::flash('exito', match ($cuenta->estadoCuenta()) {
             EstadoCuenta::Caducada => 'Cuenta reactivada, pero su fecha de fin ya pasó: amplíala para que pueda entrar.',

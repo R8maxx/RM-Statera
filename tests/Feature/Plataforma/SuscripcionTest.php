@@ -215,3 +215,15 @@ it('la lista de clientes enseña el plan y el estado de cada uno', function (): 
             ->where('filas.0.plan_nombre', 'Básica')
             ->where('filas.0.suscripcion.valor', 'solo_lectura'));
 });
+
+it('reactivar una cuenta no se salta el límite de cuentas', function (): void {
+    conPlan($this->organizacion, Plan::factory()->conLimites(1)->create(), null);
+    $desactivada = usuarioCon(Rol::Tecnico);
+    $desactivada->forceFill(['desactivada_en' => now()])->save();
+
+    $this->actingAs($this->responsable)
+        ->post("/cuentas/{$desactivada->id}/reactivar")
+        ->assertSessionHasErrors('cuenta');
+
+    expect($desactivada->fresh()?->desactivada_en)->not->toBeNull();
+});

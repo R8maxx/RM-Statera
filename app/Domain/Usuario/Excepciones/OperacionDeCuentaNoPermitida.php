@@ -48,6 +48,14 @@ final class OperacionDeCuentaNoPermitida extends DomainException
         return new self('Esta cuenta ya aceptó su invitación: no hay nada que reenviar.');
     }
 
+    public static function limiteDelPlan(): self
+    {
+        return new self(
+            'El plan de la organización no admite más cuentas, y ésta volvería a ocupar un asiento. '
+            .'Desactiva otra antes, o amplía el plan. El auditor externo no cuenta.'
+        );
+    }
+
     public static function correoEnUso(): self
     {
         return new self('Ya hay una cuenta con ese correo.');
