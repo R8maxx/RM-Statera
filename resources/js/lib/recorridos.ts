@@ -48,6 +48,13 @@ export type PasoRecorrido = {
     lado: LadoRecorrido;
     /** Se salta para quien no tenga este permiso. */
     permiso?: string;
+    /**
+     * Lo que señala vive en el lateral. Por debajo de `md` el lateral es un
+     * panel que sólo existe abierto, así que el layout lo abre mientras dure
+     * el paso; sin esto el general se quedaba en móvil con diez pasos
+     * centrados que no señalaban nada.
+     */
+    lateral?: boolean;
 };
 
 /**
@@ -71,6 +78,7 @@ const recorridoPanel: PasoRecorrido[] = [
             'Statera lleva a la vez la ISO/IEC 27001:2022 y el Esquema Nacional de Seguridad. Cada prueba, cada tarea y cada documento se apunta una vez y cuenta en todos los marcos donde valga, que es justo lo que obliga a duplicar trabajo cuando esto se lleva en hojas de cálculo.',
         anclas: ['logotipo'],
         lado: 'derecha',
+        lateral: true,
     },
     {
         clave: 'sistema',
@@ -95,6 +103,7 @@ const recorridoPanel: PasoRecorrido[] = [
             'Cada medida exigible se convierte en una implantación con su estado y su histórico. El auditor no pregunta si algo está implantado, pregunta desde cuándo, así que toda transición queda registrada con fecha y autor.',
         anclas: ['nav-implantaciones'],
         lado: 'derecha',
+        lateral: true,
     },
     {
         clave: 'mapeo',
@@ -111,6 +120,7 @@ const recorridoPanel: PasoRecorrido[] = [
             'El panel, las implantaciones, las evidencias y los documentos que salen de ellas. Aquí vive también la conformidad con el ENS: la autoevaluación, la Declaración firmada y el distintivo.',
         anclas: [anclaGrupo('Estado')],
         lado: 'derecha',
+        lateral: true,
     },
     {
         clave: 'grupo-plan',
@@ -119,6 +129,7 @@ const recorridoPanel: PasoRecorrido[] = [
             'El análisis de riesgos decide qué se trata, y el tratamiento se convierte en tareas con responsable y plazo. El calendario junta todo lo que vence, también lo que la norma obliga a repetir cada año.',
         anclas: [anclaGrupo('Plan')],
         lado: 'derecha',
+        lateral: true,
     },
     {
         clave: 'grupo-ciclo',
@@ -127,6 +138,7 @@ const recorridoPanel: PasoRecorrido[] = [
             'Auditorías, no conformidades con su acción correctiva, mejoras, incidentes, vulnerabilidades y continuidad. Es el SGSI funcionando, no sólo documentado.',
         anclas: [anclaGrupo('Ciclo')],
         lado: 'derecha',
+        lateral: true,
     },
     {
         clave: 'grupo-medida',
@@ -135,6 +147,7 @@ const recorridoPanel: PasoRecorrido[] = [
             'Indicadores que se sellan solos cada periodo, objetivos con su meta, los cambios planificados del SGSI y la revisión por la dirección, que recoge todo lo anterior en un acta.',
         anclas: [anclaGrupo('Medida')],
         lado: 'derecha',
+        lateral: true,
     },
     {
         clave: 'grupo-alcance',
@@ -143,6 +156,7 @@ const recorridoPanel: PasoRecorrido[] = [
             'El contexto de la organización, sus partes interesadas y qué se les comunica; los sistemas y el inventario de activos que los sostienen. Es la base contra la que se mide todo lo demás.',
         anclas: [anclaGrupo('Alcance')],
         lado: 'derecha',
+        lateral: true,
     },
     {
         clave: 'grupo-organizacion',
@@ -151,6 +165,7 @@ const recorridoPanel: PasoRecorrido[] = [
             'Personas, puestos con sus responsabilidades, formación y proveedores. Asignar bien los roles es un requisito de los dos marcos, no un organigrama decorativo.',
         anclas: [anclaGrupo('Organización')],
         lado: 'derecha',
+        lateral: true,
     },
     {
         clave: 'cada-pantalla',

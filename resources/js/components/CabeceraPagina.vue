@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
 import { useRecorrido } from '@/composables/useRecorrido';
 import { duracion, curva } from '@/lib/motion';
@@ -104,17 +105,20 @@ onMounted(() => {
                 <slot name="acciones" />
             </div>
             <!-- El último, y discreto: es ayuda, no una acción de la pantalla. -->
-            <Button
-                v-if="recorrido"
-                variant="ghost"
-                size="icon-sm"
-                class="text-muted-foreground"
-                aria-label="Recorrido de esta pantalla"
-                title="Recorrido de esta pantalla"
-                @click="abrir(recorrido)"
-            >
-                <CircleHelpIcon />
-            </Button>
+            <Tooltip v-if="recorrido">
+                <TooltipTrigger as-child>
+                    <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        class="text-muted-foreground"
+                        aria-label="Recorrido de esta pantalla"
+                        @click="abrir(recorrido)"
+                    >
+                        <CircleHelpIcon />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>Recorrido de esta pantalla</TooltipContent>
+            </Tooltip>
         </div>
     </div>
 </template>

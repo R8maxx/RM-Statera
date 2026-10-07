@@ -58,29 +58,76 @@ const candidatas = (): HTMLElement[] => {
         return [];
     }
 
+    /*
+     * Un elemento con área cero está en el DOM pero no en la pantalla —el
+     * sidebar plegado, una tarjeta dentro de un `v-if` que aún no ha pintado—.
+     * Señalarlo dibujaría un foco de un píxel en una esquina.
+     *
+     * Y una misma ancla puede estar dos veces: el lateral de escritorio y el
+     * panel móvil llevan las mismas. Por eso se buscan todas y gana la primera
+     * con caja; con `querySelector` ganaba siempre la del lateral oculto.
+     */
+    const conCaja = (elemento: HTMLElement): boolean => {
+        const caja = elemento.getBoundingClientRect();
+
+        return caja.width > 0 && caja.height > 0;
+    };
+
     return actual.anclas
-        .map((ancla) => document.querySelector<HTMLElement>(`[data-recorrido="${ancla}"]`))
-        .filter((elemento): elemento is HTMLElement => {
-            /*
-             * Un elemento con área cero está en el DOM pero no en la pantalla
-             * —el sidebar plegado, una tarjeta dentro de un `v-if` que aún no ha
-             * pintado—. Señalarlo dibujaría un foco de un píxel en una esquina.
-             */
-            if (!elemento) {
-                return false;
-            }
-
-            const caja = elemento.getBoundingClientRect();
-
-            return caja.width > 0 && caja.height > 0;
-        });
+        .map((ancla) => [...document.querySelectorAll<HTMLElement>(`[data-recorrido="${ancla}"]`)].find(conCaja))
+        .filter((elemento): elemento is HTMLElement => elemento !== undefined);
 };
 
-/** Si la caja cabe entera en la ventana, sin contar con desplazar nada. */
+/**
+ * El contenedor que de verdad desplaza al elemento, si no es la página.
+ *
+ * `scrollIntoView` mueve todos los antepasados a la vez: centrar «Proveedores»
+ * en el lateral desplazaba también el contenido principal, que no tenía nada
+ * que ver con el paso. Se desplaza sólo el más cercano que tenga scroll.
+ */
+const contenedorConScroll = (elemento: HTMLElement): HTMLElement | null => {
+    for (let padre = elemento.parentElement; padre && padre !== document.body; padre = padre.parentElement) {
+        const { overflowY } = getComputedStyle(padre);
+
+        if ((overflowY === 'auto' || overflowY === 'scroll') && padre.scrollHeight > padre.clientHeight) {
+            return padre;
+        }
+    }
+
+    return null;
+};
+
+const desplazarHasta = (elemento: HTMLElement): void => {
+    // Con la pestaña oculta no corren fotogramas y un desplazamiento suave se
+    // queda a medias: al volver, el foco señalaba un sitio que no estaba.
+    const comportamiento: ScrollBehavior = reducido.value || document.hidden ? 'auto' : 'smooth';
+    const caja = elemento.getBoundingClientRect();
+    const contenedor = contenedorConScroll(elemento);
+
+    // Se centra en el hueco que de verdad se ve: el del contenedor, recortado
+    // por la ventana y por el panel cuando va anclado abajo.
+    const marcoContenedor = contenedor?.getBoundingClientRect();
+    const arriba = Math.max(marcoContenedor?.top ?? 0, 0);
+    const abajo = Math.min(marcoContenedor?.bottom ?? Infinity, bordeInferior());
+    const desplazamiento = caja.top - arriba - Math.max(abajo - arriba - caja.height, 0) / 2;
+
+    (contenedor ?? window).scrollBy({ top: desplazamiento, behavior: comportamiento });
+};
+
+/**
+ * Hasta dónde llega lo que se ve. En estrecho el panel va anclado abajo y se
+ * come esa franja: lo que quede detrás de él no está a la vista, aunque esté
+ * dentro de la ventana. Medido en el móvil, el grupo «Organización» quedaba
+ * centrado en la ventana y medio tapado por el panel.
+ */
+const bordeInferior = (): number =>
+    esEstrecho.value ? window.innerHeight - altoPanel.value - MARGEN * 2 : window.innerHeight;
+
+/** Si la caja cabe entera en lo que se ve, sin contar con desplazar nada. */
 const estaALaVista = (elemento: HTMLElement): boolean => {
     const caja = elemento.getBoundingClientRect();
 
-    return caja.top >= 0 && caja.bottom <= window.innerHeight;
+    return caja.top >= 0 && caja.bottom <= bordeInferior();
 };
 
 const medir = (elemento: HTMLElement | null): void => {
@@ -149,7 +196,7 @@ const acercar = async (): Promise<void> => {
         return;
     }
 
-    vivas[0].scrollIntoView({ block: 'center', behavior: reducido.value ? 'auto' : 'smooth' });
+    desplazarHasta(vivas[0]);
 
     await nextTick();
     localizar();
@@ -168,8 +215,44 @@ const acercar = async (): Promise<void> => {
  * se sale por el borde derecho es peor que uno que no está donde se pidió.
  */
 const ANCHO_PANEL = 380;
-const ALTO_ESTIMADO = 260;
 const MARGEN = 16;
+
+/*
+ * El alto del panel, medido. Se estimaba en 260 px y un paso de tres líneas
+ * largas pasa de 300: colocado encima de su ancla, le tapaba el borde de
+ * arriba. El `ResizeObserver` lo sigue al cambiar de paso, que es cuando
+ * cambia el texto.
+ */
+const altoPanel = ref(260);
+let observador: ResizeObserver | null = null;
+
+watch(panel, (elemento) => {
+    observador?.disconnect();
+
+    if (elemento) {
+        observador = new ResizeObserver(() => {
+            altoPanel.value = elemento.offsetHeight;
+        });
+        observador.observe(elemento);
+    }
+});
+
+/*
+ * En estrecho el panel va a lo ancho, abajo. Cuando lo señalado no se puede
+ * subir por encima de él —el último grupo del lateral, que ya no tiene más
+ * recorrido, o una tarjeta más alta que el hueco—, se pasa arriba si así tapa
+ * menos. Medido en el móvil: «Organización» quedaba con media caja debajo.
+ */
+const arribaEnEstrecho = computed((): boolean => {
+    if (!esEstrecho.value || !marco.value) {
+        return false;
+    }
+
+    const tapaAbajo = marco.value.top + marco.value.height - (altoVentana.value - altoPanel.value - MARGEN);
+    const tapaArriba = MARGEN + altoPanel.value - marco.value.top;
+
+    return tapaAbajo > 0 && tapaArriba < tapaAbajo;
+});
 
 const posicion = computed<Record<string, string>>((): Record<string, string> => {
     if (esEstrecho.value || !marco.value) {
@@ -186,18 +269,18 @@ const posicion = computed<Record<string, string>>((): Record<string, string> => 
         top = caja.top + caja.height + MARGEN;
         left = caja.left + caja.width / 2 - ANCHO_PANEL / 2;
     } else if (lado === 'arriba') {
-        top = caja.top - ALTO_ESTIMADO - MARGEN;
+        top = caja.top - altoPanel.value - MARGEN;
         left = caja.left + caja.width / 2 - ANCHO_PANEL / 2;
     } else if (lado === 'derecha') {
-        top = caja.top + caja.height / 2 - ALTO_ESTIMADO / 2;
+        top = caja.top + caja.height / 2 - altoPanel.value / 2;
         left = caja.left + caja.width + MARGEN;
     } else {
-        top = caja.top + caja.height / 2 - ALTO_ESTIMADO / 2;
+        top = caja.top + caja.height / 2 - altoPanel.value / 2;
         left = caja.left - ANCHO_PANEL - MARGEN;
     }
 
     return {
-        top: `${recortar(top, MARGEN, altoVentana.value - ALTO_ESTIMADO - MARGEN)}px`,
+        top: `${recortar(top, MARGEN, altoVentana.value - altoPanel.value - MARGEN)}px`,
         left: `${recortar(left, MARGEN, anchoVentana.value - ANCHO_PANEL - MARGEN)}px`,
     };
 });
@@ -210,8 +293,8 @@ const elegirLado = (
     preferido: LadoRecorrido,
 ): LadoRecorrido => {
     const cabe: Record<LadoRecorrido, boolean> = {
-        abajo: altoVentana.value - (caja.top + caja.height) > ALTO_ESTIMADO + MARGEN * 2,
-        arriba: caja.top > ALTO_ESTIMADO + MARGEN * 2,
+        abajo: altoVentana.value - (caja.top + caja.height) > altoPanel.value + MARGEN * 2,
+        arriba: caja.top > altoPanel.value + MARGEN * 2,
         derecha: anchoVentana.value - (caja.left + caja.width) > ANCHO_PANEL + MARGEN * 2,
         izquierda: caja.left > ANCHO_PANEL + MARGEN * 2,
     };
@@ -279,11 +362,29 @@ const alPulsar = (evento: KeyboardEvent): void => {
 
 const alRedimensionar = (): void => localizar();
 
+/*
+ * Al terminar una transición o una animación —un grupo del lateral que se
+ * despliega, el panel móvil que entra— lo señalado puede haber aparecido o
+ * haberse movido. `acercar` y no `localizar`: si el ancla acaba de nacer
+ * fuera de la vista, hay que llevarla a ella. Las del propio recorrido se
+ * ignoran: sobre un ancla más alta que la ventana, que nunca está «a la
+ * vista», cada una habría pedido otro desplazamiento.
+ */
+const alAsentar = (evento: Event): void => {
+    // Las del propio recorrido no mueven nada que haya que volver a buscar.
+    if (evento.target instanceof Element && evento.target.closest('[data-recorrido-capa]')) {
+        return;
+    }
+
+    void acercar();
+};
+
 watch(abierto, async (esta) => {
     if (esta) {
         focoPrevio = document.activeElement instanceof HTMLElement ? document.activeElement : null;
         window.addEventListener('resize', alRedimensionar);
-        window.addEventListener('scroll', alRedimensionar, { passive: true });
+        // En captura: el desplazamiento de un contenedor —el lateral— no burbujea.
+        window.addEventListener('scroll', alRedimensionar, { passive: true, capture: true });
         /*
          * Abrir el recorrido despliega todos los grupos del lateral, y eso
          * mueve lo que hay debajo mientras se anima. Medido al abrir, el foco
@@ -292,7 +393,8 @@ watch(abierto, async (esta) => {
          * captura porque `transitionend` sí burbujea pero no se quiere depender
          * de quién la pare.
          */
-        document.addEventListener('transitionend', alRedimensionar, true);
+        document.addEventListener('transitionend', alAsentar, true);
+        document.addEventListener('animationend', alAsentar, true);
         await acercar();
         await nextTick();
         enfocables()[0]?.focus();
@@ -301,8 +403,9 @@ watch(abierto, async (esta) => {
     }
 
     window.removeEventListener('resize', alRedimensionar);
-    window.removeEventListener('scroll', alRedimensionar);
-    document.removeEventListener('transitionend', alRedimensionar, true);
+    window.removeEventListener('scroll', alRedimensionar, { capture: true });
+    document.removeEventListener('transitionend', alAsentar, true);
+    document.removeEventListener('animationend', alAsentar, true);
     marco.value = null;
 
     /*
@@ -332,8 +435,10 @@ watch([indice, activo], async () => {
 
 onBeforeUnmount(() => {
     window.removeEventListener('resize', alRedimensionar);
-    window.removeEventListener('scroll', alRedimensionar);
-    document.removeEventListener('transitionend', alRedimensionar, true);
+    window.removeEventListener('scroll', alRedimensionar, { capture: true });
+    document.removeEventListener('transitionend', alAsentar, true);
+    document.removeEventListener('animationend', alAsentar, true);
+    observador?.disconnect();
 });
 
 /*
@@ -372,7 +477,7 @@ const transicionPanel = computed(() =>
             corta que la entrada, como todas (DESIGN.md §10).
         -->
         <Transition name="recorrido">
-            <div v-if="abierto && paso" class="pointer-events-none fixed inset-0 z-[60]">
+            <div v-if="abierto && paso" class="pointer-events-none fixed inset-0 z-(--z-recorrido)" data-recorrido-capa>
             <!--
                 El foco. Cuando hay ancla es un recorte; cuando no la hay, el
                 mismo elemento se estira a toda la ventana y hace de velo liso,
@@ -420,9 +525,12 @@ const transicionPanel = computed(() =>
                 :aria-describedby="`recorrido-cuerpo-${paso.clave}`"
                 tabindex="-1"
                 class="pointer-events-auto fixed rounded-xl border bg-card p-5 shadow-sombra-3
-                       max-sm:inset-x-4 max-sm:bottom-4 sm:w-[380px]"
+                       max-sm:inset-x-4 sm:w-[380px]"
                 :style="{ ...posicion, transition: transicionPanel }"
-                :class="!esEstrecho && !marco && 'sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2'"
+                :class="[
+                    !esEstrecho && !marco && 'sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2',
+                    arribaEnEstrecho ? 'max-sm:top-4' : 'max-sm:bottom-4',
+                ]"
                 @keydown="alPulsar"
             >
                 <!-- El contador se anuncia al cambiar de paso; el título solo no

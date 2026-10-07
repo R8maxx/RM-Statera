@@ -30,7 +30,7 @@ import {
     PanelLeftOpenIcon,
     SearchIcon,
 } from '@lucide/vue';
-import { useStorage } from '@vueuse/core';
+import { useMediaQuery, useStorage } from '@vueuse/core';
 import { MotionConfig, motion } from 'motion-v';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
@@ -74,7 +74,7 @@ const rutaActual = computed(() => new URL(pagina.url, 'http://x').pathname);
 const seccion = computed(() => entradaDe(rutaActual.value));
 
 const { abrir: abrirPaleta } = usePaletaComandos();
-const { abierto: recorridoAbierto } = useRecorrido();
+const { abierto: recorridoAbierto, paso: pasoRecorrido } = useRecorrido();
 
 /* La preferencia de sidebar es del navegador: es del puesto y no de la persona. */
 const plegado = useStorage('statera.sidebar.plegado', false);
@@ -138,6 +138,41 @@ const inicialesOrganizacion = computed(
 );
 
 const menuMovil = ref(false);
+
+/*
+ * Por debajo de `md` el lateral sólo existe con el panel móvil abierto, y los
+ * pasos del recorrido general que lo señalan se quedaban centrados y sin
+ * foco. Mientras dure un paso `lateral`, el layout lo abre él mismo, **sin
+ * modal**: un `Dialog` modal atrapa el foco y el teclado del recorrido dejaba
+ * de llegar a su panel. Sólo cierra lo que abrió: si alguien lo tenía abierto
+ * por su cuenta, se queda como estaba.
+ */
+const esEscritorio = useMediaQuery('(min-width: 768px)');
+const lateralPorRecorrido = computed(() => recorridoAbierto.value && !esEscritorio.value && pasoRecorrido.value?.lateral === true);
+const menuAbiertoPorRecorrido = ref(false);
+
+watch(lateralPorRecorrido, (hace) => {
+    if (hace && !menuMovil.value) {
+        menuAbiertoPorRecorrido.value = true;
+        menuMovil.value = true;
+    } else if (!hace && menuAbiertoPorRecorrido.value) {
+        menuMovil.value = false;
+        menuAbiertoPorRecorrido.value = false;
+    }
+});
+
+watch(menuMovil, (abierto) => {
+    if (!abierto) {
+        menuAbiertoPorRecorrido.value = false;
+    }
+});
+
+/** Lo que el panel móvil haría por defecto y, con el recorrido encima, no debe. */
+const sinRobarFoco = (evento: Event): void => {
+    if (menuAbiertoPorRecorrido.value) {
+        evento.preventDefault();
+    }
+};
 
 /**
  * El ancla que el recorrido guiado busca para cada módulo.
@@ -491,19 +526,27 @@ onUnmounted(() => {
                                 <!-- La navegación en móvil no existía: por debajo de
                                      768px el sidebar sencillamente desaparecía y no
                                      quedaba forma de cambiar de módulo. -->
-                                <Sheet v-model:open="menuMovil">
+                                <Sheet v-model:open="menuMovil" :modal="!menuAbiertoPorRecorrido">
                                     <SheetTrigger as-child>
                                         <Button variant="ghost" size="icon-sm" class="md:hidden" aria-label="Abrir la navegación">
                                             <MenuIcon />
                                         </Button>
                                     </SheetTrigger>
-                                    <SheetContent side="left" class="flex w-72 flex-col p-0">
+                                    <SheetContent
+                                        side="left"
+                                        class="flex w-72 flex-col p-0"
+                                        @open-auto-focus="sinRobarFoco"
+                                        @close-auto-focus="sinRobarFoco"
+                                        @interact-outside="sinRobarFoco"
+                                    >
                                         <SheetTitle class="sr-only">Navegación</SheetTitle>
                                         <SheetDescription class="sr-only">
                                             Los módulos de Statera.
                                         </SheetDescription>
 
-                                        <div class="flex h-16 items-center border-b px-5">
+                                        <!-- Las anclas se repiten aquí: en móvil el lateral de
+                                             escritorio mide cero y el recorrido lo descarta. -->
+                                        <div class="flex h-16 items-center border-b px-5" data-recorrido="logotipo">
                                             <Logotipo />
                                         </div>
 
@@ -511,6 +554,7 @@ onUnmounted(() => {
                                             <Link
                                                 v-if="inicio"
                                                 :href="inicio.href"
+                                                :data-recorrido="anclaRecorrido(inicio.href)"
                                                 class="flex items-center gap-2.5 rounded-md px-3 py-2.5 text-sm font-medium transition-colors"
                                                 :class="
                                                     esSeccionActiva(inicio.href, rutaActual)
@@ -522,7 +566,12 @@ onUnmounted(() => {
                                                 <component :is="inicio.icono" class="size-4" />
                                                 {{ inicio.titulo }}
                                             </Link>
-                                            <div v-for="grupo in grupos" :key="grupo.titulo" class="space-y-1">
+                                            <div
+                                                v-for="grupo in grupos"
+                                                :key="grupo.titulo"
+                                                :data-recorrido="anclaGrupo(grupo.titulo)"
+                                                class="space-y-1"
+                                            >
                                                 <p class="flex items-center gap-2 px-3 pb-1 text-xs font-medium text-muted-foreground">
                                                     <component :is="grupo.icono" class="size-3.5" />
                                                     {{ grupo.titulo }}
@@ -531,6 +580,7 @@ onUnmounted(() => {
                                                     v-for="entrada in grupo.entradas"
                                                     :key="entrada.href"
                                                     :href="entrada.href"
+                                                    :data-recorrido="anclaRecorrido(entrada.href)"
                                                     class="flex items-center gap-2.5 rounded-md px-3 py-2.5 text-sm font-medium transition-colors"
                                                     :class="
                                                         esSeccionActiva(entrada.href, rutaActual)
