@@ -4,15 +4,18 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Domain\Autorizacion\Enums\Permiso;
 use App\Domain\Documento\Render\ClienteGotenberg;
 use App\Domain\Documento\Render\GotenbergHttp;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Riesgo\MetodologiaVigente;
 use App\Domain\Usuario\Listeners\RegistrarSesion;
+use App\Models\User;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -76,5 +79,25 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(Login::class, [RegistrarSesion::class, 'alEntrar']);
         Event::listen(Logout::class, [RegistrarSesion::class, 'alSalir']);
         Event::listen(Failed::class, [RegistrarSesion::class, 'alFallar']);
+
+        /*
+         * El soporte de la plataforma, dentro de un cliente, sólo lee (punto 44).
+         *
+         * Quien administra la plataforma no tiene rol de spatie, así que sin esto
+         * no pasaría ningún `can:`. Con contexto fijado —que para él sólo ocurre
+         * por una ventana de soporte abierta— se le conceden los permisos `.ver`,
+         * que son exactamente los del auditor (`RolesTest`), y se le niega todo
+         * lo demás de forma explícita. Sin contexto no se decide aquí: cae a
+         * spatie, que no le da nada.
+         *
+         * Es el primer cerrojo; el segundo es `SoporteSoloLectura`.
+         */
+        Gate::before(function (User $usuario, string $habilidad): ?bool {
+            if (! $usuario->esPlataforma() || ! app(ContextoOrganizacion::class)->hayContexto()) {
+                return null;
+            }
+
+            return Permiso::tryFrom($habilidad)?->esDeEscritura() === false;
+        });
     }
 }

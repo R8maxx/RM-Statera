@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Plataforma\OrganizacionController;
 use App\Http\Controllers\Plataforma\PlanController;
+use App\Http\Controllers\Plataforma\SoporteController;
 use App\Http\Middleware\SoloPlataforma;
 use Illuminate\Support\Facades\Route;
 
@@ -38,6 +39,13 @@ Route::middleware(['auth', SoloPlataforma::class])
         Route::get('/organizaciones/{organizacion}', [OrganizacionController::class, 'show'])->name('organizaciones.show');
         Route::put('/organizaciones/{organizacion}/suscripcion', [OrganizacionController::class, 'suscripcion'])
             ->name('organizaciones.suscripcion');
+
+        // El soporte (punto 44): sólo por la ventana que abre el cliente, y
+        // dentro sólo se lee. Salir no lleva `{organizacion}`: sale de la que
+        // diga la sesión, que es la única en la que se puede estar.
+        Route::post('/organizaciones/{organizacion}/soporte', [SoporteController::class, 'entrar'])
+            ->name('soporte.entrar');
+        Route::post('/soporte/salir', [SoporteController::class, 'salir'])->name('soporte.salir');
 
         // Los planes (punto 43). Sin borrar: se retiran con `activo`, porque
         // el histórico de las suscripciones apunta a ellos.

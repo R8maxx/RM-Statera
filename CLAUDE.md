@@ -146,6 +146,7 @@ completa con el razonamiento del orden, en `.ai/rules/orden-de-arranque.md`.
 | 41 | La plataforma: el administrador y el alta de una organización — **abre el tramo «vendible»** | — | `plataforma.md` |
 | 42 | La puesta en marcha: la ficha como primer paso | — | `panel.md` |
 | 43 | Plan y suscripción, modelados: límites, gracia y sólo lectura | — | `plataforma.md` |
+| 44 | La ventana de soporte: la abre el cliente, la plataforma sólo lee | — | `plataforma.md`, `aislamiento.md` |
 
 **La fase 3 está cerrada.** Con continuidad (§ 4.11) dentro —el BIA por servicio,
 el plan como documento y las pruebas que lo contrastan— el ciclo vivo se recorre

@@ -13,7 +13,7 @@ paths:
 
 Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y por qué, para que nadie lo "arregle" sin contexto.
 
-- **`EstablecerContextoOrganizacion` va antes de `SubstituteBindings`**, y por eso `bootstrap/app.php` saca este último de su sitio por defecto y lo vuelve a poner detrás. El *route model binding* resuelve los modelos con una consulta de Eloquent que pasa por el scope de organización: sin contexto fijado, el scope no devuelve nada y **cualquier** ruta con `{sistema}` responde 404, también las propias. Hay un test que lo fija (`tests/Feature/Sistemas/CrudTest.php`), y falla si se revierte el orden. Desde el punto 43 va entre los dos `SuscripcionVigente`: necesita saber de qué organización es la petición, y corta las escrituras de una suscripción en sólo lectura antes de resolver nada (`plataforma.md`).
+- **`EstablecerContextoOrganizacion` va antes de `SubstituteBindings`**, y por eso `bootstrap/app.php` saca este último de su sitio por defecto y lo vuelve a poner detrás. El *route model binding* resuelve los modelos con una consulta de Eloquent que pasa por el scope de organización: sin contexto fijado, el scope no devuelve nada y **cualquier** ruta con `{sistema}` responde 404, también las propias. Hay un test que lo fija (`tests/Feature/Sistemas/CrudTest.php`), y falla si se revierte el orden. Desde el punto 43 va entre los dos `SuscripcionVigente`: necesita saber de qué organización es la petición, y corta las escrituras de una suscripción en sólo lectura antes de resolver nada (`plataforma.md`). Desde el punto 44, entre el contexto y ése va `SoporteSoloLectura`.
 
 - **`DatabaseSeeder` no usa `WithoutModelEvents`.** `PerteneceAOrganizacion` rellena `organizacion_id` en el evento `creating`; silenciar los eventos deja la columna a nulo y RLS rechaza la inserción con un error de privilegios que no dice nada de la causa.
 
@@ -108,3 +108,12 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
   junto con la organización, y `comoMantenimiento()` la ignora. Que ningún modelo
   con `sistema_id` se quede sin ella lo comprueba `AlcanceDelAuditorTest`. El
   razonamiento entero, en `cuentas.md`.
+
+- **Quien administra la plataforma puede tener contexto, pero sólo por la
+  ventana de soporte de un cliente (punto 44).** La rama vive en
+  `EstablecerContextoOrganizacion` y se comprueba en cada petición. No es una
+  cuarta puerta que atraviese las capas, sino la misma que usa una cuenta de
+  cliente: fija el contexto y deja que las tres capas hagan lo suyo. Lo que no
+  hay es rol de spatie. Por eso `Gate::before` le da los `.ver` y
+  `SoporteSoloLectura` corta todo lo que no sea seguro. El razonamiento entero
+  está en `plataforma.md`.

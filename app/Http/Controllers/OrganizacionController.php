@@ -8,6 +8,8 @@ use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Organizacion\GuardarFichaOrganizacion;
 use App\Domain\Organizacion\Marca\PiezaDeMarca;
 use App\Domain\Organizacion\Models\Organizacion;
+use App\Domain\Plataforma\Soporte\VentanaSoporte;
+use App\Http\Requests\AbrirSoporteRequest;
 use App\Http\Requests\GuardarFichaOrganizacionRequest;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -78,6 +80,12 @@ class OrganizacionController extends Controller
                 'estado' => $organizacion->estadoSuscripcion()->etiqueta(),
             ],
 
+            // La puerta a la plataforma (punto 44): abierta hasta cuándo, o nula.
+            'soporte' => [
+                'hasta' => $organizacion->soporteAbierto() ? $organizacion->soporte_hasta?->toIso8601String() : null,
+                'horasPorDefecto' => VentanaSoporte::HORAS_POR_DEFECTO,
+            ],
+
             /*
              * Las dos piezas de marca, cada una con su URL o nula. El cliente
              * no compone la ruta: la da `Organizacion::urlMarca()` con su
@@ -105,6 +113,28 @@ class OrganizacionController extends Controller
         $guardar($this->actual(), $request->validated());
 
         Inertia::flash('exito', 'La ficha de la organización está guardada.');
+
+        return to_route('organizacion.edit');
+    }
+
+    /**
+     * Abrir la puerta a la plataforma (punto 44). Se cierra sola al pasar el
+     * plazo; cerrarla antes es `cerrarSoporte()`.
+     */
+    public function abrirSoporte(AbrirSoporteRequest $request, VentanaSoporte $ventana): RedirectResponse
+    {
+        $ventana->abrir($this->actual(), $request->horas());
+
+        Inertia::flash('exito', 'Acceso de soporte abierto. Quien entre sólo podrá leer, y se te avisará por correo.');
+
+        return to_route('organizacion.edit');
+    }
+
+    public function cerrarSoporte(VentanaSoporte $ventana): RedirectResponse
+    {
+        $ventana->cerrar($this->actual());
+
+        Inertia::flash('exito', 'Acceso de soporte cerrado. Si había alguien dentro, sale en su siguiente paso.');
 
         return to_route('organizacion.edit');
     }

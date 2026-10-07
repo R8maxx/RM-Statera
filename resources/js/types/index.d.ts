@@ -48,6 +48,8 @@ export interface PropsCompartidos {
     };
     organizacion: OrganizacionActiva | null;
     suscripcion: AvisoSuscripcion | null;
+    /** Dónde está como soporte quien administra la plataforma (punto 44). */
+    soporte: { organizacion: string; hasta: string | null } | null;
 }
 
 /** Los avisos de una acción, por el canal de flash de Inertia v3. */

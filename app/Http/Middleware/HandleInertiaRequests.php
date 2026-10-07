@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Domain\Autorizacion\Enums\Permiso;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Organizacion\Marca\PiezaDeMarca;
 use App\Domain\Organizacion\Models\Organizacion;
@@ -63,25 +64,76 @@ class HandleInertiaRequests extends Middleware
                 // la base sino la llave con la que `lib/navegacion.ts` le pinta
                 // su grupo. Quien autoriza es `SoloPlataforma` (punto 41).
                 'permisos' => $usuario?->esPlataforma() === true
-                    ? ['plataforma.gestionar']
+                    ? $this->permisosDePlataforma($contexto)
                     : ($usuario?->getAllPermissions()->pluck('name')->values()->all() ?? []),
             ],
 
             // Sin contexto no hay datos propios visibles, y la interfaz tiene que
             // poder decirlo en lugar de mostrar tablas vacías sin explicación.
-            'organizacion' => $contexto->hayContexto() && $usuario?->organizacion !== null
-                ? [
-                    'id' => $usuario->organizacion->id,
-                    'nombre' => $usuario->organizacion->nombre,
-                    // El logo del cliente en el chrome. Nulo mientras no lo
-                    // suba nadie, y entonces el sidebar sale como salía.
-                    'logo' => $usuario->organizacion->urlMarca(PiezaDeMarca::Logo),
-                ]
-                : null,
+            'organizacion' => $this->organizacionActiva($contexto),
 
             // La franja de aviso del layout (punto 43). Sólo cuando hay algo que
             // decir: en gracia o en sólo lectura. Vigente no viaja.
             'suscripcion' => $this->suscripcion($contexto),
+
+            // La franja del soporte (punto 44): dónde está y hasta cuándo.
+            'soporte' => $usuario?->esPlataforma() === true && $contexto->hayContexto()
+                ? $this->soporte($contexto)
+                : null,
+        ];
+    }
+
+    /**
+     * La organización del contexto, y no la de la cuenta: para quien entra como
+     * soporte (punto 44) son distintas, y lo que hay que pintar es dónde está.
+     *
+     * @return ?array{id: int, nombre: string, logo: ?string}
+     */
+    private function organizacionActiva(ContextoOrganizacion $contexto): ?array
+    {
+        $organizacion = $contexto->hayContexto() ? Organizacion::query()->find($contexto->id()) : null;
+
+        return $organizacion === null ? null : [
+            'id' => $organizacion->id,
+            'nombre' => $organizacion->nombre,
+            // El logo del cliente en el chrome. Nulo mientras no lo suba
+            // nadie, y entonces el sidebar sale como salía.
+            'logo' => $organizacion->urlMarca(PiezaDeMarca::Logo),
+        ];
+    }
+
+    /**
+     * Fuera de un cliente, sólo la marca de su grupo; dentro, como soporte,
+     * además los permisos `.ver`, que son los que `Gate::before` le concede. Así
+     * el lateral le enseña lo que puede abrir y nada más.
+     *
+     * @return list<string>
+     */
+    private function permisosDePlataforma(ContextoOrganizacion $contexto): array
+    {
+        if (! $contexto->hayContexto()) {
+            return ['plataforma.gestionar'];
+        }
+
+        return [
+            'plataforma.gestionar',
+            ...array_map(
+                static fn (Permiso $permiso): string => $permiso->value,
+                array_values(array_filter(Permiso::cases(), static fn (Permiso $permiso): bool => ! $permiso->esDeEscritura())),
+            ),
+        ];
+    }
+
+    /**
+     * @return ?array{organizacion: string, hasta: ?string}
+     */
+    private function soporte(ContextoOrganizacion $contexto): ?array
+    {
+        $organizacion = Organizacion::query()->find($contexto->id());
+
+        return $organizacion === null ? null : [
+            'organizacion' => $organizacion->nombre,
+            'hasta' => $organizacion->soporte_hasta?->toIso8601String(),
         ];
     }
 

@@ -15,6 +15,7 @@ use App\Http\Middleware\BloqueoPorInactividad;
 use App\Http\Middleware\CuentaVigente;
 use App\Http\Middleware\EstablecerContextoOrganizacion;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\SoporteSoloLectura;
 use App\Http\Middleware\SuscripcionVigente;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -70,6 +71,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 CuentaVigente::class,
                 BloqueoPorInactividad::class,
                 EstablecerContextoOrganizacion::class,
+                SoporteSoloLectura::class,
                 SuscripcionVigente::class,
                 SubstituteBindings::class,
                 HandleInertiaRequests::class,

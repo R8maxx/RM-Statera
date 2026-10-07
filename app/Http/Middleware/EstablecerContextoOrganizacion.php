@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Domain\Organizacion\ContextoOrganizacion;
+use App\Domain\Organizacion\Models\Organizacion;
+use App\Domain\Plataforma\Soporte\SesionDeSoporte;
 use App\Domain\Usuario\Models\CuentaSistema;
 use Closure;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -31,6 +34,10 @@ class EstablecerContextoOrganizacion
     {
         $usuario = $request->user();
 
+        if ($usuario?->esPlataforma() === true) {
+            return $this->comoPlataforma($request, $next);
+        }
+
         if ($usuario?->organizacion_id !== null) {
             $this->contexto->establecer($usuario->organizacion_id);
 
@@ -40,6 +47,40 @@ class EstablecerContextoOrganizacion
         } else {
             $this->contexto->olvidar();
         }
+
+        return $next($request);
+    }
+
+    /**
+     * Quien administra la plataforma no tiene organización: sin ventana de
+     * soporte se queda sin contexto y no ve nada de ningún cliente (punto 44).
+     *
+     * **Con ventana, el contexto se fija sobre la organización que la abrió**,
+     * igual que para una cuenta suya, y las tres capas siguen aplicando. No se
+     * acota a sistemas: el soporte ve la organización entera, en lectura. Y se
+     * comprueba en cada petición, no sólo al entrar: si el cliente cierra la
+     * puerta o se acaba el plazo, se sale en la siguiente.
+     */
+    private function comoPlataforma(Request $request, Closure $next): Response
+    {
+        $this->contexto->olvidar();
+
+        $id = $request->hasSession() ? $request->session()->get(SesionDeSoporte::CLAVE) : null;
+
+        if ($id === null) {
+            return $next($request);
+        }
+
+        $organizacion = Organizacion::query()->find((int) $id);
+
+        if ($organizacion === null || ! $organizacion->soporteAbierto()) {
+            $request->session()->forget(SesionDeSoporte::CLAVE);
+            Inertia::flash('error', 'El acceso de soporte se ha cerrado: la organización lo cerró o se acabó el plazo.');
+
+            return redirect()->route('plataforma.organizaciones.index');
+        }
+
+        $this->contexto->establecer($organizacion);
 
         return $next($request);
     }

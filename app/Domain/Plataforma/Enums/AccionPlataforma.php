@@ -30,6 +30,8 @@ enum AccionPlataforma: string
     case OrganizacionAlta = 'organizacion_alta';
     case SuscripcionCambiada = 'suscripcion_cambiada';
     case PlanGuardado = 'plan_guardado';
+    case SoporteEntrada = 'soporte_entrada';
+    case SoporteSalida = 'soporte_salida';
 
     public function etiqueta(): string
     {
@@ -42,6 +44,8 @@ enum AccionPlataforma: string
             self::OrganizacionAlta => 'Alta de organización',
             self::SuscripcionCambiada => 'Suscripción cambiada',
             self::PlanGuardado => 'Plan guardado',
+            self::SoporteEntrada => 'Entrada como soporte',
+            self::SoporteSalida => 'Salida del soporte',
         };
     }
 }

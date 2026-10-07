@@ -88,6 +88,8 @@ class OrganizacionController extends Controller
                 'cif' => $organizacion->cif,
                 'sector' => $organizacion->sector,
                 'altaEn' => $organizacion->created_at?->toIso8601String(),
+                // La ventana de soporte que abrió el cliente (punto 44), o nula.
+                'soporteHasta' => $organizacion->soporteAbierto() ? $organizacion->soporte_hasta?->toIso8601String() : null,
             ],
             'suscripcion' => $this->resumenSuscripcion($organizacion),
             'planes' => $this->planesActivos($organizacion->plan_id),

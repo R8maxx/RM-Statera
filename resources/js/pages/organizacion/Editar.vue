@@ -7,7 +7,10 @@ import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import FormularioRecurso from '@/components/formulario/FormularioRecurso.vue';
 import SeccionFormulario from '@/components/formulario/SeccionFormulario.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { fechaLegible } from '@/lib/celdas';
+import CampoSelect from '@/components/formulario/CampoSelect.vue';
+import { Button } from '@/components/ui/button';
+import { fechaLegible, formatoFechaHora } from '@/lib/celdas';
+import { router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
 interface Organizacion {
@@ -41,6 +44,8 @@ const props = defineProps<{
     leAplicaElEns: boolean;
     /** A dónde apunta hoy el QR de una etiqueta, con la base que hay guardada. */
     ejemploEtiqueta: string;
+    /** La puerta a la plataforma (punto 44): abierta hasta cuándo, o nula. */
+    soporte: { hasta: string | null; horasPorDefecto: number };
     /** En lectura: la cambia la plataforma (punto 43). */
     suscripcion: {
         plan: string | null;
@@ -75,6 +80,36 @@ const destinoEtiqueta = computed(() => {
 
     return base === '' ? props.ejemploEtiqueta : `${base}/activos/1`;
 });
+
+/*
+ * La ventana de soporte (punto 44). Va con `router` y botones `type="button"`,
+ * no con un formulario: está dentro del de la ficha, y un `<form>` anidado no
+ * es HTML válido.
+ */
+const DURACIONES = [
+    { valor: '4', etiqueta: '4 horas' },
+    { valor: '24', etiqueta: '1 día' },
+    { valor: '72', etiqueta: '3 días' },
+    { valor: '168', etiqueta: '7 días' },
+];
+const horasSoporte = ref(String(props.soporte.horasPorDefecto));
+const cambiandoSoporte = ref(false);
+
+function abrirSoporte(): void {
+    router.post('/organizacion/soporte', { horas: Number(horasSoporte.value) }, {
+        preserveScroll: true,
+        onStart: () => (cambiandoSoporte.value = true),
+        onFinish: () => (cambiandoSoporte.value = false),
+    });
+}
+
+function cerrarSoporte(): void {
+    router.delete('/organizacion/soporte', {
+        preserveScroll: true,
+        onStart: () => (cambiandoSoporte.value = true),
+        onFinish: () => (cambiandoSoporte.value = false),
+    });
+}
 
 const cambioLaBase = computed(
     () => baseEtiquetas.value.trim() !== (props.organizacion.url_base_etiquetas ?? ''),
@@ -358,6 +393,33 @@ const cambioLaBase = computed(
                     Las pegatinas que estén puestas en el parque siguen apuntando a la dirección anterior.
                     Cambiar esto obliga a reimprimirlas, o a que la dirección vieja siga respondiendo.
                 </Aviso>
+            </SeccionFormulario>
+
+            <SeccionFormulario
+                titulo="Acceso de soporte"
+                ayuda="Si necesitas ayuda, abre la puerta a la plataforma por un tiempo. Quien entre sólo puede leer, te llegará un correo al entrar, y la entrada y la salida quedan en tu traza. Se cierra sola al acabar el plazo."
+            >
+                <div v-if="soporte.hasta" class="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4">
+                    <p class="text-sm">
+                        Abierto hasta el
+                        <span class="cifra">{{ formatoFechaHora.format(new Date(soporte.hasta)) }}</span>.
+                    </p>
+                    <Button type="button" variant="outline" size="sm" :disabled="cambiandoSoporte" @click="cerrarSoporte">
+                        Cerrar ahora
+                    </Button>
+                </div>
+                <div v-else class="flex flex-wrap items-end gap-3">
+                    <CampoSelect
+                        v-model="horasSoporte"
+                        nombre="horas_soporte"
+                        etiqueta="Durante"
+                        :opciones="DURACIONES"
+                        class="min-w-40"
+                    />
+                    <Button type="button" variant="outline" :disabled="cambiandoSoporte" @click="abrirSoporte">
+                        Abrir el acceso de soporte
+                    </Button>
+                </div>
             </SeccionFormulario>
 
             <!-- En lectura: el plan lo cambia la plataforma, no esta pantalla. -->

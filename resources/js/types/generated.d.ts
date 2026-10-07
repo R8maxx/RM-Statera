@@ -182,7 +182,7 @@ export type TipoPasoPersona = 'alta' | 'baja';
 }
 namespace Plataforma {
 namespace Enums {
-export type AccionPlataforma = 'administrador_creado' | 'administrador_activado' | 'inicio_sesion' | 'cierre_sesion' | 'intento_fallido' | 'organizacion_alta' | 'suscripcion_cambiada' | 'plan_guardado';
+export type AccionPlataforma = 'administrador_creado' | 'administrador_activado' | 'inicio_sesion' | 'cierre_sesion' | 'intento_fallido' | 'organizacion_alta' | 'suscripcion_cambiada' | 'plan_guardado' | 'soporte_entrada' | 'soporte_salida';
 export type EstadoSuscripcion = 'vigente' | 'en_gracia' | 'solo_lectura';
 }
 }
@@ -224,7 +224,7 @@ export type PrioridadTarea = 'baja' | 'media' | 'alta' | 'critica';
 }
 namespace Traza {
 namespace Enums {
-export type AccionAuditada = 'creado' | 'actualizado' | 'eliminado' | 'rol_cambiado' | 'inicio_sesion' | 'cierre_sesion' | 'intento_fallido';
+export type AccionAuditada = 'creado' | 'actualizado' | 'eliminado' | 'rol_cambiado' | 'inicio_sesion' | 'cierre_sesion' | 'intento_fallido' | 'soporte_entrada' | 'soporte_salida';
 }
 }
 namespace Usuario {

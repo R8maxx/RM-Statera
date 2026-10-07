@@ -6,6 +6,8 @@ paths:
   - app/Http/Controllers/Plataforma/**
   - app/Http/Middleware/SoloPlataforma.php
   - app/Http/Middleware/SuscripcionVigente.php
+  - app/Http/Middleware/SoporteSoloLectura.php
+  - app/Http/Requests/AbrirSoporteRequest.php
   - app/Http/Requests/AltaOrganizacionRequest.php
   - app/Http/Requests/GuardarPlanRequest.php
   - app/Http/Requests/CambiarSuscripcionRequest.php
@@ -203,6 +205,60 @@ porque no tiene organización.
 quien ya lo tiene lo conserva. El desplegable de la ficha ofrece los activos y,
 además, el plan que ya tiene esa organización.
 
+## La ventana de soporte (punto 44)
+
+**La abre el cliente y no la plataforma.** César lo decidió así porque es lo
+que un auditor ENS o ISO acepta sin discusión: el acceso de un tercero lo
+autoriza el dueño de los datos, por un tiempo y queda registrado. El
+responsable de seguridad la abre desde `/organizacion` (`organizacion.gestionar`
+y segundo factor) para un plazo de entre una hora y siete días, y la cierra
+cuando quiere.
+
+**Es una fecha y no un interruptor**: `organizaciones.soporte_hasta`. Vive en la
+raíz por lo mismo que la suscripción: la plataforma tiene que saber qué
+clientes tienen la puerta abierta sin cruzar RLS. La ventana se cierra sola al
+pasar el plazo, aunque nadie se acuerde. Abrir y cerrar quedan en la traza del
+tenant, porque `Organizacion::booted()` registra el cambio de la columna.
+
+**Entrar es fijar el contexto, no saltárselo.** La clave
+`SesionDeSoporte::CLAVE` guarda en la sesión la organización.
+`EstablecerContextoOrganizacion` tiene una rama para quien administra la
+plataforma:
+
+- sin clave, olvida el contexto;
+- con clave y la ventana abierta, hace `establecer()` sobre esa organización;
+- con la ventana cerrada o caducada, limpia la sesión y le manda a
+  `/plataforma`.
+
+**Se comprueba en cada petición**, así que cerrar la puerta echa a quien esté
+dentro en su siguiente paso. Las tres capas siguen aplicando, y nada de esto
+usa `comoMantenimiento()`.
+
+**Sólo lectura, con dos cerrojos:**
+
+1. **`Gate::before`, en `AppServiceProvider`.** A quien administra la
+   plataforma, con contexto puesto, le concede los permisos `.ver` y le niega
+   todos los demás de forma explícita. Son exactamente los del auditor, cosa
+   que `RolesTest` garantiza. Sin contexto, devuelve `null` y la decisión cae a
+   spatie, que no le da nada.
+2. **`SoporteSoloLectura`**, en el grupo `web` justo detrás del contexto. Corta
+   cualquier petición que no sea segura, venga por donde venga: una ruta sin
+   `can:`, un permiso mal clasificado o un endpoint que nadie revisó. Sólo deja
+   escribir lo suyo: `logout`, `plataforma/*`, `perfil*` y `user/*`.
+
+**El soporte no ve `/cuentas` ni `/organizacion`**, que no tienen permiso
+`.ver`. Tampoco puede cerrar él la ventana: la puerta es del cliente.
+
+**Al entrar se avisa por correo** a los responsables de seguridad
+(`EntradaDeSoporte`, en cola y con escalares). La entrada y la salida quedan en
+las dos trazas, con dos verbos nuevos en `AccionAuditada`: `soporte_entrada` y
+`soporte_salida`.
+
+**Los props compartidos leen la organización del contexto**, y no la de la
+cuenta. `organizacion` y `auth.permisos` salían de `$usuario->organizacion`, y
+para el soporte eso es nulo. `soporte` alimenta la franja del layout, que lleva
+el botón de salir siempre a mano.
+
 ## Desvíos respecto al plan
 
 - **`DesarrolloSeeder` no pasa por `AltaOrganizacion`.** El seeder necesita
@@ -216,6 +272,12 @@ además, el plan que ya tiene esa organización.
   pasarela, y nada lo lee.
 - **No avisa del vencimiento por correo**, ni a la plataforma ni al cliente. La
   franja sale al entrar, y nada más.
+- **No se registra cada página que ve el soporte**, sólo cuándo entra y cuándo
+  sale. Como el auditor externo, que tampoco deja rastro de lectura.
+- **Hay código que lee `$request->user()->organizacion_id`** en vez del
+  contexto, casi todo en `FormRequest` de escritura, que el soporte no alcanza.
+  Los dos de lectura (`ActivoController`, las etiquetas QR) degradan a «sin
+  QR» dentro del soporte. Si aparece otro lector, se pasa al contexto.
 - **Superar un límite no quita nada.** Si se baja de plan a uno con menos
   cuentas de las que ya hay, nadie se desactiva: simplemente no se puede añadir
   otra.

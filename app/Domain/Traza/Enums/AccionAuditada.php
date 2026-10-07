@@ -16,6 +16,10 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * no dispara ningún `updated`. Y una sesión no es una fila de nada: es lo que el
  * § 6 llama «registro de sesiones». Los cuatro se escriben a mano desde el
  * dominio de cuentas, nunca desde `RegistraTraza`.
+ *
+ * Y dos más con el punto 44: la entrada y la salida de quien administra la
+ * plataforma como soporte. El cliente tiene que leer en su propia traza
+ * cuándo entró alguien de fuera y cuándo se fue.
  */
 #[TypeScript]
 enum AccionAuditada: string
@@ -27,6 +31,8 @@ enum AccionAuditada: string
     case InicioSesion = 'inicio_sesion';
     case CierreSesion = 'cierre_sesion';
     case IntentoFallido = 'intento_fallido';
+    case SoporteEntrada = 'soporte_entrada';
+    case SoporteSalida = 'soporte_salida';
 
     public function etiqueta(): string
     {
@@ -38,6 +44,8 @@ enum AccionAuditada: string
             self::InicioSesion => 'Inicio de sesión',
             self::CierreSesion => 'Cierre de sesión',
             self::IntentoFallido => 'Intento de acceso fallido',
+            self::SoporteEntrada => 'Entrada de soporte',
+            self::SoporteSalida => 'Salida de soporte',
         };
     }
 
@@ -55,6 +63,8 @@ enum AccionAuditada: string
             self::Eliminado, self::CierreSesion => 'no_aplica',
             self::InicioSesion => 'implantado',
             self::IntentoFallido => 'no_iniciado',
+            self::SoporteEntrada => 'en_revision',
+            self::SoporteSalida => 'no_aplica',
         };
     }
 
@@ -68,6 +78,8 @@ enum AccionAuditada: string
             self::InicioSesion => 'LogIn',
             self::CierreSesion => 'LogOut',
             self::IntentoFallido => 'Lock',
+            self::SoporteEntrada => 'Eye',
+            self::SoporteSalida => 'X',
         };
     }
 }

@@ -9,8 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import AppLayout from '@/layouts/AppLayout.vue';
 import { fechaLegible, formatoFechaHora } from '@/lib/celdas';
 import { SIN_VALOR, conOpcionVacia } from '@/lib/formularios';
-import { useForm } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { router, useForm, usePage } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
 
 /**
  * La ficha comercial de una organización cliente (punto 41).
@@ -64,6 +64,7 @@ const props = defineProps<{
         cif: string | null;
         sector: string | null;
         altaEn: string | null;
+        soporteHasta: string | null;
     };
     cuentas: Cuenta[];
     invitadas: number;
@@ -71,6 +72,18 @@ const props = defineProps<{
     suscripcion: Suscripcion;
     planes: { valor: string; etiqueta: string }[];
 }>();
+
+/* Entrar por la ventana que abrió el cliente (punto 44). */
+const pagina = usePage();
+const errorSoporte = computed(() => (pagina.props.errors as Record<string, string | undefined>).soporte);
+const entrando = ref(false);
+
+function entrarComoSoporte(): void {
+    router.post(`/plataforma/organizaciones/${props.organizacion.id}/soporte`, {}, {
+        onStart: () => (entrando.value = true),
+        onFinish: () => (entrando.value = false),
+    });
+}
 
 const opcionesPlan = computed(() => conOpcionVacia(props.planes, 'Sin plan: sin límites y sin vencimiento'));
 
@@ -98,7 +111,25 @@ const cuando = (fecha: string | null): string => (fecha ? formatoFechaHora.forma
 
 <template>
     <AppLayout :titulo="organizacion.nombre">
-        <CabeceraPagina :titulo="organizacion.nombre" :descripcion="organizacion.razonSocial ?? undefined" />
+        <CabeceraPagina :titulo="organizacion.nombre" :descripcion="organizacion.razonSocial ?? undefined">
+            <template v-if="organizacion.soporteHasta" #acciones>
+                <Button :disabled="entrando" @click="entrarComoSoporte">Entrar como soporte</Button>
+            </template>
+        </CabeceraPagina>
+
+        <!-- La puerta la abre el cliente: sin ventana, no hay botón, y se dice por qué. -->
+        <p class="text-sm text-muted-foreground">
+            <template v-if="organizacion.soporteHasta">
+                El cliente ha abierto el acceso de soporte hasta el
+                <span class="cifra">{{ cuando(organizacion.soporteHasta) }}</span>. Dentro sólo se lee, y su responsable
+                de seguridad recibe un correo al entrar.
+            </template>
+            <template v-else>
+                Sin acceso de soporte. Lo abre el responsable de seguridad del cliente desde la ficha de su
+                organización.
+            </template>
+        </p>
+        <p v-if="errorSoporte" class="text-sm text-destructive">{{ errorSoporte }}</p>
 
         <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
             <div class="space-y-6">

@@ -55,6 +55,8 @@ use Illuminate\Support\Carbon;
  * @property ?Carbon $suscripcion_vence_en nulo, no vence
  * @property ?string $suscripcion_referencia_externa
  * @property-read ?Plan $plan
+ * @property ?Carbon $soporte_hasta hasta cuándo puede entrar la plataforma como soporte (punto 44)
+ * @property ?int $soporte_abierto_por
  */
 class Organizacion extends Model
 {
@@ -210,6 +212,17 @@ class Organizacion extends Model
         return $this->belongsTo(Plan::class);
     }
 
+    /**
+     * Si la plataforma puede entrar ahora como soporte (punto 44).
+     *
+     * Es una fecha y no un interruptor: la ventana se cierra sola cuando pasa,
+     * aunque nadie se acuerde de cerrarla.
+     */
+    public function soporteAbierto(): bool
+    {
+        return $this->soporte_hasta !== null && $this->soporte_hasta->isFuture();
+    }
+
     /** En qué punto está su suscripción; se deriva, no se guarda. */
     public function estadoSuscripcion(): EstadoSuscripcion
     {
@@ -261,6 +274,7 @@ class Organizacion extends Model
             'retencion_personas_meses' => 'integer',
             'suscripcion_inicia_en' => 'datetime',
             'suscripcion_vence_en' => 'datetime',
+            'soporte_hasta' => 'datetime',
         ];
     }
 

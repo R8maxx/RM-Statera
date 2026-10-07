@@ -661,3 +661,19 @@ y 36 retención RGPD.
     Lo segundo que mordió fue un `CHECK` de más: «el vencimiento va después del
     inicio» rechazaba registrar un contrato que ya venció, que es justo el caso
     de la sólo lectura. Lo dijo la suite al primer test de vencimiento.
+
+44. ✅ La ventana de soporte. **Cierra el tramo «vendible»** que abrió el 41.
+    César quiso que la plataforma pudiera entrar a ayudar, pero sólo si el
+    cliente abre la puerta, por un tiempo y en lectura. Es lo que un auditor
+    acepta para el acceso de un tercero.
+
+    La decisión que lo hace pequeño es que **entrar es fijar el contexto, no
+    saltárselo**. El administrador pasa por la misma rama que una cuenta de
+    cliente, con las tres capas intactas, así que no hizo falta ninguna puerta
+    nueva en el aislamiento. Lo que sí hizo falta fueron dos cerrojos de
+    lectura, porque el administrador no tiene rol: un `Gate::before` que le da
+    los `.ver` y un middleware que corta todo método que no sea seguro.
+
+    Por el camino, la revisión de seguridad automática encontró que reactivar
+    una cuenta desactivada se saltaba el límite de cuentas del 43. Se corrigió
+    en el dominio, con su commit aparte.

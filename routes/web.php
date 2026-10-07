@@ -1888,6 +1888,13 @@ Route::middleware('auth')->group(function (): void {
     Route::middleware(['can:organizacion.gestionar', ExigirDosFactores::class])->group(function (): void {
         Route::put('/organizacion', [OrganizacionController::class, 'update'])
             ->name('organizacion.update');
+
+        // La puerta a la plataforma (punto 44): la abre el cliente, por un
+        // tiempo, y la cierra cuando quiere.
+        Route::post('/organizacion/soporte', [OrganizacionController::class, 'abrirSoporte'])
+            ->name('organizacion.soporte.abrir');
+        Route::delete('/organizacion/soporte', [OrganizacionController::class, 'cerrarSoporte'])
+            ->name('organizacion.soporte.cerrar');
     });
 
     /*

@@ -21,7 +21,7 @@ import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
 import { usePaletaComandos } from '@/composables/usePaletaComandos';
 import { useRecorrido } from '@/composables/useRecorrido';
 import { entradaDe, esSeccionActiva, navegacionPara, type GrupoNavegacion } from '@/lib/navegacion';
-import { fechaLegible } from '@/lib/celdas';
+import { fechaLegible, formatoFechaHora } from '@/lib/celdas';
 import { anclaGrupo } from '@/lib/recorridos';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import {
@@ -66,6 +66,17 @@ const usuario = computed(() => pagina.props.auth.usuario);
 const rutaCasa = computed(() => (usuario.value?.plataforma ? '/plataforma/organizaciones' : '/panel'));
 const organizacion = computed(() => pagina.props.organizacion);
 const suscripcion = computed(() => pagina.props.suscripcion);
+const soporte = computed(() => pagina.props.soporte);
+
+/* Salir del soporte: vuelve a la ficha del cliente en la plataforma (punto 44). */
+const saliendoDelSoporte = ref(false);
+
+function salirDelSoporte(): void {
+    router.post('/plataforma/soporte/salir', {}, {
+        onStart: () => (saliendoDelSoporte.value = true),
+        onFinish: () => (saliendoDelSoporte.value = false),
+    });
+}
 
 /**
  * Si la sesión tiene un permiso, para decidir qué se PINTA.
@@ -701,6 +712,22 @@ onUnmounted(() => {
                         class="w-full min-w-0 flex-1 space-y-8 px-4 pt-6 pb-10 outline-none sm:px-6 lg:px-8"
                         :class="ancho === 'contenido' && 'mx-auto max-w-[90rem]'"
                     >
+                        <!-- El soporte (punto 44): dónde está quien administra la
+                             plataforma, que sólo lee, y la salida siempre a mano. -->
+                        <Aviso v-if="soporte" tono="info" :titulo="`Soporte en ${soporte.organizacion}`">
+                            <div class="flex flex-wrap items-center justify-between gap-3">
+                                <span>
+                                    Sólo lectura: puedes ver todo, pero no cambiar nada.
+                                    <template v-if="soporte.hasta">
+                                        El acceso se cierra el {{ formatoFechaHora.format(new Date(soporte.hasta)) }}.
+                                    </template>
+                                </span>
+                                <Button size="sm" variant="outline" :disabled="saliendoDelSoporte" @click="salirDelSoporte">
+                                    Salir del soporte
+                                </Button>
+                            </div>
+                        </Aviso>
+
                         <!-- La suscripción, cuando hay algo que decir (punto 43).
                              En gracia se avisa y se sigue trabajando; en sólo
                              lectura, el rojo, porque ya no se puede escribir. -->
