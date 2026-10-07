@@ -13,6 +13,8 @@ use App\Domain\Metrica\RegistroIndicadores;
 use App\Domain\NoConformidad\RegistroNoConformidades;
 use App\Domain\Objetivo\RegistroObjetivos;
 use App\Domain\Obligacion\RegistroObligaciones;
+use App\Domain\Organizacion\ContextoOrganizacion;
+use App\Domain\Organizacion\Models\Organizacion;
 use App\Domain\Panel\AlertasDelPanel;
 use App\Domain\Panel\VencimientosDelPanel;
 use App\Domain\Persona\RegistroPersonas;
@@ -24,6 +26,7 @@ use App\Http\Resources\Panel\ResumenPanel;
 use App\Http\Resources\Panel\SistemaResumido;
 use App\Http\Resources\Panel\VistaPanel;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -66,9 +69,16 @@ class PanelController extends Controller
      * poder demostrarlo. Detrás va lo que la sostiene: el avance por marco y por
      * dominio de control, y los sistemas en los que se mide.
      */
-    public function cumplimiento(ResumenCumplimiento $resumen, AlertasDelPanel $alertas): Response
-    {
+    public function cumplimiento(
+        Request $request,
+        ResumenCumplimiento $resumen,
+        AlertasDelPanel $alertas,
+        ContextoOrganizacion $contexto,
+    ): Response {
         $sistemas = collect($resumen->porSistema());
+
+        /** @var User $usuario */
+        $usuario = $request->user();
         $madurez = $resumen->madurez();
         $pruebas = $resumen->evidencias();
 
@@ -93,6 +103,11 @@ class PanelController extends Controller
             'porEstado' => $resumen->porEstado(),
             'porMarco' => $resumen->porMarco(),
             'porDominio' => $resumen->porDominio(),
+            // El primer paso de quien estrena Statera (punto 42). Nulo para quien
+            // no puede editar la ficha: un paso que lleva a un 403 no se pinta.
+            'fichaOrganizacion' => $usuario->can(Permiso::OrganizacionGestionar->value)
+                ? Organizacion::query()->findOrFail($contexto->idObligatorio())->fichaCompleta()
+                : null,
         ]);
     }
 

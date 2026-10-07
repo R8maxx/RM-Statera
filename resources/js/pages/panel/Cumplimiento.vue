@@ -54,6 +54,8 @@ const props = defineProps<{
     porEstado: SegmentoEstado[];
     porMarco: AvanceMarco[];
     porDominio: AvanceDominio[];
+    /** Si la ficha está completa; nulo para quien no puede editarla (punto 42). */
+    fichaOrganizacion: boolean | null;
 }>();
 
 const { reducido, variantesEntrada, variantesEscalonado } = useMovimientoReducido();
@@ -178,6 +180,7 @@ const reparto = (implantadas: number, aplicables: number): Segmento[] => [
                     :sistemas="sistemas.length"
                     :aplicables="resumen.aplicables"
                     :evidencias="evidencias.total"
+                    :ficha-organizacion="fichaOrganizacion"
                 />
             </motion.section>
 

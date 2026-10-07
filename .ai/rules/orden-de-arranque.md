@@ -635,3 +635,15 @@ y 36 retención RGPD.
     crea una cuenta **sin** organización también tiene que decirlo en las cinco
     líneas siguientes. Se resolvió con un `forceFill` explícito, que de paso deja
     la marca fuera de la asignación masiva.
+
+42. ✅ La puesta en marcha de una organización nueva. **Era casi entera de antes:**
+    el panel ya sustituía su cabecera por «Primeros pasos» en el primer arranque
+    —sistema, valoración y primera prueba—, y los formularios ya existían. Lo que
+    faltaba era lo que el alta desde la plataforma vuelve visible: la
+    organización nace sólo con su nombre, y nadie le pedía la razón social que se
+    imprime en la portada de la SoA. Un paso más, delante, y sólo para quien
+    puede editar la ficha.
+
+    No se añadió el paso de «invita a una cuenta más», que el plan traía como
+    recomendado. En una lista que se lee por orden de dependencia, un paso
+    opcional diría que los demás también lo son.

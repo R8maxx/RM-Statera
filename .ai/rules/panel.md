@@ -44,6 +44,17 @@ estado de quien acaba de empezar, esa vista no diría literalmente nada. En
 primer arranque el conmutador tampoco se pinta: ahí la pantalla no resume,
 orienta.
 
+**Desde el punto 42, «Primeros pasos» empieza por la ficha de la
+organización**, porque una organización dada de alta desde la plataforma nace
+sólo con su nombre. No es una dependencia del motor, como lo son los otros tres
+pasos: es quién firma. Se da por hecha con razón social, CIF y domicilio
+(`Organizacion::fichaCompleta()`). Las dos banderas del ENS no cuentan, porque
+tienen valor por defecto y no hay forma de saber si alguien las contestó.
+**Sólo se le pinta a quien tiene `organizacion.gestionar`**: el prop llega a
+nulo para el técnico y el auditor, porque un paso que lleva a un 403 enseña que
+la herramienta manda a sitios que no sirven. Y desaparece con el resto de la
+tarjeta en cuanto hay un requisito exigible, aunque la ficha siga a medias.
+
 ### El punto de la pestaña, que es lo que sujeta el reparto
 
 Partir el panel tiene **un solo riesgo**, y es el que hay que sujetar: una

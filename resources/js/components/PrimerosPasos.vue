@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useRecorrido } from '@/composables/useRecorrido';
 import { Link } from '@inertiajs/vue3';
-import { CheckIcon, GaugeIcon, PaperclipIcon, RouteIcon, ServerIcon } from '@lucide/vue';
+import { BuildingIcon, CheckIcon, GaugeIcon, PaperclipIcon, RouteIcon, ServerIcon } from '@lucide/vue';
 import type { LucideIcon } from '@lucide/vue';
 import { computed } from 'vue';
 
@@ -18,7 +18,7 @@ import { computed } from 'vue';
  * inventario («un indicador a cero ya no ocupa una tarjeta») y el propio panel
  * se la saltaba.
  *
- * El orden de los tres pasos no es didáctico, es **de dependencia**: sin sistema
+ * El orden de los tres pasos del SGSI no es didáctico, es **de dependencia**: sin sistema
  * no hay cinco dimensiones que valorar, sin valoración no hay implantaciones, y
  * sin implantaciones no hay nada a lo que vincular una prueba. Por eso **sólo el
  * paso en curso ofrece acción**: un botón para registrar una evidencia antes de
@@ -33,6 +33,12 @@ const props = defineProps<{
     sistemas: number;
     aplicables: number;
     evidencias: number;
+    /**
+     * Si la ficha de la organización está completa (punto 42), o nulo para
+     * quien no puede editarla: el paso no se le pinta, porque le llevaría a un
+     * 403.
+     */
+    fichaOrganizacion: boolean | null;
 }>();
 
 const { abrir: abrirRecorrido } = useRecorrido();
@@ -47,7 +53,31 @@ type Paso = {
     hecho: boolean;
 };
 
+/*
+ * La ficha va primero aunque no sea una dependencia del motor: es quién firma.
+ * Una organización recién dada de alta desde la plataforma nace sólo con su
+ * nombre, y la razón social, el CIF y el domicilio son lo que se imprime en la
+ * portada de la Declaración de Aplicabilidad.
+ */
+const pasoFicha = computed<Paso[]>(() =>
+    props.fichaOrganizacion === null
+        ? []
+        : [
+              {
+                  clave: 'ficha',
+                  ancla: 'paso-ficha',
+                  icono: BuildingIcon,
+                  titulo: 'Completa la ficha de la organización',
+                  cuerpo:
+                      'La razón social, el CIF y el domicilio de quien firma los documentos, y si el ENS te aplica por ley o porque trabajas para el sector público. Es lo que sale en la portada de cada documento que se entrega.',
+                  accion: { etiqueta: 'Completar la ficha', href: '/organizacion' },
+                  hecho: props.fichaOrganizacion,
+              },
+          ],
+);
+
 const pasos = computed<Paso[]>(() => [
+    ...pasoFicha.value,
     {
         clave: 'sistema',
         ancla: 'paso-sistema',
@@ -90,8 +120,8 @@ const enCurso = computed(() => pasos.value.findIndex((paso) => !paso.hecho));
             <h2 class="text-sm font-medium">Por dónde se empieza</h2>
             <p class="mt-1 max-w-prose text-sm text-muted-foreground">
                 Statera lleva la ISO/IEC 27001:2022 y el Esquema Nacional de Seguridad a la vez: cada prueba y
-                cada tarea se apunta una vez y cuenta en los dos. Para que empiece a contar algo hacen falta tres
-                cosas, y en este orden.
+                cada tarea se apunta una vez y cuenta en los dos. Para que empiece a contar algo hacen falta
+                {{ pasos.length === 4 ? 'cuatro' : 'tres' }} cosas, y en este orden.
             </p>
 
             <!--

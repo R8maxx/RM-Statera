@@ -196,6 +196,20 @@ class Organizacion extends Model
     }
 
     /**
+     * Si la ficha tiene lo que se imprime en un documento entregable (punto 42).
+     *
+     * Razón social, CIF y domicilio: lo que identifica a la persona jurídica que
+     * firma la Declaración de Aplicabilidad. Una organización recién dada de alta
+     * desde la plataforma nace sólo con su nombre, y el primer paso del cliente
+     * es decir quién es. Las dos banderas del ENS no cuentan: son booleanos con
+     * valor por defecto, y no hay forma de saber si alguien las contestó.
+     */
+    public function fichaCompleta(): bool
+    {
+        return filled($this->razon_social) && filled($this->cif) && filled($this->domicilio);
+    }
+
+    /**
      * El ENS aplica por obligación legal o porque se hereda del cliente público.
      */
     public function leAplicaElEns(): bool
