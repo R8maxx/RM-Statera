@@ -3,6 +3,7 @@ import {
     BoxesIcon,
     BugIcon,
     Building2Icon,
+    BuildingIcon,
     CalendarDaysIcon,
     ChartLineIcon,
     ChartPieIcon,
@@ -30,6 +31,7 @@ import {
     RepeatIcon,
     ScanIcon,
     SearchCheckIcon,
+    ServerCogIcon,
     ServerIcon,
     ShieldAlertIcon,
     TargetIcon,
@@ -525,6 +527,25 @@ export const navegacion: GrupoNavegacion[] = [
                 icono: LayoutTemplateIcon,
                 permiso: 'documentos.plantillas',
                 alias: ['textos', 'plantilla', 'narrativa', 'introducción', 'metodología', 'modelo', 'base'],
+            },
+        ],
+    },
+    /*
+     * La plataforma (punto 41): sólo la ve quien administra Statera, que no
+     * tiene organización ni rol. `plataforma.gestionar` no es un permiso de la
+     * base: es la marca que `HandleInertiaRequests` le pone en `auth.permisos`
+     * para que esto se pinte. Quien autoriza es `SoloPlataforma`.
+     */
+    {
+        titulo: 'Plataforma',
+        icono: ServerCogIcon,
+        entradas: [
+            {
+                titulo: 'Organizaciones',
+                href: '/plataforma/organizaciones',
+                icono: BuildingIcon,
+                permiso: 'plataforma.gestionar',
+                alias: ['clientes', 'tenants', 'alta', 'empresas'],
             },
         ],
     },

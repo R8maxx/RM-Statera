@@ -135,6 +135,7 @@ const SIN_RECORRIDO = [
     'panel' => 'Lleva el general, que arranca `Cumplimiento.vue` y no la cabecera.',
     'cuentas' => 'Administración: la ve quien gestiona cuentas, que ya conoce la herramienta.',
     'plantillas-documento' => 'Administración de las plantillas, no trabajo del SGSI.',
+    'plataforma' => 'La de quien administra Statera, no la de un cliente: no hay SGSI que recorrer.',
 ];
 
 it('cada módulo del lateral llega con su recorrido', function (): void {

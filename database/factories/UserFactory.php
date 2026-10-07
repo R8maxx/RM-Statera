@@ -47,6 +47,15 @@ class UserFactory extends Factory
         ]);
     }
 
+    /** Administra la plataforma: sin organización y sin rol (punto 41). */
+    public function plataforma(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'organizacion_id' => null,
+            'es_plataforma' => true,
+        ]);
+    }
+
     public function desactivada(?string $motivo = null): static
     {
         return $this->state(fn (array $attributes) => [

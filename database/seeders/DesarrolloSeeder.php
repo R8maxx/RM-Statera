@@ -232,6 +232,8 @@ class DesarrolloSeeder extends Seeder
         $this->usuario($organizacion, 'tecnico@statera.test', 'Técnica de sistemas', Rol::Tecnico);
         $this->usuario($organizacion, 'auditor@statera.test', 'Auditor externo', Rol::Auditor);
 
+        $this->administradorDePlataforma();
+
         $marco = Marco::query()->where('codigo', 'ENS-RD311-2022')->first();
 
         if ($marco === null) {
@@ -2586,6 +2588,29 @@ class DesarrolloSeeder extends Seeder
                 ...$atributos,
             ],
         );
+    }
+
+    /**
+     * Quien administra la plataforma (punto 41): sin organización y sin rol.
+     *
+     * En producción sólo nace con `plataforma:administrador`, que manda una
+     * invitación. Aquí lleva la contraseña de desarrollo y nace activa, como
+     * las otras tres, para poder entrar en `/plataforma` sin pasar por el
+     * correo.
+     */
+    private function administradorDePlataforma(): void
+    {
+        $administrador = User::query()
+            ->whereNull('organizacion_id')
+            ->firstOrCreate(
+                ['email' => 'plataforma@statera.test'],
+                ['name' => 'Administración de la plataforma', 'password' => 'contrasena-de-desarrollo'],
+            );
+
+        $administrador->forceFill([
+            'es_plataforma' => true,
+            'activada_en' => $administrador->activada_en ?? now(),
+        ])->save();
     }
 
     /** Alta idempotente de un usuario con su rol. Contraseña de desarrollo. */

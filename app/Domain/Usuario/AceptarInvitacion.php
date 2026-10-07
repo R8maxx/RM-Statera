@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Domain\Usuario;
 
 use App\Domain\Organizacion\ContextoOrganizacion;
+use App\Domain\Plataforma\Enums\AccionPlataforma;
+use App\Domain\Plataforma\TrazaPlataforma;
 use App\Domain\Traza\Enums\AccionAuditada;
 use App\Domain\Traza\RegistroTraza;
 use App\Domain\Usuario\Enums\EstadoCuenta;
@@ -25,25 +27,44 @@ final class AceptarInvitacion
     public function __construct(
         private readonly ContextoOrganizacion $contexto,
         private readonly RegistroTraza $traza,
+        private readonly TrazaPlataforma $trazaPlataforma,
     ) {}
 
     public function __invoke(User $cuenta, string $password): void
     {
-        if ($cuenta->estadoCuenta() !== EstadoCuenta::Invitada || $cuenta->organizacion_id === null) {
+        if ($cuenta->estadoCuenta() !== EstadoCuenta::Invitada) {
+            throw OperacionDeCuentaNoPermitida::yaAceptada();
+        }
+
+        // Quien administra la plataforma no tiene tenant: su traza es la de la
+        // plataforma (punto 41).
+        if ($cuenta->esPlataforma()) {
+            $this->activar($cuenta, $password);
+            $this->trazaPlataforma->registrar(AccionPlataforma::AdministradorActivado, null, [], $cuenta->id);
+
+            return;
+        }
+
+        if ($cuenta->organizacion_id === null) {
             throw OperacionDeCuentaNoPermitida::yaAceptada();
         }
 
         $this->contexto->paraOrganizacion($cuenta->organizacion_id, function () use ($cuenta, $password): void {
-            $cuenta->forceFill([
-                'password' => Hash::make($password),
-                'activada_en' => now(),
-                'password_cambiada_en' => now(),
-                'remember_token' => Str::random(60),
-            ])->save();
+            $this->activar($cuenta, $password);
 
             $this->traza->evento($cuenta, AccionAuditada::Actualizado, ['activada_en' => null], [
                 'activada_en' => $cuenta->activada_en?->toIso8601String(),
             ]);
         });
+    }
+
+    private function activar(User $cuenta, string $password): void
+    {
+        $cuenta->forceFill([
+            'password' => Hash::make($password),
+            'activada_en' => now(),
+            'password_cambiada_en' => now(),
+            'remember_token' => Str::random(60),
+        ])->save();
     }
 }

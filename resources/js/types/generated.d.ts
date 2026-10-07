@@ -180,6 +180,11 @@ export type TipoAccionFormativa = 'formacion' | 'concienciacion';
 export type TipoPasoPersona = 'alta' | 'baja';
 }
 }
+namespace Plataforma {
+namespace Enums {
+export type AccionPlataforma = 'administrador_creado' | 'administrador_activado' | 'inicio_sesion' | 'cierre_sesion' | 'intento_fallido' | 'organizacion_alta';
+}
+}
 namespace Proveedor {
 namespace Enums {
 export type Criticidad = 'baja' | 'media' | 'alta';

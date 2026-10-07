@@ -615,3 +615,23 @@ y 36 retención RGPD.
     La lección fue de método: lancé los tests del módulo con la suite completa
     corriendo y salieron interbloqueos, exactamente lo que la memoria del
     proyecto avisa. Se repitió la suite sola.
+
+41. ✅ La plataforma: quien administra Statera y el alta de una organización.
+    **Abre el tramo «vendible»**, y saca del «fuera de alcance» el panel de
+    superadministración. Hasta aquí un tenant sólo nacía en el seeder, y su
+    primer responsable no tenía por dónde entrar: invitar exige que ya haya
+    alguien dentro que invite.
+
+    César decidió que el administrador viviera en `users` con una marca, que
+    viera la ficha comercial y nada del SGSI del cliente, y que el cobro se
+    modelara sin pasarela. De ahí sale el resto:
+    - `SoloPlataforma` en vez de `can:`, porque sin organización no hay «team»
+      de spatie.
+    - Una traza propia e inmutable, porque la del tenant exige un dueño.
+    - `AltaOrganizacion` como única receta. Entra en la fila recién creada con
+      `paraOrganizacion()` y no toca `comoMantenimiento()`.
+
+    Lo que mordió fue `ConsultasDeUsuarioAcotadasTest`: un `User::query()` que
+    crea una cuenta **sin** organización también tiene que decirlo en las cinco
+    líneas siguientes. Se resolvió con un `forceFill` explícito, que de paso deja
+    la marca fuera de la asignación masiva.

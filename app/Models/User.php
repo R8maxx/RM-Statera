@@ -32,6 +32,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property string $email
  * @property ?string $foto_ruta
  * @property ?int $organizacion_id
+ * @property bool $es_plataforma administra Statera; nunca con organización (punto 41)
  * @property ?Carbon $two_factor_confirmed_at
  * @property ?string $two_factor_secret
  * @property ?Carbon $invitada_en
@@ -66,7 +67,20 @@ class User extends Authenticatable implements PasskeyUser
         'tema' => 'sistema',
         'pagina_inicio' => 'panel',
         'avisos_por_correo' => true,
+        'es_plataforma' => false,
     ];
+
+    /**
+     * Si administra la plataforma en lugar de pertenecer a un cliente.
+     *
+     * No tiene rol de spatie ni organización: lo que puede hacer lo decide
+     * `SoloPlataforma` en las rutas de `/plataforma`, y dentro de un tenant
+     * sólo entra como soporte, por una ventana que abre el propio cliente.
+     */
+    public function esPlataforma(): bool
+    {
+        return $this->es_plataforma === true;
+    }
 
     /**
      * Si el segundo factor está activo de verdad.
@@ -206,6 +220,7 @@ class User extends Authenticatable implements PasskeyUser
             'tema' => Tema::class,
             'pagina_inicio' => PaginaInicio::class,
             'avisos_por_correo' => 'boolean',
+            'es_plataforma' => 'boolean',
             'password' => 'hashed',
         ];
     }

@@ -56,6 +56,12 @@ withDefaults(
 const pagina = usePage();
 
 const usuario = computed(() => pagina.props.auth.usuario);
+
+/*
+ * Adónde lleva el logotipo. Quien administra la plataforma no tiene panel de
+ * organización: su casa es la lista de clientes (punto 41).
+ */
+const rutaCasa = computed(() => (usuario.value?.plataforma ? '/plataforma/organizaciones' : '/panel'));
 const organizacion = computed(() => pagina.props.organizacion);
 
 /**
@@ -284,7 +290,7 @@ onUnmounted(() => {
                             <!-- Sólo Statera: el respaldo no va en la barra de
                                  navegación (DESIGN.md §2, Logotipo). -->
                             <div class="flex h-16 shrink-0 items-center border-b px-4">
-                                <Link href="/panel" class="flex min-w-0 items-center rounded-md" data-recorrido="logotipo">
+                                <Link :href="rutaCasa" class="flex min-w-0 items-center rounded-md" data-recorrido="logotipo">
                                     <Logotipo />
                                 </Link>
                             </div>
@@ -354,7 +360,19 @@ onUnmounted(() => {
 
                             <!-- Organización y plegar en una sola fila. -->
                             <div class="flex shrink-0 items-center gap-1 border-t p-2">
-                                <DropdownMenu>
+                                <!-- Quien administra la plataforma no tiene
+                                     organización activa: se dice qué es en vez
+                                     de pintar «Sin contexto». -->
+                                <div
+                                    v-if="usuario?.plataforma && !organizacion"
+                                    class="flex h-12 min-w-0 flex-1 items-center gap-2.5 px-2"
+                                >
+                                    <span class="min-w-0 flex-1">
+                                        <span class="block truncate text-sm font-medium">Plataforma</span>
+                                        <span class="block text-xs text-muted-foreground">Sin organización activa</span>
+                                    </span>
+                                </div>
+                                <DropdownMenu v-else>
                                     <DropdownMenuTrigger as-child>
                                         <button
                                             type="button"
@@ -398,7 +416,7 @@ onUnmounted(() => {
                         <!-- Plegado: el riel, un botón por grupo con su menú. -->
                         <div v-else key="riel" class="flex min-h-0 w-16 flex-1 flex-col items-center">
                             <div class="flex h-16 w-full shrink-0 items-center justify-center border-b">
-                                <Link href="/panel" class="flex rounded-md" data-recorrido="logotipo">
+                                <Link :href="rutaCasa" class="flex rounded-md" data-recorrido="logotipo">
                                     <Logotipo variante="simbolo" />
                                 </Link>
                             </div>

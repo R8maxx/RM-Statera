@@ -299,7 +299,7 @@ Multi-organización real, onboarding, importadores, informes exportables para au
 
 ## 8. Fuera de alcance por ahora
 
-Facturación y suscripciones. Onboarding self-service. Panel de superadministración. White-labeling. Integraciones con SIEM o escáneres de vulnerabilidades. Aplicación móvil. Flujos de auditoría formal ENS de categoría media y alta (se modelan, no se implementan). NIS2 — la Directiva 2022/2555 se transpondrá mediante la Ley de Coordinación y Gobernanza de la Ciberseguridad, todavía en tramitación; el modelo de marcos debe permitir añadirla sin cambios estructurales, pero no se carga aún.
+Cobro a través de una pasarela de pago (el plan y la suscripción se modelan desde el punto 43, pero no se cobran). Registro self-service: a una organización la da de alta la plataforma (punto 41). White-labeling. Integraciones con SIEM o escáneres de vulnerabilidades. Aplicación móvil. Flujos de auditoría formal ENS de categoría media y alta (se modelan, no se implementan). NIS2 — la Directiva 2022/2555 se transpondrá mediante la Ley de Coordinación y Gobernanza de la Ciberseguridad, todavía en tramitación; el modelo de marcos debe permitir añadirla sin cambios estructurales, pero no se carga aún.
 
 ---
 

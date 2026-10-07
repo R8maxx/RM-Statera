@@ -103,6 +103,12 @@ class PerfilController extends Controller
         /** @var User $usuario */
         $usuario = $request->user();
 
+        // Quien administra la plataforma no tiene panel de organización: su
+        // casa es la lista de clientes (punto 41).
+        if ($usuario->esPlataforma()) {
+            return redirect()->route('plataforma.organizaciones.index');
+        }
+
         return redirect()->to($usuario->pagina_inicio->url($usuario));
     }
 

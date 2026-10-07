@@ -1,0 +1,43 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Domain\Plataforma\Enums;
+
+use Spatie\TypeScriptTransformer\Attributes\TypeScript;
+
+/**
+ * Qué hizo un administrador de la plataforma (punto 41).
+ *
+ * Es la traza de quien **no pertenece a ninguna organización**. La de cada
+ * tenant —`eventos_auditoria`— vive bajo RLS y exige un dueño, así que la
+ * entrada, la salida y el alta de un administrador no tendrían dónde
+ * escribirse. Lo que un administrador hace **dentro** de un tenant (darlo de
+ * alta, entrar como soporte) va además a la traza de ese tenant: el cliente
+ * tiene que poder verlo en la suya sin pedírnoslo.
+ *
+ * El `CHECK` de la columna se construye desde estos casos en la migración, así
+ * que un caso nuevo necesita su migración que lo amplíe.
+ */
+#[TypeScript]
+enum AccionPlataforma: string
+{
+    case AdministradorCreado = 'administrador_creado';
+    case AdministradorActivado = 'administrador_activado';
+    case InicioSesion = 'inicio_sesion';
+    case CierreSesion = 'cierre_sesion';
+    case IntentoFallido = 'intento_fallido';
+    case OrganizacionAlta = 'organizacion_alta';
+
+    public function etiqueta(): string
+    {
+        return match ($this) {
+            self::AdministradorCreado => 'Administrador creado',
+            self::AdministradorActivado => 'Administrador activado',
+            self::InicioSesion => 'Inicio de sesión',
+            self::CierreSesion => 'Cierre de sesión',
+            self::IntentoFallido => 'Intento de acceso fallido',
+            self::OrganizacionAlta => 'Alta de organización',
+        };
+    }
+}

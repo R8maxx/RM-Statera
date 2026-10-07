@@ -143,6 +143,7 @@ completa con el razonamiento del orden, en `.ai/rules/orden-de-arranque.md`.
 | 38 | Comunicación: el plan, lo comunicado y lo recibido | 7.4 | `comunicacion.md`, `revision-direccion.md` |
 | 39 | Perfiles CCN-STIC 890: la asignación, sin los datos | — | `catalogo.md` |
 | 40 | Implantaciones agrupadas por atributo de la ISO 27002 | 4.4 | `implantaciones.md` |
+| 41 | La plataforma: el administrador y el alta de una organización — **abre el tramo «vendible»** | — | `plataforma.md` |
 
 **La fase 3 está cerrada.** Con continuidad (§ 4.11) dentro —el BIA por servicio,
 el plan como documento y las pruebas que lo contrastan— el ciclo vivo se recorre
@@ -209,6 +210,7 @@ Lo demás va dentro. Con `app` basta para todo lo de PHP; `vite` es el de Node:
 docker compose exec app php artisan migrate --database=pgsql_migraciones   # con el rol dueño de las tablas
 docker compose exec app php artisan catalogo:importar       # ISO, ENS, mapeos, amenazas de MAGERIT, obligaciones periódicas y cláusulas de proveedor
 docker compose exec app php artisan db:seed                 # organización, usuarios, sistema, inventario, tareas, riesgos, personas y puestos (sintéticos)
+docker compose exec app php artisan plataforma:administrador correo@x.test "Nombre"  # la única puerta para crear a quien administra la plataforma
 docker compose exec app php artisan avisos:enviar --dry-run # lo que saldría por correo, sin enviarlo
 docker compose exec app php artisan indicadores:medir --dry-run # la cifra que se sellaría, sin escribirla
 docker compose exec app php artisan copias:hacer            # volcado cifrado de la base y espejo de los ficheros
@@ -304,6 +306,7 @@ sobre el directorio pilla lo que un encaje de ruta se deja.
 | `cuentas.md` | `pages/cuentas/**`, `app/Domain/Usuario/**`, la invitación, los middlewares de cuenta y sesión |
 | `proveedores.md` | `app/Domain/Proveedor/**`, sus pantallas y `catalogo/clausulas-proveedor.yaml` |
 | `vulnerabilidades.md` | `app/Domain/Vulnerabilidad/**` y sus pantallas |
+| `plataforma.md` | `app/Domain/Plataforma/**`, `routes/plataforma.php`, `pages/plataforma/**` y sus middlewares |
 
 **Un módulo nuevo entra con su fichero y su `paths:`**, y no tocando este mapa: lo que
 hace que se cargue es el glob, no la fila de esta tabla. La tabla es para leerla un
@@ -311,7 +314,7 @@ humano.
 
 ## Fuera de alcance
 
-Facturación y suscripciones, onboarding self-service, panel de superadministración, white-labeling, integraciones con SIEM o escáneres, aplicación móvil. Los flujos de auditoría formal ENS de categoría media y alta **se modelan pero no se implementan**. NIS2 todavía no se carga, pero el modelo de marcos tiene que permitir añadirla sin cambios estructurales.
+La pasarela de pago (el plan y la suscripción se **modelan**, no se cobran), el registro self-service (a una organización la da de alta la plataforma), white-labeling, integraciones con SIEM o escáneres, aplicación móvil. Los flujos de auditoría formal ENS de categoría media y alta **se modelan pero no se implementan**. NIS2 todavía no se carga, pero el modelo de marcos tiene que permitir añadirla sin cambios estructurales.
 
 ---
 <laravel-boost-guidelines>

@@ -18,6 +18,8 @@ export interface UsuarioAutenticado {
     dosFactores: boolean;
     /** El tema guardado en la cuenta, que manda sobre el del navegador. */
     tema: App.Domain.Usuario.Enums.Tema;
+    /** Administra la plataforma: sin organización y sin rol (punto 41). */
+    plataforma: boolean;
 }
 
 export interface OrganizacionActiva {

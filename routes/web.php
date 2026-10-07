@@ -1960,6 +1960,9 @@ Route::middleware('guest')->group(function (): void {
         ->name('invitacion.store');
 });
 
+// La plataforma: quien administra Statera y no pertenece a ningún cliente.
+require __DIR__.'/plataforma.php';
+
 /*
 |--------------------------------------------------------------------------
 | Lo que no existe

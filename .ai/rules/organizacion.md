@@ -229,5 +229,5 @@ importa. Si el símbolo llega apaisado, sale apaisado — hay test.
   la misma regla, y rechazarlos impediría dar de alta a alguien real.
 - **No se comprueba que la razón social sea la del registro mercantil.** Statera
   registra lo que se declare.
-- **No hay alta ni baja de organizaciones**: esto edita la propia. Crear tenants es
-  panel de superadministración, fuera de alcance en los tres documentos.
+- **No hay baja de organizaciones**, y el alta no es de aquí: esto edita la propia.
+  Crear tenants es de la plataforma (`AltaOrganizacion`, punto 41, `plataforma.md`).

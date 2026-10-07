@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 /**
  * La raíz del tenant.
@@ -45,6 +46,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $plazo_vulnerabilidad_media_dias
  * @property int $plazo_vulnerabilidad_baja_dias
  * @property ?int $retencion_personas_meses tras la baja; nulo, nadie se suprime solo (punto 36)
+ * @property ?Carbon $created_at
  */
 class Organizacion extends Model
 {
@@ -67,8 +69,8 @@ class Organizacion extends Model
      *
      * Y no se pierde nada que importe: lo que el auditor pregunta de esta tabla
      * es desde cuándo la razón social o el CIF dicen lo que dicen, y eso son
-     * modificaciones. Dar de alta un tenant es panel de superadministración, que
-     * está fuera de alcance.
+     * modificaciones. El alta la escribe a mano `AltaOrganizacion` (punto 41),
+     * ya dentro del contexto de la fila recién creada.
      */
     protected static function booted(): void
     {

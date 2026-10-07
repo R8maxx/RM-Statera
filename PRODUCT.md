@@ -24,7 +24,7 @@ Esto importa porque el repositorio dice dos cosas distintas: la especificación 
 
 Los verbos de supervisión están aparte a propósito, y son siempre la misma línea: `sistemas.valorar`, `riesgos.aceptar`, `documentos.aprobar`, `contexto.aprobar`, `no_conformidades.verificar`, `objetivos.aprobar`, `revision_direccion.aprobar`, `personas.designar`, `continuidad.aprobar` y `vulnerabilidades.aceptar`. Firmar que la organización convive con una exposición —o que se compromete a una cifra— es de dirección, no de quien la registró: es la razón entera por la que ISO 27001 6.1.3 f) pide la aprobación del propietario del riesgo.
 
-**Decisión confirmada en esta sesión: se diseña ya para varios clientes**, incluidas categorías ENS media y alta, y para gente que no conoce ni la herramienta ni los marcos. Eso va por delante del encuadre de «fase actual: uso interno, básica» que llevan la especificación y `CLAUDE.md`, y se anota aquí para que nadie lo lea como una contradicción que hay que resolver hacia atrás. Lo que **no** cambia son las exclusiones de alcance: sigue sin haber registro self-service, facturación ni panel de superadministración.
+**Decisión confirmada en esta sesión: se diseña ya para varios clientes**, incluidas categorías ENS media y alta, y para gente que no conoce ni la herramienta ni los marcos. Eso va por delante del encuadre de «fase actual: uso interno, básica» que llevan la especificación y `CLAUDE.md`, y se anota aquí para que nadie lo lea como una contradicción que hay que resolver hacia atrás. Lo que **no** cambia son las exclusiones de alcance: sigue sin haber registro self-service ni pasarela de pago. **El panel de la plataforma sí entra desde el punto 41** (octubre de 2026), cuando César decidió preparar el producto para venderlo: un administrador da de alta organizaciones, y el plan y la suscripción se modelan sin cobrar.
 
 ## Product Purpose
 
@@ -103,7 +103,7 @@ Cuatro cosas que una hoja de cálculo no hace, y que un gestor de cumplimiento g
 
 **Qué muerde hoy y qué no**, que es lo que ordenó los módulos de este tramo: en categoría básica son exigibles `op.exp.7` (gestión de incidentes, 4.10) y `mp.per.2/3/4` (deberes, concienciación y formación, 4.8), y **los dos tienen ya dónde registrarse**. En cambio `op.ext.*` (proveedores, 4.9) y `op.cont.*` (continuidad, 4.11) están en `no_aplica` en básica y sólo aparecen al subir a media o al valorar disponibilidad: por eso fueron después, y no porque costaran menos. La continuidad y los proveedores ya están construidos.
 
-**Fuera de alcance, y sigue estándolo:** facturación y suscripciones, registro self-service, panel de superadministración, white-labeling, integraciones con SIEM o escáneres, aplicación móvil. NIS2 no se carga todavía, pero el modelo de marcos tiene que admitirla sin cambios estructurales.
+**Fuera de alcance, y sigue estándolo:** la pasarela de pago, registro self-service, white-labeling, integraciones con SIEM o escáneres, aplicación móvil. NIS2 no se carga todavía, pero el modelo de marcos tiene que admitirla sin cambios estructurales.
 
 **Multi-tenancy es la frontera de seguridad principal** y se implementa a mano, con tres capas: `organizacion_id` en toda tabla de datos propios, global scope de Eloquent y Row Level Security en PostgreSQL. Un recurso de otra organización responde **404 y no 403**: decir «existe pero no es tuyo» ya sería filtrar información, y eso convierte una página de error en algo que ve gente real y con frecuencia.
 

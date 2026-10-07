@@ -39,6 +39,8 @@ final class InvitarCuenta
 
     /**
      * @param  list<int>  $sistemas
+     * @param  bool  $enviar  falso cuando quien llama abre su propia transacción y
+     *                        manda el correo al confirmarla (`AltaOrganizacion`)
      */
     public function __invoke(
         string $nombre,
@@ -47,6 +49,7 @@ final class InvitarCuenta
         array $sistemas = [],
         ?Carbon $accesoHasta = null,
         ?Persona $persona = null,
+        bool $enviar = true,
     ): User {
         $cuenta = DB::transaction(function () use ($nombre, $email, $rol, $sistemas, $accesoHasta, $persona): User {
             $cuenta = User::query()->create([
@@ -74,7 +77,9 @@ final class InvitarCuenta
             return $cuenta;
         });
 
-        ($this->enviar)($cuenta);
+        if ($enviar) {
+            ($this->enviar)($cuenta);
+        }
 
         return $cuenta;
     }

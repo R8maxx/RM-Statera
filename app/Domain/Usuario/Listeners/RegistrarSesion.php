@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Domain\Usuario\Listeners;
 
 use App\Domain\Organizacion\ContextoOrganizacion;
+use App\Domain\Plataforma\Enums\AccionPlataforma;
+use App\Domain\Plataforma\TrazaPlataforma;
 use App\Domain\Traza\Enums\AccionAuditada;
 use App\Domain\Traza\RegistroTraza;
 use App\Models\User;
@@ -31,6 +33,7 @@ final class RegistrarSesion
     public function __construct(
         private readonly ContextoOrganizacion $contexto,
         private readonly RegistroTraza $traza,
+        private readonly TrazaPlataforma $trazaPlataforma,
     ) {}
 
     public function alEntrar(Login $evento): void
@@ -64,6 +67,22 @@ final class RegistrarSesion
 
     private function anotar(User $cuenta, AccionAuditada $accion, ?Closure $antes = null): void
     {
+        // Quien administra la plataforma no tiene tenant donde anotarlo: va a
+        // la traza de la plataforma (punto 41).
+        if ($cuenta->esPlataforma()) {
+            if ($antes !== null) {
+                $antes();
+            }
+
+            $this->trazaPlataforma->registrar(match ($accion) {
+                AccionAuditada::InicioSesion => AccionPlataforma::InicioSesion,
+                AccionAuditada::CierreSesion => AccionPlataforma::CierreSesion,
+                default => AccionPlataforma::IntentoFallido,
+            }, null, [], $cuenta->id);
+
+            return;
+        }
+
         if ($cuenta->organizacion_id === null) {
             return;
         }

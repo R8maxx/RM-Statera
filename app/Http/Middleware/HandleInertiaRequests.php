@@ -51,10 +51,18 @@ class HandleInertiaRequests extends Middleware
                     // pintado, pero al entrar la navegación es de Inertia y la
                     // plantilla no se vuelve a pintar: el layout lo recoge de aquí.
                     'tema' => $usuario->tema->value,
+                    'plataforma' => $usuario->esPlataforma(),
                 ],
                 // Los permisos viajan como lista plana: el frontend solo decide
                 // qué pinta, nunca qué autoriza. La autorización es del servidor.
-                'permisos' => $usuario?->getAllPermissions()->pluck('name')->values()->all() ?? [],
+                //
+                // Quien administra la plataforma no tiene rol de spatie: recibe
+                // una sola marca, `plataforma.gestionar`, que no es un permiso de
+                // la base sino la llave con la que `lib/navegacion.ts` le pinta
+                // su grupo. Quien autoriza es `SoloPlataforma` (punto 41).
+                'permisos' => $usuario?->esPlataforma() === true
+                    ? ['plataforma.gestionar']
+                    : ($usuario?->getAllPermissions()->pluck('name')->values()->all() ?? []),
             ],
 
             // Sin contexto no hay datos propios visibles, y la interfaz tiene que

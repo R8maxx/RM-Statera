@@ -34,10 +34,14 @@ final class EnviarInvitacion
 
         $cuenta->forceFill(['invitada_en' => now()])->save();
 
+        // Quien administra la plataforma no tiene organización ni rol: el correo
+        // nombra lo que sí tiene.
         $cuenta->notify(new InvitacionACuenta(
             enlace: route('invitacion.show', ['token' => $token, 'email' => $cuenta->email]),
-            organizacion: (string) $cuenta->organizacion?->nombre,
-            rol: mb_strtolower($cuenta->rol()?->etiqueta() ?? 'sin rol'),
+            organizacion: $cuenta->esPlataforma() ? 'la plataforma' : (string) $cuenta->organizacion?->nombre,
+            rol: $cuenta->esPlataforma()
+                ? 'administración de la plataforma'
+                : mb_strtolower($cuenta->rol()?->etiqueta() ?? 'sin rol'),
             dias: self::diasDeValidez(),
         ));
     }
