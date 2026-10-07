@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Aviso from '@/components/Aviso.vue';
 import GrupoSidebar from '@/components/GrupoSidebar.vue';
 import Logotipo from '@/components/Logotipo.vue';
 import MenuCuenta from '@/components/MenuCuenta.vue';
@@ -20,6 +21,7 @@ import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
 import { usePaletaComandos } from '@/composables/usePaletaComandos';
 import { useRecorrido } from '@/composables/useRecorrido';
 import { entradaDe, esSeccionActiva, navegacionPara, type GrupoNavegacion } from '@/lib/navegacion';
+import { fechaLegible } from '@/lib/celdas';
 import { anclaGrupo } from '@/lib/recorridos';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import {
@@ -63,6 +65,7 @@ const usuario = computed(() => pagina.props.auth.usuario);
  */
 const rutaCasa = computed(() => (usuario.value?.plataforma ? '/plataforma/organizaciones' : '/panel'));
 const organizacion = computed(() => pagina.props.organizacion);
+const suscripcion = computed(() => pagina.props.suscripcion);
 
 /**
  * Si la sesión tiene un permiso, para decidir qué se PINTA.
@@ -698,6 +701,25 @@ onUnmounted(() => {
                         class="w-full min-w-0 flex-1 space-y-8 px-4 pt-6 pb-10 outline-none sm:px-6 lg:px-8"
                         :class="ancho === 'contenido' && 'mx-auto max-w-[90rem]'"
                     >
+                        <!-- La suscripción, cuando hay algo que decir (punto 43).
+                             En gracia se avisa y se sigue trabajando; en sólo
+                             lectura, el rojo, porque ya no se puede escribir. -->
+                        <Aviso
+                            v-if="suscripcion"
+                            :tono="suscripcion.estado === 'solo_lectura' ? 'error' : 'info'"
+                            :titulo="suscripcion.estado === 'solo_lectura' ? 'Statera está en sólo lectura' : 'La suscripción ha vencido'"
+                        >
+                            <template v-if="suscripcion.estado === 'solo_lectura'">
+                                La suscripción venció y el periodo de gracia terminó. Puedes ver y descargar todo lo que
+                                hay, pero no cambiar nada hasta que se renueve.
+                            </template>
+                            <template v-else>
+                                Se puede seguir trabajando con normalidad hasta el
+                                {{ suscripcion.graciaHasta ? fechaLegible(suscripcion.graciaHasta) : '—' }}. Después,
+                                Statera pasará a sólo lectura hasta que se renueve.
+                            </template>
+                        </Aviso>
+
                         <slot />
                     </motion.main>
                 </div>

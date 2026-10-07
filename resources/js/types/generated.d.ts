@@ -182,7 +182,8 @@ export type TipoPasoPersona = 'alta' | 'baja';
 }
 namespace Plataforma {
 namespace Enums {
-export type AccionPlataforma = 'administrador_creado' | 'administrador_activado' | 'inicio_sesion' | 'cierre_sesion' | 'intento_fallido' | 'organizacion_alta';
+export type AccionPlataforma = 'administrador_creado' | 'administrador_activado' | 'inicio_sesion' | 'cierre_sesion' | 'intento_fallido' | 'organizacion_alta' | 'suscripcion_cambiada' | 'plan_guardado';
+export type EstadoSuscripcion = 'vigente' | 'en_gracia' | 'solo_lectura';
 }
 }
 namespace Proveedor {

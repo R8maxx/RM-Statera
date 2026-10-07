@@ -6,6 +6,8 @@ namespace App\Http\Middleware;
 
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Organizacion\Marca\PiezaDeMarca;
+use App\Domain\Organizacion\Models\Organizacion;
+use App\Domain\Plataforma\Enums\EstadoSuscripcion;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -76,6 +78,35 @@ class HandleInertiaRequests extends Middleware
                     'logo' => $usuario->organizacion->urlMarca(PiezaDeMarca::Logo),
                 ]
                 : null,
+
+            // La franja de aviso del layout (punto 43). Sólo cuando hay algo que
+            // decir: en gracia o en sólo lectura. Vigente no viaja.
+            'suscripcion' => $this->suscripcion($contexto),
+        ];
+    }
+
+    /**
+     * @return ?array{estado: string, etiqueta: string, plan: ?string, venceEn: ?string, graciaHasta: ?string}
+     */
+    private function suscripcion(ContextoOrganizacion $contexto): ?array
+    {
+        if (! $contexto->hayContexto()) {
+            return null;
+        }
+
+        $organizacion = Organizacion::query()->with('plan')->find($contexto->id());
+        $estado = $organizacion?->estadoSuscripcion();
+
+        if ($organizacion === null || $estado === null || $estado === EstadoSuscripcion::Vigente) {
+            return null;
+        }
+
+        return [
+            'estado' => $estado->value,
+            'etiqueta' => $estado->etiqueta(),
+            'plan' => $organizacion->plan?->nombre,
+            'venceEn' => $organizacion->suscripcion_vence_en?->toIso8601String(),
+            'graciaHasta' => EstadoSuscripcion::finDeGracia($organizacion)?->toIso8601String(),
         ];
     }
 }

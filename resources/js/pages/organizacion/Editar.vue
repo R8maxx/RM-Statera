@@ -7,6 +7,7 @@ import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import FormularioRecurso from '@/components/formulario/FormularioRecurso.vue';
 import SeccionFormulario from '@/components/formulario/SeccionFormulario.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { fechaLegible } from '@/lib/celdas';
 import { computed, ref } from 'vue';
 
 interface Organizacion {
@@ -40,6 +41,14 @@ const props = defineProps<{
     leAplicaElEns: boolean;
     /** A dónde apunta hoy el QR de una etiqueta, con la base que hay guardada. */
     ejemploEtiqueta: string;
+    /** En lectura: la cambia la plataforma (punto 43). */
+    suscripcion: {
+        plan: string | null;
+        limiteCuentas: number | null;
+        limiteSistemas: number | null;
+        venceEn: string | null;
+        estado: string;
+    };
 }>();
 
 /*
@@ -349,6 +358,35 @@ const cambioLaBase = computed(
                     Las pegatinas que estén puestas en el parque siguen apuntando a la dirección anterior.
                     Cambiar esto obliga a reimprimirlas, o a que la dirección vieja siga respondiendo.
                 </Aviso>
+            </SeccionFormulario>
+
+            <!-- En lectura: el plan lo cambia la plataforma, no esta pantalla. -->
+            <SeccionFormulario
+                titulo="Suscripción"
+                ayuda="Lo que el plan contratado permite y hasta cuándo. Para cambiarlo, habla con quien te dio de alta en Statera."
+            >
+                <dl class="grid gap-2 text-sm">
+                    <div class="flex flex-wrap gap-x-2">
+                        <dt class="text-muted-foreground">Plan</dt>
+                        <dd>{{ suscripcion.plan ?? 'Sin plan' }}</dd>
+                    </div>
+                    <div class="flex flex-wrap gap-x-2">
+                        <dt class="text-muted-foreground">Estado</dt>
+                        <dd>{{ suscripcion.estado }}</dd>
+                    </div>
+                    <div class="flex flex-wrap gap-x-2">
+                        <dt class="text-muted-foreground">Vence</dt>
+                        <dd>{{ suscripcion.venceEn ? fechaLegible(suscripcion.venceEn) : 'No vence' }}</dd>
+                    </div>
+                    <div class="flex flex-wrap gap-x-2">
+                        <dt class="text-muted-foreground">Cuentas</dt>
+                        <dd>{{ suscripcion.limiteCuentas ?? 'Sin límite' }}</dd>
+                    </div>
+                    <div class="flex flex-wrap gap-x-2">
+                        <dt class="text-muted-foreground">Sistemas</dt>
+                        <dd>{{ suscripcion.limiteSistemas ?? 'Sin límite' }}</dd>
+                    </div>
+                </dl>
             </SeccionFormulario>
         </FormularioRecurso>
     </AppLayout>

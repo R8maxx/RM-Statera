@@ -5,6 +5,10 @@ paths:
   - resources/js/pages/plataforma/**
   - app/Http/Controllers/Plataforma/**
   - app/Http/Middleware/SoloPlataforma.php
+  - app/Http/Middleware/SuscripcionVigente.php
+  - app/Http/Requests/AltaOrganizacionRequest.php
+  - app/Http/Requests/GuardarPlanRequest.php
+  - app/Http/Requests/CambiarSuscripcionRequest.php
   - app/Http/Resources/OrganizacionPlataformaRecurso.php
 ---
 
@@ -116,6 +120,89 @@ del tenant**, ni sistemas, ni riesgos, ni evidencias, por dos motivos:
 lo correcto: `organizaciones` no tiene scope ni RLS, y a esas rutas sólo llega
 la plataforma.
 
+## El plan y la suscripción (punto 43)
+
+**Se modelan y no se cobran.** Un plan no lleva precio. Lo que el producto
+necesita saber de él es qué límites pone y cuántos días de gracia da antes de
+pasar a sólo lectura.
+
+**La suscripción vive en `organizaciones` y no en una tabla aparte**, en las
+columnas `plan_id`, `suscripcion_inicia_en`, `suscripcion_vence_en` y
+`suscripcion_referencia_externa`. Es el desvío principal respecto al plan, y
+el motivo es el aislamiento:
+
+- Una tabla `suscripciones` con `organizacion_id` necesitaría RLS, porque así
+  lo exige `RlsDeclaradaTest`.
+- Con RLS, la plataforma no podría listar las suscripciones de todos sus
+  clientes sin `comoMantenimiento()`.
+- Cada cliente tiene una sola suscripción, así que es un atributo de la raíz, y
+  la raíz ya está fuera de las tres capas.
+
+**El histórico sí va aparte (invariante 7)**, en `transiciones_suscripcion`.
+Es inmutable por privilegios y lleva `organizacion_afectada_id`, igual que
+`eventos_plataforma`.
+
+**Un cambio de plan queda en tres sitios**:
+
+- en el histórico;
+- en la traza de la plataforma;
+- en la traza del tenant. Ésta la escribe `Organizacion::booted()` sola, y por
+  eso `CambiarSuscripcion` guarda **dentro de `paraOrganizacion()`**: una
+  escritura que cruzara la frontera la tumbaría RLS al dejar el evento.
+
+**El plan y las fechas no están en `$fillable`.** Así la ficha del cliente
+(`GuardarFichaOrganizacion`, que hace `update($datos)`) no puede cambiárselos
+aunque los mande en la petición, y hay un test que lo comprueba.
+
+**`plan_id` nulo es «sin plan»**: sin límites y sin vencimiento. Es el estado
+de toda organización anterior a este punto y el del uso interno. Sin `CHECK`
+entre el inicio y el vencimiento, a propósito: un contrato ya vencido se
+registra con su fecha pasada, y el inicio es el día en que se le puso el plan
+en Statera.
+
+### El estado se deriva
+
+`EstadoSuscripcion::de()` lo saca de las fechas, igual que `EstadoCuenta`:
+
+| Estado | Cuándo | Qué pasa |
+|---|---|---|
+| `Vigente` | hasta `vence_en`, o siempre si no vence | Se trabaja con normalidad. |
+| `EnGracia` | hasta `vence_en + dias_gracia` | Se escribe, con una franja de aviso. |
+| `SoloLectura` | después | No se escribe. |
+
+**Sólo lectura no es perder nada.** `SuscripcionVigente` va justo detrás de
+`EstablecerContextoOrganizacion` y corta toda petición que no sea segura. Se
+sigue entrando, viendo y descargando: la SoA ya entregada y las evidencias que
+vio el auditor son del cliente.
+
+**La cuenta propia queda fuera del corte**: `logout`, `perfil/*` y `user/*`
+(contraseña, segundo factor y passkeys). Un impago no puede dejar a alguien
+sin poder proteger su cuenta. La lista va por camino porque esas rutas son de
+Fortify y del paquete de passkeys, no nuestras.
+
+`HandleInertiaRequests` comparte `suscripcion` **sólo en gracia o en sólo
+lectura**, y `AppLayout` la pinta como franja encima del contenido. El rojo se
+reserva para sólo lectura: en gracia todavía se puede trabajar.
+
+### Los límites
+
+`LimitesDelPlan`, comprobado en el `after()` de dos `FormRequest`, para que el
+error salga junto al campo:
+
+- **Sistemas** (`GuardarSistemaRequest`): sólo al dar de alta. Cuenta por el
+  scope de la organización.
+- **Cuentas** (`GuardarCuentaRequest`): al invitar, y también al quitarle el rol
+  de auditor a alguien, porque eso añade un asiento.
+
+**El auditor externo no ocupa asiento.** Se le da acceso para que audite, y
+cobrárselo al cliente sería castigarle por dejarse auditar. **Una invitación
+pendiente sí lo ocupa.** Quien administra la plataforma no cuenta nunca,
+porque no tiene organización.
+
+**Un plan no se borra: se retira con `activo`.** Deja de salir al dar de alta y
+quien ya lo tiene lo conserva. El desplegable de la ficha ofrece los activos y,
+además, el plan que ya tiene esa organización.
+
 ## Desvíos respecto al plan
 
 - **`DesarrolloSeeder` no pasa por `AltaOrganizacion`.** El seeder necesita
@@ -123,8 +210,15 @@ la plataforma.
   hace es sembrar un administrador sintético, `plataforma@statera.test`, con la
   contraseña de desarrollo.
 
-## Lo que este punto declara que no hace todavía
+## Lo que la plataforma declara que no hace todavía
 
+- **No cobra.** `suscripcion_referencia_externa` es el hueco para una
+  pasarela, y nada lo lee.
+- **No avisa del vencimiento por correo**, ni a la plataforma ni al cliente. La
+  franja sale al entrar, y nada más.
+- **Superar un límite no quita nada.** Si se baja de plan a uno con menos
+  cuentas de las que ya hay, nadie se desactiva: simplemente no se puede añadir
+  otra.
 - **No hay baja de organizaciones**, ni desactivación desde la plataforma.
   `organizaciones.activa` sigue sin lector.
 - **No hay alta de administradores desde la web**, ni lista de administradores.

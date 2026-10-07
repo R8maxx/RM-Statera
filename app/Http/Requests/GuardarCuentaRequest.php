@@ -5,12 +5,17 @@ declare(strict_types=1);
 namespace App\Http\Requests;
 
 use App\Domain\Autorizacion\Enums\Rol;
+use App\Domain\Organizacion\ContextoOrganizacion;
+use App\Domain\Organizacion\Models\Organizacion;
 use App\Domain\Persona\Models\Persona;
+use App\Domain\Plataforma\LimitesDelPlan;
 use App\Http\Requests\Concerns\NormalizaSeleccionVacia;
 use App\Models\User;
+use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 /**
  * Alta y edición de una cuenta (§ 4.19).
@@ -68,6 +73,39 @@ class GuardarCuentaRequest extends FormRequest
                         ->when($cuenta instanceof User, fn ($propia) => $propia->orWhere('user_id', $cuenta->id)));
                 }),
             ],
+        ];
+    }
+
+    /**
+     * El límite de cuentas del plan (punto 43).
+     *
+     * Ocupa sitio una cuenta nueva, y también una que deja de ser auditor: el
+     * auditor externo no cuenta, así que cambiarle el rol es añadir un asiento.
+     *
+     * @return list<Closure(Validator): void>
+     */
+    public function after(): array
+    {
+        return [
+            function (Validator $validador): void {
+                $rol = Rol::tryFrom((string) $this->input('rol'));
+                $cuenta = $this->route('cuenta');
+                $ocupaUnoNuevo = ! $cuenta instanceof User || $cuenta->rol() === Rol::Auditor;
+
+                if ($rol === null || ! $ocupaUnoNuevo || $validador->errors()->isNotEmpty()) {
+                    return;
+                }
+
+                $organizacion = Organizacion::query()->with('plan')->findOrFail(app(ContextoOrganizacion::class)->idObligatorio());
+
+                if (! app(LimitesDelPlan::class)->puedeAnadirCuenta($organizacion, $rol)) {
+                    $validador->errors()->add('rol', sprintf(
+                        'El plan %s admite %d cuentas y ya están todas ocupadas. El auditor externo no cuenta; para más, hay que ampliar el plan.',
+                        $organizacion->plan?->nombre,
+                        $organizacion->plan?->limite_cuentas,
+                    ));
+                }
+            },
         ];
     }
 

@@ -28,6 +28,8 @@ enum AccionPlataforma: string
     case CierreSesion = 'cierre_sesion';
     case IntentoFallido = 'intento_fallido';
     case OrganizacionAlta = 'organizacion_alta';
+    case SuscripcionCambiada = 'suscripcion_cambiada';
+    case PlanGuardado = 'plan_guardado';
 
     public function etiqueta(): string
     {
@@ -38,6 +40,8 @@ enum AccionPlataforma: string
             self::CierreSesion => 'Cierre de sesión',
             self::IntentoFallido => 'Intento de acceso fallido',
             self::OrganizacionAlta => 'Alta de organización',
+            self::SuscripcionCambiada => 'Suscripción cambiada',
+            self::PlanGuardado => 'Plan guardado',
         };
     }
 }

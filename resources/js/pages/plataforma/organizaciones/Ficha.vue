@@ -1,9 +1,16 @@
 <script setup lang="ts">
 import CabeceraPagina from '@/components/CabeceraPagina.vue';
+import CampoSelect from '@/components/formulario/CampoSelect.vue';
+import CampoTextarea from '@/components/formulario/CampoTextarea.vue';
+import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import CeldaBadge from '@/components/tabla/celdas/CeldaBadge.vue';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { formatoFechaHora } from '@/lib/celdas';
+import { fechaLegible, formatoFechaHora } from '@/lib/celdas';
+import { SIN_VALOR, conOpcionVacia } from '@/lib/formularios';
+import { useForm } from '@inertiajs/vue3';
+import { computed } from 'vue';
 
 /**
  * La ficha comercial de una organización cliente (punto 41).
@@ -28,7 +35,28 @@ interface EventoTraza {
     fecha: string;
 }
 
-defineProps<{
+interface Suscripcion {
+    planId: number | null;
+    plan: string | null;
+    limiteCuentas: number | null;
+    limiteSistemas: number | null;
+    cuentasOcupadas: number;
+    iniciaEn: string | null;
+    venceEn: string | null;
+    graciaHasta: string | null;
+    estado: { valor: string; etiqueta: string; tono: string; icono: string };
+    historico: {
+        id: number;
+        de: string | null;
+        a: string | null;
+        venceEn: string | null;
+        motivo: string | null;
+        autor: string | null;
+        fecha: string;
+    }[];
+}
+
+const props = defineProps<{
     organizacion: {
         id: number;
         nombre: string;
@@ -40,7 +68,30 @@ defineProps<{
     cuentas: Cuenta[];
     invitadas: number;
     traza: EventoTraza[];
+    suscripcion: Suscripcion;
+    planes: { valor: string; etiqueta: string }[];
 }>();
+
+const opcionesPlan = computed(() => conOpcionVacia(props.planes, 'Sin plan: sin límites y sin vencimiento'));
+
+/*
+ * El formulario de la suscripción. La fecha viaja como día y el servidor la
+ * lleva al final de ese día: vence al acabar el día elegido, no al empezar.
+ */
+const formulario = useForm({
+    plan_id: props.suscripcion.planId === null ? SIN_VALOR : String(props.suscripcion.planId),
+    vence_en: props.suscripcion.venceEn?.slice(0, 10) ?? '',
+    motivo: '',
+});
+
+function guardarSuscripcion(): void {
+    formulario
+        .transform((datos) => ({ ...datos, vence_en: datos.vence_en === '' ? null : datos.vence_en }))
+        .put(`/plataforma/organizaciones/${props.organizacion.id}/suscripcion`, {
+            preserveScroll: true,
+            onSuccess: () => formulario.reset('motivo'),
+        });
+}
 
 const cuando = (fecha: string | null): string => (fecha ? formatoFechaHora.format(new Date(fecha)) : '—');
 </script>
@@ -105,6 +156,74 @@ const cuando = (fecha: string | null): string => (fecha ? formatoFechaHora.forma
             </div>
 
             <div class="space-y-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Suscripción</CardTitle>
+                        <CardDescription>
+                            <template v-if="suscripcion.plan">
+                                {{ suscripcion.plan }}.
+                                <template v-if="suscripcion.limiteCuentas">
+                                    {{ suscripcion.cuentasOcupadas }} de {{ suscripcion.limiteCuentas }} cuentas ocupadas.
+                                </template>
+                                <template v-if="suscripcion.venceEn">
+                                    Vence el {{ fechaLegible(suscripcion.venceEn) }}<template v-if="suscripcion.graciaHasta">
+                                        y escribe hasta el {{ fechaLegible(suscripcion.graciaHasta) }}</template>.
+                                </template>
+                                <template v-else>No vence.</template>
+                            </template>
+                            <template v-else>Sin plan: sin límites y sin vencimiento.</template>
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent class="space-y-4">
+                        <CeldaBadge :valor="{ ...suscripcion.estado }" />
+
+                        <form class="grid gap-4" @submit.prevent="guardarSuscripcion">
+                            <CampoSelect
+                                v-model="formulario.plan_id"
+                                nombre="plan_id"
+                                etiqueta="Plan"
+                                :opciones="opcionesPlan"
+                                :error="formulario.errors.plan_id"
+                            />
+                            <CampoTexto
+                                v-model="formulario.vence_en"
+                                nombre="vence_en"
+                                etiqueta="Vence el"
+                                tipo="date"
+                                :error="formulario.errors.vence_en"
+                                ayuda="El último día incluido. En blanco, no vence."
+                            />
+                            <CampoTextarea
+                                v-model="formulario.motivo"
+                                nombre="motivo"
+                                etiqueta="Motivo"
+                                :filas="2"
+                                :error="formulario.errors.motivo"
+                                ayuda="Opcional. «Renovación anual», «ampliación a 20 cuentas»."
+                            />
+                            <Button type="submit" size="sm" class="justify-self-start" :disabled="formulario.processing">
+                                Guardar la suscripción
+                            </Button>
+                        </form>
+
+                        <ul v-if="suscripcion.historico.length > 0" class="divide-y border-t pt-2 text-sm">
+                            <li v-for="cambio in suscripcion.historico" :key="cambio.id" class="grid gap-0.5 py-2">
+                                <span>
+                                    {{ cambio.de ?? 'Sin plan' }} → {{ cambio.a ?? 'Sin plan' }}
+                                    <span v-if="cambio.venceEn" class="text-muted-foreground">
+                                        · vence el {{ fechaLegible(cambio.venceEn) }}
+                                    </span>
+                                </span>
+                                <span class="text-xs text-muted-foreground">
+                                    <span class="cifra">{{ cuando(cambio.fecha) }}</span>
+                                    <template v-if="cambio.autor"> · {{ cambio.autor }}</template>
+                                    <template v-if="cambio.motivo"> · {{ cambio.motivo }}</template>
+                                </span>
+                            </li>
+                        </ul>
+                    </CardContent>
+                </Card>
+
                 <Card>
                     <CardHeader>
                         <CardTitle>Ficha</CardTitle>

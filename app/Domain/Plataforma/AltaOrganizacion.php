@@ -11,10 +11,12 @@ use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Organizacion\Models\Organizacion;
 use App\Domain\Plataforma\Enums\AccionPlataforma;
 use App\Domain\Plataforma\Excepciones\AltaNoPermitida;
+use App\Domain\Plataforma\Models\Plan;
 use App\Domain\Traza\RegistroTraza;
 use App\Domain\Usuario\EnviarInvitacion;
 use App\Domain\Usuario\InvitarCuenta;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -49,18 +51,24 @@ final class AltaOrganizacion
         private readonly EnviarInvitacion $enviarInvitacion,
         private readonly RegistroTraza $traza,
         private readonly TrazaPlataforma $trazaPlataforma,
+        private readonly CambiarSuscripcion $suscripcion,
     ) {}
 
     /**
      * @param  array{nombre: string, cif?: ?string, razon_social?: ?string, sector?: ?string}  $ficha
      */
-    public function __invoke(array $ficha, string $nombreResponsable, string $emailResponsable): Organizacion
-    {
+    public function __invoke(
+        array $ficha,
+        string $nombreResponsable,
+        string $emailResponsable,
+        ?Plan $plan = null,
+        ?Carbon $venceEn = null,
+    ): Organizacion {
         if (! Marco::query()->where('codigo', 'ENS-RD311-2022')->exists()) {
             throw AltaNoPermitida::catalogoSinImportar();
         }
 
-        [$organizacion, $responsable] = DB::transaction(function () use ($ficha, $nombreResponsable, $emailResponsable): array {
+        [$organizacion, $responsable] = DB::transaction(function () use ($ficha, $nombreResponsable, $emailResponsable, $plan, $venceEn): array {
             $organizacion = Organizacion::query()->create([
                 'nombre' => $ficha['nombre'],
                 'cif' => $ficha['cif'] ?? null,
@@ -78,6 +86,10 @@ final class AltaOrganizacion
                     return ($this->invitar)($nombreResponsable, $emailResponsable, Rol::ResponsableSeguridad, enviar: false);
                 },
             );
+
+            if ($plan !== null) {
+                ($this->suscripcion)($organizacion, $plan, $venceEn, 'Alta de la organización');
+            }
 
             $this->trazaPlataforma->registrar(AccionPlataforma::OrganizacionAlta, $organizacion, [
                 'nombre' => $organizacion->nombre,

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Domain\Organizacion\Models;
 
 use App\Domain\Organizacion\Marca\PiezaDeMarca;
+use App\Domain\Plataforma\Enums\EstadoSuscripcion;
+use App\Domain\Plataforma\Models\Plan;
 use App\Domain\Proveedor\Enums\Criticidad;
 use App\Domain\Sistema\Models\Sistema;
 use App\Domain\Traza\RegistroTraza;
@@ -13,6 +15,7 @@ use Database\Factories\OrganizacionFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
@@ -47,6 +50,11 @@ use Illuminate\Support\Carbon;
  * @property int $plazo_vulnerabilidad_baja_dias
  * @property ?int $retencion_personas_meses tras la baja; nulo, nadie se suprime solo (punto 36)
  * @property ?Carbon $created_at
+ * @property ?int $plan_id nulo, sin plan: ni límites ni vencimiento (punto 43)
+ * @property ?Carbon $suscripcion_inicia_en
+ * @property ?Carbon $suscripcion_vence_en nulo, no vence
+ * @property ?string $suscripcion_referencia_externa
+ * @property-read ?Plan $plan
  */
 class Organizacion extends Model
 {
@@ -189,6 +197,25 @@ class Organizacion extends Model
         return Attribute::get(fn (): int => $this->id);
     }
 
+    /**
+     * El plan contratado, o nulo si no hay (punto 43).
+     *
+     * **El plan y las fechas no están en `$fillable`**: sólo los cambia la
+     * plataforma, con `CambiarSuscripcion`, y nunca la ficha del cliente.
+     *
+     * @return BelongsTo<Plan, $this>
+     */
+    public function plan(): BelongsTo
+    {
+        return $this->belongsTo(Plan::class);
+    }
+
+    /** En qué punto está su suscripción; se deriva, no se guarda. */
+    public function estadoSuscripcion(): EstadoSuscripcion
+    {
+        return EstadoSuscripcion::de($this);
+    }
+
     /** @return HasMany<Sistema, $this> */
     public function sistemas(): HasMany
     {
@@ -232,6 +259,8 @@ class Organizacion extends Model
             'plazo_vulnerabilidad_media_dias' => 'integer',
             'plazo_vulnerabilidad_baja_dias' => 'integer',
             'retencion_personas_meses' => 'integer',
+            'suscripcion_inicia_en' => 'datetime',
+            'suscripcion_vence_en' => 'datetime',
         ];
     }
 

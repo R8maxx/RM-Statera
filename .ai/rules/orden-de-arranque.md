@@ -647,3 +647,17 @@ y 36 retención RGPD.
     No se añadió el paso de «invita a una cuenta más», que el plan traía como
     recomendado. En una lista que se lee por orden de dependencia, un paso
     opcional diría que los demás también lo son.
+
+43. ✅ El plan y la suscripción, **modelados y sin cobrar**. César eligió cobrar
+    por organización y con plan, y que un impago deje al cliente en sólo
+    lectura tras una gracia, nunca sin datos.
+
+    El plan escrito traía una tabla `suscripciones`, y no sobrevivió al primer
+    contacto con los tests que descubren. Con `organizacion_id` necesitaba RLS,
+    y con RLS la plataforma no podía listarlas. La suscripción pasó a ser
+    columnas de la raíz del tenant, con el histórico en una tabla inmutable
+    aparte.
+
+    Lo segundo que mordió fue un `CHECK` de más: «el vencimiento va después del
+    inicio» rechazaba registrar un contrato que ya venció, que es justo el caso
+    de la sólo lectura. Lo dijo la suite al primer test de vencimiento.

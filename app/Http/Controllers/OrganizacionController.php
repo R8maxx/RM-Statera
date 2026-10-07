@@ -67,6 +67,18 @@ class OrganizacionController extends Controller
             'leAplicaElEns' => $organizacion->leAplicaElEns(),
 
             /*
+             * La suscripción, en lectura (punto 43). La cambia la plataforma,
+             * nunca esta pantalla: el plan y las fechas no están en `$fillable`.
+             */
+            'suscripcion' => [
+                'plan' => $organizacion->plan?->nombre,
+                'limiteCuentas' => $organizacion->plan?->limite_cuentas,
+                'limiteSistemas' => $organizacion->plan?->limite_sistemas,
+                'venceEn' => $organizacion->suscripcion_vence_en?->toIso8601String(),
+                'estado' => $organizacion->estadoSuscripcion()->etiqueta(),
+            ],
+
+            /*
              * Las dos piezas de marca, cada una con su URL o nula. El cliente
              * no compone la ruta: la da `Organizacion::urlMarca()` con su
              * sufijo de versión, o el navegador serviría el logo viejo de su

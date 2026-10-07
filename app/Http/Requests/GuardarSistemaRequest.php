@@ -4,10 +4,15 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Domain\Organizacion\ContextoOrganizacion;
+use App\Domain\Organizacion\Models\Organizacion;
+use App\Domain\Plataforma\LimitesDelPlan;
 use App\Domain\Sistema\Enums\EstadoSistema;
 use App\Domain\Sistema\Models\Sistema;
+use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 /**
  * La única fuente de verdad de la validación de un sistema.
@@ -40,6 +45,33 @@ class GuardarSistemaRequest extends FormRequest
             'estado' => ['required', Rule::enum(EstadoSistema::class)],
             'alcance_declarado' => ['nullable', 'string', 'max:5000'],
             'exclusiones_justificadas' => ['nullable', 'string', 'max:5000'],
+        ];
+    }
+
+    /**
+     * El límite de sistemas del plan (punto 43). Sólo al dar de alta: editar
+     * uno que ya existe no ocupa sitio nuevo.
+     *
+     * @return list<Closure(Validator): void>
+     */
+    public function after(): array
+    {
+        return [
+            function (Validator $validador): void {
+                if ($this->route('sistema') instanceof Sistema || $validador->errors()->isNotEmpty()) {
+                    return;
+                }
+
+                $organizacion = Organizacion::query()->with('plan')->findOrFail(app(ContextoOrganizacion::class)->idObligatorio());
+
+                if (! app(LimitesDelPlan::class)->puedeAnadirSistema($organizacion)) {
+                    $validador->errors()->add('codigo', sprintf(
+                        'El plan %s admite %d sistemas y ya están todos dados de alta. Para más, hay que ampliar el plan.',
+                        $organizacion->plan?->nombre,
+                        $organizacion->plan?->limite_sistemas,
+                    ));
+                }
+            },
         ];
     }
 

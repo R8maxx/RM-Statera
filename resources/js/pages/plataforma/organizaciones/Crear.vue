@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import FilaCampos from '@/components/formulario/FilaCampos.vue';
 import FormularioRecurso from '@/components/formulario/FormularioRecurso.vue';
 import SeccionFormulario from '@/components/formulario/SeccionFormulario.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { conOpcionVacia } from '@/lib/formularios';
+import { computed } from 'vue';
 
 /**
  * Dar de alta una organización cliente (punto 41).
@@ -13,6 +16,9 @@ import AppLayout from '@/layouts/AppLayout.vue';
  * los hace el propio cliente, porque son suyos: la aplicabilidad se deriva de
  * lo que él valora y no la decide nadie por él.
  */
+const props = defineProps<{ planes: { valor: string; etiqueta: string }[] }>();
+
+const opcionesPlan = computed(() => conOpcionVacia(props.planes, 'Sin plan: sin límites y sin vencimiento'));
 </script>
 
 <template>
@@ -61,6 +67,22 @@ import AppLayout from '@/layouts/AppLayout.vue';
                         :error="errors.responsable_email"
                         requerido
                         ayuda="Es con lo que entrará. Tiene que ser único en todo Statera."
+                    />
+                </FilaCampos>
+            </SeccionFormulario>
+
+            <SeccionFormulario
+                titulo="Suscripción"
+                ayuda="Se puede dejar para después. Sin plan, la organización no tiene límites y no vence."
+            >
+                <FilaCampos>
+                    <CampoSelect nombre="plan_id" etiqueta="Plan" :opciones="opcionesPlan" :error="errors.plan_id" />
+                    <CampoTexto
+                        nombre="vence_en"
+                        etiqueta="Vence el"
+                        tipo="date"
+                        :error="errors.vence_en"
+                        ayuda="El último día incluido. En blanco, no vence."
                     />
                 </FilaCampos>
             </SeccionFormulario>

@@ -9,6 +9,7 @@ use App\Http\Resources\Definicion\Accion;
 use App\Http\Resources\Definicion\Columna;
 use App\Http\Resources\Definicion\Etiquetas;
 use App\Http\Resources\Definicion\Filtro;
+use App\Http\Resources\Definicion\ValorEtiquetado;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
@@ -44,7 +45,9 @@ final class OrganizacionPlataformaRecurso extends Recurso
     public function consulta(): Builder
     {
         return Organizacion::query()
+            ->with('plan')
             ->select('organizaciones.*')
+            ->selectRaw('(select planes.nombre from planes where planes.id = organizaciones.plan_id) as plan_nombre')
             // Por subconsulta acotada a la fila: `users` no tiene RLS.
             ->selectRaw(<<<'SQL'
                 (select count(*) from users
@@ -61,6 +64,19 @@ final class OrganizacionPlataformaRecurso extends Recurso
             Columna::texto('nombre', 'Nombre')->ordenable()->anclada(),
             Columna::texto('razon_social', 'Razón social')->ordenable(),
             Columna::texto('cif', 'CIF')->ancho('9rem'),
+            Columna::texto('plan_nombre', 'Plan')
+                ->ancho('11rem')
+                ->formato(fn (Organizacion $fila): string => (string) ($fila->getAttribute('plan_nombre') ?? 'Sin plan')),
+            Columna::badge('suscripcion', 'Suscripción')
+                ->ancho('12rem')
+                ->formato(function (Organizacion $fila): ValorEtiquetado {
+                    $estado = $fila->estadoSuscripcion();
+
+                    return new ValorEtiquetado($estado->value, $estado->etiqueta(), $estado->tono(), $estado->icono());
+                }),
+            Columna::fecha('suscripcion_vence_en', 'Vence')
+                ->ordenable()
+                ->ayuda('El último día del contrato. Vacío, no vence.'),
             Columna::numero('cuentas_activas', 'Cuentas activas')
                 ->ancho('9rem')
                 ->ayuda('Cuentas que ya aceptaron su invitación y no están desactivadas.'),

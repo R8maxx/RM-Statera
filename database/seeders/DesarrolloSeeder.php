@@ -136,6 +136,7 @@ use App\Domain\Persona\Models\DesignacionRol;
 use App\Domain\Persona\Models\Persona;
 use App\Domain\Persona\Models\Puesto;
 use App\Domain\Persona\RegistrarAsistencia;
+use App\Domain\Plataforma\Models\Plan;
 use App\Domain\Proveedor\CambiarEstadoProveedor;
 use App\Domain\Proveedor\Enums\Criticidad;
 use App\Domain\Proveedor\Enums\EstadoProveedor;
@@ -2611,6 +2612,17 @@ class DesarrolloSeeder extends Seeder
             'es_plataforma' => true,
             'activada_en' => $administrador->activada_en ?? now(),
         ])->save();
+
+        // Dos planes de ejemplo (punto 43). La organización sembrada se queda
+        // sin plan: sin límites y sin vencimiento, que es el uso interno.
+        Plan::query()->firstOrCreate(
+            ['codigo' => 'basica'],
+            ['nombre' => 'Básica', 'limite_cuentas' => 5, 'limite_sistemas' => 1, 'dias_gracia' => 15],
+        );
+        Plan::query()->firstOrCreate(
+            ['codigo' => 'profesional'],
+            ['nombre' => 'Profesional', 'limite_cuentas' => 25, 'limite_sistemas' => 5, 'dias_gracia' => 30],
+        );
     }
 
     /** Alta idempotente de un usuario con su rol. Contraseña de desarrollo. */

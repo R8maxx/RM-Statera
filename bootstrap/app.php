@@ -15,6 +15,7 @@ use App\Http\Middleware\BloqueoPorInactividad;
 use App\Http\Middleware\CuentaVigente;
 use App\Http\Middleware\EstablecerContextoOrganizacion;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\SuscripcionVigente;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -56,6 +57,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // Los props compartidos de Inertia van al final: leen la organización
         // activa y necesitan que ya esté puesta.
         //
+        // `SuscripcionVigente` va justo detrás del contexto: necesita saber de
+        // qué organización es la petición, y corta antes de resolver nada.
+        //
         // Y antes que todo, las dos puertas de salida del § 4.19 y del § 6: la
         // cuenta que ya no tiene acceso y la sesión que lleva demasiado rato
         // quieta. Van delante del contexto para que quien sale no llegue a
@@ -66,6 +70,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 CuentaVigente::class,
                 BloqueoPorInactividad::class,
                 EstablecerContextoOrganizacion::class,
+                SuscripcionVigente::class,
                 SubstituteBindings::class,
                 HandleInertiaRequests::class,
             ],

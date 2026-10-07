@@ -32,12 +32,22 @@ export interface OrganizacionActiva {
     logo: string | null;
 }
 
+/** La suscripción, sólo cuando hay algo que avisar (punto 43). */
+export interface AvisoSuscripcion {
+    estado: App.Domain.Plataforma.Enums.EstadoSuscripcion;
+    etiqueta: string;
+    plan: string | null;
+    venceEn: string | null;
+    graciaHasta: string | null;
+}
+
 export interface PropsCompartidos {
     auth: {
         usuario: UsuarioAutenticado | null;
         permisos: string[];
     };
     organizacion: OrganizacionActiva | null;
+    suscripcion: AvisoSuscripcion | null;
 }
 
 /** Los avisos de una acción, por el canal de flash de Inertia v3. */
