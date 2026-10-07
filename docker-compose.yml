@@ -189,7 +189,8 @@ services:
       # Sigue sin entrar ningún http(s)://, que es de lo que protege — Gotenberg
       # descarga las URL que se le pasen.
       - "--chromium-allow-list=^(file:///tmp/|data:).*"
-      # Primer eslabón de la cadena: 120 s < Guzzle 180 s < timeout del job 300 s.
+      # Primer eslabón de la cadena: 120 s < Guzzle 180 s, y hasta cuatro llamadas
+      # por documento (4 × 120 s) < timeout del job 600 s.
       - "--api-timeout=120s"
     ports:
       - "127.0.0.1:3000:3000"

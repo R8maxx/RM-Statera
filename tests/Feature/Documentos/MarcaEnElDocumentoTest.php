@@ -73,9 +73,11 @@ it('mete el logo de fondo en la portada, incrustado en la hoja', function (): vo
 
     $hoja = hojaGenerada($this->gotenberg);
 
-    expect($hoja)->toContain('.portada {')
+    // En la zona blanca bajo la banda, no sobre el degradado: el logo del
+    // cliente pide fondo claro (DESIGN.md §2).
+    expect($hoja)->toContain('.portada__cuerpo {')
         ->and($hoja)->toContain("background-image: url('data:image/png;base64,")
-        ->and($hoja)->toContain('background-position: top right');
+        ->and($hoja)->toContain('background-position: right 0.71in top 0.4in');
 });
 
 it('mete el símbolo en la cabecera, que no recibe los assets', function (): void {

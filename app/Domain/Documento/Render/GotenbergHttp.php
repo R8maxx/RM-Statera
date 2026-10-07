@@ -6,8 +6,10 @@ namespace App\Domain\Documento\Render;
 
 use App\Domain\Documento\Excepciones\GeneracionFallida;
 use Gotenberg\Gotenberg;
+use Gotenberg\Modules\ChromiumPdf;
 use Gotenberg\Stream;
 use GuzzleHttp\Client;
+use Psr\Http\Message\RequestInterface;
 use Throwable;
 
 /**
@@ -20,7 +22,8 @@ use Throwable;
  *    el problema añadido de autenticar la petición. Todo viaja dentro, y el
  *    resultado es reproducible.
  * 2. **Cabecera y pie como ficheros aparte**, con código, versión, fecha,
- *    clasificación y «página X de Y».
+ *    clasificación y «página X de Y». La portada se imprime en otra llamada,
+ *    a sangre y sin ellos, y Gotenberg la une delante del cuerpo.
  * 3. **PDF/A-3b**, que es el formato de conservación a largo plazo: estos
  *    registros hay que guardarlos años.
  * 4. Nunca en el ciclo de petición. De eso responde quien llama.
@@ -43,9 +46,62 @@ final readonly class GotenbergHttp implements ClienteGotenberg
     public function __construct(
         private string $url,
         private int $timeout,
+        private LectorPaginas $lector = new LectorPaginas,
     ) {}
 
     public function pdf(SolicitudPdf $solicitud): string
+    {
+        if ($solicitud->portada === null) {
+            return $this->enviar($this->cuerpo($solicitud, archivable: true));
+        }
+
+        /*
+         * Tres llamadas: la portada a sangre, el cuerpo con cabecera y pie, y la
+         * unión. La conversión a PDF/A va en la unión y no en cada parte, para
+         * que el fichero entregado sea un solo PDF/A con los metadatos del
+         * documento y no dos pegados.
+         */
+        $portada = $this->enviar($this->portada($solicitud));
+        $cuerpo = $this->enviar($this->cuerpo($solicitud, archivable: false));
+
+        return $this->enviar(
+            Gotenberg::pdfEngines($this->url)
+                ->pdfa('PDF/A-3b')
+                ->metadata($solicitud->metadatos)
+                ->merge(Stream::string('1-portada.pdf', $portada), Stream::string('2-cuerpo.pdf', $cuerpo)),
+        );
+    }
+
+    public function medir(SolicitudPdf $solicitud): array
+    {
+        return $this->lector->paginas($this->enviar($this->cuerpo($solicitud, archivable: false)));
+    }
+
+    /**
+     * La portada: sin márgenes, sin cabecera ni pie y sin PDF/A todavía.
+     */
+    private function portada(SolicitudPdf $solicitud): RequestInterface
+    {
+        $peticion = Gotenberg::chromium($this->url)->pdf()
+            ->paperSize(GeometriaPagina::ANCHO, GeometriaPagina::ALTO)
+            ->margins(0, 0, 0, 0)
+            ->printBackground()
+            ->generateTaggedPdf()
+            ->failOnResourceLoadingFailed()
+            ->failOnConsoleExceptions();
+
+        return $this->conAssets($peticion, $solicitud)
+            ->html(Stream::string('index.html', (string) $solicitud->portada));
+    }
+
+    /**
+     * El cuerpo, con cabecera y pie.
+     *
+     * En PDF/A sólo cuando es el fichero que se entrega: si va a unirse a la
+     * portada, la conversión se hace en la unión; si es la pasada de medida, no
+     * hace falta y es lo más lento de la cadena.
+     */
+    private function cuerpo(SolicitudPdf $solicitud, bool $archivable): RequestInterface
     {
         $peticion = Gotenberg::chromium($this->url)->pdf()
             ->paperSize(GeometriaPagina::ANCHO, GeometriaPagina::ALTO)
@@ -61,8 +117,8 @@ final readonly class GotenbergHttp implements ClienteGotenberg
             // pantalla distinga una cabecera de tabla de una celda cualquiera.
             ->generateTaggedPdf()
 
-            // Marcadores laterales. Es el índice que se puede tener sin conocer
-            // la paginación de Chromium.
+            // Marcadores laterales. Es el índice navegable: el impreso no se
+            // puede pulsar, porque la conversión a PDF/A descarta los enlaces.
             ->generateDocumentOutline()
 
             ->header(Stream::string('header.html', $solicitud->cabecera))
@@ -77,16 +133,33 @@ final readonly class GotenbergHttp implements ClienteGotenberg
             ->failOnResourceLoadingFailed()
             ->failOnConsoleExceptions()
 
-            ->metadata($solicitud->metadatos)
-            ->pdfa('PDF/A-3b');
+            ->metadata($solicitud->metadatos);
 
-        if ($solicitud->assets !== []) {
-            $peticion = $peticion->assets(...array_map(
-                static fn (AssetDocumento $asset): Stream => Stream::string($asset->nombre, $asset->contenido),
-                $solicitud->assets,
-            ));
+        if ($archivable) {
+            $peticion = $peticion->pdfa('PDF/A-3b');
         }
 
+        return $this->conAssets($peticion, $solicitud)
+            ->html(Stream::string('index.html', $solicitud->html));
+    }
+
+    private function conAssets(ChromiumPdf $peticion, SolicitudPdf $solicitud): ChromiumPdf
+    {
+        if ($solicitud->assets === []) {
+            return $peticion;
+        }
+
+        return $peticion->assets(...array_map(
+            static fn (AssetDocumento $asset): Stream => Stream::string($asset->nombre, $asset->contenido),
+            $solicitud->assets,
+        ));
+    }
+
+    /**
+     * @throws GeneracionFallida
+     */
+    private function enviar(RequestInterface $peticion): string
+    {
         try {
             /*
              * Cliente HTTP explícito, y no el que descubre `Psr18ClientDiscovery`.
@@ -98,10 +171,7 @@ final readonly class GotenbergHttp implements ClienteGotenberg
              * forma intermitente y el error apunta a Gotenberg, que no tiene
              * ninguna culpa.
              */
-            $respuesta = Gotenberg::send(
-                $peticion->html(Stream::string('index.html', $solicitud->html)),
-                new Client(['timeout' => $this->timeout]),
-            );
+            $respuesta = Gotenberg::send($peticion, new Client(['timeout' => $this->timeout]));
         } catch (Throwable $e) {
             throw GeneracionFallida::porGotenberg($e->getMessage(), $e);
         }

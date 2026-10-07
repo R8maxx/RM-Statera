@@ -33,9 +33,10 @@ RUN install-php-extensions \
 
 # `pg_isready` para la espera del entrypoint; `git` y `unzip` para Composer;
 # `gosu` para soltar privilegios sin que el proceso quede huérfano de señales,
-# que es lo que pasa con `su`.
+# que es lo que pasa con `su`; `pdftotext` (poppler-utils) para la pasada de
+# medida del índice de los documentos, que lee en qué página cayó cada sección.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends postgresql-client git unzip gosu \
+    && apt-get install -y --no-install-recommends postgresql-client git unzip gosu poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer

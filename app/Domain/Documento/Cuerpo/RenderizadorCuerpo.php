@@ -28,14 +28,159 @@ use App\Http\Resources\Panel\SegmentoEstado;
  */
 final class RenderizadorCuerpo
 {
+    /** La marca con la que la pasada de medida encuentra cada sección en el PDF. */
+    public const MARCADOR = '@@%s@@';
+
+    /** Cuántas secciones van pintadas en esta llamada: da el `id` de cada una. */
+    private int $secciones = 0;
+
+    /** Si cada sección lleva su marcador de página. Sólo en la pasada de medida. */
+    private bool $marcadores = false;
+
     public function __construct(private readonly GraficaSvg $graficas = new GraficaSvg) {}
 
     /**
      * @param  array<string, mixed>  $cuerpo  documento de ProseMirror
      */
-    public function aHtml(array $cuerpo): string
+    public function aHtml(array $cuerpo, bool $marcadores = false): string
     {
+        $this->empezar($marcadores);
+
         return $this->nodo($cuerpo);
+    }
+
+    /**
+     * La portada por un lado y el resto por otro.
+     *
+     * Se imprimen por separado y Gotenberg las une: la portada va a sangre y sin
+     * cabecera ni pie, y Chromium pinta cabecera y pie en **todas** las páginas
+     * de una misma impresión, también en una con margen cero. Comprobado: la
+     * cabecera salía encima de la banda de color.
+     *
+     * @param  array<string, mixed>  $cuerpo  documento de ProseMirror
+     * @return array{portada: string, cuerpo: string}
+     */
+    public function partes(array $cuerpo, bool $marcadores = false): array
+    {
+        $this->empezar($marcadores);
+
+        $partes = ['portada' => '', 'cuerpo' => ''];
+        $hijos = is_array($cuerpo['content'] ?? null) ? $cuerpo['content'] : [];
+
+        foreach ($hijos as $hijo) {
+            if (! is_array($hijo)) {
+                continue;
+            }
+
+            $partes[($hijo['type'] ?? null) === 'portada' ? 'portada' : 'cuerpo'] .= $this->nodo($hijo);
+        }
+
+        return $partes;
+    }
+
+    /**
+     * El `id` que lleva la sección enésima, contando desde uno.
+     *
+     * Lo comparten el renderizador, que lo pone, y el índice, que enlaza a él y
+     * busca su marcador: escrito en un solo sitio para que no puedan discrepar.
+     */
+    public static function idSeccion(int $n): string
+    {
+        return 's-'.$n;
+    }
+
+    private function empezar(bool $marcadores): void
+    {
+        $this->secciones = 0;
+        $this->marcadores = $marcadores;
+    }
+
+    /**
+     * Una sección del documento, con su ancla.
+     *
+     * El marcador va en `position: absolute` (`.marcador-pagina`), así que no
+     * mueve ni una línea: la pasada de medida y la definitiva tienen que
+     * paginar exactamente igual o los números del índice mienten.
+     *
+     * @param  array<string, mixed>  $nodo
+     */
+    private function seccion(array $nodo): string
+    {
+        $id = self::idSeccion(++$this->secciones);
+
+        $marcador = $this->marcadores
+            ? '<span class="marcador-pagina" aria-hidden="true">'.sprintf(self::MARCADOR, $id).'</span>'
+            : '';
+
+        return $this->envolver('section', $marcador.$this->hijos($nodo), ['class' => 'seccion', 'id' => $id]);
+    }
+
+    /**
+     * La portada: una banda de marca arriba y la ficha debajo.
+     *
+     * La banda **se compone aquí y no es un nodo del cuerpo**: recoge el
+     * wordmark, el filete, el título y el subtítulo de donde ya estaban —los
+     * literales de `CuerpoDeFabrica` y el hueco `portada_ficha`—, así que los
+     * borradores guardados antes de que existiera salen con ella sin migrar
+     * nada. El pie de portada baja al final de la hoja.
+     *
+     * @param  array<string, mixed>  $nodo
+     */
+    private function portada(array $nodo): string
+    {
+        $banda = ['marca' => '', 'titulo' => '', 'subtitulo' => '', 'filete' => ''];
+        $resto = '';
+        $pie = '';
+
+        foreach ($this->aplanarGrupos($nodo) as $hijo) {
+            $tipo = $hijo['type'] ?? null;
+            $clase = $this->atributo($hijo, 'clase');
+            $html = $this->nodo($hijo);
+
+            match (true) {
+                $tipo === 'marcaPortada' => $banda['marca'] .= $html,
+                $tipo === 'fileteMarca' => $banda['filete'] .= $html,
+                $tipo === 'heading' && $clase === 'titulo_portada' => $banda['titulo'] .= $html,
+                $tipo === 'paragraph' && $clase === 'subtitulo_portada' => $banda['subtitulo'] .= $html,
+                $tipo === 'pieDePortada' => $pie .= $html,
+                default => $resto .= $html,
+            };
+        }
+
+        return $this->envolver('section',
+            $this->envolver('div', $banda['marca'].$banda['titulo'].$banda['subtitulo'].$banda['filete'], ['class' => 'portada__banda'])
+            .$this->envolver('div', $resto, ['class' => 'portada__cuerpo'])
+            .$pie,
+            ['class' => 'portada'],
+        );
+    }
+
+    /**
+     * Los hijos de un nodo, con los `grupo` de los huecos calculados deshechos.
+     *
+     * @param  array<string, mixed>  $nodo
+     * @return list<array<string, mixed>>
+     */
+    private function aplanarGrupos(array $nodo): array
+    {
+        $hijos = is_array($nodo['content'] ?? null) ? $nodo['content'] : [];
+        $planos = [];
+
+        foreach ($hijos as $hijo) {
+            if (! is_array($hijo)) {
+                continue;
+            }
+
+            if (($hijo['type'] ?? null) === 'grupo') {
+                array_push($planos, ...$this->aplanarGrupos($hijo));
+
+                continue;
+            }
+
+            $planos[] = $hijo;
+        }
+
+        return $planos;
     }
 
     /**
@@ -56,8 +201,8 @@ final class RenderizadorCuerpo
         return match ($tipo) {
             'doc', 'grupo' => $this->hijos($nodo),
 
-            'portada' => $this->envolver('section', $this->hijos($nodo), ['class' => 'portada']),
-            'seccion' => $this->envolver('section', $this->hijos($nodo), ['class' => 'seccion']),
+            'portada' => $this->portada($nodo),
+            'seccion' => $this->seccion($nodo),
 
             'fileteMarca' => '<div class="portada__filete"></div>',
             'marcaPortada' => $this->envolver('div', $this->hijos($nodo), ['class' => 'portada__marca']),

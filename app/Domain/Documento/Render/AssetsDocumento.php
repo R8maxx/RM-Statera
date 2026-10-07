@@ -116,7 +116,7 @@ final class AssetsDocumento
      * palabra «Statera» de la portada. Así ni el esquema, ni el renderizador, ni
      * el `.docx` se enteran de que esto existe.
      *
-     * Va al FINAL de la hoja para ganar a la regla de `.portada` sin subir la
+     * Va al FINAL de la hoja para ganar a la regla de `.portada__cuerpo` sin subir la
      * especificidad ni escribir un `!important`.
      */
     private function membrete(?string $logoPortada): string
@@ -127,13 +127,20 @@ final class AssetsDocumento
 
         // La URL va entre comillas simples: un data URI lleva comas y signos de
         // igual, y sin comillas el parser de CSS corta por donde no debe.
+        /*
+         * En la zona blanca bajo la banda, arriba a la derecha, y no sobre la
+         * banda: DESIGN.md §2 pide fondo claro para el logo del cliente, que la
+         * herramienta no recolorea. El cuerpo de la portada baja lo que mide el
+         * logo más su zona de respeto, para que la ficha no pase por debajo.
+         */
         return <<<CSS
 
-            .portada {
+            .portada__cuerpo {
                 background-image: url('{$logoPortada}');
                 background-repeat: no-repeat;
-                background-position: top right;
+                background-position: right 0.71in top 0.4in;
                 background-size: auto 0.5in;
+                padding-top: 1.3in;
             }
             CSS;
     }

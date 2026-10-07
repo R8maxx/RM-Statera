@@ -19,7 +19,7 @@ import { computed } from 'vue';
  * ya la llevaba para la barra.
  *
  * **Se oculta por debajo de `lg`**, como la balanza del acceso: una hoja A4
- * apaisada ya no cabe en una pantalla estrecha, y quitarle además cien píxeles
+ * ya no cabe entera en una pantalla estrecha, y quitarle además cien píxeles
  * de ancho no ayuda a nadie.
  */
 const props = defineProps<{ editor: Editor | undefined; version: number }>();

@@ -24,12 +24,14 @@
 
 :root {
     /* Marca. */
+    --marca-300: #7AD6D7;
     --marca-600: #007E81;
     --marca-700: #006467;
     --marca-100: #D5F4F4;
 
     /* Acento. Una sola aparición: el filete de la portada. */
     --violeta-400: #A781E9;
+    --marca-900: #003537;
 
     /* Neutros (DESIGN.md §3). */
     --card: #FFFFFF;
@@ -58,9 +60,14 @@
  * Los márgenes los fija PHP con `margins()`, no `@page`: mezclar las dos cosas
  * hace que la cabecera y el pie desaparezcan sin ningún error visible.
  * Tampoco se usa `preferCssPageSize()`, por lo mismo.
+ *
+ * **Una sola orientación, vertical.** Chromium sabe imprimir páginas con nombre
+ * de dos tamaños, pero la conversión a PDF/A pasa por LibreOffice, que impone el
+ * tamaño de la primera a todas y corta lo que sobra. Por eso la tabla larga va
+ * en dos líneas por requisito y no en una sección apaisada.
  */
 @page {
-    size: A4 landscape;
+    size: A4;
 }
 
 * {
@@ -75,7 +82,7 @@
  */
 @media screen {
     body {
-        max-width: 11.7in;
+        max-width: 8.27in;
         margin: 0 auto;
         padding: 0.71in;
     }
@@ -90,6 +97,13 @@ body {
     background: var(--card);
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+    /*
+     * Sin ligaduras. Chromium compone «fi» y «fl» con un solo glifo, y la
+     * conversión a PDF/A, que resustituye las fuentes, no encuentra ese glifo en
+     * la de reemplazo: «Justificación» salía «Justi ación» y «por fila», «por  la».
+     */
+    font-variant-ligatures: none;
+    font-feature-settings: "liga" 0, "clig" 0;
 }
 
 /* ---------------------------------------------------------------- Tipografía */
@@ -178,6 +192,70 @@ p {
 .portada__titulo { font-size: 26pt; margin-bottom: 0.06in; }
 .portada__subtitulo { font-size: 12pt; color: var(--texto-suave); margin-bottom: 0.3in; }
 .portada__pie { margin-top: auto; padding-top: 0.25in; border-top: 1px solid var(--border); }
+
+/*
+ * La portada impresa: una hoja entera, a sangre.
+ *
+ * Se imprime aparte del cuerpo, sin márgenes ni cabecera ni pie, y Gotenberg la
+ * une delante. Todo lo de aquí cuelga de `.portada__banda` o `.portada__cuerpo`,
+ * que sólo existen en lo que pinta `RenderizadorCuerpo`: el editor compone la
+ * portada nodo a nodo, sin banda, y sigue viéndose como siempre.
+ *
+ * El alto se queda una décima por debajo de la hoja: con el alto exacto, el
+ * redondeo de Chromium a veces abre una segunda página en blanco.
+ */
+.portada:has(> .portada__banda) {
+    min-height: 11.6in;
+}
+
+/*
+ * La banda: `marca-900` liso y la balanza ampliada, recortada
+ * por el borde y al 8 % (DESIGN.md §2, «el símbolo como recurso gráfico»). En
+ * blanco sobre oscuro, como manda el logotipo. Va en `data:` porque Gotenberg no
+ * admite más origen que el propio multipart.
+ *
+ * El `xmlns` lleva los dos puntos escritos `%3A`: el navegador descodifica el
+ * `data:` igual, y así la hoja no contiene ningún esquema http literal, que es lo
+ * que `MarcaEnElDocumentoTest` vigila para que no se cuele una URL remota.
+ *
+ * **Liso y no el degradado de DESIGN.md §3**, aunque ése está reservado
+ * precisamente a portadas: la conversión a PDF/A pasa por LibreOffice, que
+ * trocea un degradado en tiras con una rendija de un pelo entre cada dos. En
+ * pantalla se ve como un rayado diagonal de toda la banda. Un color liso no se
+ * puede trocear.
+ */
+.portada__banda {
+    position: relative;
+    overflow: hidden;
+    min-height: 4.4in;
+    padding: 0.9in 0.71in 0.5in;
+    color: #FFFFFF;
+    background:
+        url("data:image/svg+xml,%3Csvg xmlns='http%3A//www.w3.org/2000/svg' viewBox='4 4 24 24' fill='%23FFFFFF' fill-opacity='0.08' stroke='%23FFFFFF' stroke-opacity='0.08' stroke-linejoin='round'%3E%3Cpath d='M6.1875 19.625 11.1875 12.4375 13.6875 19.625Z' stroke-width='0.5'/%3E%3Cpath d='M18.5 19.625 20.875 12.4375 25.875 19.625Z' stroke-width='0.5'/%3E%3Crect x='8.5' y='9.9375' width='15' height='1.1875' rx='0.1875' stroke='none'/%3E%3Crect x='15.125' y='11.125' width='1.875' height='10.9375' rx='0.125' stroke='none'/%3E%3C/svg%3E")
+            no-repeat right -1.6in top -0.4in / 6.2in 6.2in,
+        var(--marca-900);
+}
+
+.portada__banda .portada__marca { color: var(--marca-300); margin-bottom: 0.5in; }
+.portada__banda .portada__titulo { font-size: 30pt; line-height: 1.1; color: #FFFFFF; max-width: 5.6in; }
+.portada__banda .portada__subtitulo { color: var(--marca-300); max-width: 5.6in; margin-bottom: 0.32in; }
+.portada__banda .portada__filete { margin-bottom: 0; }
+
+.portada__cuerpo {
+    flex: 1;
+    padding: 0.45in 0.71in 0;
+}
+
+/* La ficha, en dos pares por fila: en vertical, una sola columna de claves se come media hoja. */
+.portada__cuerpo .ficha {
+    grid-template-columns: 1.15in 1fr 1.15in 1fr;
+    gap: 0.1in 0.18in;
+    margin-bottom: 0.3in;
+}
+
+.portada:has(> .portada__banda) > .portada__pie {
+    margin: auto 0.71in 0.55in;
+}
 
 /* --------------------------------------------------------------- Fichas de dato */
 
@@ -291,6 +369,17 @@ tr.grupo th {
 .tabla--fija { table-layout: fixed; }
 .tabla--fija td { overflow-wrap: break-word; }
 
+/*
+ * La tabla larga, un requisito en dos filas: lo corto arriba y el detalle
+ * debajo, a todo el ancho. Se leen como una sola: sin raya entre las dos, el
+ * detalle más pequeño y en gris, y la principal no se separa de la suya al
+ * saltar de página.
+ */
+tr.principal { break-after: avoid; }
+tr.principal td { border-bottom: none; }
+tr.detalle td { border-top: none; padding-top: 0; }
+td.detalle { font-size: 7pt; color: var(--texto-suave); }
+
 /* --------------------------------------------------------------------- Badges */
 
 /*
@@ -363,9 +452,8 @@ tr.grupo th {
  * Se conservan las tres que eran diseño y no maquetación de un `div`:
  */
 
-/* Una línea de 40 palabras no se lee; ésta ronda las 90 letras. Importa sobre
-   todo en la DdA, que va apaisada: sin tope, un párrafo cruza los 10 pulgadas
-   de página entera. */
+/* Una línea de 40 palabras no se lee; ésta ronda las 90 letras. En vertical ya
+   la caja es más estrecha que el tope, que se queda para la vista de pantalla. */
 .seccion p,
 .seccion ul,
 .seccion ol { max-width: 7.2in; }
@@ -422,4 +510,74 @@ a[href^="http"]::after {
     border: 1px dashed var(--border);
     color: var(--texto-suave);
     text-align: center;
+}
+
+/* -------------------------------------------------------------------- Índice */
+
+/*
+ * El índice, en su propia página tras la portada. Lo pinta `IndiceDocumento`
+ * y no es parte del cuerpo editable. El número va en la monoespaciada tabular,
+ * alineado a la derecha y con un ancho fijo: en la pasada de medida lleva un
+ * relleno de tres cifras y tiene que ocupar lo mismo que el real.
+ */
+.indice { break-after: page; }
+
+.indice > h2 {
+    padding-bottom: 0.35em;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0.8em;
+}
+
+.indice__lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    counter-reset: indice;
+}
+
+.indice__entrada {
+    display: flex;
+    align-items: baseline;
+    gap: 0.08in;
+    padding: 0.05in 0;
+    font-size: 10pt;
+    counter-increment: indice;
+}
+
+.indice__entrada::before {
+    content: counter(indice) ".";
+    min-width: 0.3in;
+    font-family: var(--fuente-cifra);
+    color: var(--marca-600);
+}
+
+.indice__titulo { color: var(--texto); text-decoration: none; }
+
+/* Los puntos guía, dibujados con un borde y no con caracteres: no dependen de la fuente. */
+.indice__guia {
+    flex: 1;
+    border-bottom: 1px dotted var(--border);
+    transform: translateY(-0.2em);
+}
+
+.indice__pagina {
+    min-width: 0.35in;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+/*
+ * El marcador de la pasada de medida: texto que `pdftotext` lee para saber en
+ * qué página empieza cada sección. Fuera del flujo para que no mueva nada, y
+ * diminuto y blanco porque esa pasada nunca se entrega. En la definitiva no se
+ * emite.
+ */
+.seccion { position: relative; }
+
+.marcador-pagina {
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-size: 1pt;
+    color: var(--card);
 }

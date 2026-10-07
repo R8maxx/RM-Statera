@@ -19,14 +19,15 @@ use App\Domain\Documento\Render\GeometriaPagina;
  * Y no avisa de nada. En el PDF no hay error, ni barra de desplazamiento, ni
  * hueco evidente: sólo una columna más estrecha de lo que debería con un texto
  * que acaba antes de tiempo. Sumaban 11,32 y 11,24 pulgadas contra 10,28
- * disponibles, y lo destapó el editor al componer sobre la misma hoja.
+ * disponibles cuando la hoja era apaisada, y lo destapó el editor al componer
+ * sobre la misma hoja.
  *
  * La cuenta sale de `GeometriaPagina` y no de un número escrito aquí: el día que
  * un tipo de documento se imprima en otro tamaño, este test se entera solo.
  */
 function anchoUtilDeLaHoja(): float
 {
-    return (float) GeometriaPagina::ANCHO - 2 * (float) GeometriaPagina::MARGEN_LATERAL;
+    return GeometriaPagina::anchoUtil();
 }
 
 /**
@@ -65,12 +66,13 @@ it('declara anchuras que caben en la caja de texto', function (TipoDocumento $ti
         ColumnasTabla::para($tipo),
     ));
 
-    expect($suma)->toBeLessThanOrEqual(anchoUtilDeLaHoja());
+    // Redondeado: 0,6 + 2,6 + … en coma flotante da 6,8500000000000005.
+    expect(round($suma, 3))->toBeLessThanOrEqual(anchoUtilDeLaHoja());
 })->with(fn () => tiposConTablaLarga());
 
 /**
  * Y que no se quede corta: una tabla que ocupe el setenta por ciento de la
- * página desperdicia el apaisado, que es justo el motivo de imprimir apaisado.
+ * caja deja a la derecha una franja vacía en cada página de la tabla.
  */
 it('aprovecha la hoja, sin dejar media página en blanco', function (TipoDocumento $tipo): void {
     $suma = array_sum(array_map(

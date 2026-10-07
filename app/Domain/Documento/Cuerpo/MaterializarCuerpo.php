@@ -543,11 +543,79 @@ final class MaterializarCuerpo
                 $filas[] = Nodo::fila(array_map(
                     fn (array $columna): array => $this->celdaDeFila($fila, $columna['clave']),
                     $columnas,
-                ));
+                ), 'principal');
+
+                $filas[] = $this->filaDeDetalle($fila, $tipo, count($columnas));
             }
         }
 
         return [Nodo::de('table', ['clase' => 'fija'], $filas)];
+    }
+
+    /**
+     * La segunda línea del requisito: lo largo, a todo el ancho de la tabla.
+     *
+     * La primera celda va vacía y no con `rowspan` sobre el código: una celda
+     * que abarca dos filas es lo primero que Chromium parte mal al saltar de
+     * página, y el `.docx` no la traduce. Lo que mantiene las dos filas juntas es
+     * el `break-after: avoid` de `tr.principal` en `documento.css`.
+     *
+     * Reutiliza `celdaDeFila()` para que el texto de cada dato —«Sin evidencia
+     * registrada», «SIN JUSTIFICAR»— sea el mismo que cuando era una columna.
+     *
+     * @return array<string, mixed>
+     */
+    private function filaDeDetalle(FilaRequisito $fila, TipoDocumento $tipo, int $columnas): array
+    {
+        $enLinea = [];
+
+        foreach (ColumnasTabla::detalle($tipo) as $i => $dato) {
+            if ($i > 0) {
+                $enLinea[] = Nodo::texto(' · ', ['suave']);
+            }
+
+            $enLinea[] = Nodo::texto($dato['titulo'].': ', ['bold']);
+            array_push($enLinea, ...$this->enLineaDeCelda($this->celdaDeFila($fila, $dato['clave'])));
+        }
+
+        return Nodo::fila([
+            Nodo::celda([]),
+            Nodo::celda($enLinea, 'detalle', $columnas - 1),
+        ], 'detalle');
+    }
+
+    /**
+     * El contenido de una celda como nodos en línea, sin los bloques.
+     *
+     * La única celda con un bloque dentro es el origen de la exigencia, que
+     * lleva la dimensión moduladora como `nota`; en la línea de detalle va entre
+     * paréntesis.
+     *
+     * @param  array<string, mixed>  $celda
+     * @return list<array<string, mixed>>
+     */
+    private function enLineaDeCelda(array $celda): array
+    {
+        /** @var list<array<string, mixed>> $hijos */
+        $hijos = $celda['content'] ?? [];
+        $enLinea = [];
+
+        foreach ($hijos as $hijo) {
+            if (($hijo['type'] ?? null) !== 'nota') {
+                $enLinea[] = $hijo;
+
+                continue;
+            }
+
+            /** @var list<array<string, mixed>> $texto */
+            $texto = $hijo['content'] ?? [];
+            $enLinea[] = Nodo::texto(' ('.implode('', array_map(
+                static fn (array $nodo): string => (string) ($nodo['text'] ?? ''),
+                $texto,
+            )).')', ['suave']);
+        }
+
+        return $enLinea;
     }
 
     /**
@@ -658,9 +726,9 @@ final class MaterializarCuerpo
         }
 
         $filas = [Nodo::fila([
-            Nodo::cabeceraCelda('Medida', '0.9in', 'col'),
-            Nodo::cabeceraCelda('Título', '3.2in', 'col'),
-            Nodo::cabeceraCelda('Responsable', '1.6in', 'col'),
+            Nodo::cabeceraCelda('Medida', '0.8in', 'col'),
+            Nodo::cabeceraCelda('Título', '2.8in', 'col'),
+            Nodo::cabeceraCelda('Responsable', '1.5in', 'col'),
             Nodo::cabeceraCelda('Fecha objetivo', null, 'col'),
         ])];
 
@@ -709,8 +777,8 @@ final class MaterializarCuerpo
         }
 
         $filas = [Nodo::fila([
-            Nodo::cabeceraCelda('Control', '0.9in', 'col'),
-            Nodo::cabeceraCelda('Título', '2.6in', 'col'),
+            Nodo::cabeceraCelda('Control', '0.7in', 'col'),
+            Nodo::cabeceraCelda('Título', '2.2in', 'col'),
             Nodo::cabeceraCelda('Justificación de la exclusión', null, 'col'),
         ])];
 
@@ -760,8 +828,8 @@ final class MaterializarCuerpo
 
         $filas = [Nodo::fila([
             Nodo::cabeceraCelda('Dim.', '0.5in', 'col'),
-            Nodo::cabeceraCelda('Dimensión', '1.7in', 'col'),
-            Nodo::cabeceraCelda('Nivel', '0.9in', 'col'),
+            Nodo::cabeceraCelda('Dimensión', '1.4in', 'col'),
+            Nodo::cabeceraCelda('Nivel', '0.8in', 'col'),
             Nodo::cabeceraCelda('Justificación de la valoración', null, 'col'),
         ])];
 
@@ -823,8 +891,8 @@ final class MaterializarCuerpo
         $filas = [Nodo::fila([
             Nodo::cabeceraCelda('Marco', '0.6in', 'col'),
             Nodo::cabeceraCelda('Nombre', '2.2in', 'col'),
-            Nodo::cabeceraCelda('Exigibles', '1in', 'col'),
-            Nodo::cabeceraCelda('Evaluadas', '1in', 'col'),
+            Nodo::cabeceraCelda('Exigibles', '0.9in', 'col'),
+            Nodo::cabeceraCelda('Evaluadas', '0.9in', 'col'),
             Nodo::cabeceraCelda('Madurez media', null, 'col'),
         ])];
 
@@ -910,12 +978,12 @@ final class MaterializarCuerpo
             }
 
             $filas = [Nodo::fila([
-                Nodo::cabeceraCelda('Cód.', '0.7in', 'col'),
-                Nodo::cabeceraCelda('Cuestión', '3.6in', 'col'),
-                Nodo::cabeceraCelda('Materia', '1.5in', 'col'),
-                Nodo::cabeceraCelda('Responsable', '1.3in', 'col'),
-                Nodo::cabeceraCelda('Riesgos', '1.6in', 'col'),
-                Nodo::cabeceraCelda('Trabajo', '1.0in', 'col'),
+                Nodo::cabeceraCelda('Cód.', '0.55in', 'col'),
+                Nodo::cabeceraCelda('Cuestión', '2.35in', 'col'),
+                Nodo::cabeceraCelda('Materia', '1.0in', 'col'),
+                Nodo::cabeceraCelda('Responsable', '1.0in', 'col'),
+                Nodo::cabeceraCelda('Riesgos', '1.1in', 'col'),
+                Nodo::cabeceraCelda('Trabajo', '0.85in', 'col'),
             ])];
 
             foreach ($cuestiones as $cuestion) {
@@ -982,13 +1050,13 @@ final class MaterializarCuerpo
         }
 
         $filas = [Nodo::fila([
-            Nodo::cabeceraCelda('Cód.', '0.6in', 'col'),
-            Nodo::cabeceraCelda('Parte interesada', '1.8in', 'col'),
-            Nodo::cabeceraCelda('Tipo', '1.3in', 'col'),
-            Nodo::cabeceraCelda('Ámbito', '0.7in', 'col'),
-            Nodo::cabeceraCelda('Qué exige o espera', '2.9in', 'col'),
-            Nodo::cabeceraCelda('Naturaleza', '1.0in', 'col'),
-            Nodo::cabeceraCelda('Cómo se atiende', '1.9in', 'col'),
+            Nodo::cabeceraCelda('Cód.', '0.5in', 'col'),
+            Nodo::cabeceraCelda('Parte interesada', '1.2in', 'col'),
+            Nodo::cabeceraCelda('Tipo', '0.85in', 'col'),
+            Nodo::cabeceraCelda('Ámbito', '0.6in', 'col'),
+            Nodo::cabeceraCelda('Qué exige o espera', '1.6in', 'col'),
+            Nodo::cabeceraCelda('Naturaleza', '0.8in', 'col'),
+            Nodo::cabeceraCelda('Cómo se atiende', '1.3in', 'col'),
         ])];
 
         foreach ($partes as $parte) {
@@ -1167,11 +1235,11 @@ final class MaterializarCuerpo
         }
 
         $filas = [Nodo::fila([
-            Nodo::cabeceraCelda('Cód.', '0.8in', 'col'),
-            Nodo::cabeceraCelda('Sistema', '2.2in', 'col'),
-            Nodo::cabeceraCelda('Marco', '1.0in', 'col'),
-            Nodo::cabeceraCelda('Alcance declarado', '3.5in', 'col'),
-            Nodo::cabeceraCelda('Exclusiones justificadas', '2.5in', 'col'),
+            Nodo::cabeceraCelda('Cód.', '0.6in', 'col'),
+            Nodo::cabeceraCelda('Sistema', '1.3in', 'col'),
+            Nodo::cabeceraCelda('Marco', '0.7in', 'col'),
+            Nodo::cabeceraCelda('Alcance declarado', '2.45in', 'col'),
+            Nodo::cabeceraCelda('Exclusiones justificadas', '1.8in', 'col'),
         ])];
 
         foreach ($sistemas as $sistema) {
@@ -1390,10 +1458,10 @@ final class MaterializarCuerpo
         }
 
         $filas = [Nodo::fila([
-            Nodo::cabeceraCelda('Parte interesada', '3.0in', 'col'),
-            Nodo::cabeceraCelda('Tipo', '1.8in', 'col'),
+            Nodo::cabeceraCelda('Parte interesada', '2.85in', 'col'),
+            Nodo::cabeceraCelda('Tipo', '1.6in', 'col'),
             Nodo::cabeceraCelda('Ámbito', '1.2in', 'col'),
-            Nodo::cabeceraCelda('Requisitos', '1.0in', 'col'),
+            Nodo::cabeceraCelda('Requisitos', '1.2in', 'col'),
         ])];
 
         foreach ($partes as $parte) {
@@ -1458,10 +1526,10 @@ final class MaterializarCuerpo
         ));
 
         $filas = [Nodo::fila([
-            Nodo::cabeceraCelda('Fecha', '0.9in', 'col'),
-            Nodo::cabeceraCelda('Tipo', '1.3in', 'col'),
-            Nodo::cabeceraCelda('De', '1.5in', 'col'),
-            Nodo::cabeceraCelda('Asunto', '2.0in', 'col'),
+            Nodo::cabeceraCelda('Fecha', '0.8in', 'col'),
+            Nodo::cabeceraCelda('Tipo', '1.2in', 'col'),
+            Nodo::cabeceraCelda('De', '1.35in', 'col'),
+            Nodo::cabeceraCelda('Asunto', '2.2in', 'col'),
             Nodo::cabeceraCelda('Respuesta', '1.3in', 'col'),
         ])];
 
@@ -1560,9 +1628,9 @@ final class MaterializarCuerpo
         }
 
         $filas = [Nodo::fila([
-            Nodo::cabeceraCelda('Cód.', '1.0in', 'col'),
-            Nodo::cabeceraCelda('Objetivo', '3.4in', 'col'),
-            Nodo::cabeceraCelda('Estado', '1.4in', 'col'),
+            Nodo::cabeceraCelda('Cód.', '0.8in', 'col'),
+            Nodo::cabeceraCelda('Objetivo', '2.65in', 'col'),
+            Nodo::cabeceraCelda('Estado', '1.2in', 'col'),
             Nodo::cabeceraCelda('Evaluación', '1.2in', 'col'),
             Nodo::cabeceraCelda('Fecha', '1.0in', 'col'),
         ])];
@@ -1645,11 +1713,11 @@ final class MaterializarCuerpo
         }
 
         $filas = [Nodo::fila([
-            Nodo::cabeceraCelda('Cód.', '1.0in', 'col'),
-            Nodo::cabeceraCelda('Mejora', '3.6in', 'col'),
-            Nodo::cabeceraCelda('Estado', '1.2in', 'col'),
-            Nodo::cabeceraCelda('Origen', '1.6in', 'col'),
-            Nodo::cabeceraCelda('Responsable', '1.6in', 'col'),
+            Nodo::cabeceraCelda('Cód.', '0.8in', 'col'),
+            Nodo::cabeceraCelda('Mejora', '2.55in', 'col'),
+            Nodo::cabeceraCelda('Estado', '1.0in', 'col'),
+            Nodo::cabeceraCelda('Origen', '1.25in', 'col'),
+            Nodo::cabeceraCelda('Responsable', '1.25in', 'col'),
         ])];
 
         foreach ($detalle as $mejora) {
@@ -1712,10 +1780,10 @@ final class MaterializarCuerpo
     private function tablaDeAcciones(array $acciones): array
     {
         $filas = [Nodo::fila([
-            Nodo::cabeceraCelda('Acción', '4.4in', 'col'),
-            Nodo::cabeceraCelda('Estado', '1.4in', 'col'),
-            Nodo::cabeceraCelda('Responsable', '1.8in', 'col'),
-            Nodo::cabeceraCelda('Plazo', '1.0in', 'col'),
+            Nodo::cabeceraCelda('Acción', '3.3in', 'col'),
+            Nodo::cabeceraCelda('Estado', '1.15in', 'col'),
+            Nodo::cabeceraCelda('Responsable', '1.5in', 'col'),
+            Nodo::cabeceraCelda('Plazo', '0.9in', 'col'),
         ])];
 
         foreach ($acciones as $accion) {
@@ -1981,10 +2049,10 @@ final class MaterializarCuerpo
         }
 
         $filas = [Nodo::fila([
-            Nodo::cabeceraCelda('Medida', '1.1in', 'col'),
-            Nodo::cabeceraCelda('Resultado', '1.1in', 'col'),
-            Nodo::cabeceraCelda('Estado al cerrar', '1.3in', 'col'),
-            Nodo::cabeceraCelda('Exigencia al cerrar', '1.3in', 'col'),
+            Nodo::cabeceraCelda('Medida', '0.8in', 'col'),
+            Nodo::cabeceraCelda('Resultado', '0.9in', 'col'),
+            Nodo::cabeceraCelda('Estado al cerrar', '1.1in', 'col'),
+            Nodo::cabeceraCelda('Exigencia al cerrar', '1.1in', 'col'),
             Nodo::cabeceraCelda('Nota del auditor', null, 'col'),
         ])];
 
@@ -2024,10 +2092,10 @@ final class MaterializarCuerpo
         }
 
         $filas = [Nodo::fila([
-            Nodo::cabeceraCelda('Tipo', '1.4in', 'col'),
-            Nodo::cabeceraCelda('Medida', '1.0in', 'col'),
+            Nodo::cabeceraCelda('Tipo', '1.1in', 'col'),
+            Nodo::cabeceraCelda('Medida', '0.8in', 'col'),
             Nodo::cabeceraCelda('Descripción', null, 'col'),
-            Nodo::cabeceraCelda('Tratamiento', '1.8in', 'col'),
+            Nodo::cabeceraCelda('Tratamiento', '1.5in', 'col'),
         ])];
 
         foreach ($hallazgos as $hallazgo) {
@@ -2361,11 +2429,11 @@ final class MaterializarCuerpo
             $nodos = [Nodo::parrafo('No hay versiones emitidas anteriores. Ésta sería la primera entrega.', 'vacio')];
         } else {
             $filas = [Nodo::fila([
-                Nodo::cabeceraCelda('Versión', '0.7in', 'col'),
-                Nodo::cabeceraCelda('Emitida', '1in', 'col'),
-                Nodo::cabeceraCelda('Emitida por', '1.6in', 'col'),
+                Nodo::cabeceraCelda('Versión', '0.6in', 'col'),
+                Nodo::cabeceraCelda('Emitida', '0.85in', 'col'),
+                Nodo::cabeceraCelda('Emitida por', '1.3in', 'col'),
                 Nodo::cabeceraCelda('Motivo', null, 'col'),
-                Nodo::cabeceraCelda('SHA-256', '3.4in', 'col'),
+                Nodo::cabeceraCelda('SHA-256', '2.3in', 'col'),
             ])];
 
             foreach ($contenido->historial as $version) {

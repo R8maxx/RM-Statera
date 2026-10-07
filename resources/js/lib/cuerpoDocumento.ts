@@ -153,11 +153,14 @@ export const CLASES_TABLA: Record<string, string> = {
 
 export const CLASES_FILA: Record<string, string> = {
     grupo: 'grupo',
+    principal: 'principal',
+    detalle: 'detalle',
 };
 
 export const CLASES_CELDA: Record<string, string> = {
     codigo: 'codigo',
     huella: 'huella',
+    detalle: 'detalle',
 };
 
 /**
@@ -353,7 +356,7 @@ export const Suave = Mark.create({
  *
  * `resizable: false` en las tablas a propósito: diez columnas con tiradores de
  * redimensionado en noventa y tres filas no ayudan a nadie, y las anchuras están
- * medidas para que quepan en un A4 apaisado.
+ * medidas para que quepan en el A4 vertical.
  */
 export function extensionesCuerpo() {
     return [
@@ -517,7 +520,7 @@ const Encabezado = Node.create({
  *
  * `RenderizadorCuerpo` lo emite como `style="width: 1.1in"`, y el editor tiene
  * que hacer lo mismo: las diez columnas de la SoA están medidas en pulgadas para
- * que quepan en un A4 apaisado, y sin ellas Chromium las reparte a su gusto — en
+ * que quepan en el A4 vertical, y sin ellas Chromium las reparte a su gusto — en
  * el PDF no, pero en el editor sí, que es donde se decide si caben.
  *
  * La expresión es la misma de `EsquemaCuerpo::ANCHO`: un `width` libre es un

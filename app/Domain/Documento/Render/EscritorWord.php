@@ -37,7 +37,10 @@ use PhpOffice\PhpWord\Writer\Word2007;
  */
 final readonly class EscritorWord
 {
-    private const ANCHO_UTIL = 9500; // Twips, A4 apaisado menos márgenes.
+    /** Twips: los 17,4 cm del A4 vertical menos dos márgenes de 1,8 cm. */
+    private const ANCHO_UTIL = 9865;
+
+    public function __construct(private IndiceDocumento $indice = new IndiceDocumento) {}
 
     /**
      * @param  array<string, mixed>  $cuerpo  el árbol congelado en la instantánea
@@ -49,14 +52,14 @@ final readonly class EscritorWord
         $this->propiedades($word, $documento, $version, $contenido);
         $this->estilos($word);
 
-        // A4 apaisado, como el PDF. Los twips se redondean a entero: `cmToTwip`
+        // A4 vertical, como el PDF. Los twips se redondean a entero: `cmToTwip`
         // devuelve decimales y OOXML los quiere enteros.
         $margen = $this->twips(1.8);
 
         $seccion = $word->addSection([
-            'orientation' => 'landscape',
-            'pageSizeW' => $this->twips(29.7),
-            'pageSizeH' => $this->twips(21),
+            'orientation' => 'portrait',
+            'pageSizeW' => $this->twips(21),
+            'pageSizeH' => $this->twips(29.7),
             'marginTop' => $margen,
             'marginBottom' => $margen,
             'marginLeft' => $margen,
@@ -65,9 +68,56 @@ final readonly class EscritorWord
 
         $this->pie($seccion, $documento, $version);
 
-        (new CuerpoAWord(self::ANCHO_UTIL))($seccion, $cuerpo);
+        $escritor = new CuerpoAWord(self::ANCHO_UTIL);
+        ['portada' => $portada, 'resto' => $resto] = $this->partir($cuerpo);
+
+        $escritor($seccion, $portada);
+
+        /*
+         * El índice, con el mismo umbral de secciones que el PDF. Aquí no hay
+         * pasada de medida: es un campo de Word, que numera él mismo al abrir el
+         * fichero —por eso `updateFields`, que hace que Word lo pida—. Desde el
+         * nivel 2, que es el de las secciones: el nivel 1 es el título de la
+         * portada.
+         */
+        if ($this->indice->mereceMedirse($this->indice->entradas($cuerpo))) {
+            $word->getSettings()->setUpdateFields(true);
+
+            $seccion->addPageBreak();
+            $seccion->addText('Índice', ['size' => 13, 'bold' => true]);
+            $seccion->addTOC(['size' => 9], null, 2, 2);
+        }
+
+        $seccion->addPageBreak();
+        $escritor($seccion, $resto);
 
         return $this->aCadena($word);
+    }
+
+    /**
+     * La portada por un lado y el resto por otro, como dos documentos.
+     *
+     * @param  array<string, mixed>  $cuerpo
+     * @return array{portada: array<string, mixed>, resto: array<string, mixed>}
+     */
+    private function partir(array $cuerpo): array
+    {
+        $portada = [];
+        $resto = [];
+        $hijos = is_array($cuerpo['content'] ?? null) ? $cuerpo['content'] : [];
+
+        foreach ($hijos as $hijo) {
+            if (is_array($hijo) && ($hijo['type'] ?? null) === 'portada') {
+                $portada[] = $hijo;
+            } else {
+                $resto[] = $hijo;
+            }
+        }
+
+        return [
+            'portada' => ['type' => 'doc', 'content' => $portada],
+            'resto' => ['type' => 'doc', 'content' => $resto],
+        ];
     }
 
     private function twips(float $centimetros): int

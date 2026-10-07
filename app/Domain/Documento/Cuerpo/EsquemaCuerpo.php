@@ -292,12 +292,15 @@ final class EsquemaCuerpo
     /** @var array<string, string> clave => clases */
     public const CLASES_FILA = [
         'grupo' => 'grupo',
+        'principal' => 'principal',
+        'detalle' => 'detalle',
     ];
 
     /** @var array<string, string> clave => clases */
     public const CLASES_CELDA = [
         'codigo' => 'codigo',
         'huella' => 'huella',
+        'detalle' => 'detalle',
     ];
 
     /** Los niveles de encabezado que el editor ofrece y el renderizador pinta. */
@@ -307,7 +310,7 @@ final class EsquemaCuerpo
      * Un ancho de columna de tabla: un número y una unidad de imprenta.
      *
      * Las anchuras de la tabla larga están medidas en pulgadas para que las diez
-     * columnas quepan en un A4 apaisado sin que Chromium reparta a su gusto. Se
+     * columnas quepan en el A4 vertical sin que Chromium reparta a su gusto. Se
      * valida con una expresión y no se deja libre porque un `width` es un
      * atributo de estilo por la puerta de atrás.
      */

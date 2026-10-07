@@ -54,10 +54,10 @@ class DocumentoCuerpoController extends Controller
 
             /*
              * La hoja del editor se dibuja con las medidas con las que Gotenberg
-             * imprime, nunca con medidas escritas a mano en el CSS: si mañana un
-             * tipo de documento pasa a vertical, el editor cambia solo. El día
-             * que no cambie, quien redacta vería una hoja apaisada y el PDF
-             * saldría vertical sin que nada avisara.
+             * imprime, nunca con medidas escritas a mano en el CSS: cuando la
+             * hoja pasó de apaisada a vertical, el editor cambió solo. Si no lo
+             * hubiera hecho, quien redacta vería una hoja y el PDF saldría en
+             * otra sin que nada avisara.
              */
             'geometria' => GeometriaPagina::paraElEditor(),
 

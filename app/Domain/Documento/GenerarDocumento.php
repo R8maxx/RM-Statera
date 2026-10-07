@@ -14,6 +14,7 @@ use App\Domain\Documento\Models\Documento;
 use App\Domain\Documento\Models\DocumentoVersion;
 use App\Domain\Documento\Render\AssetsDocumento;
 use App\Domain\Documento\Render\ClienteGotenberg;
+use App\Domain\Documento\Render\IndiceDocumento;
 use App\Domain\Documento\Render\SolicitudPdf;
 use App\Domain\Organizacion\Marca\MarcaDeLaOrganizacion;
 use App\Domain\Organizacion\Marca\PiezaDeMarca;
@@ -42,6 +43,7 @@ final readonly class GenerarDocumento
         private AssetsDocumento $assets,
         private HtmlDocumento $html,
         private MarcaDeLaOrganizacion $marca,
+        private IndiceDocumento $indice,
     ) {}
 
     /**
@@ -145,7 +147,12 @@ final readonly class GenerarDocumento
         // lo que se congela no fueran el mismo documento.
         $cuerpo = $this->html->cuerpo($documento, $contenido);
 
-        $pdf = $this->gotenberg->pdf($this->solicitud($documento, $version, $contenido, $cuerpo));
+        $pdf = $this->gotenberg->pdf($this->solicitud(
+            $documento,
+            $version,
+            $contenido,
+            $this->html->paraImprimir($contenido, $cuerpo, ...$this->indiceMedido($documento, $version, $contenido, $cuerpo)),
+        ));
 
         $this->almacenar($version, $documento, $contenido, $cuerpo, $pdf);
     }
@@ -213,14 +220,49 @@ final readonly class GenerarDocumento
     }
 
     /**
+     * Las entradas del índice y sus páginas, o nada si el documento no lo lleva.
+     *
+     * La pasada de medida imprime el cuerpo con el índice ya puesto —con números
+     * de relleno del mismo ancho— para que la definitiva pagine igual. Si al
+     * medirlo resulta corto, se imprime sin índice: lo que el índice ocupaba
+     * sale del principio, y no hay números que puedan quedar desfasados.
+     *
      * @param  array<string, mixed>  $cuerpo
+     * @return array{0: list<array{id: string, titulo: string}>|null, 1: array<string, int>|null}
+     *
+     * @throws GeneracionFallida
      */
-    private function solicitud(Documento $documento, DocumentoVersion $version, ContenidoDocumento $contenido, array $cuerpo): SolicitudPdf
+    private function indiceMedido(Documento $documento, DocumentoVersion $version, ContenidoDocumento $contenido, array $cuerpo): array
+    {
+        $entradas = $this->indice->entradas($cuerpo);
+
+        if (! $this->indice->mereceMedirse($entradas)) {
+            return [null, null];
+        }
+
+        $medicion = $this->gotenberg->medir($this->solicitud(
+            $documento,
+            $version,
+            $contenido,
+            // Sin portada: la medida es sólo del cuerpo, que es lo que numera el pie.
+            ['cuerpo' => $this->html->paraImprimir($contenido, $cuerpo, $entradas)['cuerpo']],
+        ));
+
+        return $this->indice->mereceIndice($entradas, $medicion)
+            ? [$entradas, $medicion['paginas']]
+            : [null, null];
+    }
+
+    /**
+     * @param  array{portada?: string, cuerpo: string}  $html
+     */
+    private function solicitud(Documento $documento, DocumentoVersion $version, ContenidoDocumento $contenido, array $html): SolicitudPdf
     {
         $portada = $contenido->portada;
 
         return new SolicitudPdf(
-            html: $this->html->conCuerpo($contenido, $cuerpo),
+            html: $html['cuerpo'],
+            portada: $html['portada'] ?? null,
 
             cabecera: View::make('documentos.cabecera', [
                 'organizacion' => $portada['organizacion'] ?? '',

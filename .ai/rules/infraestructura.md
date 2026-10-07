@@ -93,3 +93,9 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
 - **Cliente de Redis: `predis`, no `phpredis`.** La máquina de desarrollo no tiene la extensión `phpredis` compilada y el stack no elige cliente. `predis` es PHP puro y no requiere extensión. Si en producción se instala `phpredis`, basta cambiar `REDIS_CLIENT` en el entorno.
 
 - **`laravel/passport` se retiró.** Venía en el esqueleto inicial junto con sus seis migraciones OAuth. No hay API pública que autenticar (§12 del stack descarta la SPA con API separada) y la autenticación va por Fortify. Si algún día hace falta OAuth para integraciones, se vuelve a valorar entonces.
+
+- **La imagen PHP lleva `poppler-utils`** por `pdftotext`, que lee la pasada de medida del índice de
+  los documentos (`LectorPaginas`, ver `documentos-render.md`). Es una herramienta de sistema y no una
+  dependencia de Composer a propósito: leer texto de un PDF a mano es un parser entero. Una imagen
+  construida antes no la tiene, y el síntoma es que generar cualquier documento de tres secciones o
+  más falla con «pdftotext no pudo leer la pasada de medida»: `docker compose build app queue`.

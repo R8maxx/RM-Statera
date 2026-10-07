@@ -18,10 +18,43 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
   de encabezados y `<title>` en cada SVG convierte la generación en algo que falla por sorpresa.
   `generateTaggedPdf()` sí va: es su prerrequisito y no rompe nada. PDF/A-3b sí está activo.
 
-- **La cadena de tiempos de Gotenberg es `--api-timeout=120s` < Guzzle 180 s < timeout del job 300 s,
-  en ese orden.** Por eso `GotenbergHttp` construye un `GuzzleHttp\Client` explícito en vez de dejar
-  que `Psr18ClientDiscovery` encuentre uno: el de por defecto trae 30 s y una SoA grande falla de
-  forma intermitente con un error que apunta a Gotenberg, que no tiene ninguna culpa.
+- **La cadena de tiempos de Gotenberg es `--api-timeout=120s` < Guzzle 180 s, y hasta cuatro llamadas
+  por documento (4 × 120 s) < timeout de la cola `documentos` 600 s.** Las cuatro son la medida del
+  índice, la portada, el cuerpo y la unión. Por eso `GotenbergHttp` construye un `GuzzleHttp\Client`
+  explícito en vez de dejar que `Psr18ClientDiscovery` encuentre uno: el de por defecto trae 30 s y
+  una SoA grande falla de forma intermitente con un error que apunta a Gotenberg, que no tiene
+  ninguna culpa. El `uniqueFor` del job (900 s) va por encima del timeout.
+
+- **A4 vertical, y una sola orientación por PDF.** Chromium sí imprime páginas con nombre de dos
+  tamaños (`@page apaisada { size: A4 landscape }`), pero **la conversión a PDF/A-3b pasa por
+  LibreOffice, que impone el tamaño de la primera página a todas** y corta lo que sobra: las
+  apaisadas salían en vertical con la mitad derecha perdida. Comprobado con `pdfinfo` en el 8.9.1.
+  Por eso la tabla larga de la SoA, la DdA y el plan va **en dos filas por requisito**
+  (`ColumnasTabla::para()` arriba, `ColumnasTabla::detalle()` debajo a todo el ancho) y no en una
+  sección apaisada. Cualquier tabla nueva tiene que caber en 6,85 in (`GeometriaPagina::anchoUtil()`).
+
+- **La portada se imprime aparte y Gotenberg la une delante** (`pdfEngines()->merge()` con
+  `pdfa()`). Chromium pinta cabecera y pie en **todas** las páginas de una impresión, también en una
+  con margen cero: la cabecera salía encima de la banda. Consecuencias: el pie numera desde la
+  primera página tras la portada, y la conversión a PDF/A se hace una sola vez, en la unión.
+  `RenderizadorCuerpo::partes()` separa las dos, y **la banda no es un nodo del cuerpo**: la compone
+  el renderizador con el wordmark, el título, el subtítulo y el filete que la portada ya tenía, así
+  que los borradores guardados antes salen con ella sin migrar nada.
+
+- **El índice se mide en una pasada aparte** (`IndiceDocumento`, `ClienteGotenberg::medir()`). Chromium
+  no implementa `target-counter()`, así que se imprime el cuerpo sin PDF/A, con un marcador
+  invisible por sección (`@@s-N@@`, en `position: absolute` para no mover nada) y con el índice ya
+  puesto con números de relleno del mismo ancho; `LectorPaginas` lee con `pdftotext` en qué página
+  cayó cada marcador, y la impresión definitiva lleva los números reales. Menos de tres secciones,
+  no se mide; cuatro páginas de contenido o menos, no lleva índice. **El índice no se puede pulsar**
+  en el PDF entregado: la conversión a PDF/A descarta los enlaces. Los marcadores laterales sí
+  sobreviven y son el índice navegable.
+
+- **Sin ligaduras y sin degradados**, por el mismo LibreOffice. Al resustituir las fuentes no
+  encuentra el glifo de ligadura de la fuente original: «Justificación» salía «Justi ación». Y un
+  `linear-gradient` lo trocea en tiras con una rendija de un pelo entre cada dos, que en pantalla se
+  ve como un rayado diagonal. Por eso la banda de la portada es `marca-900` liso aunque DESIGN.md §3
+  reserve el degradado justo a portadas, y `body` lleva `font-variant-ligatures: none`.
 
 - **Las fuentes del documento van incrustadas en el CSS como `data:`, no como ficheros del
   multipart.** Chromium trata una fuente como recurso sujeto a CORS y el documento se renderiza desde

@@ -160,7 +160,8 @@ que es lo que permitió meter esto sin revisar ningún documento anterior.
 
 `CuerpoDeFabrica` ya dice que el filete y la palabra «Statera» de la portada «son
 la marca, no contenido». Un logo de cliente es lo mismo, así que **entra por CSS**:
-una regla de `background-image` sobre `.portada`, generada por `AssetsDocumento`
+una regla de `background-image` sobre `.portada__cuerpo` —la zona blanca bajo la banda
+de la portada, nunca sobre la banda oscura—, generada por `AssetsDocumento`
 igual que ya genera los `@font-face`.
 
 La consecuencia es que **no se tocó nada del cuerpo**: ni `EsquemaCuerpo` —que

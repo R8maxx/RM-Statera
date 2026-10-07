@@ -47,7 +47,7 @@ final class GenerarDocumentoJob implements ShouldBeUnique, ShouldQueue
     public array $backoff = [10, 60];
 
     /** Más que el timeout del job, para que el candado no se suelte a mitad. */
-    public int $uniqueFor = 600;
+    public int $uniqueFor = 900;
 
     public function __construct(
         public readonly int $versionId,

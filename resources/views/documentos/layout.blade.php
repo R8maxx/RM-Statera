@@ -12,7 +12,11 @@
     segura por construcción: lo que llega ha pasado por `RenderizadorCuerpo`, que
     escapa todo texto con `e()` y **no tiene ninguna rama que pinte un nodo que
     no esté en `EsquemaCuerpo`**. No hay nodo de HTML crudo en el esquema, así
-    que no existe la puerta que habría que cerrar.
+    que no existe la puerta que habría que cerrar. Lo único que entra por otro
+    lado es el índice, que pinta `IndiceDocumento` escapando cada título igual.
+
+    El mismo esqueleto sirve para las dos impresiones —la portada y el resto—,
+    que Gotenberg une después: las dos llevan la misma hoja.
 
     La hoja de estilos va como `<link>` a un fichero del multipart, no como un
     `<style>` incrustado: Gotenberg deja todos los ficheros del multipart en el

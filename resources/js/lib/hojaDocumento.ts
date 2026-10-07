@@ -21,7 +21,7 @@
  *
  * ## Las cuatro sustituciones, y no hay más
  *
- * 1. `@page { size: A4 landscape }` — fuera. Anidado no es válido, y el tamaño
+ * 1. `@page { size: A4 }` — fuera. Anidado no es válido, y el tamaño
  *    de la hoja lo pinta el lienzo con las medidas de `GeometriaPagina`.
  * 2. `@media screen { body { … } }` — fuera. Existe sólo para mirar el volcado
  *    de `documentos:generar --html` en un navegador, y aquí sumaría un segundo
@@ -48,9 +48,15 @@ const ID = 'statera-hoja-documento';
  *
  * Con una expresión regular no se puede: `@media screen { body { … } }` tiene
  * llaves dentro y `[^}]*` corta en la primera.
+ *
+ * El inicio sí se busca con una, anclada a principio de línea —como lo cuenta
+ * `HojaDelEditorTest`—: el comentario que explica el `@page` lo nombra antes
+ * que el propio bloque, y empezar a cortar ahí se llevaba el cierre del
+ * comentario y dejaba el resto de la hoja dentro de él.
  */
 function sinBloque(css: string, prefijo: string): string {
-    const inicio = css.indexOf(prefijo);
+    const escapado = prefijo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const inicio = css.search(new RegExp(`^${escapado}\\s*\\{`, 'm'));
 
     if (inicio === -1) {
         return css;

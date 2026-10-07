@@ -22,7 +22,11 @@ return [
         /*
          * Segundo eslabón de una cadena que tiene que quedar en este orden:
          *
-         *     --api-timeout=120s  <  este cliente  <  timeout del job (300 s)
+         *     --api-timeout=120s  <  este cliente  <  timeout del job (600 s)
+         *
+         * El job hace hasta cuatro llamadas —la medida del índice, la portada,
+         * el cuerpo y la unión—, así que su timeout cubre cuatro veces el de la
+         * API de Gotenberg, no una.
          *
          * Con el cliente HTTP que se descubre por defecto (30 s), una SoA grande
          * falla de forma intermitente y el error apunta a Gotenberg, que no

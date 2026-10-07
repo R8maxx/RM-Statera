@@ -17,11 +17,12 @@ namespace App\Domain\Documento\Render;
 final readonly class SolicitudPdf
 {
     /**
-     * @param  string  $html  El cuerpo completo, que viaja como `index.html`.
+     * @param  string  $html  El cuerpo —todo menos la portada—, que viaja como `index.html`.
      * @param  string  $cabecera  Documento HTML autónomo: Chromium lo renderiza en un contexto aparte que no hereda CSS ni fuentes.
      * @param  string  $pie  Ídem.
      * @param  list<AssetDocumento>  $assets  CSS y fuentes, que viajan en el mismo multipart y se referencian por nombre.
      * @param  array<string, string>  $metadatos  Los del PDF: Title, Author, Subject, Creator.
+     * @param  string|null  $portada  Documento HTML de la portada, que se imprime aparte —a sangre, sin cabecera ni pie— y se une delante del cuerpo.
      */
     public function __construct(
         public string $html,
@@ -29,6 +30,7 @@ final readonly class SolicitudPdf
         public string $pie,
         public array $assets = [],
         public array $metadatos = [],
+        public ?string $portada = null,
     ) {}
 
     /** @return list<string> Los nombres de fichero de los assets, para poder afirmar sobre ellos. */

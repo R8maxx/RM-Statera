@@ -19,8 +19,13 @@ use App\Domain\Documento\Enums\TipoDocumento;
  * es un cálculo que hay que poder rastrear —de ahí «Exigencia» y «Origen de la
  * exigencia»—. Lo demás es idéntico.
  *
+ * **Cada requisito ocupa dos líneas**: `para()` declara las columnas de la
+ * primera —lo corto: código, título, estado, responsable— y `detalle()` lo que
+ * va debajo, a todo el ancho. Así cabe en el A4 vertical; en una sola línea eran
+ * diez columnas y obligaban a imprimir apaisado.
+ *
  * Las anchuras van en pulgadas y **tienen que caber en el ancho útil de la
- * hoja**: 10,28 pulgadas, que es el A4 apaisado de `GeometriaPagina` menos sus
+ * hoja**: 6,85 pulgadas, que es el A4 vertical de `GeometriaPagina` menos sus
  * dos márgenes laterales. Sin anchuras declaradas Chromium reparte a su gusto y
  * la columna de justificación se come media página; pasándose, hace algo peor.
  *
@@ -40,36 +45,30 @@ use App\Domain\Documento\Enums\TipoDocumento;
 final class ColumnasTabla
 {
     /**
+     * Las columnas de la primera línea de cada requisito, con su anchura.
+     *
      * @return list<array{clave: string, titulo: string, ancho: string}>
      */
     public static function para(TipoDocumento $tipo): array
     {
         return match ($tipo) {
             TipoDocumento::SoaIso => [
-                ['clave' => 'codigo', 'titulo' => 'Control', 'ancho' => '0.58in'],
-                ['clave' => 'titulo', 'titulo' => 'Título', 'ancho' => '1.95in'],
-                ['clave' => 'aplica', 'titulo' => 'Aplica', 'ancho' => '0.4in'],
-                ['clave' => 'justificacionInclusion', 'titulo' => 'Origen de la inclusión', 'ancho' => '1.45in'],
-                ['clave' => 'justificacion', 'titulo' => 'Justificación de exclusión', 'ancho' => '1.5in'],
-                ['clave' => 'estado', 'titulo' => 'Estado', 'ancho' => '0.72in'],
-                ['clave' => 'madurez', 'titulo' => 'Madurez', 'ancho' => '0.5in'],
-                ['clave' => 'responsable', 'titulo' => 'Responsable', 'ancho' => '0.85in'],
-                ['clave' => 'evidencias', 'titulo' => 'Evidencia', 'ancho' => '1.35in'],
-                ['clave' => 'correspondencias', 'titulo' => 'Correspondencia ENS', 'ancho' => '0.9in'],
+                ['clave' => 'codigo', 'titulo' => 'Control', 'ancho' => '0.6in'],
+                ['clave' => 'titulo', 'titulo' => 'Título', 'ancho' => '2.6in'],
+                ['clave' => 'aplica', 'titulo' => 'Aplica', 'ancho' => '0.5in'],
+                ['clave' => 'estado', 'titulo' => 'Estado', 'ancho' => '0.95in'],
+                ['clave' => 'madurez', 'titulo' => 'Madurez', 'ancho' => '0.6in'],
+                ['clave' => 'responsable', 'titulo' => 'Responsable', 'ancho' => '1.6in'],
             ],
 
             TipoDocumento::DdaEns => [
-                ['clave' => 'codigo', 'titulo' => 'Medida', 'ancho' => '0.65in'],
-                ['clave' => 'titulo', 'titulo' => 'Título', 'ancho' => '1.8in'],
-                ['clave' => 'exigencia', 'titulo' => 'Exigencia', 'ancho' => '0.65in'],
-                ['clave' => 'origenExigencia', 'titulo' => 'Origen de la exigencia', 'ancho' => '1.15in'],
-                ['clave' => 'aplica', 'titulo' => 'Aplica', 'ancho' => '0.4in'],
-                ['clave' => 'justificacion', 'titulo' => 'Justificación', 'ancho' => '1.25in'],
-                ['clave' => 'estado', 'titulo' => 'Estado', 'ancho' => '0.72in'],
-                ['clave' => 'madurez', 'titulo' => 'Madurez', 'ancho' => '0.5in'],
-                ['clave' => 'responsable', 'titulo' => 'Responsable', 'ancho' => '0.85in'],
-                ['clave' => 'evidencias', 'titulo' => 'Evidencia', 'ancho' => '1.28in'],
-                ['clave' => 'correspondencias', 'titulo' => 'Correspondencia ISO', 'ancho' => '0.95in'],
+                ['clave' => 'codigo', 'titulo' => 'Medida', 'ancho' => '0.7in'],
+                ['clave' => 'titulo', 'titulo' => 'Título', 'ancho' => '2.2in'],
+                ['clave' => 'exigencia', 'titulo' => 'Exigencia', 'ancho' => '0.7in'],
+                ['clave' => 'aplica', 'titulo' => 'Aplica', 'ancho' => '0.5in'],
+                ['clave' => 'estado', 'titulo' => 'Estado', 'ancho' => '0.95in'],
+                ['clave' => 'madurez', 'titulo' => 'Madurez', 'ancho' => '0.6in'],
+                ['clave' => 'responsable', 'titulo' => 'Responsable', 'ancho' => '1.2in'],
             ],
 
             /*
@@ -80,15 +79,12 @@ final class ColumnasTabla
              * trabajo hay apuntado, cuánto cuesta y qué riesgo lo motiva.
              */
             TipoDocumento::PlanAdecuacionEns => [
-                ['clave' => 'codigo', 'titulo' => 'Medida', 'ancho' => '0.65in'],
-                ['clave' => 'titulo', 'titulo' => 'Título', 'ancho' => '1.85in'],
-                ['clave' => 'exigencia', 'titulo' => 'Exigencia', 'ancho' => '0.6in'],
-                ['clave' => 'estado', 'titulo' => 'Estado', 'ancho' => '0.72in'],
-                ['clave' => 'responsable', 'titulo' => 'Responsable', 'ancho' => '0.85in'],
-                ['clave' => 'fechaObjetivo', 'titulo' => 'Fecha objetivo', 'ancho' => '0.85in'],
-                ['clave' => 'tareas', 'titulo' => 'Trabajo planificado', 'ancho' => '2.4in'],
-                ['clave' => 'coste', 'titulo' => 'Coste estimado', 'ancho' => '0.8in'],
-                ['clave' => 'riesgos', 'titulo' => 'Riesgo que la motiva', 'ancho' => '0.95in'],
+                ['clave' => 'codigo', 'titulo' => 'Medida', 'ancho' => '0.7in'],
+                ['clave' => 'titulo', 'titulo' => 'Título', 'ancho' => '2.4in'],
+                ['clave' => 'exigencia', 'titulo' => 'Exigencia', 'ancho' => '0.7in'],
+                ['clave' => 'estado', 'titulo' => 'Estado', 'ancho' => '0.95in'],
+                ['clave' => 'responsable', 'titulo' => 'Responsable', 'ancho' => '1.2in'],
+                ['clave' => 'fechaObjetivo', 'titulo' => 'Fecha objetivo', 'ancho' => '0.9in'],
             ],
 
             /*
@@ -103,6 +99,51 @@ final class ColumnasTabla
              * del catálogo. Sus columnas las declara cada materializador, porque
              * son dos tablas distintas y esto sólo sabe describir una.
              */
+            TipoDocumento::AnalisisContexto,
+            TipoDocumento::ActaRevision,
+            TipoDocumento::DeclaracionConformidadEns,
+            TipoDocumento::InformeAuditoria,
+            TipoDocumento::InformeEstado,
+            TipoDocumento::Politica,
+            TipoDocumento::Norma,
+            TipoDocumento::Procedimiento,
+            TipoDocumento::PlanContinuidad => [],
+        };
+    }
+
+    /**
+     * Lo que va en la segunda línea de cada requisito, como «Título: valor».
+     *
+     * Es el texto largo —justificaciones, evidencias, trabajo planificado— y
+     * las correspondencias cruzadas. En una columna de pulgada y media esas
+     * celdas crecían a diez líneas y la fila entera con ellas; a lo ancho de la
+     * tabla caben en dos.
+     *
+     * @return list<array{clave: string, titulo: string}>
+     */
+    public static function detalle(TipoDocumento $tipo): array
+    {
+        return match ($tipo) {
+            TipoDocumento::SoaIso => [
+                ['clave' => 'justificacionInclusion', 'titulo' => 'Origen de la inclusión'],
+                ['clave' => 'justificacion', 'titulo' => 'Justificación de exclusión'],
+                ['clave' => 'evidencias', 'titulo' => 'Evidencia'],
+                ['clave' => 'correspondencias', 'titulo' => 'Correspondencia ENS'],
+            ],
+
+            TipoDocumento::DdaEns => [
+                ['clave' => 'origenExigencia', 'titulo' => 'Origen de la exigencia'],
+                ['clave' => 'justificacion', 'titulo' => 'Justificación'],
+                ['clave' => 'evidencias', 'titulo' => 'Evidencia'],
+                ['clave' => 'correspondencias', 'titulo' => 'Correspondencia ISO'],
+            ],
+
+            TipoDocumento::PlanAdecuacionEns => [
+                ['clave' => 'tareas', 'titulo' => 'Trabajo planificado'],
+                ['clave' => 'coste', 'titulo' => 'Coste estimado'],
+                ['clave' => 'riesgos', 'titulo' => 'Riesgo que la motiva'],
+            ],
+
             TipoDocumento::AnalisisContexto,
             TipoDocumento::ActaRevision,
             TipoDocumento::DeclaracionConformidadEns,

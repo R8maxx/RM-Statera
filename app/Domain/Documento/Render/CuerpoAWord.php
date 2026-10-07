@@ -494,12 +494,37 @@ final class CuerpoAWord
         // Una fila de grupo es una sola celda que cruza la tabla entera.
         $esGrupo = $this->atributo($fila, 'clase') === 'grupo';
 
-        foreach ($celdas as $indice => $celda) {
+        // La columna de la rejilla en la que empieza cada celda, que no es su
+        // índice en cuanto una anterior cruza varias: la línea de detalle de la
+        // tabla larga es una celda vacía y otra que cruza todas las demás.
+        $columna = 0;
+
+        foreach ($celdas as $celda) {
+            $cruce = $this->atributo($celda, 'colspan');
+            $cruce = is_int($cruce) && $cruce > 1 ? $cruce : 1;
+
+            $ancho = $esGrupo
+                ? $this->anchoUtil
+                : $this->anchoDeColumnas($columna, $cruce, count($celdas));
+
             $this->celda($destino->addCell(
-                $esGrupo ? $this->anchoUtil : ($this->anchos[$indice] ?? intdiv($this->anchoUtil, count($celdas))),
+                $ancho,
                 $this->estiloDeCelda($celda, $esGrupo, count($this->anchos)),
             ), $celda, $esCabecera || $esGrupo);
+
+            $columna += $cruce;
         }
+    }
+
+    /** Lo que miden juntas las columnas que cruza una celda, en twips. */
+    private function anchoDeColumnas(int $desde, int $cruce, int $celdas): int
+    {
+        if ($this->anchos === []) {
+            return intdiv($this->anchoUtil, max($celdas, 1)) * $cruce;
+        }
+
+        return array_sum(array_slice($this->anchos, $desde, $cruce))
+            ?: intdiv($this->anchoUtil, max(count($this->anchos), 1)) * $cruce;
     }
 
     /**

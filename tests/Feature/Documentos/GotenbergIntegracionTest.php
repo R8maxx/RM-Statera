@@ -8,6 +8,7 @@ use App\Domain\Documento\GenerarDocumento;
 use App\Domain\Documento\Models\Documento;
 use App\Domain\Implantacion\GeneradorImplantaciones;
 use App\Domain\Sistema\Models\Sistema;
+use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -73,6 +74,53 @@ it('produce un PDF/A-3b de verdad, con la SoA completa dentro', function (): voi
     expect($pdf)->toMatch('/\/FontFile[23]/');
 
     expect($version->hash_sha256)->toBe(hash('sha256', $pdf));
+})->group('gotenberg')->skip(
+    fn (): bool => ! gotenbergDisponible(),
+    'Gotenberg no está levantado (docker compose up -d gotenberg).',
+);
+
+/*
+ * Lo que sólo se ve en el PDF real: que todas las páginas salen verticales
+ * (la conversión a PDF/A impone a todas el tamaño de la primera, y por eso no
+ * se mezclan orientaciones), que la portada no lleva la cabecera encima y que
+ * cada número del índice es la página donde empieza su sección.
+ */
+it('sale entero en A4 vertical, con la portada limpia y el índice bien numerado', function (): void {
+    $version = app(GenerarDocumento::class)->encolar($this->documento)->fresh();
+
+    $fichero = tempnam(sys_get_temp_dir(), 'statera-integracion-');
+    file_put_contents($fichero, Storage::disk('documentos')->get((string) $version->ruta));
+
+    try {
+        $info = Process::run(['pdfinfo', '-f', '1', '-l', '999', $fichero])->throw()->output();
+        $texto = Process::run(['pdftotext', '-layout', $fichero, '-'])->throw()->output();
+    } finally {
+        @unlink($fichero);
+    }
+
+    preg_match_all('/size:\s+([\d.]+) x ([\d.]+) pts/', $info, $tamanos, PREG_SET_ORDER);
+
+    expect($tamanos)->not->toBeEmpty();
+
+    foreach ($tamanos as [, $ancho, $alto]) {
+        expect((float) $ancho)->toBeLessThan((float) $alto);
+    }
+
+    $paginas = explode("\f", $texto);
+
+    // La cabecera lleva el código del documento; la portada se imprime aparte y sin ella.
+    expect($paginas[0])->not->toContain($this->documento->codigo.' —')
+        ->and($paginas[1])->toContain('Índice');
+
+    preg_match_all('/^\s*\d+\.\s+(.+?)[\s.]+(\d+)\s*$/m', $paginas[1], $entradas, PREG_SET_ORDER);
+
+    expect(count($entradas))->toBeGreaterThanOrEqual(3);
+
+    foreach ($entradas as [, $titulo, $numero]) {
+        // El número es el del pie, que no cuenta la portada: la página n del
+        // índice es la n+1 del fichero, que en el array es la posición n.
+        expect($paginas[(int) $numero] ?? '')->toContain(mb_substr(trim($titulo), 0, 20));
+    }
 })->group('gotenberg')->skip(
     fn (): bool => ! gotenbergDisponible(),
     'Gotenberg no está levantado (docker compose up -d gotenberg).',

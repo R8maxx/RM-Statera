@@ -54,7 +54,7 @@ class AppServiceProvider extends ServiceProvider
          * para poder afirmar sobre la solicitud que se le mandó. Probar el HTML
          * es probar el documento; Gotenberg sólo es la impresora.
          *
-         * El timeout va por debajo del del job (300 s) y por encima del de la
+         * El timeout va por debajo del del job (600 s) y por encima del de la
          * API de Gotenberg (120 s): esa cadena tiene que quedar en ese orden o
          * los fallos aparecen donde no está la causa.
          */

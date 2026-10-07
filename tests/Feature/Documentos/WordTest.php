@@ -196,6 +196,29 @@ it('respeta el orden del documento', function (): void {
         ->and($limitaciones)->toBeLessThan($versiones);
 });
 
+it('sale en A4 vertical, como el PDF', function (): void {
+    $version = ($this->emitir)();
+
+    $xml = entradaDelDocx(descargarWord($this->documento->id, $version->id), 'word/document.xml');
+
+    // 21 × 29,7 cm en twips: el ancho es el lado corto.
+    expect($xml)->toContain('<w:pgSz w:orient="portrait" w:w="11906" w:h="16838"/>')
+        ->and($xml)->not->toContain('w:orient="landscape"');
+});
+
+it('lleva un campo de índice tras la portada, que Word numera al abrirlo', function (): void {
+    $version = ($this->emitir)();
+
+    $docx = descargarWord($this->documento->id, $version->id);
+    $xml = entradaDelDocx($docx, 'word/document.xml');
+
+    // Desde el nivel 2: el nivel 1 es el título de la portada.
+    expect($xml)->toContain('TOC \\o 2-2')
+        ->and(strpos($xml, 'Índice'))->toBeLessThan(strpos($xml, 'Resumen'))
+        // `updateFields` hace que Word pida rellenarlo: sin él sale vacío.
+        ->and(entradaDelDocx($docx, 'word/settings.xml'))->toContain('<w:updateFields w:val="true"/>');
+});
+
 it('una versión sin instantánea no se puede exportar', function (): void {
     $version = DocumentoVersion::factory()->delDocumento($this->documento->id)->create();
 

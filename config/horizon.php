@@ -212,7 +212,10 @@ return [
             'maxJobs' => 0,
             'memory' => 256,
             'tries' => 3,
-            'timeout' => 300,
+            // Hasta cuatro llamadas a Gotenberg por documento —medida, portada,
+            // cuerpo y unión—, cada una cortada a 120 s por el propio Gotenberg:
+            // 4 × 120 = 480 s tienen que caber aquí.
+            'timeout' => 600,
             'nice' => 0,
         ],
 

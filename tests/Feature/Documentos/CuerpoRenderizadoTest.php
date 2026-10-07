@@ -13,6 +13,7 @@ use App\Domain\Documento\Enums\TipoDocumento;
 use App\Domain\Documento\Models\Documento;
 use App\Domain\Documento\Models\DocumentoCuerpo;
 use App\Domain\Documento\Models\DocumentoVersion;
+use App\Domain\Documento\Render\IndiceDocumento;
 use App\Domain\Implantacion\CambiarAplicabilidad;
 use App\Domain\Implantacion\GeneradorImplantaciones;
 use App\Domain\Implantacion\Models\Implantacion;
@@ -99,8 +100,60 @@ it('pinta la tabla larga con su cabecera repetible y los grupos dentro del cuerp
         ->and($html)->toContain('<thead><tr><th scope="col" style="width: '.$primera['ancho'].'">'.$primera['titulo'].'</th>')
         ->and($html)->toContain('<th scope="col" style="width: '.$ultima['ancho'].'">'.$ultima['titulo'].'</th>')
         // La fila de grupo NO: se queda entre las filas que agrupa.
-        ->and($html)->toContain('<tr class="grupo"><th scope="colgroup" colspan="10">')
+        ->and($html)->toContain('<tr class="grupo"><th scope="colgroup" colspan="'.count($columnas).'">')
         ->and(substr_count($html, '<tr class="grupo">'))->toBe(4);
+});
+
+/*
+ * Un requisito, dos filas: lo corto en la principal y lo largo debajo, a todo el
+ * ancho. Es lo que deja la SoA en A4 vertical, y lo que no puede pasar es que
+ * un dato de la segunda línea se pierda por el camino.
+ */
+it('pinta cada requisito en dos líneas, con el detalle a todo el ancho', function (): void {
+    $html = ($this->html)();
+    $columnas = count(ColumnasTabla::para(TipoDocumento::SoaIso));
+
+    expect(substr_count($html, '<tr class="principal">'))->toBe(93)
+        ->and(substr_count($html, '<tr class="detalle"><td></td><td class="detalle" colspan="'.($columnas - 1).'">'))->toBe(93);
+
+    foreach (ColumnasTabla::detalle(TipoDocumento::SoaIso) as $dato) {
+        expect(substr_count($html, '<strong>'.$dato['titulo'].': </strong>'))->toBe(93);
+    }
+
+    expect($html)->toContain('<strong>Evidencia: </strong><span class="suave">Sin evidencia registrada</span>');
+});
+
+it('compone la banda de la portada con lo que la portada ya tenía', function (): void {
+    $html = ($this->html)();
+
+    // Wordmark, título, subtítulo y filete, por ese orden y dentro de la banda;
+    // la ficha, debajo.
+    expect($html)->toMatch('#<div class="portada__banda"><div class="portada__marca">Statera</div><h1 class="portada__titulo">.*?</h1><p class="portada__subtitulo">.*?</p><div class="portada__filete"></div></div><div class="portada__cuerpo">#s')
+        ->and($html)->toMatch('#<div class="portada__cuerpo">.*?<div class="ficha">#s')
+        // El pie de portada, fuera del cuerpo: baja al final de la hoja.
+        ->and($html)->toMatch('#</div><div class="portada__pie pequeno suave">.*?</div></section>#s');
+});
+
+it('ancla cada sección y sólo marca su página en la pasada de medida', function (): void {
+    $contenido = app(DeclaracionAplicabilidadIso::class)
+        ->construir($this->documento->fresh(), $this->version->fresh());
+    $html = app(HtmlDocumento::class);
+    $cuerpo = $html->cuerpo($this->documento->fresh(), $contenido);
+    $entradas = app(IndiceDocumento::class)->entradas($cuerpo);
+
+    $definitiva = $html->paraImprimir($contenido, $cuerpo, $entradas, array_fill_keys(array_column($entradas, 'id'), 7));
+    $medida = $html->paraImprimir($contenido, $cuerpo, $entradas);
+
+    expect($definitiva['cuerpo'])->toContain('<section class="seccion" id="s-1">')
+        ->and($definitiva['cuerpo'])->not->toContain('marcador-pagina')
+        ->and($definitiva['cuerpo'])->toContain('<span class="indice__pagina cifra">7</span>')
+        // La portada se imprime aparte: ni en el cuerpo ni con índice.
+        ->and($definitiva['cuerpo'])->not->toContain('class="portada"')
+        ->and($definitiva['portada'])->toContain('<section class="portada">')
+        ->and($definitiva['portada'])->not->toContain('class="indice"')
+        ->and(substr_count($medida['cuerpo'], 'class="marcador-pagina"'))->toBe(substr_count($medida['cuerpo'], '<section class="seccion"'))
+        ->and($medida['cuerpo'])->toContain('@@s-1@@')
+        ->and($medida['cuerpo'])->toContain('<span class="indice__pagina cifra">000</span>');
 });
 
 it('pinta las 93 filas del Anexo A, cada una con su badge de estado', function (): void {

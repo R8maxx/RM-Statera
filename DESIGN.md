@@ -71,7 +71,7 @@ Una organización sube su propio logo y aparece en su documentación. **Esto es 
 
 | Pieza | Dónde | Tamaño impreso |
 |---|---|---|
-| **Logo horizontal** | Portada del PDF, arriba a la derecha; desplegable de organización | 0.5 in de alto en papel; 20 px en pantalla |
+| **Logo horizontal** | Portada del PDF, arriba a la derecha de la zona blanca, bajo la banda; desplegable de organización | 0.5 in de alto en papel; 20 px en pantalla |
 | **Símbolo cuadrado** | Cabecera de cada página del PDF | 8 pt de alto |
 
 Las dos son **opcionales y degradan a lo que hay hoy**: sin logo, la portada sale como siempre; sin símbolo, la cabecera sigue siendo «Statera · organización» en texto.
@@ -86,7 +86,18 @@ Las dos son **opcionales y degradan a lo que hay hoy**: sin logo, la portada sal
 
 **Va como fondo CSS y no como imagen del cuerpo**, así que no entra en el árbol de etiquetas del PDF. Es correcto para algo decorativo cuya organización se nombra en texto en la ficha de la misma portada: un lector de pantalla no gana nada leyendo «logo».
 
-**Fondo transparente o claro.** El documento es siempre tema claro y la portada es blanca; un logo pensado sólo para fondo oscuro se verá mal y la herramienta no lo va a corregir. Se dice en la pantalla.
+**Fondo transparente o claro.** El documento es siempre tema claro y el logo va en la zona blanca de la portada, nunca sobre la banda; un logo pensado sólo para fondo oscuro se verá mal y la herramienta no lo va a corregir. Se dice en la pantalla.
+
+### La portada del PDF
+
+Una hoja A4 vertical entera, a sangre, que se imprime aparte del cuerpo y sin cabecera ni pie.
+
+- **La banda**, el tercio superior: `marca-900` (`#003537`) liso, con la balanza en blanco al 8 %, ampliada y recortada por el borde derecho (§2, «el símbolo como recurso gráfico»). Dentro, en blanco sobre oscuro: el wordmark en `marca-300`, el título a 30 pt, el subtítulo en `marca-300` y el filete violeta debajo, que sigue siendo la única aparición del violeta en todo el documento.
+- **La zona blanca**: el aviso de borrador si lo es, la ficha del documento en **dos pares por fila** y el alcance declarado. El logo del cliente, arriba a la derecha.
+- **El pie**: el crédito «Statera — un producto de RM Technology» con la frase de cómo se hizo el documento, al final de la hoja.
+- **Liso y no degradado**: la conversión a PDF/A trocea los degradados en tiras con rendijas.
+
+Detrás va el **índice**, en su propia página, con el número de página de cada sección en la monoespaciada tabular y puntos guía; los documentos de cuatro páginas de contenido o menos no lo llevan.
 
 ## 3. Color
 
@@ -274,7 +285,7 @@ Lo mide `PaletaTest`, que lee estos tokens de `app.css` y no de esta tabla: si a
 
 ### Degradados
 
-Reservados a portadas de informe y cabeceras de material comercial. **Nunca** en botones, tarjetas, cabeceras de tabla ni sobre el símbolo, que es plano por decisión (§2).
+Reservados a portadas de informe y cabeceras de material comercial. **No en el PDF**: la conversión a PDF/A trocea un degradado en tiras con rendijas, y la portada del documento usa `marca-900` liso (ver «La portada del PDF», abajo). **Nunca** en botones, tarjetas, cabeceras de tabla ni sobre el símbolo, que es plano por decisión (§2).
 
 ```css
 --gradient-dark: linear-gradient(160deg, #002122 0%, #003537 55%, #3B2260 100%);
