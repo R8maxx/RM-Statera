@@ -231,7 +231,12 @@ plataforma:
   `/plataforma`.
 
 **Se comprueba en cada petición**, así que cerrar la puerta echa a quien esté
-dentro en su siguiente paso. Las tres capas siguen aplicando, y nada de esto
+dentro en su siguiente paso. **Y se comprueba que sea la misma ventana**: la
+sesión guarda también el `soporte_hasta` con el que se entró
+(`SesionDeSoporte::CLAVE_VENTANA`). Lo encontró la revisión de seguridad: con
+sólo la organización, si el cliente cerraba y volvía a abrir entre dos
+peticiones, quien estaba dentro seguía por la ventana nueva sin pasar por la
+entrada, es decir, sin evento en la traza y sin correo al cliente. Las tres capas siguen aplicando, y nada de esto
 usa `comoMantenimiento()`.
 
 **Sólo lectura, con dos cerrojos:**

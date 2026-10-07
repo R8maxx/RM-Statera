@@ -35,6 +35,7 @@ class SoporteController extends Controller
         }
 
         $request->session()->put(SesionDeSoporte::CLAVE, $organizacion->id);
+        $request->session()->put(SesionDeSoporte::CLAVE_VENTANA, SesionDeSoporte::ventana($organizacion));
 
         Inertia::flash('exito', "Estás dentro de {$organizacion->nombre} como soporte, en sólo lectura.");
 
@@ -46,6 +47,7 @@ class SoporteController extends Controller
         /** @var User $administrador */
         $administrador = $request->user();
         $id = $request->session()->pull(SesionDeSoporte::CLAVE);
+        $request->session()->forget(SesionDeSoporte::CLAVE_VENTANA);
         $organizacion = $id === null ? null : Organizacion::query()->find((int) $id);
 
         if ($organizacion === null) {

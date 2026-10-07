@@ -195,3 +195,14 @@ it('una cuenta de cliente no entra como soporte en otra', function (): void {
         ->post("/plataforma/organizaciones/{$this->organizacion->id}/soporte")
         ->assertForbidden();
 });
+
+it('si el cliente cierra y vuelve a abrir, hay que entrar de nuevo', function (): void {
+    abrirVentana($this);
+    entrarComoSoporte($this);
+
+    $this->actingAs($this->responsable)->delete('/organizacion/soporte');
+    abrirVentana($this, 48);
+
+    $this->actingAs($this->admin)->get('/sistemas')->assertRedirect('/plataforma/organizaciones');
+    $this->actingAs($this->admin)->get('/sistemas')->assertForbidden();
+});

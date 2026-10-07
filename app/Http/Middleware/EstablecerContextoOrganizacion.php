@@ -73,8 +73,13 @@ class EstablecerContextoOrganizacion
 
         $organizacion = Organizacion::query()->find((int) $id);
 
-        if ($organizacion === null || ! $organizacion->soporteAbierto()) {
-            $request->session()->forget(SesionDeSoporte::CLAVE);
+        // La misma ventana por la que se entró, no una cualquiera abierta: si el
+        // cliente la cerró y abrió otra, hay que volver a entrar.
+        $mismaVentana = $organizacion !== null
+            && $request->session()->get(SesionDeSoporte::CLAVE_VENTANA) === SesionDeSoporte::ventana($organizacion);
+
+        if ($organizacion === null || ! $organizacion->soporteAbierto() || ! $mismaVentana) {
+            $request->session()->forget([SesionDeSoporte::CLAVE, SesionDeSoporte::CLAVE_VENTANA]);
             Inertia::flash('error', 'El acceso de soporte se ha cerrado: la organización lo cerró o se acabó el plazo.');
 
             return redirect()->route('plataforma.organizaciones.index');
