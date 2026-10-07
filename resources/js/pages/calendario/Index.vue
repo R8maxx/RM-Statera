@@ -325,6 +325,7 @@ const entradaPanel = computed(() => (reducido.value ? { opacity: 0 } : { opacity
         <CabeceraPagina
             titulo="Calendario"
             descripcion="Todo lo que tiene fecha, en el mismo mes: plazos, caducidades, revisiones y lo periódico que la organización se ha declarado."
+            recorrido="calendario"
         />
 
         <div class="flex flex-wrap items-center gap-2">
@@ -378,6 +379,7 @@ const entradaPanel = computed(() => (reducido.value ? { opacity: 0 } : { opacity
         <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
             <FiltroFuentes
                 v-if="filtroFuente"
+                data-recorrido="calendario-fuentes"
                 class="flex-1"
                 :filtro="filtroFuente"
                 :seleccionadas="fuentesActivas"
@@ -418,7 +420,7 @@ const entradaPanel = computed(() => (reducido.value ? { opacity: 0 } : { opacity
             La rejilla desde `md`. Siete columnas a 400 px no se leen: por debajo
             va la agenda, que es la misma información en la forma que cabe.
         -->
-        <div v-else class="relative hidden md:block" :aria-busy="cargando">
+        <div v-else class="relative hidden md:block" :aria-busy="cargando" data-recorrido="calendario-rejilla">
             <!-- Filtrar es una consulta de servidor: sin el hilo, la rejilla se
                  quedaba quieta y parecía que el filtro no había hecho nada. -->
             <HiloCarga :activo="cargando" />

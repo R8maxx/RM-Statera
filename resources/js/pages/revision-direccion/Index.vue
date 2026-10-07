@@ -28,15 +28,16 @@ defineProps<{
         <CabeceraPagina
             :titulo="recurso.etiquetas.plural"
             :descripcion="recurso.etiquetas.descripcion"
+            recorrido="revision-direccion"
         />
 
-        <p v-if="sinFirmar > 0" class="text-sm text-muted-foreground">
+        <p v-if="sinFirmar > 0" class="text-sm text-muted-foreground" data-recorrido="revision-direccion-sin-firmar">
             <span class="cifra font-medium text-foreground">{{ sinFirmar }}</span>
             de {{ total }}
             {{ sinFirmar === 1 ? 'sigue sin firmar' : 'siguen sin firmar' }}.
             Hasta que el acta se aprueba, las entradas no quedan congeladas.
         </p>
 
-        <DataTable :recurso="recurso" :filas="filas" :meta="meta" />
+        <DataTable :recurso="recurso" :filas="filas" :meta="meta" data-recorrido="revision-direccion-tabla" />
     </AppLayout>
 </template>

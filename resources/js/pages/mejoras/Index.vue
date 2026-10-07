@@ -29,9 +29,11 @@ const props = defineProps<{
         <CabeceraPagina
             :titulo="recurso.etiquetas.plural"
             :descripcion="recurso.etiquetas.descripcion"
+            recorrido="mejoras"
         />
 
         <TiraIndicadores
+            data-recorrido="mejoras-indicadores"
             :alertas="[]"
             :con-alertas="false"
             :pendientes="pendientes"
@@ -40,6 +42,6 @@ const props = defineProps<{
             :filtros="props.meta.filtros"
         />
 
-        <DataTable :recurso="recurso" :filas="filas" :meta="meta" />
+        <DataTable data-recorrido="mejoras-registro" :recurso="recurso" :filas="filas" :meta="meta" />
     </AppLayout>
 </template>

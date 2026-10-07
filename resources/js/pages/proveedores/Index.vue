@@ -23,12 +23,17 @@ const props = defineProps<{
 
 <template>
     <AppLayout ancho="completo" :titulo="recurso.etiquetas.plural">
-        <CabeceraPagina :titulo="recurso.etiquetas.plural" :descripcion="recurso.etiquetas.descripcion" />
+        <CabeceraPagina
+            :titulo="recurso.etiquetas.plural"
+            :descripcion="recurso.etiquetas.descripcion"
+            recorrido="proveedores"
+        />
 
         <!-- Con cero proveedores, «sin incidencias sobre 0» no dice nada: el
              estado vacío de la tabla ya explica qué falta. -->
         <TiraIndicadores
             v-if="total > 0"
+            data-recorrido="proveedores-indicadores"
             :alertas="alertas"
             :pendientes="pendientes"
             :denominador="total"

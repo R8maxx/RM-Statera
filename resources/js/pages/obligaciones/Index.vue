@@ -63,6 +63,7 @@ function asumirTodas(): void {
         <CabeceraPagina
             :titulo="recurso.etiquetas.plural"
             :descripcion="recurso.etiquetas.descripcion"
+            recorrido="obligaciones"
         >
             <template #acciones>
                 <Button as-child variant="outline" size="sm">
@@ -73,6 +74,7 @@ function asumirTodas(): void {
 
         <TiraIndicadores
             v-if="total > 0"
+            data-recorrido="obligaciones-indicadores"
             :alertas="alertas"
             :pendientes="pendientes"
             :denominador="total"
@@ -94,6 +96,7 @@ function asumirTodas(): void {
         -->
         <EstadoVacio
             v-if="vacio"
+            data-recorrido="obligaciones-asumir"
             :icono="RepeatIcon"
             titulo="Todavía no hay ninguna obligación asumida"
             :descripcion="

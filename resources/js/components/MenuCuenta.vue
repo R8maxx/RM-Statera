@@ -159,7 +159,7 @@ const salir = (): void => router.post('/logout');
 <template>
     <DropdownMenu v-model:open="abierto">
         <DropdownMenuTrigger as-child>
-            <Button variant="ghost" size="sm" class="gap-2" aria-label="Menú de la cuenta">
+            <Button variant="ghost" size="sm" class="gap-2" aria-label="Menú de la cuenta" data-recorrido="menu-cuenta">
                 <span class="relative flex">
                     <AvatarUsuario :nombre="usuario.nombre" :foto="usuario.foto" tamano="sm" clase="text-xs" />
                     <!-- El punto es una señal, no el mensaje: el mensaje está dentro,
@@ -312,7 +312,7 @@ const salir = (): void => router.post('/logout');
             <!-- El recorrido se ofrece solo una vez; a partir de ahí hay que
                  poder encontrarlo, y éste es el menú de lo que es del usuario
                  y no del trabajo. -->
-            <DropdownMenuItem @select="abrirRecorrido">
+            <DropdownMenuItem @select="abrirRecorrido()">
                 <RouteIcon class="size-4" />
                 Recorrido guiado
             </DropdownMenuItem>

@@ -23,11 +23,16 @@ const props = defineProps<{
 
 <template>
     <AppLayout ancho="completo" :titulo="recurso.etiquetas.plural">
-        <CabeceraPagina :titulo="recurso.etiquetas.plural" :descripcion="recurso.etiquetas.descripcion" />
+        <CabeceraPagina
+            :titulo="recurso.etiquetas.plural"
+            :descripcion="recurso.etiquetas.descripcion"
+            recorrido="vulnerabilidades"
+        />
 
         <!-- Con cero vulnerabilidades, «sin incidencias sobre 0» no dice nada: el
              estado vacío de la tabla ya explica qué falta. -->
         <TiraIndicadores
+            data-recorrido="vulnerabilidades-indicadores"
             v-if="total > 0"
             :alertas="alertas"
             :pendientes="pendientes"
@@ -36,6 +41,6 @@ const props = defineProps<{
             :filtros="props.meta.filtros"
         />
 
-        <DataTable :recurso="recurso" :filas="filas" :meta="meta" />
+        <DataTable data-recorrido="vulnerabilidades-registro" :recurso="recurso" :filas="filas" :meta="meta" />
     </AppLayout>
 </template>

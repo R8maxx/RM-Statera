@@ -32,6 +32,7 @@ const props = defineProps<{
         <CabeceraPagina
             :titulo="recurso.etiquetas.plural"
             :descripcion="recurso.etiquetas.descripcion"
+            recorrido="formacion"
         />
 
         <TiraIndicadores

@@ -237,7 +237,7 @@ Por orden, según dónde duele un fallo silencioso:
 4. **Importador del catálogo**, incluida la idempotencia y el diff.
 5. Resto de módulos: flujos principales.
 
-Y once tests **descubren** en vez de enumerar, así que cubren solos lo que traiga el
+Y doce tests **descubren** en vez de enumerar, así que cubren solos lo que traiga el
 módulo siguiente. Cuáles son y qué convierte en rojo cada uno, en `.ai/rules/tests.md`.
 
 ## Dónde está cada cosa
@@ -267,7 +267,7 @@ sobre el directorio pilla lo que un encaje de ruta se deja.
 | `migraciones.md` | `database/migrations/**` | `CREATE OR REPLACE FUNCTION`; el `CHECK` construido desde un enum que `migrate:fresh` no prueba |
 | `diseno.md` | `resources/css/**`, `components/ui/**` | La paleta: hue 196, `--acento` frente a `--accent`, los cuatro sitios del violeta, radios, contraste y protanopía |
 | `interfaz.md` | `resources/js/**` | `lib/tonos.ts` y `lib/navegacion.ts` como mapas únicos; los tres canales de un estado; qué librería entró, cuál no y por qué |
-| `tests.md` | `tests/**` | Los once tests que descubren en vez de enumerar |
+| `tests.md` | `tests/**` | Los doce tests que descubren en vez de enumerar |
 | `infraestructura.md` | `docker-compose.yml`, `docker/**`, `.env.example` | Los dos endpoints de MinIO, `quay.io`, el `ARG UID`, `predis` |
 | `orden-de-arranque.md` | este fichero, `README.md`, `PRODUCT.md` | La bitácora de los 30 puntos y del tramo que sigue, con el razonamiento del orden |
 

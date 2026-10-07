@@ -37,9 +37,11 @@ function masiva(accion: Accion, ids: (number | string)[]): void {
         <CabeceraPagina
             :titulo="recurso.etiquetas.plural"
             :descripcion="recurso.etiquetas.descripcion"
+            recorrido="activos"
         />
 
         <TiraIndicadores
+            data-recorrido="activos-indicadores"
             :alertas="alertas"
             :pendientes="pendientes"
             :denominador="vigentes"

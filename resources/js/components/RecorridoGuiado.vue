@@ -30,7 +30,7 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
  * hace la flecha derecha. `Esc` sale siempre y en cualquier paso.
  */
 
-const { abierto, indice, paso, total, esUltimo, cerrar, avanzar, retroceder } = useRecorrido();
+const { abierto, indice, activo, paso, total, esUltimo, cerrar, avanzar, retroceder } = useRecorrido();
 const { reducido } = useMovimientoReducido();
 
 /** El rectángulo del objetivo, en coordenadas de ventana. `null` = sin ancla viva. */
@@ -284,6 +284,15 @@ watch(abierto, async (esta) => {
         focoPrevio = document.activeElement instanceof HTMLElement ? document.activeElement : null;
         window.addEventListener('resize', alRedimensionar);
         window.addEventListener('scroll', alRedimensionar, { passive: true });
+        /*
+         * Abrir el recorrido despliega todos los grupos del lateral, y eso
+         * mueve lo que hay debajo mientras se anima. Medido al abrir, el foco
+         * caía donde la entrada estaba antes de desplegarse —«Evidencias» en
+         * vez de «Riesgos»—. Se vuelve a medir al terminar cada transición, en
+         * captura porque `transitionend` sí burbujea pero no se quiere depender
+         * de quién la pare.
+         */
+        document.addEventListener('transitionend', alRedimensionar, true);
         await acercar();
         await nextTick();
         enfocables()[0]?.focus();
@@ -293,6 +302,7 @@ watch(abierto, async (esta) => {
 
     window.removeEventListener('resize', alRedimensionar);
     window.removeEventListener('scroll', alRedimensionar);
+    document.removeEventListener('transitionend', alRedimensionar, true);
     marco.value = null;
 
     /*
@@ -306,7 +316,11 @@ watch(abierto, async (esta) => {
     focoPrevio = null;
 });
 
-watch(indice, async () => {
+/*
+ * El activo también: el «?» de una cabecera puede abrir otro recorrido con uno
+ * ya en marcha, y si los dos estaban en el primer paso el índice no se mueve.
+ */
+watch([indice, activo], async () => {
     if (!abierto.value) {
         return;
     }
@@ -319,6 +333,7 @@ watch(indice, async () => {
 onBeforeUnmount(() => {
     window.removeEventListener('resize', alRedimensionar);
     window.removeEventListener('scroll', alRedimensionar);
+    document.removeEventListener('transitionend', alRedimensionar, true);
 });
 
 /*

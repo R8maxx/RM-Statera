@@ -117,7 +117,9 @@ function mover(clave: string, paso: -1 | 1): void {
 <template>
     <Popover>
         <PopoverTrigger as-child>
-            <Button variant="outline" size="sm" class="h-9 gap-1.5">
+            <!-- El ancla va en el disparador: `Popover` no pinta elemento propio
+                 y un atributo en el componente se perdía. -->
+            <Button variant="outline" size="sm" class="h-9 gap-1.5" data-recorrido="tabla-columnas">
                 <Columns3Icon class="size-3.5" />
                 Columnas
                 <span

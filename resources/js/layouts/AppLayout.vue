@@ -20,6 +20,7 @@ import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
 import { usePaletaComandos } from '@/composables/usePaletaComandos';
 import { useRecorrido } from '@/composables/useRecorrido';
 import { entradaDe, esSeccionActiva, navegacionPara, type GrupoNavegacion } from '@/lib/navegacion';
+import { anclaGrupo } from '@/lib/recorridos';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import {
     ChevronRightIcon,
@@ -277,6 +278,7 @@ onUnmounted(() => {
                                 <GrupoSidebar
                                     v-for="grupo in grupos"
                                     :key="grupo.titulo"
+                                    :data-recorrido="anclaGrupo(grupo.titulo)"
                                     :titulo="grupo.titulo"
                                     :icono="grupo.icono"
                                     :abierto="grupoAbierto(grupo)"

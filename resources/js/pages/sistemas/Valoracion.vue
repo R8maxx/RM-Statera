@@ -144,10 +144,14 @@ function aplicar(): void {
             <CabeceraPagina
                 :titulo="`Valoración de ${sistema.codigo}`"
                 descripcion="Las cinco dimensiones del Anexo I son la única entrada del motor. La categoría no se elige: es la más alta de las cinco, y de ella sale todo lo que se le exige al sistema."
+                recorrido="valoracion"
             />
 
             <motion.div :variants="variantesEntrada" initial="oculto" animate="visible" class="space-y-6">
-                <div class="flex flex-wrap items-end justify-between gap-4 rounded-xl border bg-superficie px-5 py-4">
+                <div
+                    class="flex flex-wrap items-end justify-between gap-4 rounded-xl border bg-superficie px-5 py-4"
+                    data-recorrido="valoracion-categoria"
+                >
                     <div class="min-w-0">
                         <p class="font-medium">{{ sistema.nombre }}</p>
                         <p v-if="sistema.marco" class="mt-0.5 text-sm text-muted-foreground">{{ sistema.marco }}</p>
@@ -220,7 +224,7 @@ function aplicar(): void {
             <BarraAcciones url-cancelar="/sistemas">
                 <template #nota>No se guarda nada hasta que confirmes el recálculo.</template>
 
-                <Button type="button" :disabled="previa.processing" @click="revisar">
+                <Button type="button" :disabled="previa.processing" data-recorrido="valoracion-revisar" @click="revisar">
                     {{ previa.processing ? 'Calculando…' : 'Revisar cambios' }}
                 </Button>
             </BarraAcciones>

@@ -254,6 +254,7 @@ const climaTexto = computed(() => {
         <CabeceraPagina
             titulo="Contexto de la organización"
             descripcion="Lo que la organización tiene a favor y en contra, quién le exige qué y hasta dónde llega el SGSI. Cláusulas 4.1 a 4.3 de ISO/IEC 27001:2022."
+            recorrido="contexto"
         >
             <template #acciones>
                 <ConmutadorContexto vista="matriz" />
@@ -263,6 +264,7 @@ const climaTexto = computed(() => {
         <div class="space-y-8">
             <!-- 1. Qué hay firmado, qué se está escribiendo y qué le falta. -->
             <Card
+                data-recorrido="contexto-analisis"
                 class="grid gap-0 py-0 lg:grid-cols-[20rem_minmax(0,1fr)]"
                 :class="hayAcciones ? 'xl:grid-cols-[20rem_minmax(0,1fr)_15rem]' : ''"
                
@@ -401,7 +403,7 @@ const climaTexto = computed(() => {
 
             <!-- 2. El DAFO, y a su lado lo que pide acción y a quién se le debe algo. -->
             <div class="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
-                <section aria-labelledby="titulo-dafo" class="min-w-0 space-y-3">
+                <section aria-labelledby="titulo-dafo" class="min-w-0 space-y-3" data-recorrido="contexto-dafo">
                     <div class="flex flex-wrap items-baseline justify-between gap-2">
                         <h2 id="titulo-dafo" class="flex items-baseline gap-3 text-base font-semibold">
                             Cuestiones internas y externas

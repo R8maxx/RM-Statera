@@ -755,6 +755,7 @@ const claseFiltro = 'sticky top-10 z-20 border-b bg-card/95 px-2 py-1.5 backdrop
         <header class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <BarraFiltros
                 v-if="recurso.filtros.length > 0"
+                data-recorrido="tabla-filtros"
                 class="sm:flex-1"
                 :busqueda="busqueda"
                 :sueltos="filtrosSueltos"
@@ -766,7 +767,9 @@ const claseFiltro = 'sticky top-10 z-20 border-b bg-card/95 px-2 py-1.5 backdrop
             />
             <div v-else class="sm:flex-1" />
 
-            <div class="flex flex-wrap items-center justify-end gap-2 sm:shrink-0">
+            <!-- `tabla-acciones`: la barra entera, porque las altas —«Nuevo…»— las
+                 pinta la tabla y no la cabecera de la pantalla. -->
+            <div class="flex flex-wrap items-center justify-end gap-2 sm:shrink-0" data-recorrido="tabla-acciones">
                 <Tooltip v-if="hayFiltrosDeColumna">
                     <TooltipTrigger as-child>
                         <Button

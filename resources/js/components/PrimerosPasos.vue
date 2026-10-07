@@ -164,7 +164,7 @@ const enCurso = computed(() => pasos.value.findIndex((paso) => !paso.hecho));
                 <p class="flex-1 text-xs text-muted-foreground">
                     ¿Es la primera vez que ves una herramienta de cumplimiento?
                 </p>
-                <Button variant="outline" size="sm" @click="abrirRecorrido">
+                <Button variant="outline" size="sm" @click="abrirRecorrido()">
                     <RouteIcon />
                     Ver el recorrido
                 </Button>

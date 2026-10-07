@@ -139,7 +139,8 @@ cada fila con su enlace a la lista exacta.
 **Sin anillo.** DESIGN.md § 9 ya decía que una cifra sola es una cifra grande con su
 fracción; el pulso del 100 % (§ 10, cuarto momento) pasó a la cifra. El ancla del
 recorrido guiado sigue llamándose `anillo-progreso` porque `lib/recorridos.ts` la
-nombra así: renombrarla es tocar el recorrido, no el panel.
+nombra así: renombrarla es tocar el recorrido, no el panel (y `RecorridosTest` se
+pone rojo si se va sin avisar).
 
 **Los registros secundarios van en `TarjetaRegistro`**, de tercio: cifra con su
 denominador, un reparto en el hueco del medio y filas que piden acción. **Qué cuenta

@@ -51,6 +51,7 @@ const huecosDeMas = computed(() => Math.max(0, props.cobertura.faltan.length - T
         <CabeceraPagina
             :titulo="recurso.etiquetas.plural"
             :descripcion="recurso.etiquetas.descripcion"
+            recorrido="personas"
         />
 
         <TiraIndicadores
@@ -67,7 +68,7 @@ const huecosDeMas = computed(() => Math.max(0, props.cobertura.faltan.length - T
             (sistema, rol), que es otro denominador. Un indicador con el
             denominador de al lado equivocado es peor que ninguno.
         -->
-        <Card size="sm">
+        <Card size="sm" data-recorrido="personas-roles">
             <CardHeader>
                 <div class="flex flex-wrap items-baseline justify-between gap-2">
                     <CardTitle>Roles ENS designados</CardTitle>

@@ -76,6 +76,7 @@ function confirmar(): void {
         <CabeceraPagina
             :titulo="recurso.etiquetas.plural"
             :descripcion="recurso.etiquetas.descripcion"
+            recorrido="implantaciones"
         >
             <template #acciones>
                 <Button as-child variant="outline">
@@ -84,7 +85,7 @@ function confirmar(): void {
             </template>
         </CabeceraPagina>
 
-        <DataTable :recurso="recurso" :filas="filas" :meta="meta" @masiva="abrir" />
+        <DataTable :recurso="recurso" :filas="filas" :meta="meta" data-recorrido="implantaciones-tabla" @masiva="abrir" />
 
         <Dialog v-model:open="abierto">
             <DialogContent>

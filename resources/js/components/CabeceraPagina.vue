@@ -1,7 +1,12 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button';
 import { useMovimientoReducido } from '@/composables/useMovimientoReducido';
+import { useRecorrido } from '@/composables/useRecorrido';
 import { duracion, curva } from '@/lib/motion';
+import type { ClaveRecorrido } from '@/lib/recorridos';
+import { CircleHelpIcon } from '@lucide/vue';
 import { motion } from 'motion-v';
+import { onMounted } from 'vue';
 
 /**
  * Título, descripción y acciones de una pantalla.
@@ -21,7 +26,7 @@ import { motion } from 'motion-v';
  * píxeles dibujándose de izquierda a derecha es donde arranca la lectura de la
  * pantalla, que es justo el trabajo que el filete ya hacía quieto.
  */
-withDefaults(
+const props = withDefaults(
     defineProps<{
         titulo: string;
         descripcion?: string | null;
@@ -42,11 +47,25 @@ withDefaults(
          * la misma pantalla.
          */
         filete?: boolean;
+        /**
+         * El recorrido de esta pantalla (`lib/recorridos.ts`). Arranca solo la
+         * primera vez que se entra y el «?» lo repite. Va aquí y no en cada
+         * página porque la cabecera es lo único que todas las pantallas
+         * comparten, y el botón tiene que estar siempre en el mismo sitio.
+         */
+        recorrido?: ClaveRecorrido;
     }>(),
-    { filete: true },
+    { filete: true, recorrido: undefined },
 );
 
 const { reducido } = useMovimientoReducido();
+const { abrir, arrancarSiEsLaPrimeraVez } = useRecorrido();
+
+onMounted(() => {
+    if (props.recorrido) {
+        arrancarSiEsLaPrimeraVez(props.recorrido);
+    }
+});
 </script>
 
 <template>
@@ -80,8 +99,22 @@ const { reducido } = useMovimientoReducido();
 
         <!-- Se parte en varias líneas por debajo de `sm`: con tres botones, a
              375 px el hueco no cabía y empujaba la página en horizontal. -->
-        <div v-if="$slots.acciones" class="flex flex-wrap items-center gap-2 sm:shrink-0">
-            <slot name="acciones" />
+        <div v-if="$slots.acciones || recorrido" class="flex flex-wrap items-center gap-2 sm:shrink-0">
+            <div v-if="$slots.acciones" class="flex flex-wrap items-center gap-2" data-recorrido="cabecera-acciones">
+                <slot name="acciones" />
+            </div>
+            <!-- El último, y discreto: es ayuda, no una acción de la pantalla. -->
+            <Button
+                v-if="recorrido"
+                variant="ghost"
+                size="icon-sm"
+                class="text-muted-foreground"
+                aria-label="Recorrido de esta pantalla"
+                title="Recorrido de esta pantalla"
+                @click="abrir(recorrido)"
+            >
+                <CircleHelpIcon />
+            </Button>
         </div>
     </div>
 </template>

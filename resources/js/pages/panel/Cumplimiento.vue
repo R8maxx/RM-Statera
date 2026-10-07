@@ -67,7 +67,7 @@ const { arrancarSiEsLaPrimeraVez } = useRecorrido();
  */
 const primerArranque = computed(() => props.resumen.aplicables === 0);
 
-onMounted(() => arrancarSiEsLaPrimeraVez());
+onMounted(() => arrancarSiEsLaPrimeraVez('panel'));
 
 const porcentaje = (implantadas: number, aplicables: number): number =>
     aplicables === 0 ? 0 : Math.round((implantadas / aplicables) * 100);

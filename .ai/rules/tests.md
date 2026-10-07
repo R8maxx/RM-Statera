@@ -5,7 +5,7 @@ paths:
 
 # Los tests que no hay que acordarse de ampliar
 
-Once tests **descubren** en vez de enumerar, así que cubren solos lo que traiga el módulo siguiente.
+Doce tests **descubren** en vez de enumerar, así que cubren solos lo que traiga el módulo siguiente.
 Nacieron de fallos que ya habían mordido o estaban a punto:
 
 | Test | Qué convierte en rojo |
@@ -21,6 +21,7 @@ Nacieron de fallos que ya habían mordido o estaban a punto:
 | `Cuentas/AlcanceDelAuditorTest` (el primero) | Un modelo de `app/Domain/*/Models/` cuya tabla tenga `sistema_id` y que no use `AcotadoPorAlcance`. Llegó con el § 4.19: olvidarlo no rompe nada, deja al auditor externo viendo el registro de un sistema que no audita. Pregunta al esquema con `Schema::hasColumn` en vez de enumerar modelos, y lleva declarada su única excepción, `CuentaSistema`, que es la tabla que define el alcance. |
 | `Traza/TrazaTest` (el de `RegistraTraza`) | Un modelo de `app/Domain/*/Models/` cuya tabla tenga `organizacion_id` y que no use `RegistraTraza`. Llegó con el punto 32 y encontró **dieciocho**: las once tablas de transiciones y siete de detalle. Olvidar el trait no rompe nada; la fila se escribe y el evento no. Lleva declaradas sus tres excepciones —la propia traza, `AuditoriaPunto` y `CuentaSistema`—, cada una con su motivo escrito. Comparte `modelosDelDominio()` con el de alcance, que por eso vive ya en `tests/Pest.php`. |
 | `Avisos/VencimientosTest` (el del recuento) | Una `Fuente` que `Vencimientos::pasados()` no sume. Es el fallo más silencioso del calendario: el asunto del correo diría «3 pasadas de fecha» habiendo 9, y no falla nadie. |
+| `Diseno/RecorridosTest` (Unit) | Un ancla que pide un paso de `lib/recorridos` y que no existe en ningún `data-recorrido` —el paso saldría centrado sin señalar nada—, y un módulo de `navegacion.ts` cuya carpeta de `pages/` no pasa `recorrido` a su `CabeceraPagina`. Recorre el lateral en vez de enumerar pantallas y lleva sus tres excepciones declaradas (`panel`, `cuentas`, `plantillas-documento`), cada una con su motivo. |
 
 Los tres de fuentes y avisos tienen algo en común con los demás y conviene decirlo: **no comprueban una
 regla, comprueban que nadie se olvide de una regla**. Por eso recorren `cases()` o el árbol de ficheros

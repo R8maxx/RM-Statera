@@ -52,6 +52,7 @@ defineProps<{
         <CabeceraPagina
             titulo="Conformidad con el ENS"
             descripcion="En categoría básica, la organización se autoevalúa, firma la Declaración de Conformidad y publica el distintivo. Media y alta se certifican con una entidad acreditada por ENAC."
+            recorrido="conformidad"
         />
 
         <EstadoVacio
@@ -64,7 +65,7 @@ defineProps<{
 
         <Table v-else>
             <TableHeader>
-                <TableRow>
+                <TableRow data-recorrido="conformidad-sistemas">
                     <TableHead>Sistema</TableHead>
                     <TableHead>Categoría</TableHead>
                     <TableHead>Declaración vigente</TableHead>

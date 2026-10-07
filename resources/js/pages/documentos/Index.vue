@@ -18,6 +18,7 @@ const props = defineProps<{
         <CabeceraPagina
             :titulo="recurso.etiquetas.plural"
             :descripcion="recurso.etiquetas.descripcion"
+            recorrido="documentos"
         />
 
         <!--
@@ -26,6 +27,7 @@ const props = defineProps<{
             documentos, que es sobre lo que se cuentan las dos cifras.
         -->
         <TiraIndicadores
+            data-recorrido="documentos-alertas"
             :alertas="alertas"
             :pendientes="[]"
             :denominador="props.meta.total"
@@ -33,6 +35,6 @@ const props = defineProps<{
             :filtros="props.meta.filtros"
         />
 
-        <DataTable :recurso="recurso" :filas="filas" :meta="meta" />
+        <DataTable :recurso="recurso" :filas="filas" :meta="meta" data-recorrido="documentos-tabla" />
     </AppLayout>
 </template>

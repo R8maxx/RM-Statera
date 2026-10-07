@@ -154,6 +154,7 @@ function confirmarDescarte(): void {
         <CabeceraPagina
             titulo="Plan de acción"
             descripcion="En qué punto está cada cosa. Arrastra una tarjeta a otra columna, o muévela desde su menú."
+            recorrido="tareas"
         >
             <template #acciones>
                 <ConmutadorVista />
@@ -188,6 +189,7 @@ function confirmarDescarte(): void {
                 class="relative grid gap-3 lg:h-[calc(100dvh-15rem)] lg:grid-cols-4"
                 role="group"
                 aria-label="Columnas del tablero"
+                data-recorrido="tareas-tablero"
                 :aria-busy="cargando"
             >
                 <!-- Filtrar el tablero es una consulta de servidor, como en la tabla. -->

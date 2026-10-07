@@ -81,13 +81,18 @@ function confirmar(): void {
 
 <template>
     <AppLayout ancho="completo" :titulo="recurso.etiquetas.plural">
-        <CabeceraPagina :titulo="recurso.etiquetas.plural" :descripcion="recurso.etiquetas.descripcion">
+        <CabeceraPagina
+            :titulo="recurso.etiquetas.plural"
+            :descripcion="recurso.etiquetas.descripcion"
+            recorrido="tareas"
+        >
             <template #acciones>
                 <ConmutadorVista />
             </template>
         </CabeceraPagina>
 
         <TiraIndicadores
+            data-recorrido="tareas-indicadores"
             :alertas="alertas"
             :pendientes="pendientes"
             :denominador="abiertas"

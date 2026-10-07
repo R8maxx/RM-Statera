@@ -15,6 +15,7 @@ defineProps<{
         <CabeceraPagina
             :titulo="recurso.etiquetas.plural"
             :descripcion="recurso.etiquetas.descripcion"
+            recorrido="revisiones"
         />
 
         <DataTable :recurso="recurso" :filas="filas" :meta="meta" />

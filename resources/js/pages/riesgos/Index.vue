@@ -28,9 +28,11 @@ const props = defineProps<{
         <CabeceraPagina
             :titulo="recurso.etiquetas.plural"
             :descripcion="recurso.etiquetas.descripcion"
+            recorrido="riesgos"
         />
 
         <TiraIndicadores
+            data-recorrido="riesgos-indicadores"
             :alertas="alertas"
             :pendientes="pendientes"
             :denominador="total"

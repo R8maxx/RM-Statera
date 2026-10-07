@@ -29,9 +29,10 @@ defineProps<{
         <CabeceraPagina
             :titulo="recurso.etiquetas.plural"
             :descripcion="recurso.etiquetas.descripcion"
+            recorrido="puestos"
         />
 
-        <Card v-if="total > 0" size="sm">
+        <Card v-if="total > 0" size="sm" data-recorrido="puestos-resumen">
             <CardContent class="flex flex-wrap items-baseline gap-x-6 gap-y-2 text-sm">
                 <p class="text-muted-foreground">
                     <Cifra class="font-semibold text-foreground" :valor="total" />
