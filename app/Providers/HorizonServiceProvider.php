@@ -32,8 +32,10 @@ class HorizonServiceProvider extends HorizonApplicationServiceProvider
     protected function gate(): void
     {
         // Quien administra la plataforma con permiso para ver la salud del
-        // servicio (punto 55). Antes era la lista vacía de la plantilla: fuera
-        // de local, nadie podía abrir el panel.
-        Gate::define('viewHorizon', fn (?User $user = null): bool => $user?->puedeEnPlataforma(CapacidadPlataforma::SaludVer) === true);
+        // servicio (punto 55), **y con el segundo factor confirmado**, como
+        // `/plataforma`: Horizon enseña los payloads de los trabajos y deja
+        // reintentarlos o borrarlos. Antes era la lista vacía de la plantilla.
+        Gate::define('viewHorizon', fn (?User $user = null): bool => $user?->puedeEnPlataforma(CapacidadPlataforma::SaludVer) === true
+            && (! config('seguridad.exigir_dos_factores') || $user->dosFactoresConfirmado()));
     }
 }

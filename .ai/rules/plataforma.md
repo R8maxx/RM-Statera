@@ -699,3 +699,14 @@ tiene `salud.ver`.
 El cuadro de mando enseña una franja de salud **sólo a quien puede verla**. Es
 el mismo criterio que con los rescates: la cifra no viaja a quien no tiene la
 capacidad.
+
+**Tres cosas más que encontró la revisión de seguridad del 55:**
+
+- **Horizon exige además el segundo factor confirmado**, como `/plataforma`:
+  enseña payloads y deja reintentar o borrar trabajos.
+- **Del informe de verificación sólo viajan recuentos.** Las listas de ficheros
+  ausentes o distintos nombran rutas con el id del cliente y el nombre de sus
+  evidencias.
+- **De un trabajo fallido sólo se enseña la clase de la excepción**, no su
+  mensaje, que puede llevar una consulta con sus valores o un correo. El
+  detalle está en Horizon, detrás de la misma capacidad y del segundo factor.

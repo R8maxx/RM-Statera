@@ -83,9 +83,10 @@ it('de los trabajos fallidos no enseña nunca los datos', function (): void {
 
     $respuesta->assertOk()->assertInertia(fn (AssertableInertia $pagina) => $pagina
         ->where('fallidos.0.trabajo', 'AvisoDeRescate')
-        ->where('fallidos.0.error', 'RuntimeException: el correo no salió'));
+        ->where('fallidos.0.error', 'RuntimeException'));
 
-    expect(json_encode($respuesta->viewData('page')))->not->toContain('secreta@cliente.test');
+    expect(json_encode($respuesta->viewData('page')))->not->toContain('secreta@cliente.test')
+        ->not->toContain('el correo no salió');
 });
 
 it('gestión comercial no ve la salud ni Horizon', function (): void {
@@ -95,6 +96,12 @@ it('gestión comercial no ve la salud ni Horizon', function (): void {
 
     expect(Gate::forUser($comercial)->allows('viewHorizon'))->toBeFalse()
         ->and(Gate::forUser(deSalud())->allows('viewHorizon'))->toBeTrue();
+
+    // Y con el segundo factor obligatorio, sin él no entra.
+    config(['seguridad.exigir_dos_factores' => true]);
+    $sinSegundoFactor = User::factory()->plataforma()->create();
+
+    expect(Gate::forUser($sinSegundoFactor)->allows('viewHorizon'))->toBeFalse();
 });
 
 it('el cuadro de mando avisa de la salud sólo a quien puede verla', function (): void {
@@ -105,4 +112,18 @@ it('el cuadro de mando avisa de la salud sólo a quien puede verla', function ()
 
     $this->actingAs(deSalud(PerfilPlataforma::Comercial))->get('/plataforma')
         ->assertInertia(fn (AssertableInertia $pagina) => $pagina->where('cifras.copiasAlDia', null));
+});
+
+it('del informe de verificación sólo viajan recuentos, nunca rutas', function (): void {
+    copiaEn(now()->subHours(5));
+    Storage::disk((string) config('copias.disco'))->put('verificaciones/'.now()->format('Y-m-d\\THis').'.json', (string) json_encode([
+        'verificada_en' => now()->toIso8601String(),
+        'correcta' => false,
+        'ficheros_ausentes' => ['evidencias/7/2026/contrato-secreto.pdf'],
+    ]));
+
+    $respuesta = $this->actingAs(deSalud())->get('/plataforma/salud');
+
+    $respuesta->assertInertia(fn (AssertableInertia $pagina) => $pagina->where('copias.recuentos.ficherosAusentes', 1));
+    expect(json_encode($respuesta->viewData('page')))->not->toContain('contrato-secreto');
 });

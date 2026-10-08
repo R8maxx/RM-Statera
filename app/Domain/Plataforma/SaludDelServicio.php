@@ -46,6 +46,15 @@ final class SaludDelServicio
         }
     }
 
+    /** «Illuminate\\Database\\QueryException: SQLSTATE…» → «QueryException». */
+    private static function claseDelError(string $excepcion): string
+    {
+        $primera = (string) strtok($excepcion, "\n");
+        $clase = trim((string) strtok($primera, ':( '));
+
+        return class_basename($clase !== '' ? $clase : 'Error');
+    }
+
     /**
      * @return list<array{id: int, cola: string, trabajo: string, error: string, fecha: string}>
      */
@@ -64,7 +73,9 @@ final class SaludDelServicio
                     'cola' => (string) $fila->queue,
                     // Sólo el nombre del trabajo: el resto del payload son sus datos.
                     'trabajo' => class_basename((string) ($payload['displayName'] ?? 'desconocido')),
-                    'error' => mb_strimwidth(strtok((string) $fila->exception, "\n") ?: '', 0, 240, '…'),
+                    // Sólo la clase de la excepción: su mensaje puede llevar una
+                    // consulta con sus valores o un correo. El detalle, en Horizon.
+                    'error' => self::claseDelError((string) $fila->exception),
                     'fecha' => (string) $fila->failed_at,
                 ];
             })

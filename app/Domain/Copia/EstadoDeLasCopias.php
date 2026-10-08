@@ -27,7 +27,11 @@ final class EstadoDeLasCopias
     public const DIAS_MAXIMOS_SIN_VERIFICAR = 8;
 
     /**
-     * @return array{disponible: bool, ultimaCopia: ?string, copiaAlDia: bool, ultimaVerificacion: ?string, verificacionCorrecta: ?bool, verificacionAlDia: bool, detalleVerificacion: ?array<string, mixed>}
+     * **Sólo recuentos del informe, nunca sus listas**: los ficheros ausentes o
+     * distintos se nombran por su ruta, que lleva el id de la organización y el
+     * nombre de una evidencia. Lo encontró la revisión de seguridad.
+     *
+     * @return array{disponible: bool, ultimaCopia: ?string, copiaAlDia: bool, ultimaVerificacion: ?string, verificacionCorrecta: ?bool, verificacionAlDia: bool, recuentos: ?array{tablas: int, tablasDistintas: int, ficherosComprobados: int, ficherosAusentes: int, ficherosDistintos: int}}
      */
     public function resumen(?Carbon $ahora = null): array
     {
@@ -45,7 +49,7 @@ final class EstadoDeLasCopias
                 'ultimaVerificacion' => null,
                 'verificacionCorrecta' => null,
                 'verificacionAlDia' => false,
-                'detalleVerificacion' => null,
+                'recuentos' => null,
             ];
         }
 
@@ -74,8 +78,20 @@ final class EstadoDeLasCopias
             'verificacionAlDia' => $verificadaEn !== null
                 && $verificadaEn->gt($ahora->copy()->subDays(self::DIAS_MAXIMOS_SIN_VERIFICAR))
                 && (bool) ($informe['correcta'] ?? false),
-            'detalleVerificacion' => is_array($informe) ? $informe : null,
+            'recuentos' => is_array($informe) ? [
+                'tablas' => (int) ($informe['tablas'] ?? 0),
+                'tablasDistintas' => self::cuantos($informe['tablas_distintas'] ?? []),
+                'ficherosComprobados' => (int) ($informe['ficheros_comprobados'] ?? 0),
+                'ficherosAusentes' => self::cuantos($informe['ficheros_ausentes'] ?? []),
+                'ficherosDistintos' => self::cuantos($informe['ficheros_distintos'] ?? []),
+            ] : null,
         ];
+    }
+
+    /** Un recuento de lo que el informe guarda como lista o como número. */
+    private static function cuantos(mixed $valor): int
+    {
+        return is_array($valor) ? count($valor) : (int) $valor;
     }
 
     /** Las copias se llaman con su instante: `2026-10-08T020000`. */
