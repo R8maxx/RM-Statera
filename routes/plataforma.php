@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Plataforma\AdministradorController;
 use App\Http\Controllers\Plataforma\OrganizacionController;
 use App\Http\Controllers\Plataforma\PlanController;
 use App\Http\Controllers\Plataforma\SoporteController;
@@ -72,6 +73,19 @@ Route::middleware(['auth', SoloPlataforma::class])
         Route::post('/organizaciones/{organizacion}/soporte', [SoporteController::class, 'entrar'])
             ->middleware('plataforma:soporte.entrar')
             ->name('soporte.entrar');
+
+        // Quién administra la plataforma (punto 49). `{administrador}` es un
+        // entero que se busca sólo entre las cuentas de la plataforma.
+        Route::middleware('plataforma:administradores.gestionar')->group(function (): void {
+            Route::get('/administradores', [AdministradorController::class, 'index'])->name('administradores.index');
+            Route::post('/administradores', [AdministradorController::class, 'store'])->name('administradores.store');
+            Route::put('/administradores/{administrador}/perfil', [AdministradorController::class, 'perfil'])
+                ->whereNumber('administrador')
+                ->name('administradores.perfil');
+            Route::post('/administradores/{administrador}/retirar', [AdministradorController::class, 'retirar'])
+                ->whereNumber('administrador')
+                ->name('administradores.retirar');
+        });
 
         // Los planes (punto 43). Sin borrar: se retiran con `activo`, porque
         // el histórico de las suscripciones apunta a ellos.

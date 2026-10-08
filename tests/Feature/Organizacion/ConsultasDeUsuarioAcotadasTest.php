@@ -99,7 +99,10 @@ it('acota por organización toda consulta de usuarios', function (string $ficher
     // `toBeTrue` y no `toContain`: `toContain` es variádico en Pest y se tragaría
     // el mensaje como una segunda aguja, con lo que el test fallaría siempre y por
     // el motivo equivocado.
-    expect(str_contains($ventana, 'organizacion_id'))->toBeTrue(sprintf(
+    // `es_plataforma` también acota (punto 49): una consulta de quienes
+    // administran la plataforma no lista a los usuarios de ningún cliente, y
+    // los administradores no tienen `organizacion_id` por el que acotar.
+    expect(str_contains($ventana, 'organizacion_id') || str_contains($ventana, "'es_plataforma', true"))->toBeTrue(sprintf(
         "%s:%d hace un `User::query()` sin acotar por organización.\n"
         .'`User` está fuera de las tres capas —sin scope global y sin RLS—, así que '
         ."esa consulta lista a los usuarios de todos los clientes.\n"

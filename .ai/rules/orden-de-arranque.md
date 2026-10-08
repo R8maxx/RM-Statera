@@ -731,3 +731,10 @@ y 36 retención RGPD.
     código es la trampa del sufijo: las capacidades de la plataforma acaban en
     `.ver` como los permisos de cliente, y la navegación usaba ese sufijo para
     saber si se estaba dentro de una organización.
+
+49. ✅ Los administradores desde la web: lista, invitar, cambiar el perfil y
+    retirar, con la contraseña de quien lo hace y sin dejar nunca la
+    plataforma sin Administración. Lo único que hubo que tocar fuera fue
+    `ConsultasDeUsuarioAcotadasTest`. Una consulta de administradores se acota
+    por `es_plataforma`, no por organización, y el test tenía que aprenderlo
+    en vez de que el código lo esquivara con un comentario.

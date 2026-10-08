@@ -37,6 +37,8 @@ enum AccionPlataforma: string
     case OrganizacionBaja = 'organizacion_baja';
     case OrganizacionReactivada = 'organizacion_reactivada';
     case AvisoVencimientoEnviado = 'aviso_vencimiento_enviado';
+    case AdministradorPerfilCambiado = 'administrador_perfil_cambiado';
+    case AdministradorRetirado = 'administrador_retirado';
 
     public function etiqueta(): string
     {
@@ -56,6 +58,8 @@ enum AccionPlataforma: string
             self::OrganizacionBaja => 'Organización dada de baja',
             self::OrganizacionReactivada => 'Organización reactivada',
             self::AvisoVencimientoEnviado => 'Aviso de vencimiento enviado',
+            self::AdministradorPerfilCambiado => 'Perfil de administrador cambiado',
+            self::AdministradorRetirado => 'Administrador retirado',
         };
     }
 }

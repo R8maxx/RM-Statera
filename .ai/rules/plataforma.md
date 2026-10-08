@@ -469,3 +469,32 @@ organización.
 
 `AccesoDeSoporte` exige además `soporte.entrar` en el dominio, no sólo en la
 ruta.
+
+## Los administradores desde la web (punto 49)
+
+`/plataforma/administradores` (`administradores.gestionar`): lista, invitar,
+cambiar el perfil y retirar. Las reglas viven en `AdministradoresDePlataforma`,
+calcadas de `ResponsablesDeSeguridad`:
+
+- **nadie se cambia ni se retira a sí mismo**;
+- **la plataforma nunca se queda sin alguien de Administración activo**. Una
+  cuenta desactivada no cuenta.
+
+**Retirar no borra.** Quita la marca y el perfil. Si la cuenta no es de ninguna
+organización, además se desactiva con `DesactivarCuenta`. Si es de una (punto
+45), sigue siendo usuario suyo.
+
+**Cada acción pide la contraseña de quien la hace en la misma petición**
+(`current_password`), como `CerrarSesionesRequest`, y no con
+`password.confirm`, que vuelve con un `GET` y aquí todo es `POST` o `PUT`.
+
+**`{administrador}` es un entero** que se busca sólo entre las cuentas de la
+plataforma: el id de una cuenta de cliente responde 404.
+
+**`ConsultasDeUsuarioAcotadasTest` acepta ahora `'es_plataforma', true` como
+acotación.** Una consulta de quienes administran no lista a los usuarios de
+ningún cliente, y los administradores no tienen `organizacion_id` por el que
+acotar.
+
+Convertir en administradora una cuenta de cliente que ya existe sigue siendo
+cosa de la consola. Desde la web, el correo tiene que estar libre.
