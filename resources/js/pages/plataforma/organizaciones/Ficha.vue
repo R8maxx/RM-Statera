@@ -105,6 +105,13 @@ const props = defineProps<{
 
 /* Entrar por la ventana que abrió el cliente (punto 44). */
 const pagina = usePage();
+
+/*
+ * Lo que el perfil deja hacer (punto 48). Sólo decide qué se pinta: cada ruta
+ * exige su capacidad en el servidor. Sin esto, Gestión comercial vería botones
+ * que le responden 403.
+ */
+const puede = (capacidad: string): boolean => pagina.props.auth.permisos.includes(`plataforma.${capacidad}`);
 const errorSoporte = computed(() => (pagina.props.errors as Record<string, string | undefined>).soporte);
 const entrando = ref(false);
 
@@ -316,7 +323,7 @@ const prevision = computed<string[]>(() => {
             :codigo="cliente.cif"
             :descripcion="[cliente.razonSocial, cliente.sector].filter(Boolean).join(' · ') || undefined"
         >
-            <template v-if="cliente.soporteHasta" #acciones>
+            <template v-if="cliente.soporteHasta && puede('soporte.entrar')" #acciones>
                 <Button variant="outline" :disabled="entrando" @click="entrarComoSoporte">
                     <LogInIcon aria-hidden="true" />
                     Entrar como soporte
@@ -430,7 +437,7 @@ const prevision = computed<string[]>(() => {
                                     <TableCell><CeldaBadge :valor="{ ...cuenta.estado }" /></TableCell>
                                     <TableCell class="pr-6 text-right">
                                         <Button
-                                            v-if="cuenta.estado.valor === 'invitada'"
+                                            v-if="cuenta.estado.valor === 'invitada' && puede('clientes.gestionar')"
                                             variant="outline"
                                             size="sm"
                                             :disabled="reenviando === cuenta.id"
@@ -474,7 +481,7 @@ const prevision = computed<string[]>(() => {
             </div>
 
             <div class="min-w-0 space-y-6">
-                <Card>
+                <Card v-if="puede('clientes.gestionar')">
                     <CardHeader>
                         <CardTitle>Cambiar la suscripción</CardTitle>
                     </CardHeader>
@@ -555,7 +562,7 @@ const prevision = computed<string[]>(() => {
                 </Card>
 
                 <!-- La baja (punto 46): un estado que se deshace, nunca un borrado. Aparte y al final. -->
-                <section class="space-y-3 rounded-xl border border-dashed px-6 py-5">
+                <section v-if="puede('clientes.baja')" class="space-y-3 rounded-xl border border-dashed px-6 py-5">
                     <template v-if="cliente.bajaEn">
                         <h2 class="text-sm font-semibold">Reactivar</h2>
                         <p class="text-[13px] text-muted-foreground">
