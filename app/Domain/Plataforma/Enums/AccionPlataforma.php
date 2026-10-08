@@ -46,6 +46,7 @@ enum AccionPlataforma: string
     case FichaComercialGuardada = 'ficha_comercial_guardada';
     case ExportacionSolicitada = 'exportacion_solicitada';
     case ExportacionDescargada = 'exportacion_descargada';
+    case OrganizacionPurgada = 'organizacion_purgada';
 
     public function etiqueta(): string
     {
@@ -74,6 +75,7 @@ enum AccionPlataforma: string
             self::FichaComercialGuardada => 'Ficha comercial guardada',
             self::ExportacionSolicitada => 'Exportación de los datos solicitada',
             self::ExportacionDescargada => 'Exportación de los datos descargada',
+            self::OrganizacionPurgada => 'Organización purgada',
         };
     }
 }

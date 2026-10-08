@@ -13,6 +13,7 @@ use App\Domain\Persona\Console\SeudonimizarPersonasCommand;
 use App\Domain\Plataforma\Console\AvisarSuscripcionesCommand;
 use App\Domain\Plataforma\Console\BorrarExportacionesCaducadasCommand;
 use App\Domain\Plataforma\Console\CrearAdministradorCommand;
+use App\Domain\Plataforma\Console\PurgarOrganizacionCommand;
 use App\Http\Middleware\BloqueoPorInactividad;
 use App\Http\Middleware\CapacidadDePlataforma;
 use App\Http\Middleware\CuentaVigente;
@@ -49,6 +50,7 @@ return Application::configure(basePath: dirname(__DIR__))
         CrearAdministradorCommand::class,
         AvisarSuscripcionesCommand::class,
         BorrarExportacionesCaducadasCommand::class,
+        PurgarOrganizacionCommand::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         // El orden importa y no es el que sale por defecto.

@@ -743,3 +743,29 @@ de un cliente y el auditor preguntará quién se los llevó.
 **Las tablas de la plataforma no entran** (`fichas_comerciales`,
 `solicitudes_plataforma`…): llevan `organizacion_afectada_id`, son nuestras y
 no del cliente.
+
+## El borrado definitivo (punto 57)
+
+`organizaciones:purgar {id}` borra a un cliente que se fue. **Sólo por
+consola**, y con tres frenos: noventa días de baja, una exportación `lista`
+generada después de la baja (o `--sin-exportacion` dicho a propósito) y el CIF
+tecleado. `--dry-run` cuenta y no toca nada; los recuentos salen de
+`ModelosDelCliente`, dentro del contexto del cliente.
+
+**La fila la borra `purgar_organizacion()`, no el comando.** La aplicación ya no
+tiene `DELETE` sobre `organizaciones` (ver `aislamiento.md`). La función es
+`SECURITY DEFINER` del migrador, con `search_path` fijado, y comprueba ella el
+plazo, así que el plazo no depende de que el comando lo mire. Además de la
+cascada: desvincula a los administradores que eran miembros (punto 45), borra
+roles y asignaciones de Spatie de esa organización, que no cuelgan por clave
+ajena, y suprime las cuentas de cliente y sus sesiones.
+
+**Los ficheros**: se intenta borrar todo lo que hay bajo los prefijos del
+cliente. Lo que Object Lock retiene se cuenta y se dice, y caduca con el ciclo
+de vida del bucket. Las copias dejan de contenerlo a los `conservar_dias`. El
+comando lo avisa; no lo resuelve.
+
+**La traza**: `organizacion_purgada` en `eventos_plataforma`, con
+`organizacion_afectada_id` nulo (la fila ya no existe) y el nombre, el CIF, los
+recuentos y lo que devolvió la función en el detalle. La traza del cliente
+desaparece con él: es suya, y si se guardara no sería un borrado.

@@ -775,3 +775,11 @@ y 36 retención RGPD.
     en vez de enumerarlos y que corre dentro del contexto del cliente. Por el
     camino, la revisión de seguridad del 55 encontró tres exposiciones en la
     salud del servicio, que se cerraron en su propio commit.
+
+57. ✅ El borrado definitivo de un cliente, sólo por consola. La prueba previa
+    dio la vuelta a lo que se suponía: la cascada desde `organizaciones` no
+    chocaba con los `REVOKE` de la traza, los atravesaba, porque las acciones
+    referenciales corren como dueño de la tabla. La aplicación podía borrar a un
+    cliente entero, traza incluida, con un `DELETE`. Ahora no puede: sólo
+    `purgar_organizacion()`, con noventa días de baja, una exportación y el CIF
+    tecleado.

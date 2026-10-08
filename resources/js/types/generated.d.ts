@@ -182,7 +182,7 @@ export type TipoPasoPersona = 'alta' | 'baja';
 }
 namespace Plataforma {
 namespace Enums {
-export type AccionPlataforma = 'administrador_creado' | 'administrador_activado' | 'inicio_sesion' | 'cierre_sesion' | 'intento_fallido' | 'organizacion_alta' | 'suscripcion_cambiada' | 'plan_guardado' | 'soporte_entrada' | 'soporte_salida' | 'administrador_promovido' | 'invitacion_reenviada' | 'organizacion_baja' | 'organizacion_reactivada' | 'aviso_vencimiento_enviado' | 'administrador_perfil_cambiado' | 'administrador_retirado' | 'plan_contratado' | 'rescate_solicitado' | 'rescate_ejecutado' | 'rescate_rechazado' | 'ficha_comercial_guardada' | 'exportacion_solicitada' | 'exportacion_descargada';
+export type AccionPlataforma = 'administrador_creado' | 'administrador_activado' | 'inicio_sesion' | 'cierre_sesion' | 'intento_fallido' | 'organizacion_alta' | 'suscripcion_cambiada' | 'plan_guardado' | 'soporte_entrada' | 'soporte_salida' | 'administrador_promovido' | 'invitacion_reenviada' | 'organizacion_baja' | 'organizacion_reactivada' | 'aviso_vencimiento_enviado' | 'administrador_perfil_cambiado' | 'administrador_retirado' | 'plan_contratado' | 'rescate_solicitado' | 'rescate_ejecutado' | 'rescate_rechazado' | 'ficha_comercial_guardada' | 'exportacion_solicitada' | 'exportacion_descargada' | 'organizacion_purgada';
 export type CapacidadPlataforma = 'clientes.ver' | 'clientes.gestionar' | 'planes.gestionar' | 'soporte.entrar' | 'cuentas.rescatar' | 'clientes.baja' | 'clientes.exportar' | 'administradores.gestionar' | 'traza.ver' | 'salud.ver';
 export type EstadoExportacion = 'en_curso' | 'lista' | 'fallida' | 'caducada';
 export type EstadoSolicitud = 'pendiente' | 'ejecutada' | 'rechazada' | 'caducada';

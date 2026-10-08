@@ -159,6 +159,7 @@ completa con el razonamiento del orden, en `.ai/rules/orden-de-arranque.md`.
 | 54 | La ficha comercial del cliente | — | `plataforma.md` |
 | 55 | La salud del servicio: copias, colas y trabajos fallidos | — | `plataforma.md`, `copias.md` |
 | 56 | Exportar todos los datos de un cliente | — | `plataforma.md` |
+| 57 | El borrado definitivo de un cliente, sólo por consola | — | `plataforma.md`, `aislamiento.md` |
 
 **La fase 3 está cerrada.** Con continuidad (§ 4.11) dentro —el BIA por servicio,
 el plan como documento y las pruebas que lo contrastan— el ciclo vivo se recorre
@@ -231,6 +232,7 @@ docker compose exec app php artisan avisos:enviar --dry-run # lo que saldría po
 docker compose exec app php artisan indicadores:medir --dry-run # la cifra que se sellaría, sin escribirla
 docker compose exec app php artisan copias:hacer            # volcado cifrado de la base y espejo de los ficheros
 docker compose exec app php artisan copias:verificar        # restaura la última copia en otra base y la compara
+docker compose exec app php artisan organizaciones:purgar 7 --dry-run # lo que se borraría de un cliente de baja, sin borrarlo
 docker compose exec app composer test                       # Pest sobre PostgreSQL
 docker compose exec app composer analyse                    # Larastan nivel 6
 docker compose exec app composer lint                       # Pint
