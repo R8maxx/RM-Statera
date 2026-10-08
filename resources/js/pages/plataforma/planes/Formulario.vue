@@ -21,19 +21,29 @@ interface Plan {
     limiteSistemas: number | null;
     diasGracia: number;
     activo: boolean;
+    precioMensualCentimos: number | null;
+    descuentoAnual: number;
+    contratable: boolean;
 }
 
 const props = defineProps<{ plan: Plan | null }>();
 
 const edicion = props.plan !== null;
 const activo = ref(props.plan?.activo ?? true);
+const contratable = ref(props.plan?.contratable ?? false);
+
+/** Los céntimos, en euros con coma, que es como se escriben y como se leen. */
+const precioInicial =
+    props.plan?.precioMensualCentimos == null
+        ? undefined
+        : (props.plan.precioMensualCentimos / 100).toFixed(2).replace('.', ',');
 </script>
 
 <template>
     <AppLayout :titulo="edicion ? `Editar ${plan?.nombre}` : 'Crear un plan'">
         <FormularioRecurso
             :titulo="edicion ? `Editar el plan ${plan?.nombre}` : 'Crear un plan'"
-            descripcion="Sin precio: el cobro todavía no pasa por Statera. Lo que importa aquí es lo que el plan deja hacer."
+            descripcion="Lo que el plan deja hacer y lo que cuesta. El precio se enseña y queda en el histórico, pero todavía no se cobra: no hay pasarela de pago."
             :action="edicion ? `/plataforma/planes/${plan?.id}` : '/plataforma/planes'"
             :method="edicion ? 'put' : 'post'"
             :etiqueta-enviar="edicion ? 'Guardar' : 'Crear el plan'"
@@ -88,6 +98,38 @@ const activo = ref(props.plan?.activo ?? true);
                         :error="errors.limite_sistemas"
                     />
                 </FilaCampos>
+            </SeccionFormulario>
+
+            <SeccionFormulario
+                titulo="Precio y contratación"
+                ayuda="Sin IVA. Un plan contratable lo elige la organización por su cuenta desde su ficha, y el cambio es inmediato. Uno que no lo es —«Ilimitado», por ejemplo— sólo lo asigna la plataforma."
+            >
+                <FilaCampos>
+                    <CampoTexto
+                        nombre="precio_mensual"
+                        etiqueta="Precio al mes, en euros"
+                        :valor-inicial="precioInicial"
+                        :error="errors.precio_mensual"
+                        inputmode="decimal"
+                        class="cifra"
+                        placeholder="49,00"
+                        :requerido="contratable"
+                    />
+                    <CampoTexto
+                        nombre="descuento_anual"
+                        etiqueta="Descuento si se paga el año, en %"
+                        tipo="number"
+                        :valor-inicial="plan?.descuentoAnual ?? 0"
+                        :error="errors.descuento_anual"
+                    />
+                </FilaCampos>
+                <CampoSwitch
+                    v-model="contratable"
+                    nombre="contratable"
+                    etiqueta="La organización puede contratarlo por su cuenta"
+                    :error="errors.contratable"
+                    ayuda="Apagado, el plan se ve en la página de planes del cliente pero sólo lo asigna la plataforma."
+                />
             </SeccionFormulario>
 
             <SeccionFormulario

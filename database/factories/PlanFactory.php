@@ -31,6 +31,16 @@ class PlanFactory extends Factory
         ];
     }
 
+    /** Que la organización lo contrate por su cuenta (punto 51), con precio al mes en céntimos. */
+    public function contratable(int $precioMensualCentimos = 4900, int $descuentoAnual = 0): self
+    {
+        return $this->state(fn (): array => [
+            'contratable' => true,
+            'precio_mensual_centimos' => $precioMensualCentimos,
+            'descuento_anual' => $descuentoAnual,
+        ]);
+    }
+
     public function conLimites(?int $cuentas, ?int $sistemas = null): self
     {
         return $this->state(fn (): array => ['limite_cuentas' => $cuentas, 'limite_sistemas' => $sistemas]);

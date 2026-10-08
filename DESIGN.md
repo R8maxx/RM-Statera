@@ -529,7 +529,7 @@ Los números viven en `resources/js/lib/motion.ts` y en `app.css`, una sola vez,
 | **Alguna vez al día** — un modal, un panel lateral, un despliegue, una tarjeta que cambia de columna | 180–380 ms con la curva que le toque |
 | **Una vez, o casi** — el primer acceso, emitir una versión al auditor, terminar el recorrido guiado, sellar el periodo de un indicador | Presupuesto para que se recuerde |
 
-**El presupuesto de deleite son cinco sitios y están enumerados abajo.** Un sexto se añade a esa lista antes de escribirlo, o no se escribe.
+**El presupuesto de deleite son seis sitios y están enumerados abajo.** Un séptimo se añade a esa lista antes de escribirlo, o no se escribe.
 
 Y sigue en pie la mitad de la regla que protege la herramienta: **lo decorativo no entra en el chrome de trabajo**. Nada de entradas animadas por sección al hacer scroll, ni de transición en cada tarjeta de una tabla, ni de contadores en una celda. Alguien tiene esto abierto ocho horas.
 
@@ -559,7 +559,7 @@ Y sigue en pie la mitad de la regla que protege la herramienta: **lo decorativo 
 
 ### Los iconos de lo que se pulsa
 
-Al pasar el puntero por un **botón o una entrada de menú**, su icono hace un gesto que dice qué va a pasar. No es un sexto momento de deleite: es feedback —«esto responde»—, que es una de las razones por las que algo se anima aquí, y por eso cabe en la fila de «decenas de veces» con su propia duración. Vive en `app.css`, enganchado a la clase de Lucide dentro de `[data-slot="button"]` y `[role="menuitem"]`, así que lo hereda cualquier botón con uno de estos iconos sin tocar el componente.
+Al pasar el puntero por un **botón o una entrada de menú**, su icono hace un gesto que dice qué va a pasar. No es un momento de deleite más: es feedback —«esto responde»—, que es una de las razones por las que algo se anima aquí, y por eso cabe en la fila de «decenas de veces» con su propia duración. Vive en `app.css`, enganchado a la clase de Lucide dentro de `[data-slot="button"]` y `[role="menuitem"]`, así que lo hereda cualquier botón con uno de estos iconos sin tocar el componente.
 
 | Icono | Gesto | Dónde se ve primero |
 |---|---|---|
@@ -586,7 +586,7 @@ Al pasar el puntero por un **botón o una entrada de menú**, su icono hace un g
 | `Stamp` | El sello baja; el papel no se mueve | Firmar una versión |
 | `Copy` | La hoja de encima se separa | Copiar la huella |
 
-**La lista es cerrada**, como los cinco momentos: un icono nuevo entra aquí antes de animarse.
+**La lista es cerrada**, como los seis momentos: un icono nuevo entra aquí antes de animarse.
 
 **Y lo que se queda quieto a propósito**, para que nadie lo «complete»:
 
@@ -610,13 +610,13 @@ Es una **disolución de 380 ms con `--curva-en-pantalla`**, y la cura la API de 
 
 Tres decisiones que la acotan:
 
-- **No es un barrido circular desde el botón**, que es el tratamiento que se ve por ahí. Sería un sexto momento de deleite, y el presupuesto son cinco. Esto quita el fogonazo y no añade nada a esa lista.
+- **No es un barrido circular desde el botón**, que es el tratamiento que se ve por ahí. Sería un séptimo momento de deleite, y el presupuesto son seis. Esto quita el fogonazo y no añade nada a esa lista.
 - **`--curva-en-pantalla` y no `--curva`.** No aparece ni desaparece nada: son los mismos píxeles cambiando de aspecto. Con la curva de salida el fundido se consume en el primer cuarto y arrastra una cola que no se ve.
 - **Sólo cuando la luminancia cambia de verdad.** Las preferencias son tres y los temas son dos: elegir «el del sistema» estando ya en claro y con el sistema en claro no cambia un píxel, y disolver la pantalla para dejarla igual es una animación que miente sobre lo que ha pasado.
 
 Con `prefers-reduced-motion` se acorta a 120 ms y pasa a lineal, no se quita: aquí no hay desplazamiento que perder —es opacidad pura— y lo que se recuperaría quitándola es justamente el corte seco. Hay que declararlo aparte porque el `@media` global actúa sobre `*` y los pseudo-elementos de la transición de vista viven fuera del árbol del documento.
 
-### Los cinco momentos, y sólo cinco
+### Los seis momentos, y sólo seis
 
 1. **La entrada al acceso.** La pila del formulario escalona a 60 ms; la balanza se asienta al entrar bien y se desequilibra una vez al fallar.
 2. **Emitir una versión.** El sello de «Borrador» se convierte en el número, y la huella SHA-256 se revela carácter a carácter. La huella es la prueba de que ese PDF es ese PDF: verla escribirse es lo que la convierte en un hecho en lugar de en una cadena que nadie lee.
@@ -624,7 +624,13 @@ Con `prefers-reduced-motion` se acorta a 120 ms y pasa a lineal, no se quita: aq
 4. **El 100 % del panel.** La cifra de implantación da un pulso, una vez, sin bucle y sólo en 100; lo mismo hace `AnilloProgreso` donde todavía se usa.
 5. **La serie de un indicador.** Al abrir la ficha, la línea se traza de izquierda a derecha en 700 ms con `--curva-en-pantalla` y cada punto aparece cuando la línea llega a él —una vez por visita; una recarga parcial no la repite—. Al sellar un periodo, el tramo nuevo se alarga en 520 ms, el punto aterriza y, si alcanza el objetivo, deja una onda que se abre una vez. La cifra de la franja cuenta hasta el valor nuevo, el marcador de la barra viaja y la fila entra por arriba con un resaltado que se apaga. Un periodo se sella una vez por trimestre: es el «una vez, o casi» de la tabla, y es el único acuse de que la cifra entró en la serie. Lo hace `grafica/GraficaSerie.vue`, con la API de animaciones web porque los retrasos salen de la geometría; esa API no la alcanza el `@media` global, así que con movimiento reducido lo resuelve el componente: nada se traza y el punto nuevo sólo se funde en 120 ms.
 
-   **La misma serie en la ficha de un objetivo es este momento, no un sexto.** La gráfica de arriba se traza igual, y la tendencia de cada fila de «Cómo se evalúan los resultados» (`objetivo/TendenciaIndicador.vue`) levanta sus barras desde la base en el mismo `duracion.trazo` y con `--curva-en-pantalla`, escalonadas de izquierda a derecha, para que las dos se lean como un solo gesto. Una vez por visita: vincular o desvincular no la repite, y sólo se levanta la fila que entra nueva. Con movimiento reducido, quietas. Las cifras grandes de esa ficha —el valor y los días que quedan— cuentan con `Cifra`, porque resumen; las de la tabla, no.
+   **La misma serie en la ficha de un objetivo es este momento, no otro.** La gráfica de arriba se traza igual, y la tendencia de cada fila de «Cómo se evalúan los resultados» (`objetivo/TendenciaIndicador.vue`) levanta sus barras desde la base en el mismo `duracion.trazo` y con `--curva-en-pantalla`, escalonadas de izquierda a derecha, para que las dos se lean como un solo gesto. Una vez por visita: vincular o desvincular no la repite, y sólo se levanta la fila que entra nueva. Con movimiento reducido, quietas. Las cifras grandes de esa ficha —el valor y los días que quedan— cuentan con `Cifra`, porque resumen; las de la tabla, no.
+
+6. **La suscripción y el cambio de plan.** En `/organizacion`, el bloque de la suscripción (`organizacion/SuscripcionDestacada.vue`) entra con la página. La línea del contrato —vigente, gracia y sólo lectura— se traza de izquierda a derecha en `duracion.trazo` con `--curva-en-pantalla`, y la marca de «Hoy» cae encima cuando la línea llega, en `duracion.lenta` con `--curva`. Los días cuentan con `Cifra` y las barras de cuentas y de sistemas se llenan escalonadas a 80 ms. En la página de planes (`organizacion/Planes.vue`) las tarjetas entran escalonadas a 60 ms, y la etiqueta «Recomendado para vosotros» aparece la última, de 0,9 a 1 de escala y sin rebote. Al cambiar entre anual y mensual, los precios cuentan hasta el nuevo con `Cifra`. La tarjeta elegida sube 6 px en `duracion.normal`, y el resumen del cambio entra debajo y sale por el camino corto de `salida`.
+
+   Cabe en el presupuesto por la frecuencia y no por el tamaño. Quien gestiona la organización abre su ficha pocas veces, y cambia de plan una vez al año o menos: es el «una vez, o casi» de la tabla de arriba. **Y es el único sitio donde se decide gastar dinero**, así que verlo llegar obliga a mirar los días que quedan y lo que se paga. Una vez por visita: guardar la ficha no lo repite, porque Vue parchea la página en lugar de montarla otra vez. Con movimiento reducido no se traza ni se desplaza nada: el bloque se funde, las barras están llenas desde el principio y las cifras nacen puestas.
+
+   **El bloque es de marca, `marca-900`, en los dos temas**, por lo mismo que el panel del acceso: es una superficie de marca y no una sección que se haya quedado sin invertir. El violeta del tramo de gracia no es una excepción a la regla del violeta. Es `--estado-en-revision`, el tono que `EstadoSuscripcion::EnGracia` ya lleva en su badge.
 
 ### Dos bucles en todo el producto
 

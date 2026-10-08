@@ -6,12 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { euros } from '@/lib/dinero';
 import { Link } from '@inertiajs/vue3';
 
 /**
- * Los planes que se venden (punto 43). Sin precio: lo que el producto necesita
- * saber de un plan es qué límites pone y cuánto aguanta un impago antes de
- * pasar a sólo lectura. Un plan retirado sigue con quien ya lo tiene.
+ * Los planes que se venden (punto 43): qué límites ponen, cuánto aguanta un
+ * impago antes de pasar a sólo lectura y, desde el punto 51, cuánto cuestan y
+ * si la organización los contrata por su cuenta. Un plan retirado sigue con
+ * quien ya lo tiene.
  */
 interface Plan {
     id: number;
@@ -22,6 +24,9 @@ interface Plan {
     limiteSistemas: number | null;
     diasGracia: number;
     activo: boolean;
+    precioMensualCentimos: number | null;
+    descuentoAnual: number;
+    contratable: boolean;
     clientes: number;
 }
 
@@ -50,6 +55,7 @@ defineProps<{ planes: Plan[] }>();
                             <TableHead class="text-right">Cuentas</TableHead>
                             <TableHead class="text-right">Sistemas</TableHead>
                             <TableHead class="text-right">Gracia</TableHead>
+                            <TableHead class="text-right">Al mes</TableHead>
                             <TableHead class="text-right">Clientes</TableHead>
                             <TableHead class="sr-only">Acciones</TableHead>
                         </TableRow>
@@ -70,6 +76,13 @@ defineProps<{ planes: Plan[] }>();
                                 <span v-else class="text-muted-foreground">Sin límite</span>
                             </TableCell>
                             <TableCell class="cifra text-right">{{ plan.diasGracia }} d</TableCell>
+                            <TableCell class="text-right">
+                                <span v-if="plan.precioMensualCentimos !== null" class="cifra">{{ euros(plan.precioMensualCentimos) }}</span>
+                                <span v-else class="text-muted-foreground">Sin precio</span>
+                                <span class="block text-xs text-muted-foreground">
+                                    {{ plan.contratable ? 'Lo contrata el cliente' : 'Sólo la plataforma' }}
+                                </span>
+                            </TableCell>
                             <TableCell class="text-right"><Cifra :valor="plan.clientes" /></TableCell>
                             <TableCell class="text-right">
                                 <Button as-child variant="ghost" size="sm">

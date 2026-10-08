@@ -136,6 +136,7 @@ use App\Domain\Persona\Models\DesignacionRol;
 use App\Domain\Persona\Models\Persona;
 use App\Domain\Persona\Models\Puesto;
 use App\Domain\Persona\RegistrarAsistencia;
+use App\Domain\Plataforma\Enums\PeriodoFacturacion;
 use App\Domain\Plataforma\Models\Plan;
 use App\Domain\Proveedor\CambiarEstadoProveedor;
 use App\Domain\Proveedor\Enums\Criticidad;
@@ -2631,15 +2632,21 @@ class DesarrolloSeeder extends Seeder
             'activada_en' => $comercial->activada_en ?? now(),
         ])->save();
 
-        // Dos planes de ejemplo (punto 43). La organización sembrada se queda
-        // sin plan: sin límites y sin vencimiento, que es el uso interno.
-        Plan::query()->firstOrCreate(
+        // Tres planes de ejemplo (puntos 43 y 51). La organización sembrada se
+        // queda sin plan: sin límites y sin vencimiento, que es el uso interno.
+        // Los dos primeros los contrata el cliente; «Ilimitado» sólo lo asigna
+        // la plataforma. Los precios son sintéticos.
+        Plan::query()->updateOrCreate(
             ['codigo' => 'basica'],
-            ['nombre' => 'Básica', 'limite_cuentas' => 5, 'limite_sistemas' => 1, 'dias_gracia' => 15],
+            ['nombre' => 'Básica', 'descripcion' => 'Para empezar con un sistema y un equipo pequeño.', 'limite_cuentas' => 5, 'limite_sistemas' => 1, 'dias_gracia' => 15, 'precio_mensual_centimos' => 4900, 'descuento_anual' => 20, 'contratable' => true],
         );
-        Plan::query()->firstOrCreate(
+        Plan::query()->updateOrCreate(
             ['codigo' => 'profesional'],
-            ['nombre' => 'Profesional', 'limite_cuentas' => 25, 'limite_sistemas' => 5, 'dias_gracia' => 30],
+            ['nombre' => 'Profesional', 'descripcion' => 'Para varios sistemas y equipos que crecen.', 'limite_cuentas' => 25, 'limite_sistemas' => 5, 'dias_gracia' => 30, 'precio_mensual_centimos' => 12900, 'descuento_anual' => 20, 'contratable' => true],
+        );
+        Plan::query()->updateOrCreate(
+            ['codigo' => 'ilimitado'],
+            ['nombre' => 'Ilimitado', 'descripcion' => 'Sin techo de cuentas ni de sistemas.', 'limite_cuentas' => null, 'limite_sistemas' => null, 'dias_gracia' => 30, 'contratable' => false],
         );
     }
 
@@ -2707,6 +2714,7 @@ class DesarrolloSeeder extends Seeder
                     'plan_id' => $plan?->id,
                     'suscripcion_inicia_en' => $plan === null ? null : now()->subYear(),
                     'suscripcion_vence_en' => $vence?->copy()->endOfDay(),
+                    'suscripcion_periodo' => $plan === null ? null : PeriodoFacturacion::Anual,
                     'soporte_hasta' => $clave === 'vigente' ? now()->addDays(3) : null,
                     'activa' => true,
                     'baja_en' => null,

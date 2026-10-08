@@ -6,6 +6,7 @@ namespace App\Domain\Organizacion\Models;
 
 use App\Domain\Organizacion\Marca\PiezaDeMarca;
 use App\Domain\Plataforma\Enums\EstadoSuscripcion;
+use App\Domain\Plataforma\Enums\PeriodoFacturacion;
 use App\Domain\Plataforma\Models\Plan;
 use App\Domain\Proveedor\Enums\Criticidad;
 use App\Domain\Sistema\Models\Sistema;
@@ -54,6 +55,7 @@ use Illuminate\Support\Carbon;
  * @property ?Carbon $suscripcion_inicia_en
  * @property ?Carbon $suscripcion_vence_en nulo, no vence
  * @property ?string $suscripcion_referencia_externa
+ * @property ?PeriodoFacturacion $suscripcion_periodo nulo sin plan, o con uno puesto a mano sin periodo (punto 51)
  * @property-read ?Plan $plan
  * @property ?Carbon $soporte_hasta hasta cuándo puede entrar la plataforma como soporte (punto 44)
  * @property ?int $soporte_abierto_por
@@ -204,8 +206,9 @@ class Organizacion extends Model
     /**
      * El plan contratado, o nulo si no hay (punto 43).
      *
-     * **El plan y las fechas no están en `$fillable`**: sólo los cambia la
-     * plataforma, con `CambiarSuscripcion`, y nunca la ficha del cliente.
+     * **El plan y las fechas no están en `$fillable`**: los cambian
+     * `CambiarSuscripcion`, desde la plataforma, y `ContratarPlan`, desde la
+     * propia organización (punto 51); nunca la ficha del cliente.
      *
      * @return BelongsTo<Plan, $this>
      */
@@ -286,6 +289,7 @@ class Organizacion extends Model
             'retencion_personas_meses' => 'integer',
             'suscripcion_inicia_en' => 'datetime',
             'suscripcion_vence_en' => 'datetime',
+            'suscripcion_periodo' => PeriodoFacturacion::class,
             'soporte_hasta' => 'datetime',
             'baja_en' => 'datetime',
         ];

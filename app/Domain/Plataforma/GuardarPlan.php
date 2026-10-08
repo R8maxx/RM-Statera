@@ -20,7 +20,7 @@ final class GuardarPlan
     public function __construct(private readonly TrazaPlataforma $traza) {}
 
     /**
-     * @param  array{codigo: string, nombre: string, descripcion?: ?string, limite_cuentas?: ?int, limite_sistemas?: ?int, dias_gracia: int, activo: bool}  $datos
+     * @param  array{codigo: string, nombre: string, descripcion?: ?string, limite_cuentas?: ?int, limite_sistemas?: ?int, dias_gracia: int, activo: bool, precio_mensual_centimos?: ?int, descuento_anual?: int, contratable?: bool}  $datos
      */
     public function __invoke(?Plan $plan, array $datos): Plan
     {

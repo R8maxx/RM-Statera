@@ -7,6 +7,7 @@ namespace App\Domain\Plataforma;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Organizacion\Models\Organizacion;
 use App\Domain\Plataforma\Enums\AccionPlataforma;
+use App\Domain\Plataforma\Enums\OrigenCambioSuscripcion;
 use App\Domain\Plataforma\Models\Plan;
 use App\Domain\Plataforma\Models\TransicionSuscripcion;
 use Illuminate\Support\Carbon;
@@ -16,7 +17,8 @@ use Illuminate\Support\Facades\DB;
 /**
  * Cambia el plan o las fechas de la suscripción de un cliente (punto 43).
  *
- * Sólo lo hace la plataforma, y queda en tres sitios, cada uno para quien lo
+ * Desde la plataforma; la organización contrata por su cuenta con
+ * `ContratarPlan` (punto 51). Queda en tres sitios, cada uno para quien lo
  * pregunta:
  *
  * - en `transiciones_suscripcion`, el histórico del invariante 7: desde cuándo
@@ -40,6 +42,7 @@ final class CambiarSuscripcion
     {
         $planAnterior = $organizacion->plan_id;
         $venceAnterior = $organizacion->suscripcion_vence_en;
+        $periodoAnterior = $organizacion->suscripcion_periodo;
 
         // Sin plan no hay vencimiento: la fecha que llegue no se guarda.
         $venceEn = $plan === null ? null : $venceEn;
@@ -52,12 +55,15 @@ final class CambiarSuscripcion
             return;
         }
 
-        DB::transaction(function () use ($organizacion, $plan, $venceEn, $motivo, $planAnterior, $venceAnterior): void {
+        DB::transaction(function () use ($organizacion, $plan, $venceEn, $motivo, $planAnterior, $venceAnterior, $periodoAnterior): void {
             $this->contexto->paraOrganizacion($organizacion, function () use ($organizacion, $plan, $venceEn): void {
                 $organizacion->forceFill([
                     'plan_id' => $plan?->id,
                     'suscripcion_inicia_en' => $plan === null ? null : ($organizacion->suscripcion_inicia_en ?? Carbon::now()),
                     'suscripcion_vence_en' => $venceEn,
+                    // El periodo lo elige la organización al contratar (punto
+                    // 51). La plataforma lo conserva, y sin plan no hay.
+                    'suscripcion_periodo' => $plan === null ? null : $organizacion->suscripcion_periodo,
                 ])->save();
             });
 
@@ -68,6 +74,9 @@ final class CambiarSuscripcion
                 'vence_en_anterior' => $venceAnterior,
                 'vence_en_nuevo' => $organizacion->suscripcion_vence_en,
                 'motivo' => $motivo,
+                'periodo_anterior' => $periodoAnterior?->value,
+                'periodo_nuevo' => $organizacion->suscripcion_periodo?->value,
+                'origen' => OrigenCambioSuscripcion::Plataforma->value,
                 'usuario_id' => Auth::id(),
                 'created_at' => Carbon::now(),
             ]);

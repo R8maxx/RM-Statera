@@ -70,7 +70,7 @@ class PlanController extends Controller
     }
 
     /**
-     * @return array{id: int, codigo: string, nombre: string, descripcion: ?string, limiteCuentas: ?int, limiteSistemas: ?int, diasGracia: int, activo: bool}
+     * @return array{id: int, codigo: string, nombre: string, descripcion: ?string, limiteCuentas: ?int, limiteSistemas: ?int, diasGracia: int, activo: bool, precioMensualCentimos: ?int, descuentoAnual: int, contratable: bool}
      */
     private static function plan(Plan $plan): array
     {
@@ -83,6 +83,9 @@ class PlanController extends Controller
             'limiteSistemas' => $plan->limite_sistemas,
             'diasGracia' => $plan->dias_gracia,
             'activo' => $plan->activo,
+            'precioMensualCentimos' => $plan->precio_mensual_centimos,
+            'descuentoAnual' => $plan->descuento_anual,
+            'contratable' => $plan->contratable,
         ];
     }
 }

@@ -39,6 +39,7 @@ enum AccionPlataforma: string
     case AvisoVencimientoEnviado = 'aviso_vencimiento_enviado';
     case AdministradorPerfilCambiado = 'administrador_perfil_cambiado';
     case AdministradorRetirado = 'administrador_retirado';
+    case PlanContratado = 'plan_contratado';
 
     public function etiqueta(): string
     {
@@ -60,6 +61,7 @@ enum AccionPlataforma: string
             self::AvisoVencimientoEnviado => 'Aviso de vencimiento enviado',
             self::AdministradorPerfilCambiado => 'Perfil de administrador cambiado',
             self::AdministradorRetirado => 'Administrador retirado',
+            self::PlanContratado => 'Plan contratado por la organización',
         };
     }
 }

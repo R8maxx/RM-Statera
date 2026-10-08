@@ -36,6 +36,7 @@ use App\Http\Controllers\PerfilFotoController;
 use App\Http\Controllers\PerfilSesionController;
 use App\Http\Controllers\PersonaController;
 use App\Http\Controllers\PlanContinuidadServicioController;
+use App\Http\Controllers\PlanOrganizacionController;
 use App\Http\Controllers\PlantillaDocumentoController;
 use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\PruebaContinuidadController;
@@ -1889,6 +1890,12 @@ Route::middleware('auth')->group(function (): void {
     Route::middleware('can:organizacion.gestionar')->group(function (): void {
         Route::get('/organizacion', [OrganizacionController::class, 'edit'])
             ->name('organizacion.edit');
+
+        // Elegir y cambiar de plan (punto 51). La puerta de la plataforma es
+        // `CambiarSuscripcion`; ésta es la de la propia organización, y sólo
+        // con los planes contratables.
+        Route::get('/organizacion/plan', [PlanOrganizacionController::class, 'index'])
+            ->name('organizacion.plan');
     });
 
     Route::middleware(['can:organizacion.gestionar', ExigirDosFactores::class])->group(function (): void {
@@ -1901,6 +1908,10 @@ Route::middleware('auth')->group(function (): void {
             ->name('organizacion.soporte.abrir');
         Route::delete('/organizacion/soporte', [OrganizacionController::class, 'cerrarSoporte'])
             ->name('organizacion.soporte.cerrar');
+
+        // `SuscripcionVigente` la deja pasar en sólo lectura: es como se renueva.
+        Route::post('/organizacion/plan', [PlanOrganizacionController::class, 'store'])
+            ->name('organizacion.plan.contratar');
     });
 
     /*

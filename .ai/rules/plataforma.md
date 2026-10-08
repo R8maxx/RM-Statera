@@ -126,9 +126,10 @@ la plataforma.
 
 ## El plan y la suscripción (punto 43)
 
-**Se modelan y no se cobran.** Un plan no lleva precio. Lo que el producto
-necesita saber de él es qué límites pone y cuántos días de gracia da antes de
-pasar a sólo lectura.
+**Se modelan y no se cobran.** Lo que el producto necesita saber de un plan es
+qué límites pone y cuántos días de gracia da antes de pasar a sólo lectura.
+Desde el punto 51 lleva además precio, y la organización lo contrata ella
+misma: está más abajo.
 
 **La suscripción vive en `organizaciones` y no en una tabla aparte**, en las
 columnas `plan_id`, `suscripcion_inicia_en`, `suscripcion_vence_en` y
@@ -516,3 +517,91 @@ pantalla y lo que se exporta a CSV es lo mismo.
 `EstablecerContextoOrganizacion` comprueba `soporte.entrar` en cada petición, y
 no sólo al entrar. A quien bajan a Gestión comercial estando dentro de un
 cliente se le acaba el acceso en su siguiente paso.
+
+## La organización contrata su plan (punto 51)
+
+César decidió tres cosas: **el cambio es inmediato y hoy no se cobra**, el
+precio y el periodo **se modelan ya**, y lo que la organización no puede
+contratar lo marca la plataforma **plan a plan**.
+
+- **`planes.contratable`**, con un `CHECK`: contratable implica precio. Un plan
+  sin límites como «Ilimitado» no es contratable y sólo lo asigna la
+  plataforma. La organización lo ve en su página de planes, en una tarjeta sin
+  botón. Es bandera y no regla («todo plan sin límites es de la plataforma»)
+  para que lo decida la plataforma.
+- **El precio va en céntimos y sin IVA** (`precio_mensual_centimos`), con un
+  `descuento_anual` en porcentaje. El año cuesta doce meses menos el descuento,
+  y el mes no lleva descuento (`Plan::precioDelPeriodo()`).
+- **`organizaciones.suscripcion_periodo`**, mensual o anual. Es nulo sin plan, y
+  nulo en un plan que la plataforma puso a mano. `CambiarSuscripcion` lo
+  conserva al cambiar el plan y lo borra al quitarlo: elegir el periodo es cosa
+  de la organización.
+- **El histórico gana `origen`, los periodos y `importe_centimos`**, con signo
+  (negativo es saldo a favor). Ese importe es **el que se habría cobrado**: no
+  se cobró. Del cambio que hace la plataforma el cliente no ve el nombre de
+  quien lo hizo, sólo «Equipo de Statera».
+
+### El prorrateo, una sola cuenta
+
+`PresupuestarCambioPlan` lo calcula y lo leen dos sitios: la página
+(`/organizacion/plan`, que recibe cada plan con su presupuesto en los dos
+periodos) y `ContratarPlan`, que **lo vuelve a calcular dentro de la
+transacción y con la fila bloqueada**, y guarda eso. La pantalla no hace
+cuentas, así que lo que se enseña y lo que queda en el histórico no pueden
+discrepar. Hay dos casos:
+
+- **Mismo periodo y suscripción vigente**: se conserva la renovación y se paga
+  la diferencia por los días que quedan, o queda a favor.
+- **Cualquier otro caso** (sin plan, vencida, plan sin precio, cambio de
+  periodo): empieza un periodo hoy, y se descuenta lo que quedara del
+  anterior.
+
+Los días se cuentan enteros y hacia arriba.
+
+**Bajar exige que quepa lo que se usa** (`PresupuestoCambioPlan::NO_CABE`). La
+plataforma sí puede dejar a un cliente por encima del límite. Que la
+organización se lo haga a sí misma sin darse cuenta la dejaría sin poder
+invitar ni dar de alta un sistema. **Tampoco se vuelve a contratar el mismo plan
+con el mismo periodo** mientras está vigente.
+
+### Por dónde entra
+
+- `GET /organizacion/plan` y `POST /organizacion/plan`, con
+  `organizacion.gestionar`, y el `POST` con segundo factor. Las dos van sin
+  parámetro, como el resto de `/organizacion`.
+- **`SuscripcionVigente` deja pasar el `POST` en sólo lectura** (`RENOVAR`):
+  contratar es justo lo que saca de ahí, y cortarlo dejaría a la organización
+  encerrada.
+- El cambio deja rastro en los tres sitios de siempre: el histórico, la traza
+  de la plataforma (`plan_contratado`) y la del tenant, que escribe sola
+  `Organizacion::booted()`. No hace falta `paraOrganizacion()`, porque la
+  petición ya trae el contexto.
+
+### La pantalla
+
+`/organizacion` empieza por el bloque de la suscripción
+(`components/organizacion/SuscripcionDestacada.vue`), con los datos de
+`ResumenSuscripcion`:
+
+- el plan y su estado;
+- los días de calendario, que son los mismos que cuentan los avisos de
+  `HitoSuscripcion`;
+- la línea del contrato;
+- el consumo frente a los límites;
+- los cinco últimos cambios.
+
+Las dos pantallas son el **sexto momento** de DESIGN.md §10. Los importes se
+formatean en un solo sitio, `lib/dinero.ts`.
+
+### Lo que declara que no hace todavía
+
+- **No cobra.** El día que haya pasarela, el cobro va delante del `save()` de
+  `ContratarPlan`, y si falla no se cambia nada.
+  `suscripcion_referencia_externa` sigue esperando.
+- **El saldo a favor no se guarda en ningún sitio** más que en el importe del
+  histórico. Sin cobro no hay a qué descontarlo.
+- **No hay renovación automática**: al vencer se renueva a mano desde la misma
+  página, también en sólo lectura.
+- **Renovar por adelantado no existe.** Con la suscripción vigente, el mismo
+  plan y el mismo periodo salen como «Tu plan actual».
+

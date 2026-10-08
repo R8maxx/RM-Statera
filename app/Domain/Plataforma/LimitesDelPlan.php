@@ -58,6 +58,26 @@ final class LimitesDelPlan
     {
         $limite = $organizacion->plan?->limite_sistemas;
 
-        return $limite === null || Sistema::query()->count() < $limite;
+        return $limite === null || $this->sistemasOcupados() < $limite;
+    }
+
+    /** Los sistemas de la organización del contexto, por su scope. */
+    public function sistemasOcupados(): int
+    {
+        return Sistema::query()->count();
+    }
+
+    /**
+     * Lo ocupado hoy, para compararlo con los límites de otro plan (punto 51).
+     * Con el contexto de la organización puesto.
+     *
+     * @return array{cuentas: int, sistemas: int}
+     */
+    public function uso(Organizacion $organizacion): array
+    {
+        return [
+            'cuentas' => $this->cuentasOcupadas($organizacion),
+            'sistemas' => $this->sistemasOcupados(),
+        ];
     }
 }

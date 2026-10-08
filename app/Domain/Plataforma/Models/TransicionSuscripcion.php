@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Plataforma\Models;
 
+use App\Domain\Plataforma\Enums\OrigenCambioSuscripcion;
+use App\Domain\Plataforma\Enums\PeriodoFacturacion;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,6 +18,10 @@ use Illuminate\Support\Carbon;
  * «¿desde cuándo, y quién se lo cambió?». Se escribe y no se toca: la base le
  * quita a la aplicación `UPDATE`, `DELETE` y `TRUNCATE`.
  *
+ * Desde el punto 51 lo cambia también la propia organización, y la fila dice
+ * quién (`origen`), con qué periodo y qué importe supuso. El importe lleva
+ * signo —negativo es saldo a favor— y **no se cobró**: no hay pasarela.
+ *
  * @property int $id
  * @property int $organizacion_afectada_id
  * @property ?int $plan_anterior_id
@@ -23,6 +29,10 @@ use Illuminate\Support\Carbon;
  * @property ?Carbon $vence_en_anterior
  * @property ?Carbon $vence_en_nuevo
  * @property ?string $motivo
+ * @property ?PeriodoFacturacion $periodo_anterior
+ * @property ?PeriodoFacturacion $periodo_nuevo
+ * @property ?int $importe_centimos con signo; nulo en los cambios de la plataforma
+ * @property OrigenCambioSuscripcion $origen
  * @property ?int $usuario_id
  * @property Carbon $created_at
  */
@@ -39,6 +49,10 @@ class TransicionSuscripcion extends Model
         'vence_en_anterior',
         'vence_en_nuevo',
         'motivo',
+        'periodo_anterior',
+        'periodo_nuevo',
+        'importe_centimos',
+        'origen',
         'usuario_id',
         'created_at',
     ];
@@ -68,6 +82,10 @@ class TransicionSuscripcion extends Model
             'vence_en_anterior' => 'datetime',
             'vence_en_nuevo' => 'datetime',
             'created_at' => 'datetime',
+            'periodo_anterior' => PeriodoFacturacion::class,
+            'periodo_nuevo' => PeriodoFacturacion::class,
+            'importe_centimos' => 'integer',
+            'origen' => OrigenCambioSuscripcion::class,
         ];
     }
 }

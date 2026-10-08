@@ -25,6 +25,9 @@ use Symfony\Component\HttpFoundation\Response;
  * poder proteger su cuenta por un impago que no es suyo. La lista va por
  * camino porque las rutas de Fortify y de passkeys no son nuestras.
  *
+ * **Y salvo renovar** (punto 51). Contratar un plan es justo lo que saca a la
+ * organización de sólo lectura, así que cortarlo la dejaría encerrada.
+ *
  * Va detrás de `EstablecerContextoOrganizacion`: sin contexto no hay
  * organización cuya suscripción mirar, y quien administra la plataforma no se
  * ve afectado en `/plataforma`.
@@ -39,11 +42,16 @@ class SuscripcionVigente
         'user/*',
     ];
 
+    /** @var list<string> */
+    private const RENOVAR = [
+        'organizacion/plan',
+    ];
+
     public function __construct(private readonly ContextoOrganizacion $contexto) {}
 
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->isMethodSafe() || ! $this->contexto->hayContexto() || $request->is(...self::CUENTA_PROPIA)) {
+        if ($request->isMethodSafe() || ! $this->contexto->hayContexto() || $request->is(...self::CUENTA_PROPIA, ...self::RENOVAR)) {
             return $next($request);
         }
 

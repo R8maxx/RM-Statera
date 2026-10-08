@@ -8,6 +8,7 @@ use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Organizacion\GuardarFichaOrganizacion;
 use App\Domain\Organizacion\Marca\PiezaDeMarca;
 use App\Domain\Organizacion\Models\Organizacion;
+use App\Domain\Plataforma\ResumenSuscripcion;
 use App\Domain\Plataforma\Soporte\VentanaSoporte;
 use App\Http\Requests\AbrirSoporteRequest;
 use App\Http\Requests\GuardarFichaOrganizacionRequest;
@@ -33,7 +34,7 @@ class OrganizacionController extends Controller
 {
     public function __construct(private readonly ContextoOrganizacion $contexto) {}
 
-    public function edit(): Response
+    public function edit(ResumenSuscripcion $resumen): Response
     {
         $organizacion = $this->actual();
 
@@ -72,19 +73,16 @@ class OrganizacionController extends Controller
             'leAplicaElEns' => $organizacion->leAplicaElEns(),
 
             /*
-             * La suscripción, en lectura (punto 43). La cambia la plataforma,
-             * nunca esta pantalla: el plan y las fechas no están en `$fillable`.
+             * La suscripción, que es lo primero de la pantalla (punto 51): plan,
+             * estado, días, consumo frente a los límites e histórico. Se cambia
+             * en `/organizacion/plan`, nunca desde esta ficha: el plan y las
+             * fechas no están en `$fillable`.
+             *
+             * `contrato` y `accesoSoporte`, no `suscripcion` ni `soporte`: esos
+             * dos son props compartidos que lee el layout, y uno de página con
+             * el mismo nombre los pisaría.
              */
-            // `contrato` y `accesoSoporte`, no `suscripcion` ni `soporte`: esos
-            // dos son props compartidos que lee el layout, y uno de página con
-            // el mismo nombre los pisaría.
-            'contrato' => [
-                'plan' => $organizacion->plan?->nombre,
-                'limiteCuentas' => $organizacion->plan?->limite_cuentas,
-                'limiteSistemas' => $organizacion->plan?->limite_sistemas,
-                'venceEn' => $organizacion->suscripcion_vence_en?->toIso8601String(),
-                'estado' => $organizacion->estadoSuscripcion()->etiqueta(),
-            ],
+            'contrato' => $resumen($organizacion),
 
             // La puerta a la plataforma (punto 44): abierta hasta cuándo, o nula.
             'accesoSoporte' => [

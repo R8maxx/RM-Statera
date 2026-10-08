@@ -2,6 +2,7 @@
 import FilaCampos from '@/components/formulario/FilaCampos.vue';
 import Aviso from '@/components/Aviso.vue';
 import PiezaDeMarca from '@/components/organizacion/PiezaDeMarca.vue';
+import SuscripcionDestacada from '@/components/organizacion/SuscripcionDestacada.vue';
 import CampoSwitch from '@/components/formulario/CampoSwitch.vue';
 import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import FormularioRecurso from '@/components/formulario/FormularioRecurso.vue';
@@ -9,7 +10,7 @@ import SeccionFormulario from '@/components/formulario/SeccionFormulario.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import CampoSelect from '@/components/formulario/CampoSelect.vue';
 import { Button } from '@/components/ui/button';
-import { fechaLegible, formatoFechaHora } from '@/lib/celdas';
+import { formatoFechaHora } from '@/lib/celdas';
 import { router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
@@ -46,14 +47,8 @@ const props = defineProps<{
     ejemploEtiqueta: string;
     /** La puerta a la plataforma (punto 44): abierta hasta cuándo, o nula. */
     accesoSoporte: { hasta: string | null; horasPorDefecto: number };
-    /** En lectura: la cambia la plataforma (punto 43). */
-    contrato: {
-        plan: string | null;
-        limiteCuentas: number | null;
-        limiteSistemas: number | null;
-        venceEn: string | null;
-        estado: string;
-    };
+    /** La suscripción (punto 51): se cambia en `/organizacion/plan`. Ver `ResumenSuscripcion`. */
+    contrato: InstanceType<typeof SuscripcionDestacada>['$props']['contrato'];
 }>();
 
 /*
@@ -127,6 +122,9 @@ const cambioLaBase = computed(
             url-cancelar="/panel"
             #default="{ errors }"
         >
+            <!-- Lo primero, porque suele ser lo que se viene a mirar (punto 51). -->
+            <SuscripcionDestacada :contrato="contrato" />
+
             <SeccionFormulario
                 titulo="Identificación"
                 ayuda="El nombre comercial es el que ves en la aplicación; la razón social es la que firma. Un documento entregable lo firma una persona jurídica, así que es la razón social la que se imprime en la portada."
@@ -422,34 +420,6 @@ const cambioLaBase = computed(
                 </div>
             </SeccionFormulario>
 
-            <!-- En lectura: el plan lo cambia la plataforma, no esta pantalla. -->
-            <SeccionFormulario
-                titulo="Suscripción"
-                ayuda="Lo que el plan contratado permite y hasta cuándo. Para cambiarlo, habla con quien te dio de alta en Statera."
-            >
-                <dl class="grid gap-2 text-sm">
-                    <div class="flex flex-wrap gap-x-2">
-                        <dt class="text-muted-foreground">Plan</dt>
-                        <dd>{{ contrato.plan ?? 'Sin plan' }}</dd>
-                    </div>
-                    <div class="flex flex-wrap gap-x-2">
-                        <dt class="text-muted-foreground">Estado</dt>
-                        <dd>{{ contrato.estado }}</dd>
-                    </div>
-                    <div class="flex flex-wrap gap-x-2">
-                        <dt class="text-muted-foreground">Vence</dt>
-                        <dd>{{ contrato.venceEn ? fechaLegible(contrato.venceEn) : 'No vence' }}</dd>
-                    </div>
-                    <div class="flex flex-wrap gap-x-2">
-                        <dt class="text-muted-foreground">Cuentas</dt>
-                        <dd>{{ contrato.limiteCuentas ?? 'Sin límite' }}</dd>
-                    </div>
-                    <div class="flex flex-wrap gap-x-2">
-                        <dt class="text-muted-foreground">Sistemas</dt>
-                        <dd>{{ contrato.limiteSistemas ?? 'Sin límite' }}</dd>
-                    </div>
-                </dl>
-            </SeccionFormulario>
         </FormularioRecurso>
     </AppLayout>
 </template>
