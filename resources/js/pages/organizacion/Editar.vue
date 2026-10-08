@@ -45,9 +45,9 @@ const props = defineProps<{
     /** A dónde apunta hoy el QR de una etiqueta, con la base que hay guardada. */
     ejemploEtiqueta: string;
     /** La puerta a la plataforma (punto 44): abierta hasta cuándo, o nula. */
-    soporte: { hasta: string | null; horasPorDefecto: number };
+    accesoSoporte: { hasta: string | null; horasPorDefecto: number };
     /** En lectura: la cambia la plataforma (punto 43). */
-    suscripcion: {
+    contrato: {
         plan: string | null;
         limiteCuentas: number | null;
         limiteSistemas: number | null;
@@ -92,7 +92,7 @@ const DURACIONES = [
     { valor: '72', etiqueta: '3 días' },
     { valor: '168', etiqueta: '7 días' },
 ];
-const horasSoporte = ref(String(props.soporte.horasPorDefecto));
+const horasSoporte = ref(String(props.accesoSoporte.horasPorDefecto));
 const cambiandoSoporte = ref(false);
 
 function abrirSoporte(): void {
@@ -399,10 +399,10 @@ const cambioLaBase = computed(
                 titulo="Acceso de soporte"
                 ayuda="Si necesitas ayuda, abre la puerta a la plataforma por un tiempo. Quien entre sólo puede leer, te llegará un correo al entrar, y la entrada y la salida quedan en tu traza. Se cierra sola al acabar el plazo."
             >
-                <div v-if="soporte.hasta" class="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4">
+                <div v-if="accesoSoporte.hasta" class="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4">
                     <p class="text-sm">
                         Abierto hasta el
-                        <span class="cifra">{{ formatoFechaHora.format(new Date(soporte.hasta)) }}</span>.
+                        <span class="cifra">{{ formatoFechaHora.format(new Date(accesoSoporte.hasta)) }}</span>.
                     </p>
                     <Button type="button" variant="outline" size="sm" :disabled="cambiandoSoporte" @click="cerrarSoporte">
                         Cerrar ahora
@@ -430,23 +430,23 @@ const cambioLaBase = computed(
                 <dl class="grid gap-2 text-sm">
                     <div class="flex flex-wrap gap-x-2">
                         <dt class="text-muted-foreground">Plan</dt>
-                        <dd>{{ suscripcion.plan ?? 'Sin plan' }}</dd>
+                        <dd>{{ contrato.plan ?? 'Sin plan' }}</dd>
                     </div>
                     <div class="flex flex-wrap gap-x-2">
                         <dt class="text-muted-foreground">Estado</dt>
-                        <dd>{{ suscripcion.estado }}</dd>
+                        <dd>{{ contrato.estado }}</dd>
                     </div>
                     <div class="flex flex-wrap gap-x-2">
                         <dt class="text-muted-foreground">Vence</dt>
-                        <dd>{{ suscripcion.venceEn ? fechaLegible(suscripcion.venceEn) : 'No vence' }}</dd>
+                        <dd>{{ contrato.venceEn ? fechaLegible(contrato.venceEn) : 'No vence' }}</dd>
                     </div>
                     <div class="flex flex-wrap gap-x-2">
                         <dt class="text-muted-foreground">Cuentas</dt>
-                        <dd>{{ suscripcion.limiteCuentas ?? 'Sin límite' }}</dd>
+                        <dd>{{ contrato.limiteCuentas ?? 'Sin límite' }}</dd>
                     </div>
                     <div class="flex flex-wrap gap-x-2">
                         <dt class="text-muted-foreground">Sistemas</dt>
-                        <dd>{{ suscripcion.limiteSistemas ?? 'Sin límite' }}</dd>
+                        <dd>{{ contrato.limiteSistemas ?? 'Sin límite' }}</dd>
                     </div>
                 </dl>
             </SeccionFormulario>

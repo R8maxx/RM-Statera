@@ -81,7 +81,11 @@ class OrganizacionController extends Controller
             ->get();
 
         return Inertia::render('plataforma/organizaciones/Ficha', [
-            'organizacion' => [
+            // `cliente` y `contrato`, no `organizacion` ni `suscripcion`: esos dos
+            // son props compartidos que lee el layout, y uno de página con el
+            // mismo nombre los pisa (el layout pintaba esta organización como la
+            // activa y un aviso de vencimiento que no existía).
+            'cliente' => [
                 'id' => $organizacion->id,
                 'nombre' => $organizacion->nombre,
                 'razonSocial' => $organizacion->razon_social,
@@ -91,7 +95,7 @@ class OrganizacionController extends Controller
                 // La ventana de soporte que abrió el cliente (punto 44), o nula.
                 'soporteHasta' => $organizacion->soporteAbierto() ? $organizacion->soporte_hasta?->toIso8601String() : null,
             ],
-            'suscripcion' => $this->resumenSuscripcion($organizacion),
+            'contrato' => $this->resumenSuscripcion($organizacion),
             'planes' => $this->planesActivos($organizacion->plan_id),
             // Quién entra y con qué rol, sin nada de lo que hace dentro. Es lo
             // que hace falta para saber a quién llamar y si alguien no aceptó.

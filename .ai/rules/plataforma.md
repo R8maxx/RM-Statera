@@ -292,3 +292,28 @@ el botón de salir siempre a mano.
 - **La plataforma no reenvía la invitación del responsable.** Si caduca, el
   cliente no tiene a nadie dentro que la reenvíe. Por ahora se arregla dando de
   alta otra vez con otro correo, o desde la consola.
+
+## Lo que destapó el recorrido en el navegador
+
+Tres fallos que ningún test de servidor veía. Los tres se corrigieron en el
+mismo commit.
+
+1. **El lateral del administrador enseñaba el SGSI entero.** `navegacionPara()`
+   sólo filtraba las entradas con `permiso:`, y casi ninguna lo lleva, porque
+   cualquier rol de cliente las ve. Ahora una entrada sin `permiso` exige estar
+   dentro de una organización, es decir, tener algún `.ver`.
+2. **Un prop de página con el nombre de uno compartido lo pisa.** La ficha de
+   plataforma mandaba `organizacion` y `suscripcion`, y el layout pintaba esa
+   organización como la activa y un aviso de vencimiento falso. `/organizacion`
+   hacía lo mismo con `suscripcion` y `soporte`. Ahora se llaman `cliente` y
+   `contrato` en la ficha de plataforma, y `contrato` y `accesoSoporte` en
+   `/organizacion`. **Los nombres de los props compartidos (`auth`,
+   `organizacion`, `suscripcion`, `soporte`) no se usan como props de página.**
+   `organizacion/Editar` ya mandaba `organizacion` antes de este punto, y se
+   queda así porque es la misma organización.
+3. **`/` llevaba fijo a `/panel`.** Al cerrar sesión se volvía ahí, Laravel
+   guardaba `/panel` como destino y el administrador entraba directo a un 403.
+   Ahora `/` lleva a `/inicio`, que decide por cuenta.
+
+**Queda pendiente**: «Primeros pasos» ofrece botones de alta a quien sólo lee,
+sea el auditor o el soporte. Llevan a un 403 y no se pintan en gris.

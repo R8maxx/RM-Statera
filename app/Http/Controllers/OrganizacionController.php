@@ -72,7 +72,10 @@ class OrganizacionController extends Controller
              * La suscripción, en lectura (punto 43). La cambia la plataforma,
              * nunca esta pantalla: el plan y las fechas no están en `$fillable`.
              */
-            'suscripcion' => [
+            // `contrato` y `accesoSoporte`, no `suscripcion` ni `soporte`: esos
+            // dos son props compartidos que lee el layout, y uno de página con
+            // el mismo nombre los pisaría.
+            'contrato' => [
                 'plan' => $organizacion->plan?->nombre,
                 'limiteCuentas' => $organizacion->plan?->limite_cuentas,
                 'limiteSistemas' => $organizacion->plan?->limite_sistemas,
@@ -81,7 +84,7 @@ class OrganizacionController extends Controller
             ],
 
             // La puerta a la plataforma (punto 44): abierta hasta cuándo, o nula.
-            'soporte' => [
+            'accesoSoporte' => [
                 'hasta' => $organizacion->soporteAbierto() ? $organizacion->soporte_hasta?->toIso8601String() : null,
                 'horasPorDefecto' => VentanaSoporte::HORAS_POR_DEFECTO,
             ],

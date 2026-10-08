@@ -567,10 +567,21 @@ export const navegacion: GrupoNavegacion[] = [
  * resuelven igual la vea quien la vea.
  */
 export function navegacionPara(permisos: readonly string[]): GrupoNavegacion[] {
+    /*
+     * Una entrada sin `permiso` es de cualquiera que esté **dentro de una
+     * organización**, y eso se sabe porque tiene algún `.ver`. Quien administra
+     * la plataforma sin estar como soporte en ningún cliente no tiene ninguno
+     * (punto 41): sin esta condición le salía el SGSI entero en el lateral y
+     * cada enlace le respondía 403.
+     */
+    const dentroDeUnaOrganizacion = permisos.some((permiso) => permiso.endsWith('.ver'));
+
     return navegacion
         .map((grupo) => ({
             ...grupo,
-            entradas: grupo.entradas.filter((entrada) => !entrada.permiso || permisos.includes(entrada.permiso)),
+            entradas: grupo.entradas.filter((entrada) =>
+                entrada.permiso ? permisos.includes(entrada.permiso) : dentroDeUnaOrganizacion,
+            ),
         }))
         .filter((grupo) => grupo.entradas.length > 0);
 }

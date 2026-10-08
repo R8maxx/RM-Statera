@@ -57,7 +57,7 @@ interface Suscripcion {
 }
 
 const props = defineProps<{
-    organizacion: {
+    cliente: {
         id: number;
         nombre: string;
         razonSocial: string | null;
@@ -69,7 +69,7 @@ const props = defineProps<{
     cuentas: Cuenta[];
     invitadas: number;
     traza: EventoTraza[];
-    suscripcion: Suscripcion;
+    contrato: Suscripcion;
     planes: { valor: string; etiqueta: string }[];
 }>();
 
@@ -79,7 +79,7 @@ const errorSoporte = computed(() => (pagina.props.errors as Record<string, strin
 const entrando = ref(false);
 
 function entrarComoSoporte(): void {
-    router.post(`/plataforma/organizaciones/${props.organizacion.id}/soporte`, {}, {
+    router.post(`/plataforma/organizaciones/${props.cliente.id}/soporte`, {}, {
         onStart: () => (entrando.value = true),
         onFinish: () => (entrando.value = false),
     });
@@ -92,15 +92,15 @@ const opcionesPlan = computed(() => conOpcionVacia(props.planes, 'Sin plan: sin 
  * lleva al final de ese día: vence al acabar el día elegido, no al empezar.
  */
 const formulario = useForm({
-    plan_id: props.suscripcion.planId === null ? SIN_VALOR : String(props.suscripcion.planId),
-    vence_en: props.suscripcion.venceEn?.slice(0, 10) ?? '',
+    plan_id: props.contrato.planId === null ? SIN_VALOR : String(props.contrato.planId),
+    vence_en: props.contrato.venceEn?.slice(0, 10) ?? '',
     motivo: '',
 });
 
 function guardarSuscripcion(): void {
     formulario
         .transform((datos) => ({ ...datos, vence_en: datos.vence_en === '' ? null : datos.vence_en }))
-        .put(`/plataforma/organizaciones/${props.organizacion.id}/suscripcion`, {
+        .put(`/plataforma/organizaciones/${props.cliente.id}/suscripcion`, {
             preserveScroll: true,
             onSuccess: () => formulario.reset('motivo'),
         });
@@ -110,18 +110,18 @@ const cuando = (fecha: string | null): string => (fecha ? formatoFechaHora.forma
 </script>
 
 <template>
-    <AppLayout :titulo="organizacion.nombre">
-        <CabeceraPagina :titulo="organizacion.nombre" :descripcion="organizacion.razonSocial ?? undefined">
-            <template v-if="organizacion.soporteHasta" #acciones>
+    <AppLayout :titulo="cliente.nombre">
+        <CabeceraPagina :titulo="cliente.nombre" :descripcion="cliente.razonSocial ?? undefined">
+            <template v-if="cliente.soporteHasta" #acciones>
                 <Button :disabled="entrando" @click="entrarComoSoporte">Entrar como soporte</Button>
             </template>
         </CabeceraPagina>
 
         <!-- La puerta la abre el cliente: sin ventana, no hay botón, y se dice por qué. -->
         <p class="text-sm text-muted-foreground">
-            <template v-if="organizacion.soporteHasta">
+            <template v-if="cliente.soporteHasta">
                 El cliente ha abierto el acceso de soporte hasta el
-                <span class="cifra">{{ cuando(organizacion.soporteHasta) }}</span>. Dentro sólo se lee, y su responsable
+                <span class="cifra">{{ cuando(cliente.soporteHasta) }}</span>. Dentro sólo se lee, y su responsable
                 de seguridad recibe un correo al entrar.
             </template>
             <template v-else>
@@ -191,14 +191,14 @@ const cuando = (fecha: string | null): string => (fecha ? formatoFechaHora.forma
                     <CardHeader>
                         <CardTitle>Suscripción</CardTitle>
                         <CardDescription>
-                            <template v-if="suscripcion.plan">
-                                {{ suscripcion.plan }}.
-                                <template v-if="suscripcion.limiteCuentas">
-                                    {{ suscripcion.cuentasOcupadas }} de {{ suscripcion.limiteCuentas }} cuentas ocupadas.
+                            <template v-if="contrato.plan">
+                                {{ contrato.plan }}.
+                                <template v-if="contrato.limiteCuentas">
+                                    {{ contrato.cuentasOcupadas }} de {{ contrato.limiteCuentas }} cuentas ocupadas.
                                 </template>
-                                <template v-if="suscripcion.venceEn">
-                                    Vence el {{ fechaLegible(suscripcion.venceEn) }}<template v-if="suscripcion.graciaHasta">
-                                        y escribe hasta el {{ fechaLegible(suscripcion.graciaHasta) }}</template>.
+                                <template v-if="contrato.venceEn">
+                                    Vence el {{ fechaLegible(contrato.venceEn) }}<template v-if="contrato.graciaHasta">
+                                        y escribe hasta el {{ fechaLegible(contrato.graciaHasta) }}</template>.
                                 </template>
                                 <template v-else>No vence.</template>
                             </template>
@@ -206,7 +206,7 @@ const cuando = (fecha: string | null): string => (fecha ? formatoFechaHora.forma
                         </CardDescription>
                     </CardHeader>
                     <CardContent class="space-y-4">
-                        <CeldaBadge :valor="{ ...suscripcion.estado }" />
+                        <CeldaBadge :valor="{ ...contrato.estado }" />
 
                         <form class="grid gap-4" @submit.prevent="guardarSuscripcion">
                             <CampoSelect
@@ -237,8 +237,8 @@ const cuando = (fecha: string | null): string => (fecha ? formatoFechaHora.forma
                             </Button>
                         </form>
 
-                        <ul v-if="suscripcion.historico.length > 0" class="divide-y border-t pt-2 text-sm">
-                            <li v-for="cambio in suscripcion.historico" :key="cambio.id" class="grid gap-0.5 py-2">
+                        <ul v-if="contrato.historico.length > 0" class="divide-y border-t pt-2 text-sm">
+                            <li v-for="cambio in contrato.historico" :key="cambio.id" class="grid gap-0.5 py-2">
                                 <span>
                                     {{ cambio.de ?? 'Sin plan' }} → {{ cambio.a ?? 'Sin plan' }}
                                     <span v-if="cambio.venceEn" class="text-muted-foreground">
@@ -263,15 +263,15 @@ const cuando = (fecha: string | null): string => (fecha ? formatoFechaHora.forma
                         <dl class="grid gap-2">
                             <div class="flex flex-wrap gap-x-2">
                                 <dt class="text-muted-foreground">CIF</dt>
-                                <dd>{{ organizacion.cif ?? '—' }}</dd>
+                                <dd>{{ cliente.cif ?? '—' }}</dd>
                             </div>
                             <div class="flex flex-wrap gap-x-2">
                                 <dt class="text-muted-foreground">Sector</dt>
-                                <dd>{{ organizacion.sector ?? '—' }}</dd>
+                                <dd>{{ cliente.sector ?? '—' }}</dd>
                             </div>
                             <div class="flex flex-wrap gap-x-2">
                                 <dt class="text-muted-foreground">Alta</dt>
-                                <dd>{{ cuando(organizacion.altaEn) }}</dd>
+                                <dd>{{ cuando(cliente.altaEn) }}</dd>
                             </div>
                         </dl>
                     </CardContent>

@@ -73,7 +73,13 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::redirect('/', '/panel');
+/*
+ * A `/inicio` y no a `/panel` (punto 41): `/inicio` es quien decide adónde va
+ * cada cuenta —su página de inicio, o la plataforma para quien la administra—.
+ * Con `/panel` fijo, cerrar sesión volvía aquí, Laravel guardaba `/panel` como
+ * destino y el administrador de la plataforma entraba directo a un 403.
+ */
+Route::redirect('/', '/inicio');
 
 /*
  * `/continuidad` no es una pantalla: es el `href` que

@@ -121,3 +121,8 @@ it('la traza de la plataforma no se puede reescribir', function (): void {
 it('el administrador abre su perfil aunque no tenga organización', function (): void {
     $this->actingAs(adminConDosFactores())->get('/perfil')->assertOk();
 });
+
+it('la raíz lleva a cada cuenta a su inicio, también al administrador', function (): void {
+    $this->actingAs(adminConDosFactores())->get('/')->assertRedirect('/inicio');
+    $this->actingAs(adminConDosFactores())->get('/inicio')->assertRedirect('/plataforma/organizaciones');
+});
