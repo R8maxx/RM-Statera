@@ -25,6 +25,7 @@ interface Cuenta {
     nombre: string;
     email: string;
     rol: string | null;
+    plataforma: boolean;
     estado: { valor: string; etiqueta: string; tono: string; icono: string };
 }
 
@@ -77,6 +78,18 @@ const props = defineProps<{
 const pagina = usePage();
 const errorSoporte = computed(() => (pagina.props.errors as Record<string, string | undefined>).soporte);
 const entrando = ref(false);
+
+const errorCuentas = computed(() => (pagina.props.errors as Record<string, string | undefined>).cuentas);
+const reenviando = ref<number | null>(null);
+
+/* Si el enlace del primer responsable caduca, dentro no hay nadie que se lo reenvíe. */
+function reenviar(cuenta: Cuenta): void {
+    router.post(`/plataforma/organizaciones/${props.cliente.id}/cuentas/${cuenta.id}/reenviar`, {}, {
+        preserveScroll: true,
+        onStart: () => (reenviando.value = cuenta.id),
+        onFinish: () => (reenviando.value = null),
+    });
+}
 
 function entrarComoSoporte(): void {
     router.post(`/plataforma/organizaciones/${props.cliente.id}/soporte`, {}, {
@@ -146,6 +159,7 @@ const cuando = (fecha: string | null): string => (fecha ? formatoFechaHora.forma
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
+                        <p v-if="errorCuentas" class="mb-2 text-sm text-destructive">{{ errorCuentas }}</p>
                         <ul class="divide-y text-sm">
                             <li
                                 v-for="cuenta in cuentas"
@@ -157,8 +171,18 @@ const cuando = (fecha: string | null): string => (fecha ? formatoFechaHora.forma
                                     <span class="block truncate text-muted-foreground">{{ cuenta.email }}</span>
                                 </span>
                                 <span class="flex items-center gap-3">
+                                    <span v-if="cuenta.plataforma" class="text-xs text-muted-foreground">De la plataforma</span>
                                     <span v-if="cuenta.rol" class="text-muted-foreground">{{ cuenta.rol }}</span>
                                     <CeldaBadge :valor="{ ...cuenta.estado }" />
+                                    <Button
+                                        v-if="cuenta.estado.valor === 'invitada'"
+                                        variant="outline"
+                                        size="sm"
+                                        :disabled="reenviando === cuenta.id"
+                                        @click="reenviar(cuenta)"
+                                    >
+                                        Reenviar la invitación
+                                    </Button>
                                 </span>
                             </li>
                             <li v-if="cuentas.length === 0" class="py-2.5 text-muted-foreground">Sin cuentas.</li>

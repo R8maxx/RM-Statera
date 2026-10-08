@@ -38,7 +38,7 @@ final class AceptarInvitacion
 
         // Quien administra la plataforma no tiene tenant: su traza es la de la
         // plataforma (punto 41).
-        if ($cuenta->esPlataforma()) {
+        if ($cuenta->esPlataforma() && $cuenta->organizacion_id === null) {
             $this->activar($cuenta, $password);
             $this->trazaPlataforma->registrar(AccionPlataforma::AdministradorActivado, null, [], $cuenta->id);
 

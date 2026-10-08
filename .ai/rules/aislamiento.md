@@ -109,8 +109,9 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
   con `sistema_id` se quede sin ella lo comprueba `AlcanceDelAuditorTest`. El
   razonamiento entero, en `cuentas.md`.
 
-- **Quien administra la plataforma puede tener contexto, pero sólo por la
-  ventana de soporte de un cliente (punto 44).** La rama vive en
+- **Quien administra la plataforma puede tener contexto por dos caminos**: el
+  de su propia organización si es además usuario de una (punto 45), igual que
+  cualquier cuenta, o la ventana de soporte de un cliente (punto 44). La rama vive en
   `EstablecerContextoOrganizacion` y se comprueba en cada petición. No es una
   cuarta puerta que atraviese las capas, sino la misma que usa una cuenta de
   cliente: fija el contexto y deja que las tres capas hagan lo suyo. Lo que no

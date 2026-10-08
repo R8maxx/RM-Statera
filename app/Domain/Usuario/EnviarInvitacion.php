@@ -38,8 +38,8 @@ final class EnviarInvitacion
         // nombra lo que sí tiene.
         $cuenta->notify(new InvitacionACuenta(
             enlace: route('invitacion.show', ['token' => $token, 'email' => $cuenta->email]),
-            organizacion: $cuenta->esPlataforma() ? 'la plataforma' : (string) $cuenta->organizacion?->nombre,
-            rol: $cuenta->esPlataforma()
+            organizacion: $cuenta->organizacion->nombre ?? 'la plataforma',
+            rol: $cuenta->organizacion_id === null
                 ? 'administración de la plataforma'
                 : mb_strtolower($cuenta->rol()?->etiqueta() ?? 'sin rol'),
             dias: self::diasDeValidez(),

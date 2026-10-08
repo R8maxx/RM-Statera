@@ -56,6 +56,14 @@ final class OperacionDeCuentaNoPermitida extends DomainException
         );
     }
 
+    public static function plataformaComoAuditor(): self
+    {
+        return new self(
+            'Es una cuenta de quien administra la plataforma, y no puede ser auditor externo: el auditor '
+            .'entra hasta una fecha, y al caducar se quedaría también fuera de la plataforma.'
+        );
+    }
+
     public static function correoEnUso(): self
     {
         return new self('Ya hay una cuenta con ese correo.');

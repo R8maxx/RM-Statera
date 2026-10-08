@@ -42,6 +42,10 @@ final class AccesoDeSoporte
 
     public function entrar(User $administrador, Organizacion $organizacion): void
     {
+        if ($administrador->esSuOrganizacion($organizacion->id)) {
+            throw SoporteNoPermitido::esLaSuya();
+        }
+
         if (! $administrador->esPlataforma() || ! $organizacion->soporteAbierto()) {
             throw SoporteNoPermitido::ventanaCerrada();
         }

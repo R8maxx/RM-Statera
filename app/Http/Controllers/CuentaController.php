@@ -121,6 +121,8 @@ class CuentaController extends Controller
                 'sistemas' => $this->sistemasDe($cuenta),
                 'sinAlcance' => $cuenta->rol() === Rol::Auditor && $this->sistemasDe($cuenta) === [],
                 'esLaPropia' => $cuenta->is($request->user()),
+                // Administra Statera además de trabajar aquí (punto 45).
+                'plataforma' => $cuenta->esPlataforma(),
             ],
             'actividad' => $this->actividad($cuenta),
         ]);
@@ -173,10 +175,20 @@ class CuentaController extends Controller
         /** @var User $quien */
         $quien = $request->user();
 
+        $deLaPlataforma = $cuenta->esPlataforma();
+
         try {
             $desactivar($quien, $cuenta, $request->validated('motivo'));
         } catch (OperacionDeCuentaNoPermitida $error) {
             return back()->withErrors(['cuenta' => $error->getMessage()]);
+        }
+
+        // A quien administra la plataforma se le saca de la organización, no se
+        // le desactiva (punto 45), así que su ficha ya no es de aquí.
+        if ($deLaPlataforma) {
+            Inertia::flash('exito', "{$cuenta->name} ya no es de esta organización. Lo que hizo sigue a su nombre.");
+
+            return to_route('cuentas.index');
         }
 
         Inertia::flash('exito', "{$cuenta->name} ya no entra en Statera. Lo que hizo sigue a su nombre.");

@@ -92,7 +92,10 @@ class GuardarCuentaRequest extends FormRequest
                 $cuenta = $this->route('cuenta');
                 $ocupaUnoNuevo = ! $cuenta instanceof User || $cuenta->rol() === Rol::Auditor;
 
-                if ($rol === null || ! $ocupaUnoNuevo || $validador->errors()->isNotEmpty()) {
+                // Quien administra la plataforma no ocupa asiento (punto 45).
+                $deLaPlataforma = $cuenta instanceof User && $cuenta->esPlataforma();
+
+                if ($rol === null || ! $ocupaUnoNuevo || $deLaPlataforma || $validador->errors()->isNotEmpty()) {
                     return;
                 }
 

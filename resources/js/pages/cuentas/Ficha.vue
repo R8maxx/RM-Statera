@@ -50,6 +50,8 @@ interface Cuenta {
     sistemas: { id: number; codigo: string; nombre: string }[];
     esLaPropia: boolean;
     sinAlcance: boolean;
+    /** Administra Statera además de trabajar aquí (punto 45). */
+    plataforma: boolean;
 }
 
 const props = defineProps<{
@@ -107,6 +109,7 @@ const cuando = (fecha: string | null): string => (fecha ? formatoFechaHora.forma
             />
             <span v-if="cuenta.rolEtiqueta" class="text-sm text-muted-foreground">{{ cuenta.rolEtiqueta }}</span>
             <span v-if="cuenta.esLaPropia" class="text-sm text-muted-foreground">· Es tu cuenta</span>
+            <span v-if="cuenta.plataforma" class="text-sm text-muted-foreground">· De la plataforma</span>
         </div>
 
         <Aviso v-if="errorCuenta" tono="error">{{ errorCuenta }}</Aviso>
@@ -183,7 +186,7 @@ const cuando = (fecha: string | null): string => (fecha ? formatoFechaHora.forma
                             size="sm"
                             @click="desactivando = true"
                         >
-                            Desactivar
+                            {{ cuenta.plataforma ? 'Sacar de la organización' : 'Desactivar' }}
                         </Button>
                         <p v-else class="text-sm text-muted-foreground">
                             Tu propia cuenta sólo la puede desactivar otro responsable de seguridad.
@@ -238,8 +241,14 @@ const cuando = (fecha: string | null): string => (fecha ? formatoFechaHora.forma
         <Dialog v-model:open="desactivando">
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Desactivar la cuenta de {{ cuenta.nombre }}</DialogTitle>
-                    <DialogDescription>
+                    <DialogTitle>
+                        {{ cuenta.plataforma ? `Sacar a ${cuenta.nombre} de la organización` : `Desactivar la cuenta de ${cuenta.nombre}` }}
+                    </DialogTitle>
+                    <DialogDescription v-if="cuenta.plataforma">
+                        Es una cuenta de quien administra Statera, así que no se desactiva: deja de ser de esta
+                        organización, pierde su rol y ya no ve nada de ella. Lo que hizo sigue a su nombre.
+                    </DialogDescription>
+                    <DialogDescription v-else>
                         Deja de entrar ahora mismo: se cierran sus sesiones abiertas y, si tenía una
                         invitación pendiente, el enlace deja de servir. No se borra nada; lo que hizo
                         sigue a su nombre.
@@ -257,7 +266,9 @@ const cuando = (fecha: string | null): string => (fecha ? formatoFechaHora.forma
 
                 <DialogFooter>
                     <Button variant="outline" @click="desactivando = false">Cancelar</Button>
-                    <Button :disabled="desactivacion.processing" @click="desactivar">Desactivar</Button>
+                    <Button :disabled="desactivacion.processing" @click="desactivar">
+                        {{ cuenta.plataforma ? 'Sacar de la organización' : 'Desactivar' }}
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

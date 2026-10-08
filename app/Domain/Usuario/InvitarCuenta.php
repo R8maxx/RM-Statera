@@ -26,6 +26,10 @@ use Illuminate\Support\Str;
  * La traza se escribe a mano porque `User` no lleva `RegistraTraza`: `users`
  * está fuera de las tres capas y se crea también desde seeders y tests sin
  * contexto, donde el evento no tendría dónde escribirse.
+ *
+ * **Un cliente no puede añadir a quien administra la plataforma** invitando su
+ * correo (punto 45): para él es un correo en uso más. A un administrador sólo
+ * lo une la plataforma, con `UnirAdministrador`.
  */
 final class InvitarCuenta
 {

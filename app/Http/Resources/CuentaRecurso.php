@@ -90,6 +90,12 @@ final class CuentaRecurso extends Recurso
                     return new ValorEtiquetado($estado->value, $estado->etiqueta(), $estado->tono(), $estado->icono());
                 }),
 
+            // Quien administra Statera y es además de esta organización (punto 45):
+            // el cliente tiene que poder ver que esa cuenta no es sólo suya.
+            Columna::booleano('es_plataforma', 'De la plataforma')
+                ->ancho('9rem')
+                ->ayuda('Administra Statera además de trabajar aquí. Quitarle el acceso la saca de la organización, pero no la desactiva.'),
+
             Columna::booleano('dos_factores', 'Dos pasos')
                 ->ancho('7rem')
                 ->ayuda('Si la cuenta tiene activada la verificación en dos pasos. Es obligatoria para escribir.')

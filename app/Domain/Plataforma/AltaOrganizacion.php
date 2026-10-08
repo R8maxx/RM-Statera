@@ -13,6 +13,7 @@ use App\Domain\Plataforma\Enums\AccionPlataforma;
 use App\Domain\Plataforma\Excepciones\AltaNoPermitida;
 use App\Domain\Plataforma\Models\Plan;
 use App\Domain\Traza\RegistroTraza;
+use App\Domain\Usuario\Enums\EstadoCuenta;
 use App\Domain\Usuario\EnviarInvitacion;
 use App\Domain\Usuario\InvitarCuenta;
 use App\Models\User;
@@ -52,6 +53,7 @@ final class AltaOrganizacion
         private readonly RegistroTraza $traza,
         private readonly TrazaPlataforma $trazaPlataforma,
         private readonly CambiarSuscripcion $suscripcion,
+        private readonly UnirAdministrador $unir,
     ) {}
 
     /**
@@ -83,7 +85,13 @@ final class AltaOrganizacion
                     $this->roles->paraOrganizacion($organizacion);
                     $this->traza->creado($organizacion);
 
-                    return ($this->invitar)($nombreResponsable, $emailResponsable, Rol::ResponsableSeguridad, enviar: false);
+                    // Si el responsable es alguien de la plataforma, se le une con
+                    // su cuenta en vez de invitarle (punto 45).
+                    $administrador = UnirAdministrador::libreCon($emailResponsable);
+
+                    return $administrador !== null
+                        ? ($this->unir)($administrador, $organizacion, Rol::ResponsableSeguridad)
+                        : ($this->invitar)($nombreResponsable, $emailResponsable, Rol::ResponsableSeguridad, enviar: false);
                 },
             );
 
@@ -101,8 +109,12 @@ final class AltaOrganizacion
         });
 
         // El correo, después de confirmar: si la transacción se deshace, nadie
-        // recibe un enlace a una cuenta que no existe.
-        ($this->enviarInvitacion)($responsable);
+        // recibe un enlace a una cuenta que no existe. Y sólo si hay algo que
+        // aceptar: si el responsable es alguien de la plataforma, ya tenía
+        // cuenta y se le ha añadido con la suya (punto 45).
+        if ($responsable->estadoCuenta() === EstadoCuenta::Invitada) {
+            ($this->enviarInvitacion)($responsable);
+        }
 
         return $organizacion;
     }

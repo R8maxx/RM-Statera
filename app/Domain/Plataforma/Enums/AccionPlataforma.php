@@ -32,6 +32,8 @@ enum AccionPlataforma: string
     case PlanGuardado = 'plan_guardado';
     case SoporteEntrada = 'soporte_entrada';
     case SoporteSalida = 'soporte_salida';
+    case AdministradorPromovido = 'administrador_promovido';
+    case InvitacionReenviada = 'invitacion_reenviada';
 
     public function etiqueta(): string
     {
@@ -46,6 +48,8 @@ enum AccionPlataforma: string
             self::PlanGuardado => 'Plan guardado',
             self::SoporteEntrada => 'Entrada como soporte',
             self::SoporteSalida => 'Salida del soporte',
+            self::AdministradorPromovido => 'Cuenta promovida a administradora',
+            self::InvitacionReenviada => 'Invitación reenviada',
         };
     }
 }

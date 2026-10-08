@@ -63,16 +63,6 @@ it('el administrador no ve ningún dato de un tenant', function (): void {
         ->and($organizacion->exists)->toBeTrue();
 });
 
-it('la base impide que una cuenta sea de plataforma y de una organización', function (): void {
-    $organizacion = comoOrganizacion();
-    $cuenta = usuarioCon(Rol::Tecnico);
-
-    expect(fn () => DB::table('users')->where('id', $cuenta->id)->update(['es_plataforma' => true]))
-        ->toThrow(QueryException::class);
-
-    expect($organizacion->id)->toBeInt();
-});
-
 it('crea al administrador desde la consola con su invitación', function (): void {
     Notification::fake();
 
@@ -87,13 +77,20 @@ it('crea al administrador desde la consola con su invitación', function (): voi
     expect(EventoPlataforma::query()->where('accion', AccionPlataforma::AdministradorCreado->value)->exists())->toBeTrue();
 });
 
-it('la consola no crea un administrador con un correo ya usado', function (): void {
-    comoOrganizacion();
+it('la consola promueve una cuenta de cliente en vez de crear otra', function (): void {
+    $organizacion = comoOrganizacion();
     $cuenta = usuarioCon(Rol::Tecnico);
     sinOrganizacion();
 
     $this->artisan('plataforma:administrador', ['email' => $cuenta->email, 'nombre' => 'Repetido'])
-        ->assertFailed();
+        ->assertSuccessful();
+
+    $cuenta->refresh();
+
+    expect($cuenta->esPlataforma())->toBeTrue()
+        ->and($cuenta->organizacion_id)->toBe($organizacion->id)
+        ->and($cuenta->rol())->toBe(Rol::Tecnico)
+        ->and(User::query()->where('email', $cuenta->email)->whereNotNull('organizacion_id')->count())->toBe(1);
 });
 
 it('la entrada del administrador queda en la traza de la plataforma', function (): void {

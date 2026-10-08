@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Domain\Organizacion\ContextoOrganizacion;
+use App\Domain\Plataforma\Soporte\SesionDeSoporte;
 use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
@@ -41,8 +42,7 @@ class SoporteSoloLectura
         /** @var ?User $usuario */
         $usuario = $request->user();
 
-        if ($usuario?->esPlataforma() !== true
-            || ! $this->contexto->hayContexto()
+        if (! SesionDeSoporte::activo($usuario, $this->contexto)
             || $request->isMethodSafe()
             || $request->is(...self::LO_SUYO)) {
             return $next($request);

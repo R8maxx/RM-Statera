@@ -39,6 +39,11 @@ Route::middleware(['auth', SoloPlataforma::class])
         Route::get('/organizaciones/{organizacion}', [OrganizacionController::class, 'show'])->name('organizaciones.show');
         Route::put('/organizaciones/{organizacion}/suscripcion', [OrganizacionController::class, 'suscripcion'])
             ->name('organizaciones.suscripcion');
+        // `{cuentaId}` y no `{cuenta}`: ése lo resuelve el binding global, acotado a
+        // la organización del contexto, que aquí no hay. Se acota en el controlador.
+        Route::post('/organizaciones/{organizacion}/cuentas/{cuentaId}/reenviar', [OrganizacionController::class, 'reenviar'])
+            ->whereNumber('cuentaId')
+            ->name('organizaciones.reenviar');
 
         // El soporte (punto 44): sólo por la ventana que abre el cliente, y
         // dentro sólo se lee. Salir no lleva `{organizacion}`: sale de la que

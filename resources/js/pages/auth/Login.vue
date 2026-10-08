@@ -27,7 +27,7 @@ const { asentar, sacudir } = useBalanza();
 </script>
 
 <template>
-    <AuthLayout titulo="Entrar en Statera" descripcion="Usa la cuenta que te dio de alta el responsable de seguridad.">
+    <AuthLayout titulo="Entrar en Statera" descripcion="Usa la cuenta con la que te invitaron a Statera.">
         <Form
             action="/login"
             method="post"
@@ -86,8 +86,8 @@ const { asentar, sacudir } = useBalanza();
         </Form>
 
         <template #pie>
-            Statera no tiene alta self-service: las cuentas las crea el responsable de seguridad de cada
-            organización. Si no tienes acceso, habla con quien lleve el SGSI.
+            Statera no tiene alta self-service: las cuentas las invita el responsable de seguridad de cada
+            organización, o la plataforma al dar de alta una. Si no tienes acceso, habla con quien lleve el SGSI.
         </template>
     </AuthLayout>
 </template>

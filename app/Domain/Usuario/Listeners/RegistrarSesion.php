@@ -67,20 +67,23 @@ final class RegistrarSesion
 
     private function anotar(User $cuenta, AccionAuditada $accion, ?Closure $antes = null): void
     {
-        // Quien administra la plataforma no tiene tenant donde anotarlo: va a
-        // la traza de la plataforma (punto 41).
+        // Quien administra la plataforma deja la sesión en la traza de la
+        // plataforma (punto 41). Si además es de una organización (punto 45),
+        // también en la de ésta, como cualquier cuenta suya.
         if ($cuenta->esPlataforma()) {
-            if ($antes !== null) {
-                $antes();
-            }
-
             $this->trazaPlataforma->registrar(match ($accion) {
                 AccionAuditada::InicioSesion => AccionPlataforma::InicioSesion,
                 AccionAuditada::CierreSesion => AccionPlataforma::CierreSesion,
                 default => AccionPlataforma::IntentoFallido,
             }, null, [], $cuenta->id);
 
-            return;
+            if ($cuenta->organizacion_id === null) {
+                if ($antes !== null) {
+                    $antes();
+                }
+
+                return;
+            }
         }
 
         if ($cuenta->organizacion_id === null) {

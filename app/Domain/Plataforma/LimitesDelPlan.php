@@ -17,7 +17,9 @@ use Illuminate\Support\Facades\DB;
  * desactivadas, aceptadas o con la invitación pendiente —una invitación ocupa
  * su sitio—, y nunca el auditor externo. Al auditor se le da acceso para que
  * audite; cobrarle el asiento al cliente sería castigarle por dejarse auditar.
- * Quien administra la plataforma no cuenta nunca: no tiene organización.
+ * Quien administra la plataforma no cuenta nunca, ni siquiera cuando es además
+ * usuario de la organización (punto 45): a los administradores del programa no
+ * se les cobra.
  *
  * Sin plan, o con el límite a nulo, no hay límite.
  */
@@ -28,6 +30,7 @@ final class LimitesDelPlan
         return User::query()
             ->where('users.organizacion_id', $organizacion->id)
             ->whereNull('users.desactivada_en')
+            ->where('users.es_plataforma', false)
             ->whereNotExists(function ($consulta): void {
                 $consulta->select(DB::raw(1))
                     ->from('model_has_roles')

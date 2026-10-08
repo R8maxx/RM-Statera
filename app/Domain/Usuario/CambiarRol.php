@@ -39,6 +39,10 @@ final class CambiarRol
     {
         $anterior = $cuenta->rol();
 
+        if ($rol === Rol::Auditor && $cuenta->esPlataforma()) {
+            throw OperacionDeCuentaNoPermitida::plataformaComoAuditor();
+        }
+
         if ($anterior === Rol::ResponsableSeguridad && $rol !== Rol::ResponsableSeguridad) {
             if ($cuenta->is($quien)) {
                 throw OperacionDeCuentaNoPermitida::sobreSiMisma();

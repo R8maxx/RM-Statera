@@ -9,6 +9,8 @@ use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Organizacion\Marca\PiezaDeMarca;
 use App\Domain\Organizacion\Models\Organizacion;
 use App\Domain\Plataforma\Enums\EstadoSuscripcion;
+use App\Domain\Plataforma\Soporte\SesionDeSoporte;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -64,7 +66,7 @@ class HandleInertiaRequests extends Middleware
                 // la base sino la llave con la que `lib/navegacion.ts` le pinta
                 // su grupo. Quien autoriza es `SoloPlataforma` (punto 41).
                 'permisos' => $usuario?->esPlataforma() === true
-                    ? $this->permisosDePlataforma($contexto)
+                    ? $this->permisosDePlataforma($usuario, $contexto)
                     : ($usuario?->getAllPermissions()->pluck('name')->values()->all() ?? []),
             ],
 
@@ -77,9 +79,7 @@ class HandleInertiaRequests extends Middleware
             'suscripcion' => $this->suscripcion($contexto),
 
             // La franja del soporte (punto 44): dónde está y hasta cuándo.
-            'soporte' => $usuario?->esPlataforma() === true && $contexto->hayContexto()
-                ? $this->soporte($contexto)
-                : null,
+            'soporte' => SesionDeSoporte::activo($usuario, $contexto) ? $this->soporte($contexto) : null,
         ];
     }
 
@@ -103,16 +103,21 @@ class HandleInertiaRequests extends Middleware
     }
 
     /**
-     * Fuera de un cliente, sólo la marca de su grupo; dentro, como soporte,
-     * además los permisos `.ver`, que son los que `Gate::before` le concede. Así
-     * el lateral le enseña lo que puede abrir y nada más.
+     * Fuera de un cliente, sólo la marca de su grupo; en su propia
+     * organización (punto 45), además los de su rol; dentro de otra como
+     * soporte, los `.ver`, que son los que `Gate::before` le concede. Así el
+     * lateral le enseña lo que puede abrir y nada más.
      *
      * @return list<string>
      */
-    private function permisosDePlataforma(ContextoOrganizacion $contexto): array
+    private function permisosDePlataforma(User $usuario, ContextoOrganizacion $contexto): array
     {
         if (! $contexto->hayContexto()) {
             return ['plataforma.gestionar'];
+        }
+
+        if (! SesionDeSoporte::activo($usuario, $contexto)) {
+            return ['plataforma.gestionar', ...$usuario->getAllPermissions()->pluck('name')->values()->all()];
         }
 
         return [

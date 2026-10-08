@@ -182,7 +182,7 @@ export type TipoPasoPersona = 'alta' | 'baja';
 }
 namespace Plataforma {
 namespace Enums {
-export type AccionPlataforma = 'administrador_creado' | 'administrador_activado' | 'inicio_sesion' | 'cierre_sesion' | 'intento_fallido' | 'organizacion_alta' | 'suscripcion_cambiada' | 'plan_guardado' | 'soporte_entrada' | 'soporte_salida';
+export type AccionPlataforma = 'administrador_creado' | 'administrador_activado' | 'inicio_sesion' | 'cierre_sesion' | 'intento_fallido' | 'organizacion_alta' | 'suscripcion_cambiada' | 'plan_guardado' | 'soporte_entrada' | 'soporte_salida' | 'administrador_promovido' | 'invitacion_reenviada';
 export type EstadoSuscripcion = 'vigente' | 'en_gracia' | 'solo_lectura';
 }
 }

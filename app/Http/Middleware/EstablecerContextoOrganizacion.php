@@ -34,8 +34,11 @@ class EstablecerContextoOrganizacion
     {
         $usuario = $request->user();
 
-        if ($usuario?->esPlataforma() === true) {
-            return $this->comoPlataforma($request, $next);
+        // Quien administra la plataforma y está como soporte en un cliente va
+        // por su rama. Si no, es una cuenta más: con su organización si la
+        // tiene (punto 45), y sin ninguna si no.
+        if ($usuario?->esPlataforma() === true && $this->organizacionDeSoporte($request) !== null) {
+            return $this->comoSoporte($request, $next);
         }
 
         if ($usuario?->organizacion_id !== null) {
@@ -51,9 +54,16 @@ class EstablecerContextoOrganizacion
         return $next($request);
     }
 
+    private function organizacionDeSoporte(Request $request): ?int
+    {
+        $id = $request->hasSession() ? $request->session()->get(SesionDeSoporte::CLAVE) : null;
+
+        return $id === null ? null : (int) $id;
+    }
+
     /**
-     * Quien administra la plataforma no tiene organización: sin ventana de
-     * soporte se queda sin contexto y no ve nada de ningún cliente (punto 44).
+     * Quien administra la plataforma, dentro de un cliente como soporte
+     * (punto 44). Sin ventana no ve nada de ningún cliente que no sea el suyo.
      *
      * **Con ventana, el contexto se fija sobre la organización que la abrió**,
      * igual que para una cuenta suya, y las tres capas siguen aplicando. No se
@@ -61,17 +71,11 @@ class EstablecerContextoOrganizacion
      * comprueba en cada petición, no sólo al entrar: si el cliente cierra la
      * puerta o se acaba el plazo, se sale en la siguiente.
      */
-    private function comoPlataforma(Request $request, Closure $next): Response
+    private function comoSoporte(Request $request, Closure $next): Response
     {
         $this->contexto->olvidar();
 
-        $id = $request->hasSession() ? $request->session()->get(SesionDeSoporte::CLAVE) : null;
-
-        if ($id === null) {
-            return $next($request);
-        }
-
-        $organizacion = Organizacion::query()->find((int) $id);
+        $organizacion = Organizacion::query()->find($this->organizacionDeSoporte($request));
 
         // La misma ventana por la que se entró, no una cualquiera abierta: si el
         // cliente la cerró y abrió otra, hay que volver a entrar.

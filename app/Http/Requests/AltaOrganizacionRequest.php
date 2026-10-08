@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests;
 
 use App\Domain\Plataforma\Models\Plan;
+use App\Domain\Usuario\CorreoDeCuenta;
 use App\Http\Requests\Concerns\NormalizaSeleccionVacia;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Carbon;
@@ -36,7 +37,7 @@ class AltaOrganizacionRequest extends FormRequest
             'cif' => ['nullable', 'string', 'max:20', Rule::unique('organizaciones', 'cif')],
             'sector' => ['nullable', 'string', 'max:255'],
             'responsable_nombre' => ['required', 'string', 'max:255'],
-            'responsable_email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')],
+            'responsable_email' => ['required', 'string', 'email', 'max:255', CorreoDeCuenta::libre()],
             'plan_id' => ['nullable', 'integer', Rule::exists('planes', 'id')->where('activo', true)],
             'vence_en' => ['nullable', 'date', 'after:today', 'prohibited_if:plan_id,null'],
         ];

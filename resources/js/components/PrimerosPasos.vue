@@ -2,7 +2,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useRecorrido } from '@/composables/useRecorrido';
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import { BuildingIcon, CheckIcon, GaugeIcon, PaperclipIcon, RouteIcon, ServerIcon } from '@lucide/vue';
 import type { LucideIcon } from '@lucide/vue';
 import { computed } from 'vue';
@@ -49,9 +49,18 @@ type Paso = {
     icono: LucideIcon;
     titulo: string;
     cuerpo: string;
-    accion: { etiqueta: string; href: string };
+    /** El permiso sin el que la acción lleva a un 403 y no se pinta. */
+    accion: { etiqueta: string; href: string; permiso: string };
     hecho: boolean;
 };
+
+/*
+ * Quien sólo lee —el auditor, el soporte de la plataforma— ve los pasos y en
+ * cuál va la organización, pero no un botón que le responda 403. Pintar no es
+ * autorizar: la ruta sigue con su `can:`.
+ */
+const pagina = usePage();
+const puede = (permiso: string): boolean => pagina.props.auth.permisos.includes(permiso);
 
 /*
  * La ficha va primero aunque no sea una dependencia del motor: es quién firma.
@@ -70,7 +79,7 @@ const pasoFicha = computed<Paso[]>(() =>
                   titulo: 'Completa la ficha de la organización',
                   cuerpo:
                       'La razón social, el CIF y el domicilio de quien firma los documentos, y si el ENS te aplica por ley o porque trabajas para el sector público. Es lo que sale en la portada de cada documento que se entrega.',
-                  accion: { etiqueta: 'Completar la ficha', href: '/organizacion' },
+                  accion: { etiqueta: 'Completar la ficha', href: '/organizacion', permiso: 'organizacion.gestionar' },
                   hecho: props.fichaOrganizacion,
               },
           ],
@@ -85,7 +94,7 @@ const pasos = computed<Paso[]>(() => [
         titulo: 'Da de alta un sistema',
         cuerpo:
             'Un sistema es el trozo de la organización que se somete a los marcos: una sede, una plataforma, un servicio. Es lo que delimita el alcance, y todo lo demás se mide contra él.',
-        accion: { etiqueta: 'Dar de alta el primero', href: '/sistemas/crear' },
+        accion: { etiqueta: 'Dar de alta el primero', href: '/sistemas/crear', permiso: 'sistemas.gestionar' },
         hecho: props.sistemas > 0,
     },
     {
@@ -95,7 +104,7 @@ const pasos = computed<Paso[]>(() => [
         titulo: 'Valora sus cinco dimensiones',
         cuerpo:
             'Cuánto daño haría perder la confidencialidad, la integridad, la trazabilidad, la autenticidad o la disponibilidad. De esas cinco respuestas sale la categoría del sistema y la lista exacta de lo que se le exige: no hay que elegir controles a mano.',
-        accion: { etiqueta: 'Valorar el sistema', href: '/sistemas' },
+        accion: { etiqueta: 'Valorar el sistema', href: '/sistemas', permiso: 'sistemas.valorar' },
         hecho: props.aplicables > 0,
     },
     {
@@ -105,7 +114,7 @@ const pasos = computed<Paso[]>(() => [
         titulo: 'Registra la primera prueba',
         cuerpo:
             'Un acta, una captura o una política se sube una vez y se vincula a todo lo que demuestra. La misma prueba puede sostener un control de la ISO y tres medidas del ENS a la vez, y ahí es donde esto deja de parecerse a una hoja de cálculo.',
-        accion: { etiqueta: 'Registrar una evidencia', href: '/evidencias/crear' },
+        accion: { etiqueta: 'Registrar una evidencia', href: '/evidencias/crear', permiso: 'evidencias.gestionar' },
         hecho: props.evidencias > 0,
     },
 ]);
@@ -182,9 +191,12 @@ const enCurso = computed(() => pasos.value.findIndex((paso) => !paso.hecho));
                         <template v-if="numero === enCurso">
                             <p class="mt-1 max-w-prose text-sm text-muted-foreground">{{ paso.cuerpo }}</p>
 
-                            <Button as-child size="sm" class="mt-3">
+                            <Button v-if="puede(paso.accion.permiso)" as-child size="sm" class="mt-3">
                                 <Link :href="paso.accion.href">{{ paso.accion.etiqueta }}</Link>
                             </Button>
+                            <p v-else class="mt-2 text-xs text-muted-foreground">
+                                Este paso lo da quien gestiona la organización; tu cuenta sólo lo ve.
+                            </p>
                         </template>
                     </div>
                 </li>

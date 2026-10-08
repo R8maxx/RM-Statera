@@ -7,14 +7,17 @@ namespace App\Http\Controllers\Plataforma;
 use App\Domain\Organizacion\Models\Organizacion;
 use App\Domain\Plataforma\AltaOrganizacion;
 use App\Domain\Plataforma\CambiarSuscripcion;
+use App\Domain\Plataforma\Enums\AccionPlataforma;
 use App\Domain\Plataforma\Enums\EstadoSuscripcion;
 use App\Domain\Plataforma\Excepciones\AltaNoPermitida;
 use App\Domain\Plataforma\LimitesDelPlan;
 use App\Domain\Plataforma\Models\EventoPlataforma;
 use App\Domain\Plataforma\Models\Plan;
 use App\Domain\Plataforma\Models\TransicionSuscripcion;
+use App\Domain\Plataforma\TrazaPlataforma;
 use App\Domain\Usuario\Enums\EstadoCuenta;
 use App\Domain\Usuario\EnviarInvitacion;
+use App\Domain\Usuario\Excepciones\OperacionDeCuentaNoPermitida;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AltaOrganizacionRequest;
 use App\Http\Requests\CambiarSuscripcionRequest;
@@ -107,6 +110,7 @@ class OrganizacionController extends Controller
                     'nombre' => $cuenta->name,
                     'email' => $cuenta->email,
                     'rol' => $cuenta->rol()?->etiqueta(),
+                    'plataforma' => $cuenta->esPlataforma(),
                     'estado' => [
                         'valor' => $estado->value,
                         'etiqueta' => $estado->etiqueta(),
@@ -138,6 +142,33 @@ class OrganizacionController extends Controller
         $cambiar($organizacion, $request->plan(), $request->venceEn(), $request->validated('motivo'));
 
         Inertia::flash('exito', 'Suscripción guardada.');
+
+        return to_route('plataforma.organizaciones.show', $organizacion);
+    }
+
+    /**
+     * Reenviar la invitación de una cuenta del cliente que no la aceptó.
+     *
+     * Hace falta sobre todo para el primer responsable: si su enlace caduca,
+     * dentro no hay nadie que pueda reenviárselo. La cuenta se busca acotada a
+     * la organización de la ruta, porque `users` no tiene scope ni RLS.
+     */
+    public function reenviar(Organizacion $organizacion, int $cuentaId, EnviarInvitacion $enviar, TrazaPlataforma $traza): RedirectResponse
+    {
+        $invitada = User::query()
+            ->where('organizacion_id', $organizacion->id)
+            ->whereKey($cuentaId)
+            ->firstOrFail();
+
+        try {
+            $enviar($invitada);
+        } catch (OperacionDeCuentaNoPermitida $error) {
+            return back()->withErrors(['cuentas' => $error->getMessage()]);
+        }
+
+        $traza->registrar(AccionPlataforma::InvitacionReenviada, $organizacion, ['email' => $invitada->email]);
+
+        Inertia::flash('exito', "Invitación reenviada a {$invitada->email}. El enlace anterior ya no sirve.");
 
         return to_route('plataforma.organizaciones.show', $organizacion);
     }

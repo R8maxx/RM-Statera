@@ -8,6 +8,7 @@ use App\Domain\Autorizacion\Enums\Permiso;
 use App\Domain\Documento\Render\ClienteGotenberg;
 use App\Domain\Documento\Render\GotenbergHttp;
 use App\Domain\Organizacion\ContextoOrganizacion;
+use App\Domain\Plataforma\Soporte\SesionDeSoporte;
 use App\Domain\Riesgo\MetodologiaVigente;
 use App\Domain\Usuario\Listeners\RegistrarSesion;
 use App\Models\User;
@@ -93,7 +94,8 @@ class AppServiceProvider extends ServiceProvider
          * Es el primer cerrojo; el segundo es `SoporteSoloLectura`.
          */
         Gate::before(function (User $usuario, string $habilidad): ?bool {
-            if (! $usuario->esPlataforma() || ! app(ContextoOrganizacion::class)->hayContexto()) {
+            // En su propia organización (punto 45) decide spatie, con su rol.
+            if (! SesionDeSoporte::activo($usuario, app(ContextoOrganizacion::class))) {
                 return null;
             }
 

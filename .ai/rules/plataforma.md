@@ -289,9 +289,6 @@ el botón de salir siempre a mano.
 - **No hay baja de organizaciones**, ni desactivación desde la plataforma.
   `organizaciones.activa` sigue sin lector.
 - **No hay alta de administradores desde la web**, ni lista de administradores.
-- **La plataforma no reenvía la invitación del responsable.** Si caduca, el
-  cliente no tiene a nadie dentro que la reenvíe. Por ahora se arregla dando de
-  alta otra vez con otro correo, o desde la consola.
 
 ## Lo que destapó el recorrido en el navegador
 
@@ -315,5 +312,57 @@ mismo commit.
    guardaba `/panel` como destino y el administrador entraba directo a un 403.
    Ahora `/` lleva a `/inicio`, que decide por cuenta.
 
-**Queda pendiente**: «Primeros pasos» ofrece botones de alta a quien sólo lee,
-sea el auditor o el soporte. Llevan a un 403 y no se pintan en gris.
+«Primeros pasos» ofrecía botones de alta a quien sólo lee, sea el auditor o el
+soporte, y llevaban a un 403. Ahora cada paso declara su permiso, y sin él la
+tarjeta lo explica en lugar de pintar el botón (punto 45).
+
+## El administrador que además es de una organización (punto 45)
+
+César pidió contar con ello «por si acaso»: **una sola cuenta** que administra
+la plataforma y trabaja en una organización con su rol. El `CHECK` del punto
+41 se fue. Lo que lo sustituye es de dominio:
+
+- **En su organización es un usuario más.** El contexto se fija por la rama
+  normal de `EstablecerContextoOrganizacion` y decide spatie, con su rol. Sólo
+  va por la rama de soporte si hay clave de soporte en la sesión.
+- **En cualquier otra sólo entra como soporte, y en lectura.**
+  `SesionDeSoporte::activo()` es la única pregunta: plataforma, con contexto,
+  y el contexto no es el suyo. La usan `Gate::before`, `SoporteSoloLectura` y
+  los props compartidos, para que los tres digan lo mismo. **Entrar como
+  soporte en la suya se rechaza** (`SoporteNoPermitido::esLaSuya`).
+- **No ocupa asiento** (`LimitesDelPlan` filtra `es_plataforma`): a los
+  administradores del programa no se les cobra.
+- **No puede ser auditor externo.** Ese rol lleva `acceso_hasta`, y al caducar,
+  `EstadoCuenta` dejaría la cuenta entera fuera, plataforma incluida. Lo
+  impiden `InvitarCuenta` y `CambiarRol`.
+- **El cliente no puede dejarle fuera de Statera.** «Desactivar» a una cuenta
+  de la plataforma la **saca de la organización**: quita el rol del «team», el
+  alcance y el vínculo con su persona, y pone `organizacion_id` a nulo. La
+  traza se escribe antes de soltar la organización, porque después no tendría
+  dónde escribirse. El cliente la ve marcada como «De la plataforma» en su
+  lista de cuentas y en su ficha.
+- **Cómo llega a una organización: sólo por la plataforma, nunca por el
+  cliente.** Lo une `UnirAdministrador`, por uno de estos dos caminos:
+  - al dar de alta una organización con su correo como responsable. Es la
+    única regla de correo que le deja pasar (`CorreoDeCuenta::libre()`);
+  - con `plataforma:administrador correo "Nombre" --organizacion=ID --rol=…`.
+
+  **Un cliente que invita su correo recibe el error genérico de correo en
+  uso.** La primera versión le unía ahí mismo, y la revisión de seguridad lo
+  tumbó con razón: cualquier responsable podía meter a un administrador en su
+  organización sin que éste lo aceptara, y la respuesta le confirmaba que el
+  correo era de la plataforma. `InvitarCuenta` volvió a como estaba.
+- **Una cuenta de cliente puede pasar a administradora**: si
+  `plataforma:administrador` recibe su correo, la promueve
+  (`AltaAdministrador::promover`) en lugar de crear otra, y conserva su
+  organización y su rol. La busca por el proveedor del guard, igual que el
+  login.
+- **Sólo puede ser de una organización**, porque `users.organizacion_id` es una
+  columna y no una relación. Ser de varias es otro modelo de cuentas.
+
+**La plataforma reenvía la invitación de un cliente** desde su ficha: hacía
+falta para el primer responsable, que si deja caducar el enlace no tiene a
+nadie dentro que se lo reenvíe. El parámetro de ruta es `{cuentaId}` y no
+`{cuenta}`, porque ése lo resuelve el binding global acotado al contexto, que
+desde la plataforma no hay. Se acota en el controlador con
+`where('organizacion_id', …)`.

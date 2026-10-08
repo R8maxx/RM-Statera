@@ -677,3 +677,25 @@ y 36 retención RGPD.
     Por el camino, la revisión de seguridad automática encontró que reactivar
     una cuenta desactivada se saltaba el límite de cuentas del 43. Se corrigió
     en el dominio, con su commit aparte.
+
+45. ✅ El administrador que además es de una organización, y los fallos que
+    quedaban del tramo. César pidió contar con que quien administra la
+    plataforma trabaje también en algún cliente, con la misma cuenta. La
+    decisión que lo hace pequeño es que **«estar como soporte» es una sola
+    pregunta**: plataforma, con contexto, y que el contexto no sea el suyo. En
+    la suya decide spatie, y fuera de ella decide la regla de sólo lectura.
+
+    Lo que más costó pensar fue la salida: si el cliente «desactiva» esa
+    cuenta, la estaría echando también de la plataforma. Así que a una cuenta
+    de la plataforma se la saca de la organización, y la cuenta sigue viva.
+
+    Y la entrada se pensó mal la primera vez. Invitar el correo de un
+    administrador le unía a la organización, y la revisión de seguridad lo
+    paró: un cliente podía meter a un administrador sin su consentimiento y,
+    de paso, confirmar de quién era el correo. Ahora sólo une la plataforma.
+
+    De paso se cerró lo que había quedado anotado: «Primeros pasos» ya no
+    ofrece botones a quien sólo lee, la plataforma reenvía la invitación del
+    primer responsable, el login dejó de decir que toda cuenta la crea un
+    responsable, y Larastan quedó sin errores, incluido el de una migración
+    antigua.

@@ -237,6 +237,20 @@ Sección viva. Aquí se anota lo que difiere de `stack-gestor-cumplimiento.md` y
   permiso necesita su migración igual**, y ninguno de los anteriores la llevaba:
   hasta aquí sólo había la base de desarrollo, que se resembraba a mano.
 
+## La cuenta que es además de la plataforma (punto 45)
+
+Una cuenta con `es_plataforma` puede ser de esta organización con su rol. Para
+este módulo cambian tres cosas, y el razonamiento entero está en
+`plataforma.md`:
+
+- **Desactivarla la saca de la organización**, pero la cuenta sigue viva: un
+  cliente no puede dejar fuera de Statera a quien la administra.
+- **No puede tener el rol de auditor**, porque la fecha de fin la dejaría fuera
+  también de la plataforma.
+- **Invitar su correo da el error genérico de correo en uso.** Al cliente no
+  se le dice que es de la plataforma, y no puede unirla: eso sólo lo hace la
+  plataforma (`UnirAdministrador`).
+
 ## Lo que este módulo declara que no hace todavía
 
 - **No acota al auditor en tareas, no conformidades, mejoras ni hallazgos

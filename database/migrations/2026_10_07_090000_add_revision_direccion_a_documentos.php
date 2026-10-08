@@ -107,7 +107,8 @@ return new class extends Migration
             ->where('documento_id', $documentoId)
             ->whereNotNull('numero')
             ->orderByDesc('numero')
-            ->value(DB::raw("instantanea #>> '{extras,revision,codigo}'"));
+            ->selectRaw("instantanea #>> '{extras,revision,codigo}' as codigo")
+            ->value('codigo');
 
         $revisiones = fn () => DB::table('revisiones_direccion')->where('organizacion_id', $organizacionId);
 

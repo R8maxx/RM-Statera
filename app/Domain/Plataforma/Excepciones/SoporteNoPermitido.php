@@ -19,6 +19,11 @@ final class SoporteNoPermitido extends DomainException
         );
     }
 
+    public static function esLaSuya(): self
+    {
+        return new self('Es tu propia organización: ya entras en ella con tu rol, no hace falta el acceso de soporte.');
+    }
+
     public static function duracionFueraDeRango(): self
     {
         return new self('El acceso de soporte dura entre una hora y siete días.');
