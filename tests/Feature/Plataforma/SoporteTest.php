@@ -206,3 +206,13 @@ it('si el cliente cierra y vuelve a abrir, hay que entrar de nuevo', function ()
     $this->actingAs($this->admin)->get('/sistemas')->assertRedirect('/plataforma/organizaciones');
     $this->actingAs($this->admin)->get('/sistemas')->assertForbidden();
 });
+
+it('si le bajan a gestión comercial estando dentro, sale en la siguiente petición', function (): void {
+    abrirVentana($this);
+    entrarComoSoporte($this);
+
+    $this->admin->forceFill(['perfil_plataforma' => 'comercial'])->save();
+
+    $this->actingAs($this->admin->fresh())->get('/sistemas')->assertRedirect('/plataforma/organizaciones');
+    $this->actingAs($this->admin->fresh())->get('/sistemas')->assertForbidden();
+});

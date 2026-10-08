@@ -6,8 +6,10 @@ namespace App\Http\Middleware;
 
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Organizacion\Models\Organizacion;
+use App\Domain\Plataforma\Enums\CapacidadPlataforma;
 use App\Domain\Plataforma\Soporte\SesionDeSoporte;
 use App\Domain\Usuario\Models\CuentaSistema;
+use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -85,7 +87,15 @@ class EstablecerContextoOrganizacion
         $mismaVentana = $organizacion !== null
             && $request->session()->get(SesionDeSoporte::CLAVE_VENTANA) === SesionDeSoporte::ventana($organizacion);
 
-        if ($organizacion === null || ! $organizacion->soporteAbierto() || ! $mismaVentana) {
+        // Y con un perfil que lo siga permitiendo, en cada petición y no sólo al
+        // entrar (punto 49): a quien bajan a Gestión comercial estando dentro,
+        // se le acaba el soporte en su siguiente paso, no cuando cierre la
+        // ventana el cliente.
+        /** @var User $usuario */
+        $usuario = $request->user();
+        $puede = $usuario->puedeEnPlataforma(CapacidadPlataforma::SoporteEntrar);
+
+        if ($organizacion === null || ! $organizacion->soporteAbierto() || ! $mismaVentana || ! $puede) {
             $request->session()->forget([SesionDeSoporte::CLAVE, SesionDeSoporte::CLAVE_VENTANA]);
             Inertia::flash('error', 'El acceso de soporte se ha cerrado: la organización lo cerró o se acabó el plazo.');
 
