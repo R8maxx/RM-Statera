@@ -66,6 +66,41 @@ class EventoPlataforma extends Model
         ]));
     }
 
+    /**
+     * Claves del detalle que no se enseñan nunca, aunque un día alguien las
+     * escriba ahí por error (punto 50). La traza se lee en pantalla y se
+     * exporta a CSV.
+     *
+     * @var list<string>
+     */
+    private const SECRETAS = ['password', 'contrasena', 'token', 'secret', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'];
+
+    /**
+     * El detalle en una línea legible, sin claves secretas: «clave: valor ·
+     * clave: valor». Las listas se unen con comas.
+     */
+    public function detalleLegible(): ?string
+    {
+        $partes = [];
+
+        foreach ($this->detalle ?? [] as $clave => $valor) {
+            if (in_array(mb_strtolower((string) $clave), self::SECRETAS, true) || $valor === null || $valor === []) {
+                continue;
+            }
+
+            $texto = match (true) {
+                is_bool($valor) => $valor ? 'sí' : 'no',
+                is_array($valor) => implode(', ', array_map(static fn ($uno): string => is_scalar($uno) ? (string) $uno : json_encode($uno, JSON_UNESCAPED_UNICODE), $valor)),
+                is_scalar($valor) => (string) $valor,
+                default => (string) json_encode($valor, JSON_UNESCAPED_UNICODE),
+            };
+
+            $partes[] = "{$clave}: {$texto}";
+        }
+
+        return $partes === [] ? null : implode(' · ', $partes);
+    }
+
     /** @return array<string, string> */
     protected function casts(): array
     {

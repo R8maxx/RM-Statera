@@ -6,6 +6,7 @@ use App\Http\Controllers\Plataforma\AdministradorController;
 use App\Http\Controllers\Plataforma\OrganizacionController;
 use App\Http\Controllers\Plataforma\PlanController;
 use App\Http\Controllers\Plataforma\SoporteController;
+use App\Http\Controllers\Plataforma\TrazaController;
 use App\Http\Middleware\SoloPlataforma;
 use Illuminate\Support\Facades\Route;
 
@@ -86,6 +87,11 @@ Route::middleware(['auth', SoloPlataforma::class])
                 ->whereNumber('administrador')
                 ->name('administradores.retirar');
         });
+
+        // La traza de la plataforma, consultable (punto 50).
+        Route::get('/traza', [TrazaController::class, 'index'])
+            ->middleware('plataforma:traza.ver')
+            ->name('traza.index');
 
         // Los planes (punto 43). Sin borrar: se retiran con `activo`, porque
         // el histórico de las suscripciones apunta a ellos.

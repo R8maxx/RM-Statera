@@ -19,7 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { fechaLegible, formatoFechaHora, formatoFechaLarga } from '@/lib/celdas';
 import { SIN_VALOR, conOpcionVacia } from '@/lib/formularios';
-import { router, useForm, usePage } from '@inertiajs/vue3';
+import { Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { LogInIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
@@ -458,7 +458,16 @@ const prevision = computed<string[]>(() => {
                 <Card>
                     <CardHeader>
                         <CardTitle>Lo que ha hecho la plataforma</CardTitle>
-                        <CardDescription>De la traza de la plataforma. Los veinte eventos más recientes.</CardDescription>
+                        <CardDescription>
+                            De la traza de la plataforma. Los veinte eventos más recientes.
+                            <Link
+                                v-if="puede('traza.ver')"
+                                :href="`/plataforma/traza?filter[organizacion_afectada_id]=${cliente.id}`"
+                                class="underline underline-offset-4"
+                            >
+                                Ver toda su traza
+                            </Link>
+                        </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <ol class="divide-y text-sm">

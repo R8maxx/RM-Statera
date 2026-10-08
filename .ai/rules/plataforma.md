@@ -13,6 +13,7 @@ paths:
   - app/Http/Requests/GuardarPlanRequest.php
   - app/Http/Requests/CambiarSuscripcionRequest.php
   - app/Http/Resources/OrganizacionPlataformaRecurso.php
+  - app/Http/Resources/EventoPlataformaRecurso.php
 ---
 
 # La plataforma
@@ -498,3 +499,20 @@ acotar.
 
 Convertir en administradora una cuenta de cliente que ya existe sigue siendo
 cosa de la consola. Desde la web, el correo tiene que estar libre.
+
+## La traza consultable (punto 50)
+
+`/plataforma/traza` (`traza.ver`, de los dos perfiles), con `EventoPlataformaRecurso`
+sobre la capa de recursos. Filtra por acción, por quién, por cliente y por
+fechas, y se exporta a CSV con lo que ya trae `DataTable`. La ficha del cliente
+enlaza con su filtro puesto.
+
+**El detalle sale siempre por `EventoPlataforma::detalleLegible()`**, que se
+salta una lista fija de claves secretas (`password`, `token`, los del segundo
+factor) aunque algún día alguien las escriba ahí por error. Lo que se ve en
+pantalla y lo que se exporta a CSV es lo mismo.
+
+**Y un cerrojo más en el soporte, que encontró la revisión de seguridad:**
+`EstablecerContextoOrganizacion` comprueba `soporte.entrar` en cada petición, y
+no sólo al entrar. A quien bajan a Gestión comercial estando dentro de un
+cliente se le acaba el acceso en su siguiente paso.

@@ -738,3 +738,10 @@ y 36 retención RGPD.
     `ConsultasDeUsuarioAcotadasTest`. Una consulta de administradores se acota
     por `es_plataforma`, no por organización, y el test tenía que aprenderlo
     en vez de que el código lo esquivara con un comentario.
+
+50. ✅ La traza de la plataforma, consultable y exportable: lo que pregunta el
+    auditor de nuestro propio SGSI sobre el acceso privilegiado. Es un recurso
+    más sobre la capa que ya había; lo único propio es que el detalle no enseña
+    nunca una clave secreta. Antes de cerrarlo, la revisión de seguridad del 49
+    encontró que el soporte sobrevivía a un cambio de perfil, y se cerró con su
+    propio commit.

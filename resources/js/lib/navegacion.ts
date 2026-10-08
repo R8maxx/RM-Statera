@@ -31,6 +31,7 @@ import {
     RefreshCwIcon,
     RepeatIcon,
     ScanIcon,
+    ScrollTextIcon,
     SearchCheckIcon,
     ServerCogIcon,
     ServerIcon,
@@ -555,6 +556,13 @@ export const navegacion: GrupoNavegacion[] = [
                 icono: LayersIcon,
                 permiso: 'plataforma.planes.gestionar',
                 alias: ['suscripción', 'límites', 'precio', 'gracia'],
+            },
+            {
+                titulo: 'Traza',
+                href: '/plataforma/traza',
+                icono: ScrollTextIcon,
+                permiso: 'plataforma.traza.ver',
+                alias: ['auditoría', 'registro', 'quién hizo', 'log', 'acceso privilegiado'],
             },
             {
                 titulo: 'Administradores',
