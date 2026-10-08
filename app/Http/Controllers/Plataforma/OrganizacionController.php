@@ -11,11 +11,13 @@ use App\Domain\Plataforma\BajaOrganizacion;
 use App\Domain\Plataforma\CambiarSuscripcion;
 use App\Domain\Plataforma\Enums\AccionPlataforma;
 use App\Domain\Plataforma\Enums\CapacidadPlataforma;
+use App\Domain\Plataforma\Enums\EstadoExportacion;
 use App\Domain\Plataforma\Enums\EstadoSuscripcion;
 use App\Domain\Plataforma\Excepciones\AltaNoPermitida;
 use App\Domain\Plataforma\GuardarFichaComercial;
 use App\Domain\Plataforma\LimitesDelPlan;
 use App\Domain\Plataforma\Models\EventoPlataforma;
+use App\Domain\Plataforma\Models\ExportacionOrganizacion;
 use App\Domain\Plataforma\Models\FichaComercial;
 use App\Domain\Plataforma\Models\Plan;
 use App\Domain\Plataforma\Models\SolicitudPlataforma;
@@ -151,6 +153,31 @@ class OrganizacionController extends Controller
                     ->limit(10)
                     ->get()
                     ->map(fn (SolicitudPlataforma $solicitud): array => RescateController::solicitud($solicitud, $request->user()))
+                    ->values()
+                    ->all()
+                : [],
+            // Las exportaciones de este cliente (punto 56), para quien puede hacerlas.
+            'exportaciones' => $request->user()?->puedeEnPlataforma(CapacidadPlataforma::ClientesExportar) === true
+                ? ExportacionOrganizacion::query()
+                    ->where('organizacion_afectada_id', $organizacion->id)
+                    ->with('solicitante:id,name')
+                    ->orderByDesc('solicitada_en')
+                    ->limit(5)
+                    ->get()
+                    ->map(static fn (ExportacionOrganizacion $exportacion): array => [
+                        'id' => $exportacion->id,
+                        'solicitante' => $exportacion->solicitante?->name,
+                        'solicitadaEn' => $exportacion->solicitada_en->toIso8601String(),
+                        'caducaEn' => $exportacion->caduca_en?->toIso8601String(),
+                        'tamano' => $exportacion->tamano,
+                        'descargable' => $exportacion->estado === EstadoExportacion::Lista,
+                        'estado' => [
+                            'valor' => $exportacion->estado->value,
+                            'etiqueta' => $exportacion->estado->etiqueta(),
+                            'tono' => $exportacion->estado->tono(),
+                            'icono' => $exportacion->estado->icono(),
+                        ],
+                    ])
                     ->values()
                     ->all()
                 : [],

@@ -33,6 +33,9 @@ Schedule::command('avisos:enviar')->dailyAt('07:00')->onOneServer();
 */
 Schedule::command('suscripciones:avisar')->dailyAt('07:15')->onOneServer();
 
+// Los ZIP de exportación de clientes caducan a los siete días (punto 56).
+Schedule::command('exportaciones:borrar-caducadas')->dailyAt('03:30')->onOneServer();
+
 /*
 | El cierre de periodo de los indicadores calculados (§ 4.14, cláusula 9.1).
 |

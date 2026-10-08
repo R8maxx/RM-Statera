@@ -710,3 +710,36 @@ capacidad.
 - **De un trabajo fallido sólo se enseña la clase de la excepción**, no su
   mensaje, que puede llevar una consulta con sus valores o un correo. El
   detalle está en Horizon, detrás de la misma capacidad y del segundo factor.
+
+## Exportar un cliente (punto 56)
+
+«Exportar todos los datos» (`clientes.exportar`, sólo Administración) encola
+`ExportarOrganizacionJob`. El job usa `ConContextoDeOrganizacion`, pasa
+escalares y tiene su propio `failed()`. Deja un ZIP en el disco `adjuntos`, el
+único sin Object Lock, porque caduca a los siete días y
+`exportaciones:borrar-caducadas` (03:30) lo borra. La fila se queda, como
+constancia.
+
+**Lo que lleva:**
+
+- **un NDJSON por cada modelo con `organizacion_id`**, que descubre
+  `ModelosDelCliente`. Un módulo nuevo entra solo; uno que se quedara fuera
+  daría una exportación incompleta sin que fallara nada, que es el peor fallo
+  posible para una exportación;
+- **la propia organización**, aparte, porque no tiene `organizacion_id`;
+- **sus cuentas, sin contraseña ni secretos**;
+- **sus ficheros**, bajo los prefijos de cada módulo;
+- **un `manifiesto.json`** con la fecha, la última migración, los recuentos y
+  la huella SHA-256 de cada fichero.
+
+**Con Eloquent y no con SQL en bruto**, para que los datos personales cifrados
+(punto 35) salgan en claro y `$hidden` se respete. **Dentro del contexto del
+cliente**: lo que no es suyo no está en la consulta, aunque faltara un `where`.
+`ExportacionTest` comprueba que no aparece nada de otra organización.
+
+**La descarga queda en la traza de la plataforma**, porque son todos los datos
+de un cliente y el auditor preguntará quién se los llevó.
+
+**Las tablas de la plataforma no entran** (`fichas_comerciales`,
+`solicitudes_plataforma`…): llevan `organizacion_afectada_id`, son nuestras y
+no del cliente.

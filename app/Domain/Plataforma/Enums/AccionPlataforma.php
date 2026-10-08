@@ -44,6 +44,8 @@ enum AccionPlataforma: string
     case RescateEjecutado = 'rescate_ejecutado';
     case RescateRechazado = 'rescate_rechazado';
     case FichaComercialGuardada = 'ficha_comercial_guardada';
+    case ExportacionSolicitada = 'exportacion_solicitada';
+    case ExportacionDescargada = 'exportacion_descargada';
 
     public function etiqueta(): string
     {
@@ -70,6 +72,8 @@ enum AccionPlataforma: string
             self::RescateEjecutado => 'Rescate de cuenta ejecutado',
             self::RescateRechazado => 'Rescate de cuenta rechazado',
             self::FichaComercialGuardada => 'Ficha comercial guardada',
+            self::ExportacionSolicitada => 'Exportación de los datos solicitada',
+            self::ExportacionDescargada => 'Exportación de los datos descargada',
         };
     }
 }

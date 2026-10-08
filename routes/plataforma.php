@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Plataforma\AdministradorController;
 use App\Http\Controllers\Plataforma\CuadroDeMandoController;
+use App\Http\Controllers\Plataforma\ExportacionController;
 use App\Http\Controllers\Plataforma\OrganizacionController;
 use App\Http\Controllers\Plataforma\PlanController;
 use App\Http\Controllers\Plataforma\RescateController;
@@ -103,6 +104,14 @@ Route::middleware(['auth', SoloPlataforma::class])
             Route::get('/solicitudes', [RescateController::class, 'index'])->name('solicitudes.index');
             Route::post('/solicitudes/{solicitud}/ejecutar', [RescateController::class, 'ejecutar'])->name('solicitudes.ejecutar');
             Route::post('/solicitudes/{solicitud}/rechazar', [RescateController::class, 'rechazar'])->name('solicitudes.rechazar');
+        });
+
+        // Exportar todos los datos de un cliente (punto 56).
+        Route::middleware('plataforma:clientes.exportar')->group(function (): void {
+            Route::post('/organizaciones/{organizacion}/exportaciones', [ExportacionController::class, 'store'])
+                ->name('exportaciones.store');
+            Route::get('/exportaciones/{exportacion}/descargar', [ExportacionController::class, 'descargar'])
+                ->name('exportaciones.descargar');
         });
 
         // La salud del servicio (punto 55).

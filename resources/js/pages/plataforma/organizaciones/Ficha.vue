@@ -123,7 +123,30 @@ const props = defineProps<{
     planes: PlanElegible[];
     /** Los rescates de este cliente (punto 52), vacío para quien no puede resolverlos. */
     rescates: SolicitudRescate[];
+    /** Sus exportaciones (punto 56), vacío para quien no puede hacerlas. */
+    exportaciones: {
+        id: number;
+        solicitante: string | null;
+        solicitadaEn: string;
+        caducaEn: string | null;
+        tamano: number | null;
+        descargable: boolean;
+        estado: { valor: string; etiqueta: string; tono: string; icono: string };
+    }[];
 }>();
+
+/* Exportar todos sus datos (punto 56). */
+const exportando = ref(false);
+
+function exportar(): void {
+    router.post(`/plataforma/organizaciones/${props.cliente.id}/exportaciones`, {}, {
+        preserveScroll: true,
+        onStart: () => (exportando.value = true),
+        onFinish: () => (exportando.value = false),
+    });
+}
+
+const megas = (bytes: number | null): string => (bytes === null ? '' : `${(bytes / 1024 / 1024).toFixed(1)} MB`);
 
 /*
  * Rescatar una cuenta (punto 52). Pedir no cambia nada: deja la solicitud, con
@@ -718,6 +741,38 @@ const prevision = computed<string[]>(() => {
                         <Button v-if="puede('clientes.gestionar')" variant="outline" size="sm" @click="editandoFicha = true">
                             Editar la ficha
                         </Button>
+                    </CardContent>
+                </Card>
+
+                <!-- Exportar todos sus datos (punto 56): antes de cualquier borrado. -->
+                <Card v-if="puede('clientes.exportar')">
+                    <CardHeader>
+                        <CardTitle>Exportar sus datos</CardTitle>
+                        <CardDescription>
+                            Todo lo que guarda, con sus ficheros y un manifiesto con la huella de cada uno. Se prepara en
+                            segundo plano y caduca a los siete días.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent class="space-y-3 text-sm">
+                        <Button variant="outline" size="sm" :disabled="exportando" @click="exportar">Exportar todos los datos</Button>
+                        <ol v-if="exportaciones.length > 0" class="divide-y">
+                            <li v-for="exportacion in exportaciones" :key="exportacion.id" class="flex flex-wrap items-center justify-between gap-2 py-2">
+                                <span class="min-w-0">
+                                    <span class="cifra block text-[13px]">{{ cuando(exportacion.solicitadaEn) }}</span>
+                                    <span class="block text-muted-foreground">
+                                        {{ exportacion.solicitante }}<template v-if="exportacion.tamano"> · {{ megas(exportacion.tamano) }}</template>
+                                    </span>
+                                </span>
+                                <a
+                                    v-if="exportacion.descargable"
+                                    :href="`/plataforma/exportaciones/${exportacion.id}/descargar`"
+                                    class="underline underline-offset-4"
+                                >
+                                    Descargar
+                                </a>
+                                <CeldaBadge v-else :valor="{ ...exportacion.estado }" />
+                            </li>
+                        </ol>
                     </CardContent>
                 </Card>
 

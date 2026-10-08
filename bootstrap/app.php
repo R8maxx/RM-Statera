@@ -11,6 +11,7 @@ use App\Domain\Implantacion\Console\GenerarImplantacionesCommand;
 use App\Domain\Metrica\Console\MedirIndicadoresCommand;
 use App\Domain\Persona\Console\SeudonimizarPersonasCommand;
 use App\Domain\Plataforma\Console\AvisarSuscripcionesCommand;
+use App\Domain\Plataforma\Console\BorrarExportacionesCaducadasCommand;
 use App\Domain\Plataforma\Console\CrearAdministradorCommand;
 use App\Http\Middleware\BloqueoPorInactividad;
 use App\Http\Middleware\CapacidadDePlataforma;
@@ -47,6 +48,7 @@ return Application::configure(basePath: dirname(__DIR__))
         SeudonimizarPersonasCommand::class,
         CrearAdministradorCommand::class,
         AvisarSuscripcionesCommand::class,
+        BorrarExportacionesCaducadasCommand::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         // El orden importa y no es el que sale por defecto.

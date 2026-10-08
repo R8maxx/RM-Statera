@@ -769,3 +769,9 @@ y 36 retención RGPD.
     trabajos fallidos, y por fin un panel de Horizon que alguien puede abrir.
     Lo propio del punto es lo que no se enseña: el payload de un trabajo
     fallido, y la cifra a quien no tiene la capacidad.
+
+56. ✅ Exportar todos los datos de un cliente, antes de cualquier borrado y para
+    la portabilidad del RGPD. Lo que lo hace fiable es que descubre los modelos
+    en vez de enumerarlos y que corre dentro del contexto del cliente. Por el
+    camino, la revisión de seguridad del 55 encontró tres exposiciones en la
+    salud del servicio, que se cerraron en su propio commit.
