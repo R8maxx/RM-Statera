@@ -211,5 +211,5 @@ it('el auditor no puede suprimir', function (): void {
 it('el plazo se guarda desde la ficha de la organización', function (): void {
     $this->actingAs($this->usuario)
         ->get('/organizacion')
-        ->assertInertia(fn ($pagina) => $pagina->where('organizacion.retencion_personas_meses', null));
+        ->assertInertia(fn ($pagina) => $pagina->where('ficha.retencion_personas_meses', null));
 });
