@@ -13,8 +13,10 @@ use App\Domain\Plataforma\Enums\AccionPlataforma;
 use App\Domain\Plataforma\Enums\CapacidadPlataforma;
 use App\Domain\Plataforma\Enums\EstadoSuscripcion;
 use App\Domain\Plataforma\Excepciones\AltaNoPermitida;
+use App\Domain\Plataforma\GuardarFichaComercial;
 use App\Domain\Plataforma\LimitesDelPlan;
 use App\Domain\Plataforma\Models\EventoPlataforma;
+use App\Domain\Plataforma\Models\FichaComercial;
 use App\Domain\Plataforma\Models\Plan;
 use App\Domain\Plataforma\Models\SolicitudPlataforma;
 use App\Domain\Plataforma\Models\TransicionSuscripcion;
@@ -26,6 +28,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\AltaOrganizacionRequest;
 use App\Http\Requests\BajaOrganizacionRequest;
 use App\Http\Requests\CambiarSuscripcionRequest;
+use App\Http\Requests\GuardarFichaComercialRequest;
 use App\Http\Resources\Concerns\RespondeConRecurso;
 use App\Http\Resources\OrganizacionPlataformaRecurso;
 use App\Models\User;
@@ -83,6 +86,8 @@ class OrganizacionController extends Controller
 
     public function show(Request $request, Organizacion $organizacion): Response
     {
+        $comercial = FichaComercial::query()->where('organizacion_afectada_id', $organizacion->id)->first();
+
         $cuentas = User::query()
             ->where('organizacion_id', $organizacion->id)
             ->orderBy('name')
@@ -102,6 +107,13 @@ class OrganizacionController extends Controller
                 'altaEn' => $organizacion->created_at?->toIso8601String(),
                 // La ventana de soporte que abrió el cliente (punto 44), o nula.
                 'soporteHasta' => $organizacion->soporteAbierto() ? $organizacion->soporte_hasta?->toIso8601String() : null,
+                // Lo comercial, de la plataforma (punto 54).
+                'comercial' => [
+                    'contactoNombre' => $comercial?->contacto_nombre,
+                    'contactoEmail' => $comercial?->contacto_email,
+                    'contactoTelefono' => $comercial?->contacto_telefono,
+                    'notas' => $comercial?->notas,
+                ],
                 // La baja (punto 46): desde cuándo y por qué, o nula.
                 'bajaEn' => $organizacion->baja_en?->toIso8601String(),
                 'motivoBaja' => $organizacion->motivo_baja,
@@ -169,6 +181,16 @@ class OrganizacionController extends Controller
         $cambiar($organizacion, $request->plan(), $request->venceEn(), $request->validated('motivo'));
 
         Inertia::flash('exito', 'Suscripción guardada.');
+
+        return to_route('plataforma.organizaciones.show', $organizacion);
+    }
+
+    /** La ficha comercial (punto 54): identificación, contacto y notas. */
+    public function fichaComercial(GuardarFichaComercialRequest $request, Organizacion $organizacion, GuardarFichaComercial $guardar): RedirectResponse
+    {
+        $guardar($organizacion, $request->identificacion(), $request->comercial());
+
+        Inertia::flash('exito', 'Ficha comercial guardada.');
 
         return to_route('plataforma.organizaciones.show', $organizacion);
     }

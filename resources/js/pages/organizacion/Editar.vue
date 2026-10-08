@@ -49,6 +49,8 @@ const props = defineProps<{
     accesoSoporte: { hasta: string | null; horasPorDefecto: number };
     /** La suscripción (punto 51): se cambia en `/organizacion/plan`. Ver `ResumenSuscripcion`. */
     contrato: InstanceType<typeof SuscripcionDestacada>['$props']['contrato'];
+    /** Con quién habla de facturación la plataforma (punto 54), en lectura. */
+    contactoFacturacion: { contacto_nombre: string | null; contacto_email: string | null; contacto_telefono: string | null } | null;
 }>();
 
 /*
@@ -124,6 +126,15 @@ const cambioLaBase = computed(
         >
             <!-- Lo primero, porque suele ser lo que se viene a mirar (punto 51). -->
             <SuscripcionDestacada :contrato="contrato" />
+
+            <!-- En lectura: lo mantiene la plataforma (punto 54). -->
+            <p v-if="contactoFacturacion?.contacto_nombre || contactoFacturacion?.contacto_email" class="text-sm text-muted-foreground">
+                Contacto de facturación:
+                <span class="text-foreground">{{ contactoFacturacion.contacto_nombre }}</span>
+                <template v-if="contactoFacturacion.contacto_email"> · {{ contactoFacturacion.contacto_email }}</template>
+                <template v-if="contactoFacturacion.contacto_telefono"> · {{ contactoFacturacion.contacto_telefono }}</template>.
+                Para cambiarlo, habla con quien te dio de alta en Statera.
+            </p>
 
             <SeccionFormulario
                 titulo="Identificación"

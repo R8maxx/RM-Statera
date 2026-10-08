@@ -662,3 +662,19 @@ otra también.**
 
 El rojo sólo va en sólo lectura y en invitaciones caducadas, que dejan a alguien
 sin poder trabajar. Las cifras a cero se atenúan.
+
+## La ficha comercial (punto 54)
+
+**«Editar la ficha»** (`clientes.gestionar`) escribe en dos sitios, a propósito:
+
+- **La identificación** (nombre, razón social, CIF y sector) va a
+  `organizaciones`, dentro del contexto del cliente. Su traza registra que la
+  plataforma la cambió.
+- **El contacto de facturación y las notas comerciales** van a
+  `fichas_comerciales`, que es de la plataforma y no pasa por la traza del
+  cliente. Es un desvío del plan, que las ponía en `organizaciones`: cada
+  cambio de aquélla se copia a la traza del cliente, así que las notas internas
+  habrían acabado en su traza y en su exportación.
+
+**El cliente ve el contacto de facturación en `/organizacion`, en lectura, y
+las notas nunca.** `FichaComercialTest` comprueba que no viajan en la página.

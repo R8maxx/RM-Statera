@@ -758,3 +758,9 @@ y 36 retención RGPD.
     cuidado estuvo en que la cifra y la lista cuenten lo mismo, porque las dos
     salen de los mismos scopes. Por el camino, la revisión de seguridad del 52
     encontró dos fallos en el rescate, que se cerraron en su propio commit.
+
+54. ✅ La ficha comercial: la plataforma corrige la identificación del cliente
+    y anota su contacto de facturación y sus notas. La decisión fue separar las
+    dos cosas: lo que es del cliente va a su fila y a su traza, y lo que es de
+    la plataforma va a una tabla suya, para que una nota interna no acabe en lo
+    que el cliente puede leer o exportar.

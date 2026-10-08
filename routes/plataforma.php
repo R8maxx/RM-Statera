@@ -57,6 +57,9 @@ Route::middleware(['auth', SoloPlataforma::class])
             Route::post('/organizaciones', [OrganizacionController::class, 'store'])->name('organizaciones.store');
             Route::put('/organizaciones/{organizacion}/suscripcion', [OrganizacionController::class, 'suscripcion'])
                 ->name('organizaciones.suscripcion');
+            // La ficha comercial (punto 54).
+            Route::put('/organizaciones/{organizacion}/ficha', [OrganizacionController::class, 'fichaComercial'])
+                ->name('organizaciones.ficha');
             // `{cuentaId}` y no `{cuenta}`: ése lo resuelve el binding global, acotado a
             // la organización del contexto, que aquí no hay. Se acota en el controlador.
             Route::post('/organizaciones/{organizacion}/cuentas/{cuentaId}/reenviar', [OrganizacionController::class, 'reenviar'])

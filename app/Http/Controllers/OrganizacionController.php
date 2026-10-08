@@ -8,6 +8,7 @@ use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Organizacion\GuardarFichaOrganizacion;
 use App\Domain\Organizacion\Marca\PiezaDeMarca;
 use App\Domain\Organizacion\Models\Organizacion;
+use App\Domain\Plataforma\Models\FichaComercial;
 use App\Domain\Plataforma\ResumenSuscripcion;
 use App\Domain\Plataforma\Soporte\VentanaSoporte;
 use App\Http\Requests\AbrirSoporteRequest;
@@ -71,6 +72,13 @@ class OrganizacionController extends Controller
              * desde la primera migración sin que nadie lo invocara.
              */
             'leAplicaElEns' => $organizacion->leAplicaElEns(),
+
+            // Con quién habla de facturación la plataforma (punto 54). En
+            // lectura, y sin las notas comerciales, que son sólo de la plataforma.
+            'contactoFacturacion' => FichaComercial::query()
+                ->where('organizacion_afectada_id', $organizacion->id)
+                ->first(['contacto_nombre', 'contacto_email', 'contacto_telefono'])
+                ?->only(['contacto_nombre', 'contacto_email', 'contacto_telefono']),
 
             /*
              * La suscripción, que es lo primero de la pantalla (punto 51): plan,

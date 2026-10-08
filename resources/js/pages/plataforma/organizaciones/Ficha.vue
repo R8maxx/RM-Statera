@@ -108,6 +108,13 @@ const props = defineProps<{
         soporteHasta: string | null;
         bajaEn: string | null;
         motivoBaja: string | null;
+        /** De la plataforma (punto 54). Las notas no las ve nunca el cliente. */
+        comercial: {
+            contactoNombre: string | null;
+            contactoEmail: string | null;
+            contactoTelefono: string | null;
+            notas: string | null;
+        };
     };
     cuentas: Cuenta[];
     invitadas: number;
@@ -155,6 +162,26 @@ function pedirResponsable(): void {
     rescate.clearErrors();
     rescate.tipo = 'designar_responsable';
     rescatando.value = true;
+}
+
+/* La ficha comercial (punto 54): identificación, contacto de facturación y notas. */
+const editandoFicha = ref(false);
+const ficha = useForm({
+    nombre: props.cliente.nombre,
+    razon_social: props.cliente.razonSocial ?? '',
+    cif: props.cliente.cif ?? '',
+    sector: props.cliente.sector ?? '',
+    contacto_nombre: props.cliente.comercial.contactoNombre ?? '',
+    contacto_email: props.cliente.comercial.contactoEmail ?? '',
+    contacto_telefono: props.cliente.comercial.contactoTelefono ?? '',
+    notas: props.cliente.comercial.notas ?? '',
+});
+
+function guardarFicha(): void {
+    ficha.put(`/plataforma/organizaciones/${props.cliente.id}/ficha`, {
+        preserveScroll: true,
+        onSuccess: () => (editandoFicha.value = false),
+    });
 }
 
 const cuentaElegida = computed(() => props.cuentas.find((cuenta) => String(cuenta.id) === rescate.cuenta_id));
@@ -665,7 +692,7 @@ const prevision = computed<string[]>(() => {
                     <CardHeader>
                         <CardTitle>Ficha</CardTitle>
                     </CardHeader>
-                    <CardContent class="text-sm">
+                    <CardContent class="space-y-3 text-sm">
                         <dl class="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-4 gap-y-2.5">
                             <dt class="text-muted-foreground">Razón social</dt>
                             <dd>{{ cliente.razonSocial ?? '—' }}</dd>
@@ -675,7 +702,22 @@ const prevision = computed<string[]>(() => {
                             <dd>{{ cliente.sector ?? '—' }}</dd>
                             <dt class="text-muted-foreground">Alta</dt>
                             <dd class="cifra text-[13px]">{{ cuando(cliente.altaEn) }}</dd>
+                            <dt class="text-muted-foreground">Facturación</dt>
+                            <dd>
+                                <template v-if="cliente.comercial.contactoNombre || cliente.comercial.contactoEmail">
+                                    {{ cliente.comercial.contactoNombre }}
+                                    <span v-if="cliente.comercial.contactoEmail" class="block text-muted-foreground">{{ cliente.comercial.contactoEmail }}</span>
+                                    <span v-if="cliente.comercial.contactoTelefono" class="block text-muted-foreground">{{ cliente.comercial.contactoTelefono }}</span>
+                                </template>
+                                <template v-else>—</template>
+                            </dd>
                         </dl>
+                        <p v-if="cliente.comercial.notas" class="whitespace-pre-line rounded-md bg-muted px-3 py-2 text-[13px]">
+                            {{ cliente.comercial.notas }}
+                        </p>
+                        <Button v-if="puede('clientes.gestionar')" variant="outline" size="sm" @click="editandoFicha = true">
+                            Editar la ficha
+                        </Button>
                     </CardContent>
                 </Card>
 
@@ -778,6 +820,55 @@ const prevision = computed<string[]>(() => {
                     <DialogFooter>
                         <Button type="button" variant="outline" @click="rescatando = false">Cancelar</Button>
                         <Button type="submit" :disabled="rescate.processing">Dejar la solicitud</Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+        <Dialog v-model:open="editandoFicha">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Editar la ficha de {{ cliente.nombre }}</DialogTitle>
+                    <DialogDescription>
+                        La identificación es también la del cliente, y el cambio queda en su traza. El contacto de
+                        facturación lo ve el cliente; las notas son sólo de la plataforma.
+                    </DialogDescription>
+                </DialogHeader>
+                <form class="grid gap-4" @submit.prevent="guardarFicha">
+                    <CampoTexto v-model="ficha.nombre" nombre="nombre" etiqueta="Nombre" :error="ficha.errors.nombre" requerido />
+                    <CampoTexto v-model="ficha.razon_social" nombre="razon_social" etiqueta="Razón social" :error="ficha.errors.razon_social" />
+                    <CampoTexto v-model="ficha.cif" nombre="cif" etiqueta="CIF" :error="ficha.errors.cif" />
+                    <CampoTexto v-model="ficha.sector" nombre="sector" etiqueta="Sector" :error="ficha.errors.sector" />
+                    <CampoTexto
+                        v-model="ficha.contacto_nombre"
+                        nombre="contacto_nombre"
+                        etiqueta="Contacto de facturación"
+                        :error="ficha.errors.contacto_nombre"
+                    />
+                    <CampoTexto
+                        v-model="ficha.contacto_email"
+                        nombre="contacto_email"
+                        etiqueta="Su correo"
+                        tipo="email"
+                        :error="ficha.errors.contacto_email"
+                    />
+                    <CampoTexto
+                        v-model="ficha.contacto_telefono"
+                        nombre="contacto_telefono"
+                        etiqueta="Su teléfono"
+                        tipo="tel"
+                        :error="ficha.errors.contacto_telefono"
+                    />
+                    <CampoTextarea
+                        v-model="ficha.notas"
+                        nombre="notas"
+                        etiqueta="Notas comerciales"
+                        :filas="3"
+                        :error="ficha.errors.notas"
+                        ayuda="Sólo de la plataforma: el cliente no las ve nunca."
+                    />
+                    <DialogFooter>
+                        <Button type="button" variant="outline" @click="editandoFicha = false">Cancelar</Button>
+                        <Button type="submit" :disabled="ficha.processing">Guardar</Button>
                     </DialogFooter>
                 </form>
             </DialogContent>
