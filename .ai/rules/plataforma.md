@@ -267,9 +267,15 @@ el botón de salir siempre a mano.
 ## Desvíos respecto al plan
 
 - **`DesarrolloSeeder` no pasa por `AltaOrganizacion`.** El seeder necesita
-  cuentas con contraseña conocida y activas, y la receta las invita. Lo que sí
-  hace es sembrar un administrador sintético, `plataforma@statera.test`, con la
-  contraseña de desarrollo.
+  cuentas con contraseña conocida y activas, y la receta las invita. Siembra
+  `plataforma@statera.test` (administrador sin organización),
+  `plataforma.miembro@statera.test` (administradora y técnica de la
+  organización de pruebas) y, en `escenariosDePlataforma()`, un cliente por
+  cada estado: vigente con soporte abierto, por vencer, en gracia, en sólo
+  lectura, de baja y sin estrenar. Cada uno tiene su `responsable@<cliente>.test`.
+  Todas las cuentas usan la contraseña de desarrollo, salvo la del cliente sin
+  estrenar, que está invitada. Las fechas son relativas a hoy, así que el
+  escenario no caduca.
 
 ## Lo que la plataforma declara que no hace todavía
 

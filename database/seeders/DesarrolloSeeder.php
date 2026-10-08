@@ -181,6 +181,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * Datos con los que arrancar en local.
@@ -234,6 +235,7 @@ class DesarrolloSeeder extends Seeder
         $this->usuario($organizacion, 'auditor@statera.test', 'Auditor externo', Rol::Auditor);
 
         $this->administradorDePlataforma();
+        $this->escenariosDePlataforma($organizacion);
 
         $marco = Marco::query()->where('codigo', 'ENS-RD311-2022')->first();
 
@@ -2623,6 +2625,108 @@ class DesarrolloSeeder extends Seeder
             ['codigo' => 'profesional'],
             ['nombre' => 'Profesional', 'limite_cuentas' => 25, 'limite_sistemas' => 5, 'dias_gracia' => 30],
         );
+    }
+
+    /**
+     * Lo necesario para probar la plataforma a mano (puntos 41 a 47): un
+     * cliente en cada estado que tiene algo distinto que enseñar.
+     *
+     * | Cliente | Lo que se prueba con él |
+     * |---|---|
+     * | Cliente vigente | Plan Profesional sin vencer y la ventana de soporte abierta: «Entrar como soporte». |
+     * | Cliente por vencer | Vence en seis días: `suscripciones:avisar` le manda «vence en una semana». |
+     * | Cliente en gracia | Venció hace cinco días: franja de aviso, pero se escribe. |
+     * | Cliente en sólo lectura | Venció hace cuarenta: franja roja y ninguna escritura. |
+     * | Cliente de baja | Nadie entra: el login lo dice, y se reactiva desde su ficha. |
+     * | Cliente sin estrenar | El responsable no ha aceptado: «Reenviar la invitación». |
+     *
+     * El responsable de cada uno es `responsable@<cliente>.test`, con la
+     * contraseña de desarrollo, salvo el de «sin estrenar», que está invitado y
+     * todavía no tiene ninguna. Y `plataforma.miembro@statera.test` administra
+     * la plataforma y es además técnica de la organización de pruebas (punto
+     * 45).
+     *
+     * **Idempotente**: cada cliente se busca por su CIF, y las fechas se vuelven
+     * a poner relativas a hoy en cada pasada, para que el escenario no caduque
+     * de un día para otro. Se escribe dentro del contexto de cada cliente con
+     * `paraOrganizacion()`, que devuelve el de la organización de pruebas al
+     * terminar.
+     */
+    private function escenariosDePlataforma(Organizacion $pruebas): void
+    {
+        $basica = Plan::query()->where('codigo', 'basica')->firstOrFail();
+        $profesional = Plan::query()->where('codigo', 'profesional')->firstOrFail();
+
+        // Administra la plataforma y trabaja en la organización de pruebas.
+        $this->usuario($pruebas, 'plataforma.miembro@statera.test', 'Plataforma y técnica', Rol::Tecnico);
+        User::query()
+            ->where('organizacion_id', $pruebas->id)
+            ->where('email', 'plataforma.miembro@statera.test')
+            ->update(['es_plataforma' => true]);
+
+        /** @var list<array{0: string, 1: string, 2: string, 3: ?Plan, 4: ?Carbon, 5: array<string, mixed>}> $clientes */
+        $clientes = [
+            ['B10000001', 'Cliente vigente', 'vigente', $profesional, now()->addYear(), []],
+            ['B10000002', 'Cliente por vencer', 'por-vencer', $basica, now()->addDays(6), []],
+            ['B10000003', 'Cliente en gracia', 'en-gracia', $basica, now()->subDays(5), []],
+            ['B10000004', 'Cliente en sólo lectura', 'solo-lectura', $basica, now()->subDays(40), []],
+            ['B10000005', 'Cliente de baja', 'de-baja', $basica, now()->addMonths(3), [
+                'activa' => false,
+                'baja_en' => now()->subDays(10),
+                'motivo_baja' => 'Fin del contrato (sintético, del seeder)',
+            ]],
+            ['B10000006', 'Cliente sin estrenar', 'sin-estrenar', null, null, []],
+        ];
+
+        foreach ($clientes as [$cif, $nombre, $clave, $plan, $vence, $extra]) {
+            $cliente = Organizacion::query()->firstOrCreate(
+                ['cif' => $cif],
+                ['nombre' => $nombre, 'razon_social' => "{$nombre}, S.L.", 'sector' => 'Servicios digitales', 'activa' => true],
+            );
+
+            app(ContextoOrganizacion::class)->paraOrganizacion($cliente, function () use ($cliente, $clave, $nombre, $plan, $vence, $extra): void {
+                app(SembrarRoles::class)->paraOrganizacion($cliente);
+
+                $cliente->forceFill([
+                    'plan_id' => $plan?->id,
+                    'suscripcion_inicia_en' => $plan === null ? null : now()->subYear(),
+                    'suscripcion_vence_en' => $vence?->copy()->endOfDay(),
+                    'soporte_hasta' => $clave === 'vigente' ? now()->addDays(3) : null,
+                    'activa' => true,
+                    'baja_en' => null,
+                    'motivo_baja' => null,
+                    ...$extra,
+                ])->save();
+
+                if ($clave === 'sin-estrenar') {
+                    $this->invitado($cliente, "responsable@{$clave}.test", "Responsable de {$nombre}");
+
+                    return;
+                }
+
+                $this->usuario($cliente, "responsable@{$clave}.test", "Responsable de {$nombre}", Rol::ResponsableSeguridad);
+            });
+        }
+    }
+
+    /**
+     * Una cuenta con la invitación pendiente: sin contraseña conocida y sin
+     * `activada_en`. Para probar «Reenviar la invitación» desde la plataforma;
+     * el enlace sale en el log de Laravel.
+     */
+    private function invitado(Organizacion $organizacion, string $email, string $nombre): void
+    {
+        $usuario = User::query()->firstOrCreate(
+            ['email' => $email],
+            [
+                'name' => $nombre,
+                'password' => Str::password(64),
+                'organizacion_id' => $organizacion->id,
+            ],
+        );
+
+        $usuario->forceFill(['invitada_en' => now(), 'activada_en' => null])->save();
+        $usuario->syncRoles([Rol::ResponsableSeguridad->value]);
     }
 
     /** Alta idempotente de un usuario con su rol. Contraseña de desarrollo. */
