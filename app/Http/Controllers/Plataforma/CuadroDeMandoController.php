@@ -6,6 +6,8 @@ namespace App\Http\Controllers\Plataforma;
 
 use App\Domain\Plataforma\CuadroDeMando;
 use App\Http\Controllers\Controller;
+use App\Models\User;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -15,8 +17,11 @@ use Inertia\Response;
  */
 class CuadroDeMandoController extends Controller
 {
-    public function index(CuadroDeMando $cuadro): Response
+    public function index(Request $request, CuadroDeMando $cuadro): Response
     {
-        return Inertia::render('plataforma/Inicio', ['cifras' => $cuadro->cifras()]);
+        /** @var User $yo */
+        $yo = $request->user();
+
+        return Inertia::render('plataforma/Inicio', ['cifras' => $cuadro->cifras($yo)]);
     }
 }

@@ -23,7 +23,8 @@ interface Cifras {
     deBaja: number;
     soporteAbierto: number;
     invitacionesCaducadas: number;
-    rescatesPendientes: number;
+    /** Nula para quien no puede rescatar cuentas: ni se calcula ni viaja. */
+    rescatesPendientes: number | null;
 }
 
 const props = defineProps<{ cifras: Cifras }>();
@@ -51,8 +52,10 @@ const tarjetas: Tarjeta[] = [
     { clave: 'deBaja', titulo: 'De baja', explicacion: 'Sin acceso; todo lo suyo se conserva.', href: '/plataforma/organizaciones?filter[de_baja]=1' },
 ];
 
-const visibles = computed(() => tarjetas.filter((tarjeta) => !tarjeta.capacidad || puede(tarjeta.capacidad)));
-const valor = (tarjeta: Tarjeta): number => props.cifras[tarjeta.clave];
+const visibles = computed(() =>
+    tarjetas.filter((tarjeta) => (!tarjeta.capacidad || puede(tarjeta.capacidad)) && props.cifras[tarjeta.clave] !== null),
+);
+const valor = (tarjeta: Tarjeta): number => props.cifras[tarjeta.clave] ?? 0;
 </script>
 
 <template>

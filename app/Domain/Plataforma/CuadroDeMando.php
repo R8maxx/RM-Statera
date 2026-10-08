@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Plataforma;
 
 use App\Domain\Organizacion\Models\Organizacion;
+use App\Domain\Plataforma\Enums\CapacidadPlataforma;
 use App\Domain\Plataforma\Enums\EstadoSolicitud;
 use App\Domain\Plataforma\Models\SolicitudPlataforma;
 use App\Domain\Usuario\EnviarInvitacion;
@@ -21,9 +22,14 @@ use Illuminate\Support\Carbon;
 final class CuadroDeMando
 {
     /**
-     * @return array{clientes: int, vencenPronto: int, enGracia: int, enSoloLectura: int, sobreSuPlan: int, deBaja: int, soporteAbierto: int, invitacionesCaducadas: int, rescatesPendientes: int}
+     * **Cada cifra se calcula sólo para quien puede actuar sobre ella.** Los
+     * rescates pendientes son de Administración: a Gestión comercial no se le
+     * calcula ni se le manda, y no basta con esconder la tarjeta, porque la
+     * cifra viajaría igual en los props. Lo encontró la revisión de seguridad.
+     *
+     * @return array{clientes: int, vencenPronto: int, enGracia: int, enSoloLectura: int, sobreSuPlan: int, deBaja: int, soporteAbierto: int, invitacionesCaducadas: int, rescatesPendientes: ?int}
      */
-    public function cifras(): array
+    public function cifras(User $quien): array
     {
         return [
             'clientes' => Organizacion::query()->whereNull('baja_en')->count(),
@@ -34,7 +40,7 @@ final class CuadroDeMando
             'deBaja' => Organizacion::query()->deBaja()->count(),
             'soporteAbierto' => Organizacion::query()->conSoporteAbierto()->count(),
             'invitacionesCaducadas' => $this->invitacionesCaducadas(),
-            'rescatesPendientes' => $this->rescatesPendientes(),
+            'rescatesPendientes' => $quien->puedeEnPlataforma(CapacidadPlataforma::CuentasRescatar) ? $this->rescatesPendientes() : null,
         ];
     }
 

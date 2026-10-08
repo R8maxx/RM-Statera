@@ -85,3 +85,11 @@ it('gestión comercial también lo ve, y es la casa de la plataforma', function 
     $this->actingAs($comercial)->get('/plataforma')->assertOk();
     $this->actingAs($comercial)->get('/inicio')->assertRedirect('/plataforma');
 });
+
+it('a gestión comercial no le manda los rescates pendientes, ni siquiera la cifra', function (): void {
+    $this->actingAs(verPlataforma(PerfilPlataforma::Comercial))->get('/plataforma')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina->where('cifras.rescatesPendientes', null));
+
+    $this->actingAs(verPlataforma())->get('/plataforma')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina->where('cifras.rescatesPendientes', 0));
+});
