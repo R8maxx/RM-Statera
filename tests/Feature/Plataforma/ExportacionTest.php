@@ -93,6 +93,8 @@ it('deja un ZIP con un NDJSON por modelo, sus ficheros y el manifiesto', functio
 
     $manifiesto = json_decode($zip['manifiesto.json'], true);
     expect($manifiesto['recuentos']['Sistema'])->toBe(1)
+        ->and($manifiesto['recuentos']['Cuentas'])->toBe(1)
+        ->and($manifiesto['recuentos']['Ficheros'])->toBe(1)
         ->and($manifiesto['huellas']["ficheros/evidencias/{$this->una->id}/2026/acta.pdf"])->toBe(hash('sha256', 'contenido del acta'));
 });
 

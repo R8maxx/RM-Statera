@@ -1,5 +1,12 @@
 # Administración de la plataforma: lo que falta para operar con clientes reales
 
+> **Cerrado.** Hecho entero, con el recorrido en el navegador. **La numeración
+> se corrió en uno** porque otra sesión ocupó el 51 (la organización elige su
+> plan): aquí 51 es el rescate y 56 la purga; en el repositorio son el 52 y el
+> 57. Lo vigente —qué se decidió y por qué— está en `.ai/rules/plataforma.md` y
+> en la bitácora (`.ai/rules/orden-de-arranque.md`, puntos 48 a 57). Este
+> fichero se queda como el plan tal como se aprobó.
+
 ## Contexto
 
 La plataforma ya da de alta, cobra en modelo, avisa, da de baja y entra como soporte (puntos 41-47). Para operar con clientes reales faltan estas piezas:

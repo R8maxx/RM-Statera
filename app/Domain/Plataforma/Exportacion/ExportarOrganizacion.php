@@ -80,18 +80,22 @@ final class ExportarOrganizacion
             $huellas[$nombre] = hash('sha256', $contenido);
         }
 
-        $cuentas = User::query()
+        $lineasDeCuentas = User::query()
             ->where('organizacion_id', $organizacion->id)
             ->get(self::CAMPOS_DE_CUENTA)
-            ->map(static fn (User $cuenta): string => (string) json_encode([...$cuenta->only(self::CAMPOS_DE_CUENTA), 'rol' => $cuenta->rol()?->value], JSON_UNESCAPED_UNICODE))
-            ->implode("\n");
+            ->map(static fn (User $cuenta): string => (string) json_encode([...$cuenta->only(self::CAMPOS_DE_CUENTA), 'rol' => $cuenta->rol()?->value], JSON_UNESCAPED_UNICODE));
+        $cuentas = $lineasDeCuentas->implode("\n");
         $zip->addFromString('datos/cuentas.ndjson', $cuentas);
+        $recuentos['Cuentas'] = $lineasDeCuentas->count();
         $huellas['datos/cuentas.ndjson'] = hash('sha256', $cuentas);
+
+        $recuentos['Ficheros'] = 0;
 
         foreach ($this->ficheros($organizacion) as [$disco, $ruta]) {
             $contenido = (string) Storage::disk($disco)->get($ruta);
             $nombre = "ficheros/{$disco}/{$ruta}";
             $zip->addFromString($nombre, $contenido);
+            $recuentos['Ficheros']++;
             $huellas[$nombre] = hash('sha256', $contenido);
         }
 

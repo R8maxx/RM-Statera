@@ -76,6 +76,18 @@ Cuatro cosas que una hoja de cálculo no hace, y que un gestor de cumplimiento g
 | Control de acceso por organización en la consulta | Las tres capas, más el alcance del auditor. La validación de responsables también va acotada desde el punto 31 |
 | Registro de sesiones y bloqueo por inactividad | Desde el § 4.19 |
 
+**Y la plataforma para operar con clientes**, puntos 41 a 57, fuera de cualquier organización y fuera de las tres capas:
+
+- **alta de organizaciones** con su responsable invitado, y la ficha como primer paso del cliente;
+- **plan y suscripción modelados**, sin cobrar: límites de cuentas y sistemas, aviso de vencimiento por correo, gracia y sólo lectura;
+- **dos perfiles**, Administración y Gestión comercial, con una capacidad en cada ruta;
+- **soporte de sólo lectura**, y sólo por la ventana que abre el cliente;
+- **rescate de cuentas con dos personas**: restablecer el segundo factor o designar un nuevo responsable;
+- **cuadro de mando** y **ficha comercial** del cliente;
+- **traza de la plataforma** consultable y exportable;
+- **salud del servicio**: copias, colas, trabajos fallidos y Horizon;
+- **baja reversible** de un cliente; **exportación completa** de sus datos desde la web, y **borrado definitivo** sólo por consola, tras noventa días de baja.
+
 **Pendiente de los 19 módulos:** la vía de conformidad de categoría media y alta —ENAC y certificación—, que **se modela y no se recorre**, como pide la especificación.
 
 **Huecos conocidos que no son un módulo de la lista.** Se anotan aquí porque la lista de diecinueve no los recoge y descubrirlos cuesta una tarde.
