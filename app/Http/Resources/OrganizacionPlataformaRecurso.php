@@ -64,6 +64,13 @@ final class OrganizacionPlataformaRecurso extends Recurso
             Columna::texto('nombre', 'Nombre')->ordenable()->anclada(),
             Columna::texto('razon_social', 'Razón social')->ordenable(),
             Columna::texto('cif', 'CIF')->ancho('9rem'),
+            // Activa o de baja (punto 46). Sin rojo: una baja es una decisión,
+            // no algo que vaya mal.
+            Columna::badge('estado', 'Estado')
+                ->ancho('8rem')
+                ->formato(fn (Organizacion $fila): ValorEtiquetado => $fila->estaDeBaja()
+                    ? new ValorEtiquetado('baja', 'De baja', 'no_aplica', 'Archive')
+                    : new ValorEtiquetado('activa', 'Activa', 'implantado', 'CircleCheck')),
             Columna::texto('plan_nombre', 'Plan')
                 ->ancho('11rem')
                 ->formato(fn (Organizacion $fila): string => (string) ($fila->getAttribute('plan_nombre') ?? 'Sin plan')),

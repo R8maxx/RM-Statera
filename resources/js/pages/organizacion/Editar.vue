@@ -37,7 +37,7 @@ interface Organizacion {
 }
 
 const props = defineProps<{
-    organizacion: Organizacion;
+    ficha: Organizacion;
     /** Las dos piezas, con su URL servida o nula. Las compone el servidor. */
     marca: { logo: string | null; simbolo: string | null };
     /** Derivado en el servidor: `Organizacion::leAplicaElEns()`. */
@@ -63,9 +63,9 @@ const props = defineProps<{
  * El resto de campos no lo necesita y va por `valor-inicial`, leyéndose del
  * `FormData` como en todo el producto.
  */
-const sujetoObligado = ref(props.organizacion.sujeto_obligado_ens);
-const proveedorPublico = ref(props.organizacion.proveedor_sector_publico);
-const baseEtiquetas = ref(props.organizacion.url_base_etiquetas ?? '');
+const sujetoObligado = ref(props.ficha.sujeto_obligado_ens);
+const proveedorPublico = ref(props.ficha.proveedor_sector_publico);
+const baseEtiquetas = ref(props.ficha.url_base_etiquetas ?? '');
 
 const aplicaElEns = computed(() => sujetoObligado.value || proveedorPublico.value);
 
@@ -112,7 +112,7 @@ function cerrarSoporte(): void {
 }
 
 const cambioLaBase = computed(
-    () => baseEtiquetas.value.trim() !== (props.organizacion.url_base_etiquetas ?? ''),
+    () => baseEtiquetas.value.trim() !== (props.ficha.url_base_etiquetas ?? ''),
 );
 </script>
 
@@ -135,7 +135,7 @@ const cambioLaBase = computed(
                     <CampoTexto
                         nombre="nombre"
                         etiqueta="Nombre comercial"
-                        :valor-inicial="organizacion.nombre"
+                        :valor-inicial="ficha.nombre"
                         :error="errors.nombre"
                         ayuda="El que aparece en el menú lateral y en los correos."
                         requerido
@@ -144,7 +144,7 @@ const cambioLaBase = computed(
                     <CampoTexto
                         nombre="razon_social"
                         etiqueta="Razón social"
-                        :valor-inicial="organizacion.razon_social ?? ''"
+                        :valor-inicial="ficha.razon_social ?? ''"
                         :error="errors.razon_social"
                         placeholder="Talleres Merino y Asociados, S.L."
                         ayuda="Si se deja en blanco, los documentos siguen imprimiendo el nombre comercial."
@@ -153,7 +153,7 @@ const cambioLaBase = computed(
                     <CampoTexto
                         nombre="cif"
                         etiqueta="CIF"
-                        :valor-inicial="organizacion.cif ?? ''"
+                        :valor-inicial="ficha.cif ?? ''"
                         :error="errors.cif"
                         class="cifra"
                         ayuda="Se guarda en mayúsculas y sin guiones. No se comprueba la letra: un NIE o un identificador extranjero no siguen la misma regla."
@@ -162,7 +162,7 @@ const cambioLaBase = computed(
                     <CampoTexto
                         nombre="sector"
                         etiqueta="Sector"
-                        :valor-inicial="organizacion.sector ?? ''"
+                        :valor-inicial="ficha.sector ?? ''"
                         :error="errors.sector"
                         placeholder="Servicios digitales"
                     />
@@ -176,7 +176,7 @@ const cambioLaBase = computed(
                 <CampoTexto
                     nombre="domicilio"
                     etiqueta="Domicilio"
-                    :valor-inicial="organizacion.domicilio ?? ''"
+                    :valor-inicial="ficha.domicilio ?? ''"
                     :error="errors.domicilio"
                     placeholder="Calle del Tinte, 14"
                 />
@@ -185,7 +185,7 @@ const cambioLaBase = computed(
                     <CampoTexto
                         nombre="codigo_postal"
                         etiqueta="Código postal"
-                        :valor-inicial="organizacion.codigo_postal ?? ''"
+                        :valor-inicial="ficha.codigo_postal ?? ''"
                         :error="errors.codigo_postal"
                         inputmode="numeric"
                         class="cifra"
@@ -194,14 +194,14 @@ const cambioLaBase = computed(
                     <CampoTexto
                         nombre="municipio"
                         etiqueta="Municipio"
-                        :valor-inicial="organizacion.municipio ?? ''"
+                        :valor-inicial="ficha.municipio ?? ''"
                         :error="errors.municipio"
                     />
 
                     <CampoTexto
                         nombre="provincia"
                         etiqueta="Provincia"
-                        :valor-inicial="organizacion.provincia ?? ''"
+                        :valor-inicial="ficha.provincia ?? ''"
                         :error="errors.provincia"
                     />
                 </FilaCampos>
@@ -255,7 +255,7 @@ const cambioLaBase = computed(
                         nombre="reevaluacion_proveedor_alta_meses"
                         etiqueta="Criticidad alta"
                         tipo="number"
-                        :valor-inicial="String(organizacion.reevaluacion_proveedor_alta_meses)"
+                        :valor-inicial="String(ficha.reevaluacion_proveedor_alta_meses)"
                         :error="errors.reevaluacion_proveedor_alta_meses"
                         ayuda="En meses."
                         requerido
@@ -264,7 +264,7 @@ const cambioLaBase = computed(
                         nombre="reevaluacion_proveedor_media_meses"
                         etiqueta="Criticidad media"
                         tipo="number"
-                        :valor-inicial="String(organizacion.reevaluacion_proveedor_media_meses)"
+                        :valor-inicial="String(ficha.reevaluacion_proveedor_media_meses)"
                         :error="errors.reevaluacion_proveedor_media_meses"
                         ayuda="En meses."
                         requerido
@@ -273,7 +273,7 @@ const cambioLaBase = computed(
                         nombre="reevaluacion_proveedor_baja_meses"
                         etiqueta="Criticidad baja"
                         tipo="number"
-                        :valor-inicial="String(organizacion.reevaluacion_proveedor_baja_meses)"
+                        :valor-inicial="String(ficha.reevaluacion_proveedor_baja_meses)"
                         :error="errors.reevaluacion_proveedor_baja_meses"
                         ayuda="En meses."
                         requerido
@@ -290,7 +290,7 @@ const cambioLaBase = computed(
                         nombre="plazo_vulnerabilidad_critica_dias"
                         etiqueta="Crítica"
                         tipo="number"
-                        :valor-inicial="String(organizacion.plazo_vulnerabilidad_critica_dias)"
+                        :valor-inicial="String(ficha.plazo_vulnerabilidad_critica_dias)"
                         :error="errors.plazo_vulnerabilidad_critica_dias"
                         ayuda="En días."
                         requerido
@@ -299,7 +299,7 @@ const cambioLaBase = computed(
                         nombre="plazo_vulnerabilidad_alta_dias"
                         etiqueta="Alta"
                         tipo="number"
-                        :valor-inicial="String(organizacion.plazo_vulnerabilidad_alta_dias)"
+                        :valor-inicial="String(ficha.plazo_vulnerabilidad_alta_dias)"
                         :error="errors.plazo_vulnerabilidad_alta_dias"
                         ayuda="En días."
                         requerido
@@ -308,7 +308,7 @@ const cambioLaBase = computed(
                         nombre="plazo_vulnerabilidad_media_dias"
                         etiqueta="Media"
                         tipo="number"
-                        :valor-inicial="String(organizacion.plazo_vulnerabilidad_media_dias)"
+                        :valor-inicial="String(ficha.plazo_vulnerabilidad_media_dias)"
                         :error="errors.plazo_vulnerabilidad_media_dias"
                         ayuda="En días."
                         requerido
@@ -317,7 +317,7 @@ const cambioLaBase = computed(
                         nombre="plazo_vulnerabilidad_baja_dias"
                         etiqueta="Baja"
                         tipo="number"
-                        :valor-inicial="String(organizacion.plazo_vulnerabilidad_baja_dias)"
+                        :valor-inicial="String(ficha.plazo_vulnerabilidad_baja_dias)"
                         :error="errors.plazo_vulnerabilidad_baja_dias"
                         ayuda="En días."
                         requerido
@@ -334,7 +334,7 @@ const cambioLaBase = computed(
                         nombre="retencion_personas_meses"
                         etiqueta="Plazo tras la baja"
                         tipo="number"
-                        :valor-inicial="organizacion.retencion_personas_meses === null ? '' : String(organizacion.retencion_personas_meses)"
+                        :valor-inicial="ficha.retencion_personas_meses === null ? '' : String(ficha.retencion_personas_meses)"
                         :error="errors.retencion_personas_meses"
                         ayuda="En meses, de 1 a 600."
                     />

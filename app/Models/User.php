@@ -84,6 +84,15 @@ class User extends Authenticatable implements PasskeyUser
     }
 
     /**
+     * Si su organización está de baja (punto 46). Una cuenta de cliente no
+     * entra; quien administra la plataforma sí, pero sin esa organización.
+     */
+    public function organizacionDeBaja(): bool
+    {
+        return $this->organizacion_id !== null && $this->organizacion?->estaDeBaja() === true;
+    }
+
+    /**
      * Si esta organización es la suya como usuario, y no una en la que está
      * como soporte (punto 45).
      */

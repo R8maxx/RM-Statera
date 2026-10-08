@@ -58,7 +58,7 @@ final class MedirIndicadoresCommand extends Command
         $forzar = (bool) $this->option('forzar');
         $selladas = 0;
 
-        foreach (Organizacion::query()->orderBy('id')->cursor() as $organizacion) {
+        foreach (Organizacion::query()->whereNull('baja_en')->orderBy('id')->cursor() as $organizacion) {
             $selladas += $contexto->paraOrganizacion(
                 $organizacion,
                 fn (): int => $this->deLaOrganizacion($organizacion->nombre, $hoy, $simulacion, $forzar, $registrar),

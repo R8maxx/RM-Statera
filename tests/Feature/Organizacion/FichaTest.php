@@ -68,8 +68,11 @@ it('sirve la ficha de la organización del contexto', function (): void {
         ->get('/organizacion')
         ->assertInertia(fn (AssertableInertia $pagina) => $pagina
             ->component('organizacion/Editar')
-            ->where('organizacion.razon_social', 'Ejemplo, S.A.')
+            ->where('ficha.razon_social', 'Ejemplo, S.A.')
+            ->where('ficha.id', $this->organizacion->id)
+            // El compartido sigue siendo el del layout, con su logo.
             ->where('organizacion.id', $this->organizacion->id)
+            ->has('organizacion.logo')
         );
 });
 

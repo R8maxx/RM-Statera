@@ -699,3 +699,17 @@ y 36 retención RGPD.
     primer responsable, el login dejó de decir que toda cuenta la crea un
     responsable, y Larastan quedó sin errores, incluido el de una migración
     antigua.
+
+46. ✅ Los avisos de vencimiento por correo y la baja de organizaciones, que el
+    tramo había dejado anotados como «no hace todavía».
+
+    Lo que había que decidir de la baja era qué es dar de baja a un cliente de
+    una herramienta de cumplimiento. **No es borrar**: lo que hay dentro prueba
+    lo que hizo, y un auditor puede pedirlo años después. Es un estado que se
+    deshace, que deja a todos fuera y a los procesos diarios sin pasar por
+    ella, salvo la retención del RGPD, que sigue corriendo.
+
+    De los avisos, lo que importó fue no repetir: cada hito una vez por
+    vencimiento, y sólo el de hoy. Y por el camino se cerraron dos fallos
+    anotados del 44: el logo que desaparecía en `/organizacion` por un prop con
+    el nombre de uno compartido, y las etiquetas sin QR dentro del soporte.

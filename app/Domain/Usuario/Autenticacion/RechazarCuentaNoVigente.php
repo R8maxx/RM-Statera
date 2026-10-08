@@ -43,6 +43,15 @@ final class RechazarCuentaNoVigente
 
         if ($cuenta instanceof User
             && $provider->validateCredentials($cuenta, $credenciales)
+            && ! $cuenta->esPlataforma()
+            && $cuenta->organizacionDeBaja()) {
+            throw ValidationException::withMessages([
+                Fortify::username() => 'Tu organización está de baja en Statera. Si es un error, habla con quien os dio de alta.',
+            ]);
+        }
+
+        if ($cuenta instanceof User
+            && $provider->validateCredentials($cuenta, $credenciales)
             && ! $cuenta->estadoCuenta()->puedeEntrar()) {
             throw ValidationException::withMessages([
                 Fortify::username() => match ($cuenta->estadoCuenta()->value) {

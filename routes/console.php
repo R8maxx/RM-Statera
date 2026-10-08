@@ -27,6 +27,13 @@ Artisan::command('inspire', function () {
 Schedule::command('avisos:enviar')->dailyAt('07:00')->onOneServer();
 
 /*
+| Los avisos de vencimiento de la suscripción (punto 46): al responsable de
+| cada cliente y, en resumen, a la plataforma. Cada aviso sale una vez, así que
+| correrlo a diario es idempotente.
+*/
+Schedule::command('suscripciones:avisar')->dailyAt('07:15')->onOneServer();
+
+/*
 | El cierre de periodo de los indicadores calculados (§ 4.14, cláusula 9.1).
 |
 | **Diario y no mensual**, aunque el periodo más corto sea el mes: el comando

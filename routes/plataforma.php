@@ -39,6 +39,11 @@ Route::middleware(['auth', SoloPlataforma::class])
         Route::get('/organizaciones/{organizacion}', [OrganizacionController::class, 'show'])->name('organizaciones.show');
         Route::put('/organizaciones/{organizacion}/suscripcion', [OrganizacionController::class, 'suscripcion'])
             ->name('organizaciones.suscripcion');
+        // La baja (punto 46): un estado que se deshace, nunca un borrado.
+        Route::post('/organizaciones/{organizacion}/baja', [OrganizacionController::class, 'darDeBaja'])
+            ->name('organizaciones.baja');
+        Route::post('/organizaciones/{organizacion}/reactivar', [OrganizacionController::class, 'reactivar'])
+            ->name('organizaciones.reactivar');
         // `{cuentaId}` y no `{cuenta}`: ése lo resuelve el binding global, acotado a
         // la organización del contexto, que aquí no hay. Se acota en el controlador.
         Route::post('/organizaciones/{organizacion}/cuentas/{cuentaId}/reenviar', [OrganizacionController::class, 'reenviar'])

@@ -275,19 +275,17 @@ el botón de salir siempre a mano.
 
 - **No cobra.** `suscripcion_referencia_externa` es el hueco para una
   pasarela, y nada lo lee.
-- **No avisa del vencimiento por correo**, ni a la plataforma ni al cliente. La
-  franja sale al entrar, y nada más.
 - **No se registra cada página que ve el soporte**, sólo cuándo entra y cuándo
   sale. Como el auditor externo, que tampoco deja rastro de lectura.
-- **Hay código que lee `$request->user()->organizacion_id`** en vez del
-  contexto, casi todo en `FormRequest` de escritura, que el soporte no alcanza.
-  Los dos de lectura (`ActivoController`, las etiquetas QR) degradan a «sin
-  QR» dentro del soporte. Si aparece otro lector, se pasa al contexto.
+- **Hay `FormRequest` de escritura que leen `$request->user()->organizacion_id`**
+  en vez del contexto. El soporte no los alcanza, porque sólo lee, así que no
+  se han tocado. Los dos lectores de `ActivoController` (las etiquetas QR) ya
+  leen el contexto (punto 46). Si aparece otro lector, se pasa al contexto.
 - **Superar un límite no quita nada.** Si se baja de plan a uno con menos
-  cuentas de las que ya hay, nadie se desactiva: simplemente no se puede añadir
-  otra.
-- **No hay baja de organizaciones**, ni desactivación desde la plataforma.
-  `organizaciones.activa` sigue sin lector.
+  cuentas de las que ya hay, nadie se desactiva, pero no se puede añadir otra.
+  Desde el punto 46 la ficha de plataforma lo dice en rojo.
+- **La baja no borra los datos.** Borrar de verdad a un cliente que se va es un
+  proceso destructivo aparte, con sus plazos de conservación, y no existe.
 - **No hay alta de administradores desde la web**, ni lista de administradores.
 
 ## Lo que destapó el recorrido en el navegador
@@ -366,3 +364,55 @@ nadie dentro que se lo reenvíe. El parámetro de ruta es `{cuentaId}` y no
 `{cuenta}`, porque ése lo resuelve el binding global acotado al contexto, que
 desde la plataforma no hay. Se acota en el controlador con
 `where('organizacion_id', …)`.
+
+## Los avisos de vencimiento y la baja (punto 46)
+
+### Los avisos
+
+`suscripciones:avisar`, a diario a las 07:15 y con `--dry-run`. Al responsable
+de seguridad de cada cliente le avisa en cinco hitos (`HitoSuscripcion`): 30, 7
+y 1 días antes, al entrar en gracia y al pasar a sólo lectura. Quien administra
+la plataforma recibe un resumen de a quién se avisó.
+
+- **Por días de calendario y no por horas.** El aviso de las 07:15 del día
+  anterior tiene que decir «mañana» aunque falten cuarenta horas.
+- **Sólo el hito en que está hoy.** Si el planificador estuvo parado una semana,
+  nadie necesita recibir a la vez «faltan 30» y «faltan 7».
+- **Cada aviso sale una vez**: `avisos_suscripcion` guarda el hito y el
+  vencimiento, con clave única. Al renovar, el vencimiento cambia y los avisos
+  vuelven a empezar.
+- **No necesita contexto**: todo lo que lee está fuera de RLS. Se salta las
+  organizaciones de baja y las que no tienen plan o vencimiento.
+
+### La baja
+
+**Un estado que se deshace, nunca un borrado** (`BajaOrganizacion`). Lleva
+`baja_en`, `motivo_baja` y `activa` a falso; `activa` existía desde la primera
+migración sin que nadie la leyera. Se escribe dentro del contexto del cliente,
+así que su traza dice desde cuándo y por qué estuvo de baja.
+
+**Lo que hace la baja:**
+
+- **Nadie de la organización entra.** El login lo dice en
+  `RechazarCuentaNoVigente`, y a quien ya estaba dentro `CuentaVigente` le saca
+  en la siguiente petición.
+- **Quien además administra la plataforma sigue entrando a ella**, pero sin esa
+  organización: `EstablecerContextoOrganizacion` no fija contexto para una
+  organización de baja.
+- **Se cierra la ventana de soporte**, y no se puede abrir otra ni entrar.
+- **Los procesos diarios se la saltan**: `avisos:enviar`, `indicadores:medir` y
+  `suscripciones:avisar`. **`personas:seudonimizar` no se la salta, a
+  propósito**: la retención del RGPD sigue corriendo aunque el cliente se haya
+  ido.
+
+**Reactivar** lo deshace todo menos la ventana de soporte, que la vuelve a
+abrir el cliente si la quiere.
+
+### Dos fallos más que se cerraron aquí
+
+- **`/organizacion` mandaba un prop `organizacion`** que pisaba al compartido,
+  y el lateral perdía el logo justo en la pantalla donde se sube. Ahora se
+  llama `ficha`, y `FichaTest` comprueba que el compartido sigue llevando el
+  logo.
+- **Las etiquetas QR leían la organización de la cuenta**, y dentro del
+  soporte salían sin QR. Ahora leen la del contexto.

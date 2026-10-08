@@ -42,7 +42,7 @@ final class EnviarAvisosCommand extends Command
         $simulacion = (bool) $this->option('dry-run');
         $enviados = 0;
 
-        foreach (Organizacion::query()->orderBy('id')->cursor() as $organizacion) {
+        foreach (Organizacion::query()->whereNull('baja_en')->orderBy('id')->cursor() as $organizacion) {
             $vencimientos = $contexto->paraOrganizacion(
                 $organizacion,
                 fn (): Vencimientos => $resumen($dias),

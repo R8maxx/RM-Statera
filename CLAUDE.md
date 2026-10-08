@@ -148,6 +148,7 @@ completa con el razonamiento del orden, en `.ai/rules/orden-de-arranque.md`.
 | 43 | Plan y suscripción, modelados: límites, gracia y sólo lectura | — | `plataforma.md` |
 | 44 | La ventana de soporte: la abre el cliente, la plataforma sólo lee | — | `plataforma.md`, `aislamiento.md` |
 | 45 | El administrador que además es de una organización | — | `plataforma.md`, `cuentas.md` |
+| 46 | Avisos de vencimiento por correo y baja de organizaciones | — | `plataforma.md` |
 
 **La fase 3 está cerrada.** Con continuidad (§ 4.11) dentro —el BIA por servicio,
 el plan como documento y las pruebas que lo contrastan— el ciclo vivo se recorre
@@ -215,6 +216,7 @@ docker compose exec app php artisan migrate --database=pgsql_migraciones   # con
 docker compose exec app php artisan catalogo:importar       # ISO, ENS, mapeos, amenazas de MAGERIT, obligaciones periódicas y cláusulas de proveedor
 docker compose exec app php artisan db:seed                 # organización, usuarios, sistema, inventario, tareas, riesgos, personas y puestos (sintéticos)
 docker compose exec app php artisan plataforma:administrador correo@x.test "Nombre"  # la única puerta para crear a quien administra la plataforma
+docker compose exec app php artisan suscripciones:avisar --dry-run  # a quién se avisaría hoy de su vencimiento
 docker compose exec app php artisan avisos:enviar --dry-run # lo que saldría por correo, sin enviarlo
 docker compose exec app php artisan indicadores:medir --dry-run # la cifra que se sellaría, sin escribirla
 docker compose exec app php artisan copias:hacer            # volcado cifrado de la base y espejo de los ficheros

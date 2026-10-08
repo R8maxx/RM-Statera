@@ -41,7 +41,10 @@ class EstablecerContextoOrganizacion
             return $this->comoSoporte($request, $next);
         }
 
-        if ($usuario?->organizacion_id !== null) {
+        // Una organización de baja no fija contexto (punto 46): a sus cuentas ya
+        // las ha sacado `CuentaVigente`, y quien además administra la
+        // plataforma sigue entrando a ella, pero no a esa organización.
+        if ($usuario?->organizacion_id !== null && ! $usuario->organizacionDeBaja()) {
             $this->contexto->establecer($usuario->organizacion_id);
 
             /** @var list<int> $sistemas */

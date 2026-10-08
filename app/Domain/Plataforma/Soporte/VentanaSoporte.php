@@ -31,6 +31,10 @@ final class VentanaSoporte
 
     public function abrir(Organizacion $organizacion, int $horas): void
     {
+        if ($organizacion->estaDeBaja()) {
+            throw SoporteNoPermitido::ventanaCerrada();
+        }
+
         if ($horas < self::HORAS_MINIMAS || $horas > self::HORAS_MAXIMAS) {
             throw SoporteNoPermitido::duracionFueraDeRango();
         }

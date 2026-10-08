@@ -6,6 +6,14 @@ import CampoTexto from '@/components/formulario/CampoTexto.vue';
 import CeldaBadge from '@/components/tabla/celdas/CeldaBadge.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { fechaLegible, formatoFechaHora } from '@/lib/celdas';
 import { SIN_VALOR, conOpcionVacia } from '@/lib/formularios';
@@ -66,6 +74,8 @@ const props = defineProps<{
         sector: string | null;
         altaEn: string | null;
         soporteHasta: string | null;
+        bajaEn: string | null;
+        motivoBaja: string | null;
     };
     cuentas: Cuenta[];
     invitadas: number;
@@ -95,6 +105,29 @@ function entrarComoSoporte(): void {
     router.post(`/plataforma/organizaciones/${props.cliente.id}/soporte`, {}, {
         onStart: () => (entrando.value = true),
         onFinish: () => (entrando.value = false),
+    });
+}
+
+/* La baja (punto 46). Con diálogo, porque deja a todo un cliente sin acceso. */
+const dandoDeBaja = ref(false);
+const baja = useForm({ motivo: '' });
+const cambiandoBaja = ref(false);
+
+function darDeBaja(): void {
+    baja.post(`/plataforma/organizaciones/${props.cliente.id}/baja`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            dandoDeBaja.value = false;
+            baja.reset();
+        },
+    });
+}
+
+function reactivar(): void {
+    router.post(`/plataforma/organizaciones/${props.cliente.id}/reactivar`, {}, {
+        preserveScroll: true,
+        onStart: () => (cambiandoBaja.value = true),
+        onFinish: () => (cambiandoBaja.value = false),
     });
 }
 
@@ -220,6 +253,15 @@ const cuando = (fecha: string | null): string => (fecha ? formatoFechaHora.forma
                                 <template v-if="contrato.limiteCuentas">
                                     {{ contrato.cuentasOcupadas }} de {{ contrato.limiteCuentas }} cuentas ocupadas.
                                 </template>
+                                <!-- Bajar de plan no desactiva a nadie: se dice, y no
+                                     se pueden añadir más hasta volver al límite. -->
+                                <span
+                                    v-if="contrato.limiteCuentas && contrato.cuentasOcupadas > contrato.limiteCuentas"
+                                    class="block text-destructive"
+                                >
+                                    Tiene {{ contrato.cuentasOcupadas - contrato.limiteCuentas }} más de las que admite el
+                                    plan. Nadie se ha desactivado, pero no podrá añadir otra hasta bajar del límite.
+                                </span>
                                 <template v-if="contrato.venceEn">
                                     Vence el {{ fechaLegible(contrato.venceEn) }}<template v-if="contrato.graciaHasta">
                                         y escribe hasta el {{ fechaLegible(contrato.graciaHasta) }}</template>.
@@ -279,6 +321,28 @@ const cuando = (fecha: string | null): string => (fecha ? formatoFechaHora.forma
                     </CardContent>
                 </Card>
 
+                <!-- La baja (punto 46): un estado que se deshace, nunca un borrado. -->
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Baja</CardTitle>
+                        <CardDescription v-if="cliente.bajaEn">
+                            De baja desde el {{ cuando(cliente.bajaEn) }}. Nadie suyo entra y todo lo que tiene se
+                            conserva.
+                            <template v-if="cliente.motivoBaja"> Motivo: {{ cliente.motivoBaja }}</template>
+                        </CardDescription>
+                        <CardDescription v-else>
+                            Dar de baja deja a la organización sin acceso, sin soporte y fuera de los avisos diarios.
+                            No borra nada, y se puede deshacer.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button v-if="cliente.bajaEn" variant="outline" size="sm" :disabled="cambiandoBaja" @click="reactivar">
+                            Reactivar la organización
+                        </Button>
+                        <Button v-else variant="outline" size="sm" @click="dandoDeBaja = true">Dar de baja</Button>
+                    </CardContent>
+                </Card>
+
                 <Card>
                     <CardHeader>
                         <CardTitle>Ficha</CardTitle>
@@ -302,5 +366,31 @@ const cuando = (fecha: string | null): string => (fecha ? formatoFechaHora.forma
                 </Card>
             </div>
         </div>
+        <Dialog v-model:open="dandoDeBaja">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Dar de baja {{ cliente.nombre }}</DialogTitle>
+                    <DialogDescription>
+                        Nadie de la organización podrá entrar, se cierra el acceso de soporte y deja de recibir avisos.
+                        No se borra ningún dato, y se puede reactivar cuando haga falta.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <CampoTextarea
+                    v-model="baja.motivo"
+                    nombre="motivo"
+                    etiqueta="Motivo"
+                    :filas="2"
+                    :error="baja.errors.motivo"
+                    requerido
+                    ayuda="«Fin del contrato», «impago tras la sólo lectura». Es lo primero que se pregunta si vuelve."
+                />
+
+                <DialogFooter>
+                    <Button variant="outline" @click="dandoDeBaja = false">Cancelar</Button>
+                    <Button :disabled="baja.processing" @click="darDeBaja">Dar de baja</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </AppLayout>
 </template>

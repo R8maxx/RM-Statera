@@ -34,6 +34,8 @@ enum AccionPlataforma: string
     case SoporteSalida = 'soporte_salida';
     case AdministradorPromovido = 'administrador_promovido';
     case InvitacionReenviada = 'invitacion_reenviada';
+    case OrganizacionBaja = 'organizacion_baja';
+    case OrganizacionReactivada = 'organizacion_reactivada';
 
     public function etiqueta(): string
     {
@@ -50,6 +52,8 @@ enum AccionPlataforma: string
             self::SoporteSalida => 'Salida del soporte',
             self::AdministradorPromovido => 'Cuenta promovida a administradora',
             self::InvitacionReenviada => 'Invitación reenviada',
+            self::OrganizacionBaja => 'Organización dada de baja',
+            self::OrganizacionReactivada => 'Organización reactivada',
         };
     }
 }

@@ -38,7 +38,10 @@ class OrganizacionController extends Controller
         $organizacion = $this->actual();
 
         return Inertia::render('organizacion/Editar', [
-            'organizacion' => [
+            // `ficha` y no `organizacion`: ése es un prop compartido que lee el
+            // layout, y éste lo pisaba —el lateral perdía el logo del cliente
+            // justo en la pantalla donde se sube—.
+            'ficha' => [
                 'id' => $organizacion->id,
                 'nombre' => $organizacion->nombre,
                 'razon_social' => $organizacion->razon_social,

@@ -57,6 +57,8 @@ use Illuminate\Support\Carbon;
  * @property-read ?Plan $plan
  * @property ?Carbon $soporte_hasta hasta cuándo puede entrar la plataforma como soporte (punto 44)
  * @property ?int $soporte_abierto_por
+ * @property ?Carbon $baja_en desde cuándo está de baja; nulo, activa (punto 46)
+ * @property ?string $motivo_baja
  */
 class Organizacion extends Model
 {
@@ -223,6 +225,16 @@ class Organizacion extends Model
         return $this->soporte_hasta !== null && $this->soporte_hasta->isFuture();
     }
 
+    /**
+     * Si la organización está de baja (punto 46). Nadie suyo entra, la
+     * plataforma no entra como soporte y los procesos diarios se la saltan;
+     * lo que hay dentro sigue intacto.
+     */
+    public function estaDeBaja(): bool
+    {
+        return $this->baja_en !== null;
+    }
+
     /** En qué punto está su suscripción; se deriva, no se guarda. */
     public function estadoSuscripcion(): EstadoSuscripcion
     {
@@ -275,6 +287,7 @@ class Organizacion extends Model
             'suscripcion_inicia_en' => 'datetime',
             'suscripcion_vence_en' => 'datetime',
             'soporte_hasta' => 'datetime',
+            'baja_en' => 'datetime',
         ];
     }
 

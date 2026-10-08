@@ -21,6 +21,7 @@ use App\Domain\Catalogo\Enums\Dimension;
 use App\Domain\Categorizacion\Enums\NivelDimension;
 use App\Domain\Categorizacion\ValoracionDimensiones;
 use App\Domain\Organizacion\ContextoOrganizacion;
+use App\Domain\Organizacion\Models\Organizacion;
 use App\Domain\Proveedor\Enums\EstadoProveedor;
 use App\Domain\Proveedor\Models\Proveedor;
 use App\Domain\Riesgo\Models\Riesgo;
@@ -248,7 +249,7 @@ class ActivoController extends Controller
             ->orderBy('codigo')
             ->get();
 
-        $organizacion = $request->user()?->organizacion;
+        $organizacion = $this->organizacionDelContexto();
 
         return Inertia::render('activos/Etiquetas', [
             'etiquetas' => $generador->etiquetables($activos)
@@ -334,7 +335,7 @@ class ActivoController extends Controller
      */
     private function etiqueta(Activo $activo, Request $request, GeneradorEtiquetas $generador): ?array
     {
-        $organizacion = $request->user()?->organizacion;
+        $organizacion = $this->organizacionDelContexto();
 
         if ($organizacion === null || ! $activo->llevaEtiqueta()) {
             return null;
@@ -678,5 +679,17 @@ class ActivoController extends Controller
                 ])
                 ->all(),
         ];
+    }
+
+    /**
+     * La organización cuyos activos se están mirando: la del contexto y no la
+     * de la cuenta. Para quien entra como soporte (punto 44) no son la misma, y
+     * con la de la cuenta las etiquetas salían sin QR.
+     */
+    private function organizacionDelContexto(): ?Organizacion
+    {
+        $id = app(ContextoOrganizacion::class)->id();
+
+        return $id === null ? null : Organizacion::query()->find($id);
     }
 }

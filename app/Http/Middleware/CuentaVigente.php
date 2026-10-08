@@ -26,11 +26,23 @@ class CuentaVigente
         /** @var ?User $usuario */
         $usuario = $request->user();
 
-        if ($usuario === null || $usuario->estadoCuenta()->puedeEntrar()) {
+        // Una organización de baja (punto 46) deja fuera a sus cuentas, salvo a
+        // quien además administra la plataforma, que sigue entrando a ella.
+        $deBaja = $usuario !== null && ! $usuario->esPlataforma() && $usuario->organizacionDeBaja();
+
+        if ($usuario === null || ($usuario->estadoCuenta()->puedeEntrar() && ! $deBaja)) {
             return $next($request);
         }
 
         $estado = $usuario->estadoCuenta();
+
+        if ($deBaja) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('login')->with('status', 'Tu organización está de baja en Statera. Si es un error, habla con quien os dio de alta.');
+        }
 
         Auth::guard('web')->logout();
         $request->session()->invalidate();

@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Plataforma;
 
 use App\Domain\Organizacion\Models\Organizacion;
 use App\Domain\Plataforma\AltaOrganizacion;
+use App\Domain\Plataforma\BajaOrganizacion;
 use App\Domain\Plataforma\CambiarSuscripcion;
 use App\Domain\Plataforma\Enums\AccionPlataforma;
 use App\Domain\Plataforma\Enums\EstadoSuscripcion;
@@ -20,6 +21,7 @@ use App\Domain\Usuario\EnviarInvitacion;
 use App\Domain\Usuario\Excepciones\OperacionDeCuentaNoPermitida;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AltaOrganizacionRequest;
+use App\Http\Requests\BajaOrganizacionRequest;
 use App\Http\Requests\CambiarSuscripcionRequest;
 use App\Http\Resources\Concerns\RespondeConRecurso;
 use App\Http\Resources\OrganizacionPlataformaRecurso;
@@ -97,6 +99,9 @@ class OrganizacionController extends Controller
                 'altaEn' => $organizacion->created_at?->toIso8601String(),
                 // La ventana de soporte que abrió el cliente (punto 44), o nula.
                 'soporteHasta' => $organizacion->soporteAbierto() ? $organizacion->soporte_hasta?->toIso8601String() : null,
+                // La baja (punto 46): desde cuándo y por qué, o nula.
+                'bajaEn' => $organizacion->baja_en?->toIso8601String(),
+                'motivoBaja' => $organizacion->motivo_baja,
             ],
             'contrato' => $this->resumenSuscripcion($organizacion),
             'planes' => $this->planesActivos($organizacion->plan_id),
@@ -142,6 +147,28 @@ class OrganizacionController extends Controller
         $cambiar($organizacion, $request->plan(), $request->venceEn(), $request->validated('motivo'));
 
         Inertia::flash('exito', 'Suscripción guardada.');
+
+        return to_route('plataforma.organizaciones.show', $organizacion);
+    }
+
+    /**
+     * Dar de baja una organización (punto 46): nadie suyo entra y nada se
+     * borra. Se deshace con `reactivar()`.
+     */
+    public function darDeBaja(BajaOrganizacionRequest $request, Organizacion $organizacion, BajaOrganizacion $baja): RedirectResponse
+    {
+        $baja->darDeBaja($organizacion, (string) $request->validated('motivo'));
+
+        Inertia::flash('exito', "{$organizacion->nombre} está de baja. Nadie suyo entra, y todo lo que tiene se conserva.");
+
+        return to_route('plataforma.organizaciones.show', $organizacion);
+    }
+
+    public function reactivar(Organizacion $organizacion, BajaOrganizacion $baja): RedirectResponse
+    {
+        $baja->reactivar($organizacion);
+
+        Inertia::flash('exito', "{$organizacion->nombre} vuelve a estar activa.");
 
         return to_route('plataforma.organizaciones.show', $organizacion);
     }

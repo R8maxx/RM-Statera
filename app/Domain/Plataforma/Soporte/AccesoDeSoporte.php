@@ -46,7 +46,7 @@ final class AccesoDeSoporte
             throw SoporteNoPermitido::esLaSuya();
         }
 
-        if (! $administrador->esPlataforma() || ! $organizacion->soporteAbierto()) {
+        if (! $administrador->esPlataforma() || $organizacion->estaDeBaja() || ! $organizacion->soporteAbierto()) {
             throw SoporteNoPermitido::ventanaCerrada();
         }
 
