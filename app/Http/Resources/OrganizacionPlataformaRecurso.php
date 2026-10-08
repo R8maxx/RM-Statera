@@ -9,6 +9,7 @@ use App\Http\Resources\Definicion\Accion;
 use App\Http\Resources\Definicion\Columna;
 use App\Http\Resources\Definicion\Etiquetas;
 use App\Http\Resources\Definicion\Filtro;
+use App\Http\Resources\Definicion\ValorEnlace;
 use App\Http\Resources\Definicion\ValorEtiquetado;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -61,7 +62,11 @@ final class OrganizacionPlataformaRecurso extends Recurso
     public function columnas(): array
     {
         return [
-            Columna::texto('nombre', 'Nombre')->ordenable()->anclada(),
+            // El nombre abre la ficha con un clic; el doble clic sobre la fila, también.
+            Columna::enlace('nombre', 'Nombre')
+                ->ordenable()
+                ->anclada()
+                ->formato(fn (Organizacion $fila): ValorEnlace => new ValorEnlace($fila->nombre, "/plataforma/organizaciones/{$fila->id}")),
             Columna::texto('razon_social', 'Razón social')->ordenable(),
             Columna::texto('cif', 'CIF')->ancho('9rem'),
             // Activa o de baja (punto 46). Sin rojo: una baja es una decisión,

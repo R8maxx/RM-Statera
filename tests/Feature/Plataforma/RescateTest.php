@@ -18,6 +18,7 @@ use App\Domain\Usuario\Notifications\InvitacionACuenta;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
+use Inertia\Testing\AssertableInertia;
 
 /*
 |--------------------------------------------------------------------------
@@ -126,6 +127,28 @@ it('con una sola persona de Administración se ejecuta, y queda dicho', function
         ->assertRedirect('/plataforma/solicitudes');
 
     expect($solicitud->fresh()?->sin_segunda_persona)->toBeTrue();
+});
+
+it('«Ejecutar» sólo se ofrece a quien puede ejecutarla', function (): void {
+    pedirSegundoFactor($this);
+
+    $this->actingAs($this->pide)->get('/plataforma/solicitudes')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->where('solicitudes.0.pedidaPorMi', true)
+            ->where('solicitudes.0.puedoEjecutar', false));
+
+    $this->actingAs($this->ejecuta)->get('/plataforma/solicitudes')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina->where('solicitudes.0.puedoEjecutar', true));
+
+    // Sin otra persona de Administración, quien la pidió sí puede.
+    $this->ejecuta->forceFill(['desactivada_en' => now()])->save();
+    $this->travel(1)->minutes();
+    $sola = pedirSegundoFactor($this);
+
+    $this->actingAs($this->pide)->get('/plataforma/solicitudes')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->where('solicitudes.0.id', $sola->id)
+            ->where('solicitudes.0.puedoEjecutar', true));
 });
 
 it('una solicitud caduca a las 72 horas', function (): void {

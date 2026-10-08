@@ -40,6 +40,7 @@ interface Solicitud {
     motivoRechazo: string | null;
     sinSegundaPersona: boolean;
     pedidaPorMi: boolean;
+    puedoEjecutar: boolean;
     estado: { valor: string; etiqueta: string; tono: string; icono: string };
 }
 
@@ -110,12 +111,17 @@ function rechazar(): void {
                     <p class="text-muted-foreground">
                         La pidió {{ solicitud.solicitante ?? 'alguien que ya no está' }} el
                         <span class="cifra">{{ cuando(solicitud.solicitadaEn) }}</span>.
-                        <template v-if="solicitud.pedidaPorMi">
-                            La pediste tú: la ejecuta otra persona de Administración, salvo que seas la única.
+                        <template v-if="solicitud.pedidaPorMi && !solicitud.puedoEjecutar">
+                            La pediste tú: la ejecuta otra persona de Administración. Puedes retirarla rechazándola.
+                        </template>
+                        <template v-else-if="solicitud.pedidaPorMi">
+                            La pediste tú y eres la única persona de Administración: puedes ejecutarla, y se avisará al cliente de que no hubo segunda mirada.
                         </template>
                     </p>
                     <div class="flex flex-wrap gap-2">
-                        <Button size="sm" :disabled="ejecutando === solicitud.id" @click="ejecutar(solicitud)">Ejecutar</Button>
+                        <Button v-if="solicitud.puedoEjecutar" size="sm" :disabled="ejecutando === solicitud.id" @click="ejecutar(solicitud)">
+                            Ejecutar
+                        </Button>
                         <Button variant="outline" size="sm" @click="rechazando = solicitud">Rechazar…</Button>
                     </div>
                 </CardContent>

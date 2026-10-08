@@ -12,6 +12,7 @@ use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
+use Inertia\Testing\AssertableInertia;
 
 /*
 |--------------------------------------------------------------------------
@@ -40,6 +41,16 @@ it('el administrador entra en la plataforma y aterriza en ella', function (): vo
 
     $this->actingAs($admin)->get('/plataforma/organizaciones')->assertOk();
     $this->actingAs($admin)->get('/inicio')->assertRedirect('/plataforma');
+});
+
+it('en la lista de organizaciones, el nombre abre la ficha', function (): void {
+    $organizacion = comoOrganizacion();
+    sinOrganizacion();
+
+    $this->actingAs(adminConDosFactores())->get('/plataforma/organizaciones')
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->where('filas.0.nombre.etiqueta', $organizacion->nombre)
+            ->where('filas.0.nombre.url', "/plataforma/organizaciones/{$organizacion->id}"));
 });
 
 it('sin segundo factor la plataforma manda al perfil, también para leer', function (): void {

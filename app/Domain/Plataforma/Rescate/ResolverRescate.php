@@ -130,12 +130,30 @@ final class ResolverRescate
             throw RescateNoPermitido::yaResuelta();
         }
 
-        // La segunda mirada, salvo que no hubiera nadie más que pudiera darla
-        // **cuando se pidió**. Si la había, retirarla después no la quita.
-        if ($solicitud->solicitada_por === $administrador->id
-            && ($solicitud->requiere_segunda_persona || $this->administradores->quedaOtro($administrador))) {
+        if ($this->faltaSegundaPersona($administrador, $solicitud)) {
             throw RescateNoPermitido::mismaPersona();
         }
+    }
+
+    /**
+     * Si esta persona puede ejecutar la solicitud. La pantalla esconde
+     * «Ejecutar» con esto; quien decide sigue siendo `ejecutar()`.
+     */
+    public function puedeEjecutar(User $administrador, SolicitudPlataforma $solicitud): bool
+    {
+        return $administrador->puedeEnPlataforma(CapacidadPlataforma::CuentasRescatar)
+            && $solicitud->estado() === EstadoSolicitud::Pendiente
+            && ! $this->faltaSegundaPersona($administrador, $solicitud);
+    }
+
+    /**
+     * La segunda mirada, salvo que no hubiera nadie más que pudiera darla
+     * **cuando se pidió**. Si la había, retirarla después no la quita.
+     */
+    private function faltaSegundaPersona(User $administrador, SolicitudPlataforma $solicitud): bool
+    {
+        return $solicitud->solicitada_por === $administrador->id
+            && ($solicitud->requiere_segunda_persona || $this->administradores->quedaOtro($administrador));
     }
 
     /**

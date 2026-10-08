@@ -24,7 +24,7 @@ use Inertia\Response;
  */
 class RescateController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, ResolverRescate $resolver): Response
     {
         /** @var User $yo */
         $yo = $request->user();
@@ -35,7 +35,7 @@ class RescateController extends Controller
                 ->orderByDesc('solicitada_en')
                 ->limit(100)
                 ->get()
-                ->map(static fn (SolicitudPlataforma $solicitud): array => self::solicitud($solicitud, $yo))
+                ->map(static fn (SolicitudPlataforma $solicitud): array => self::solicitud($solicitud, $yo, $resolver))
                 ->values()
                 ->all(),
         ]);
@@ -100,7 +100,7 @@ class RescateController extends Controller
     /**
      * @return array<string, mixed>
      */
-    public static function solicitud(SolicitudPlataforma $solicitud, User $yo): array
+    public static function solicitud(SolicitudPlataforma $solicitud, User $yo, ResolverRescate $resolver): array
     {
         $estado = $solicitud->estado();
 
@@ -119,6 +119,7 @@ class RescateController extends Controller
             'motivoRechazo' => $solicitud->motivo_rechazo,
             'sinSegundaPersona' => $solicitud->sin_segunda_persona,
             'pedidaPorMi' => $solicitud->solicitada_por === $yo->id,
+            'puedoEjecutar' => $resolver->puedeEjecutar($yo, $solicitud),
             'estado' => [
                 'valor' => $estado->value,
                 'etiqueta' => $estado->etiqueta(),

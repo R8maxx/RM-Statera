@@ -22,6 +22,7 @@ use App\Domain\Plataforma\Models\FichaComercial;
 use App\Domain\Plataforma\Models\Plan;
 use App\Domain\Plataforma\Models\SolicitudPlataforma;
 use App\Domain\Plataforma\Models\TransicionSuscripcion;
+use App\Domain\Plataforma\Rescate\ResolverRescate;
 use App\Domain\Plataforma\TrazaPlataforma;
 use App\Domain\Usuario\Enums\EstadoCuenta;
 use App\Domain\Usuario\EnviarInvitacion;
@@ -86,7 +87,7 @@ class OrganizacionController extends Controller
         return to_route('plataforma.organizaciones.show', $organizacion);
     }
 
-    public function show(Request $request, Organizacion $organizacion): Response
+    public function show(Request $request, Organizacion $organizacion, ResolverRescate $resolver): Response
     {
         $comercial = FichaComercial::query()->where('organizacion_afectada_id', $organizacion->id)->first();
 
@@ -152,7 +153,7 @@ class OrganizacionController extends Controller
                     ->orderByDesc('solicitada_en')
                     ->limit(10)
                     ->get()
-                    ->map(fn (SolicitudPlataforma $solicitud): array => RescateController::solicitud($solicitud, $request->user()))
+                    ->map(fn (SolicitudPlataforma $solicitud): array => RescateController::solicitud($solicitud, $request->user(), $resolver))
                     ->values()
                     ->all()
                 : [],
