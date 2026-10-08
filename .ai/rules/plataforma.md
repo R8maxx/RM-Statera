@@ -678,3 +678,24 @@ sin poder trabajar. Las cifras a cero se atenúan.
 
 **El cliente ve el contacto de facturación en `/organizacion`, en lectura, y
 las notas nunca.** `FichaComercialTest` comprueba que no viajan en la página.
+
+## La salud del servicio (punto 55)
+
+`/plataforma/salud` (`salud.ver`, sólo Administración). Enseña tres cosas:
+
+- **la última copia y la última restauración probada**, en rojo si la copia
+  tiene más de 26 horas o la verificación más de 8 días o falló;
+- **los trabajos pendientes por cola**;
+- **los trabajos fallidos.**
+
+**De un trabajo fallido se enseña la cola, la clase y la primera línea del
+error, y nunca el payload**, que lleva los datos del job: correos o nombres de
+un cliente. `SaludTest` lo comprueba con un correo dentro del payload.
+
+**El panel de Horizon ya tenía la puerta**, pero su gate era la lista vacía de
+la plantilla, así que fuera de local no lo abría nadie. Ahora lo abre quien
+tiene `salud.ver`.
+
+El cuadro de mando enseña una franja de salud **sólo a quien puede verla**. Es
+el mismo criterio que con los rescates: la cifra no viaja a quien no tiene la
+capacidad.

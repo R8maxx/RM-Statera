@@ -1,4 +1,5 @@
 import {
+    ActivityIcon,
     BadgeCheckIcon,
     BoxesIcon,
     BugIcon,
@@ -578,6 +579,13 @@ export const navegacion: GrupoNavegacion[] = [
                 icono: ScrollTextIcon,
                 permiso: 'plataforma.traza.ver',
                 alias: ['auditoría', 'registro', 'quién hizo', 'log', 'acceso privilegiado'],
+            },
+            {
+                titulo: 'Salud',
+                href: '/plataforma/salud',
+                icono: ActivityIcon,
+                permiso: 'plataforma.salud.ver',
+                alias: ['copias', 'backups', 'colas', 'horizon', 'trabajos fallidos'],
             },
             {
                 titulo: 'Administradores',

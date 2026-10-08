@@ -764,3 +764,8 @@ y 36 retención RGPD.
     dos cosas: lo que es del cliente va a su fila y a su traza, y lo que es de
     la plataforma va a una tabla suya, para que una nota interna no acabe en lo
     que el cliente puede leer o exportar.
+
+55. ✅ La salud del servicio: copias con su restauración probada, colas y
+    trabajos fallidos, y por fin un panel de Horizon que alguien puede abrir.
+    Lo propio del punto es lo que no se enseña: el payload de un trabajo
+    fallido, y la cifra a quien no tiene la capacidad.

@@ -25,6 +25,8 @@ interface Cifras {
     invitacionesCaducadas: number;
     /** Nula para quien no puede rescatar cuentas: ni se calcula ni viaja. */
     rescatesPendientes: number | null;
+    /** Nulo para quien no ve la salud del servicio (punto 55). */
+    copiasAlDia: boolean | null;
 }
 
 const props = defineProps<{ cifras: Cifras }>();
@@ -33,7 +35,7 @@ const pagina = usePage();
 const puede = (capacidad: string): boolean => pagina.props.auth.permisos.includes(`plataforma.${capacidad}`);
 
 interface Tarjeta {
-    clave: keyof Cifras;
+    clave: Exclude<keyof Cifras, 'copiasAlDia'>;
     titulo: string;
     explicacion: string;
     href: string;
@@ -80,5 +82,19 @@ const valor = (tarjeta: Tarjeta): number => props.cifras[tarjeta.clave] ?? 0;
                 </Card>
             </Link>
         </div>
+
+        <!-- La salud, sólo para quien la ve (punto 55): un aviso si algo falla. -->
+        <Link
+            v-if="cifras.copiasAlDia !== null"
+            href="/plataforma/salud"
+            class="block rounded-xl border px-6 py-4 text-sm transition-colors hover:bg-muted/40"
+            :class="cifras.copiasAlDia ? 'text-muted-foreground' : 'border-destructive/40 text-destructive'"
+        >
+            {{
+                cifras.copiasAlDia
+                    ? 'Copias al día y restauración probada esta semana.'
+                    : 'Las copias no están al día o la última restauración no se probó o falló. Ver la salud del servicio.'
+            }}
+        </Link>
     </AppLayout>
 </template>

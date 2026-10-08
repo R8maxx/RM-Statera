@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Plataforma;
 
+use App\Domain\Copia\EstadoDeLasCopias;
 use App\Domain\Organizacion\Models\Organizacion;
 use App\Domain\Plataforma\Enums\CapacidadPlataforma;
 use App\Domain\Plataforma\Enums\EstadoSolicitud;
@@ -21,13 +22,15 @@ use Illuminate\Support\Carbon;
  */
 final class CuadroDeMando
 {
+    public function __construct(private readonly EstadoDeLasCopias $estadoDeLasCopias) {}
+
     /**
      * **Cada cifra se calcula sólo para quien puede actuar sobre ella.** Los
      * rescates pendientes son de Administración: a Gestión comercial no se le
      * calcula ni se le manda, y no basta con esconder la tarjeta, porque la
      * cifra viajaría igual en los props. Lo encontró la revisión de seguridad.
      *
-     * @return array{clientes: int, vencenPronto: int, enGracia: int, enSoloLectura: int, sobreSuPlan: int, deBaja: int, soporteAbierto: int, invitacionesCaducadas: int, rescatesPendientes: ?int}
+     * @return array{clientes: int, vencenPronto: int, enGracia: int, enSoloLectura: int, sobreSuPlan: int, deBaja: int, soporteAbierto: int, invitacionesCaducadas: int, rescatesPendientes: ?int, copiasAlDia: ?bool}
      */
     public function cifras(User $quien): array
     {
@@ -41,6 +44,8 @@ final class CuadroDeMando
             'soporteAbierto' => Organizacion::query()->conSoporteAbierto()->count(),
             'invitacionesCaducadas' => $this->invitacionesCaducadas(),
             'rescatesPendientes' => $quien->puedeEnPlataforma(CapacidadPlataforma::CuentasRescatar) ? $this->rescatesPendientes() : null,
+            // Lo mismo con la salud (punto 55): sólo para quien la puede ver.
+            'copiasAlDia' => $quien->puedeEnPlataforma(CapacidadPlataforma::SaludVer) ? $this->copiasAlDia() : null,
         ];
     }
 
@@ -57,6 +62,13 @@ final class CuadroDeMando
             ->whereNull('desactivada_en')
             ->where('invitada_en', '<', Carbon::now()->subDays(EnviarInvitacion::diasDeValidez()))
             ->count();
+    }
+
+    private function copiasAlDia(): bool
+    {
+        $copias = $this->estadoDeLasCopias->resumen();
+
+        return $copias['copiaAlDia'] && $copias['verificacionAlDia'];
     }
 
     private function rescatesPendientes(): int

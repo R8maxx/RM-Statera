@@ -68,3 +68,12 @@ esto no es infraestructura que se monta después: es un requisito del producto.
 - **Los tests de punta a punta copian la base recién migrada.** El rol de copias va
   por otra conexión y no ve la transacción abierta del test. La comprobación de
   ficheros con filas reales se hizo a mano sobre la base de desarrollo.
+
+## Quién lee el estado de las copias (punto 55)
+
+**`EstadoDeLasCopias`** resume la última copia (por el nombre del directorio,
+`Y-m-d\THis`) y el último informe de `verificaciones/` para la salud del
+servicio de la plataforma. **No hay tabla**: los informes que dejan los dos
+comandos son la fuente. **Si el disco no responde, lo dice en vez de lanzar
+una excepción**, porque una pantalla de salud que da un 500 cuando cae el
+almacenamiento es justo la que no sirve.

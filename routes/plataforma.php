@@ -7,6 +7,7 @@ use App\Http\Controllers\Plataforma\CuadroDeMandoController;
 use App\Http\Controllers\Plataforma\OrganizacionController;
 use App\Http\Controllers\Plataforma\PlanController;
 use App\Http\Controllers\Plataforma\RescateController;
+use App\Http\Controllers\Plataforma\SaludController;
 use App\Http\Controllers\Plataforma\SoporteController;
 use App\Http\Controllers\Plataforma\TrazaController;
 use App\Http\Middleware\SoloPlataforma;
@@ -103,6 +104,11 @@ Route::middleware(['auth', SoloPlataforma::class])
             Route::post('/solicitudes/{solicitud}/ejecutar', [RescateController::class, 'ejecutar'])->name('solicitudes.ejecutar');
             Route::post('/solicitudes/{solicitud}/rechazar', [RescateController::class, 'rechazar'])->name('solicitudes.rechazar');
         });
+
+        // La salud del servicio (punto 55).
+        Route::get('/salud', [SaludController::class, 'index'])
+            ->middleware('plataforma:salud.ver')
+            ->name('salud.index');
 
         // La traza de la plataforma, consultable (punto 50).
         Route::get('/traza', [TrazaController::class, 'index'])
