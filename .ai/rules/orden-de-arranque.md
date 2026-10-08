@@ -745,3 +745,10 @@ y 36 retención RGPD.
     nunca una clave secreta. Antes de cerrarlo, la revisión de seguridad del 49
     encontró que el soporte sobrevivía a un cambio de perfil, y se cerró con su
     propio commit.
+
+52. ✅ Rescatar cuentas con dos personas: restablecer el segundo factor y
+    designar un nuevo responsable. **Se numera 52 porque el 51 lo ocupó otro
+    trabajo hecho a la vez**, el de elegir y cambiar de plan. Dos sesiones
+    escribiendo en el mismo árbol obligaron a parar dos veces y a hacer el
+    commit de cada una por separado. La decisión de diseño es de César: lo pide
+    uno con la verificación escrita y lo ejecuta otro.

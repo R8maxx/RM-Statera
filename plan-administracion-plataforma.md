@@ -19,7 +19,7 @@ César pidió hacerlo todo, con tres decisiones:
 - **Rescatar una cuenta va con dos personas.** Restablecer el segundo factor o designar un nuevo responsable se *solicita* con la verificación escrita, y lo *ejecuta* otro administrador. Si sólo hay un administrador de perfil Administración, puede ejecutarlo él mismo, pero se avisa por correo a todos los responsables del cliente.
 - **Exportar desde la web, borrar sólo por consola.** El borrado exige doble confirmación y un plazo mínimo de baja, y respeta lo que no se puede borrar.
 
-**El aislamiento sigue igual**: nada nuevo usa `comoMantenimiento()` desde la web, y lo que toca datos de un cliente entra por `paraOrganizacion()`. **La única puerta nueva que atraviesa las capas es la purga del punto 56**, por consola y con una función SQL tan estrecha como `depurar_traza_de_persona`.
+**El aislamiento sigue igual**: nada nuevo usa `comoMantenimiento()` desde la web, y lo que toca datos de un cliente entra por `paraOrganizacion()`. **La única puerta nueva que atraviesa las capas es la purga del punto 57**, por consola y con una función SQL tan estrecha como `depurar_traza_de_persona`.
 
 ## Paso 0
 
@@ -71,7 +71,7 @@ Copiar este plan al repositorio como `plan-administracion-plataforma.md`, en la 
 - El detalle JSON se pinta legible y **sin secretos**.
 - La ficha del cliente enlaza aquí con el filtro de su organización.
 
-## 51. Rescatar cuentas con dos personas: segundo factor y nuevo responsable
+## 52. Rescatar cuentas con dos personas: segundo factor y nuevo responsable
 
 **Tabla `solicitudes_plataforma`**, con `organizacion_afectada_id` y sin RLS, como el resto de datos de plataforma:
 
@@ -108,7 +108,7 @@ Las dos transiciones, pedir y resolver, quedan en la fila (invariante 7) y en `e
 - En la ficha del cliente: «Solicitar restablecer el segundo factor» por cuenta, y «Designar nuevo responsable».
 - **`/plataforma/solicitudes`**: pendientes y resueltas, con «Ejecutar» y «Rechazar».
 
-## 52. El cuadro de mando de la plataforma
+## 53. El cuadro de mando de la plataforma
 
 **`/plataforma`** (`clientes.ver`) pasa a ser la casa: `/inicio` lleva aquí a quien administra sin organización. Tarjetas con cifra y enlace a la lista filtrada:
 
@@ -117,11 +117,11 @@ Las dos transiciones, pedir y resolver, quedan en la fila (invariante 7) y en `e
 - invitaciones caducadas sin aceptar (anteriores a la validez del broker);
 - ventanas de soporte abiertas;
 - solicitudes de rescate pendientes;
-- **sólo con `salud.ver`**: el estado de la última copia y de la última verificación (punto 54).
+- **sólo con `salud.ver`**: el estado de la última copia y de la última verificación (punto 55).
 
 Lo calcula `Plataforma/CuadroDeMando` leyendo sólo tablas fuera de RLS. Los filtros nuevos en `OrganizacionPlataformaRecurso` (vence pronto, en gracia, sólo lectura, de baja, sobre su plan) son los destinos de los enlaces.
 
-## 53. La ficha comercial del cliente
+## 54. La ficha comercial del cliente
 
 - **Columnas nuevas en `organizaciones`, sólo de la plataforma y fuera de `$fillable`**: `contacto_facturacion_nombre`, `contacto_facturacion_email`, `contacto_facturacion_telefono` y `notas_comerciales`.
 - **«Editar ficha comercial»** (`clientes.gestionar`): nombre, razón social, CIF, sector y contacto.
@@ -129,7 +129,7 @@ Lo calcula `Plataforma/CuadroDeMando` leyendo sólo tablas fuera de RLS. Los fil
   - Con `GuardarFichaComercial` y su `FormRequest`. El CIF sigue siendo único.
 - El cliente sigue editando lo suyo en `/organizacion`, y ahí ve el contacto de facturación sin poder cambiarlo.
 
-## 54. La salud del servicio
+## 55. La salud del servicio
 
 **`/plataforma/salud`** (`salud.ver`):
 
@@ -142,7 +142,7 @@ Lo calcula `Plataforma/CuadroDeMando` leyendo sólo tablas fuera de RLS. Los fil
   - el número de trabajos pendientes por cola, de Redis.
 - **Horizon**: el gate `viewHorizon` pasa a ser `esPlataforma() && puedeEnPlataforma(SaludVer)`, y la pantalla enlaza al panel.
 
-## 55. Exportar un cliente
+## 56. Exportar un cliente
 
 Botón «Exportar todos los datos» en la ficha (`clientes.exportar`), con su job en cola `ExportarOrganizacion`:
 
@@ -166,7 +166,7 @@ Botón «Exportar todos los datos» en la ficha (`clientes.exportar`), con su jo
 
 **Hay que comprobar antes que `ext-zip` está en la imagen.** Si no, se usa un tar.gz con `PharData`, sin dependencia nueva.
 
-## 56. El borrado definitivo, sólo por consola
+## 57. El borrado definitivo, sólo por consola
 
 **Empieza con una prueba (spike) en `statera_test`**, para confirmar lo que la exploración dejó como inferencia: la cascada desde `organizaciones` choca con el `REVOKE DELETE` de `eventos_auditoria` y `transiciones_suscripcion`, y con los disparadores de `auditoria_puntos` y `hallazgos`. El diseño previsto, que se ajusta a lo que diga la prueba:
 
@@ -190,7 +190,9 @@ Botón «Exportar todos los datos» en la ficha (`clientes.exportar`), con su jo
 
 ## Orden y entregas
 
-**48 → 49 → 50 → 51 → 52 → 53 → 54 → 55 → 56**, un commit por punto. Los perfiles van primero porque todo lo demás cuelga de una capacidad. La purga va la última porque es la única destructiva y empieza con una prueba.
+**El 51 lo ocupó otro trabajo** que se hizo a la vez: la organización elige y cambia de plan (`/organizacion/plan`). Por eso el rescate de cuentas es el 52 y lo demás se desplaza un número.
+
+**48 → 49 → 50 → 52 → 53 → 54 → 55 → 56 → 57**, un commit por punto. Los perfiles van primero porque todo lo demás cuelga de una capacidad. La purga va la última porque es la única destructiva y empieza con una prueba.
 
 ## Ficheros críticos
 
@@ -219,21 +221,21 @@ Botón «Exportar todos los datos» en la ficha (`clientes.exportar`), con su jo
 - matriz perfil × ruta (48);
 - no quitarse a sí mismo y no dejar la plataforma sin Administración (49);
 - la traza filtra bien y nunca enseña secretos (50);
-- en el rescate (51):
+- en el rescate (52):
   - quien pide no ejecuta, salvo administrador único, con aviso;
   - la solicitud caduca;
   - restablecer borra el secreto, las passkeys y las sesiones;
   - designar no admite cuentas de plataforma;
   - todo queda en las dos trazas;
-- las cifras del cuadro de mando con el escenario del seeder (52);
-- la plataforma edita la ficha comercial y el cliente no edita el contacto (53);
-- la salud se pone roja con una copia vieja y oculta los payloads (54);
-- en la exportación (55):
+- las cifras del cuadro de mando con el escenario del seeder (53);
+- la plataforma edita la ficha comercial y el cliente no edita el contacto (54);
+- la salud se pone roja con una copia vieja y oculta los payloads (55);
+- en la exportación (56):
   - el ZIP contiene un NDJSON por modelo descubierto;
   - los datos personales salen en claro;
   - no sale ninguna contraseña ni secreto;
   - no aparece nada de otra organización;
-- en la purga (56):
+- en la purga (57):
   - se niega antes del plazo;
   - `--dry-run` no toca nada;
   - después de purgar no queda ninguna fila con ese `organizacion_id`;

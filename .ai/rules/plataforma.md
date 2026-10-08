@@ -605,3 +605,31 @@ formatean en un solo sitio, `lib/dinero.ts`.
 - **Renovar por adelantado no existe.** Con la suscripción vigente, el mismo
   plan y el mismo periodo salen como «Tu plan actual».
 
+
+## Rescatar cuentas con dos personas (punto 52)
+
+Para el cliente que se queda sin responsable o la cuenta que pierde el móvil.
+**Se pide con la verificación escrita y lo ejecuta otra persona**
+(`SolicitarRescate`, `ResolverRescate`). Así quien llame haciéndose pasar por el
+dueño tiene que convencer a dos. La excepción es que sólo haya una persona de
+Administración: entonces se ejecuta igual, se marca `sin_segunda_persona` y el
+correo al cliente lo dice.
+
+- **`solicitudes_plataforma`**, sin RLS y con `organizacion_afectada_id`:
+  - las dos transiciones, pedir y resolver, quedan en la fila con fecha y autor;
+  - `caducada` no se guarda: se deriva a las 72 horas de una pendiente;
+  - un `CHECK` exige que una pendiente no tenga `resuelta_en` y que una
+    resuelta lo tenga.
+- **Restablecer el segundo factor** borra el secreto, los códigos, las passkeys,
+  las sesiones y el «recordarme». `ExigirDosFactores` hará el resto la próxima
+  vez que la cuenta escriba.
+- **Designar responsable** pasa por `CambiarRol` si la cuenta ya existe, o por
+  `InvitarCuenta` si es nueva, dentro de `paraOrganizacion()`.
+- **Nunca sobre una cuenta de la plataforma**, aunque sea además de esa
+  organización: su llave abre también la plataforma.
+- **La cuenta se vuelve a acotar al ejecutar** (`cuentaDeLaSolicitud()`), y no
+  sólo al pedir.
+
+**Trampa que mordió:** `Rule::exists(...)->where('es_plataforma', false)` enlaza
+el booleano como cadena vacía y PostgreSQL lo rechaza con un 500. Hay que usar
+la forma con closure, que pasa por el query builder.

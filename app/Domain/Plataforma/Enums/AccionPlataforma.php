@@ -40,6 +40,9 @@ enum AccionPlataforma: string
     case AdministradorPerfilCambiado = 'administrador_perfil_cambiado';
     case AdministradorRetirado = 'administrador_retirado';
     case PlanContratado = 'plan_contratado';
+    case RescateSolicitado = 'rescate_solicitado';
+    case RescateEjecutado = 'rescate_ejecutado';
+    case RescateRechazado = 'rescate_rechazado';
 
     public function etiqueta(): string
     {
@@ -62,6 +65,9 @@ enum AccionPlataforma: string
             self::AdministradorPerfilCambiado => 'Perfil de administrador cambiado',
             self::AdministradorRetirado => 'Administrador retirado',
             self::PlanContratado => 'Plan contratado por la organización',
+            self::RescateSolicitado => 'Rescate de cuenta solicitado',
+            self::RescateEjecutado => 'Rescate de cuenta ejecutado',
+            self::RescateRechazado => 'Rescate de cuenta rechazado',
         };
     }
 }

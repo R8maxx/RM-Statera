@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\Plataforma\AdministradorController;
 use App\Http\Controllers\Plataforma\OrganizacionController;
 use App\Http\Controllers\Plataforma\PlanController;
+use App\Http\Controllers\Plataforma\RescateController;
 use App\Http\Controllers\Plataforma\SoporteController;
 use App\Http\Controllers\Plataforma\TrazaController;
 use App\Http\Middleware\SoloPlataforma;
@@ -86,6 +87,16 @@ Route::middleware(['auth', SoloPlataforma::class])
             Route::post('/administradores/{administrador}/retirar', [AdministradorController::class, 'retirar'])
                 ->whereNumber('administrador')
                 ->name('administradores.retirar');
+        });
+
+        // Rescatar cuentas con dos personas (punto 52): pedir desde la ficha
+        // del cliente, ejecutar o rechazar desde Solicitudes.
+        Route::middleware('plataforma:cuentas.rescatar')->group(function (): void {
+            Route::post('/organizaciones/{organizacion}/rescates', [RescateController::class, 'store'])
+                ->name('rescates.store');
+            Route::get('/solicitudes', [RescateController::class, 'index'])->name('solicitudes.index');
+            Route::post('/solicitudes/{solicitud}/ejecutar', [RescateController::class, 'ejecutar'])->name('solicitudes.ejecutar');
+            Route::post('/solicitudes/{solicitud}/rechazar', [RescateController::class, 'rechazar'])->name('solicitudes.rechazar');
         });
 
         // La traza de la plataforma, consultable (punto 50).

@@ -42,6 +42,8 @@ interface Cuenta {
     nombre: string;
     email: string;
     rol: string | null;
+    esResponsable: boolean;
+    dosFactores: boolean;
     plataforma: boolean;
     estado: { valor: string; etiqueta: string; tono: string; icono: string };
 }
@@ -76,6 +78,17 @@ interface Suscripcion {
     }[];
 }
 
+interface SolicitudRescate {
+    id: number;
+    tipo: string;
+    cuenta: string;
+    verificacion: string;
+    solicitante: string | null;
+    solicitadaEn: string;
+    resolutor: string | null;
+    estado: { valor: string; etiqueta: string; tono: string; icono: string };
+}
+
 interface PlanElegible {
     valor: string;
     etiqueta: string;
@@ -101,7 +114,63 @@ const props = defineProps<{
     traza: EventoTraza[];
     contrato: Suscripcion;
     planes: PlanElegible[];
+    /** Los rescates de este cliente (punto 52), vacío para quien no puede resolverlos. */
+    rescates: SolicitudRescate[];
 }>();
+
+/*
+ * Rescatar una cuenta (punto 52). Pedir no cambia nada: deja la solicitud, con
+ * la verificación escrita, para que la ejecute otra persona de Administración.
+ */
+const rescatando = ref(false);
+const rescate = useForm({
+    tipo: 'restablecer_segundo_factor',
+    cuenta_id: SIN_VALOR as string,
+    nombre: '',
+    email: '',
+    verificacion: '',
+});
+const errorRescate = computed(() => (pagina.props.errors as Record<string, string | undefined>).rescate);
+
+const candidatasAResponsable = computed(() =>
+    conOpcionVacia(
+        props.cuentas
+            .filter((cuenta) => !cuenta.plataforma && !cuenta.esResponsable && cuenta.estado.valor !== 'desactivada')
+            .map((cuenta) => ({ valor: String(cuenta.id), etiqueta: `${cuenta.nombre} (${cuenta.email})` })),
+        'Una persona nueva: se le invitará',
+    ),
+);
+const responsableNuevo = computed(() => rescate.tipo === 'designar_responsable' && rescate.cuenta_id === SIN_VALOR);
+
+function pedirSegundoFactor(cuenta: Cuenta): void {
+    rescate.reset();
+    rescate.clearErrors();
+    rescate.tipo = 'restablecer_segundo_factor';
+    rescate.cuenta_id = String(cuenta.id);
+    rescatando.value = true;
+}
+
+function pedirResponsable(): void {
+    rescate.reset();
+    rescate.clearErrors();
+    rescate.tipo = 'designar_responsable';
+    rescatando.value = true;
+}
+
+const cuentaElegida = computed(() => props.cuentas.find((cuenta) => String(cuenta.id) === rescate.cuenta_id));
+
+function pedirRescate(): void {
+    rescate
+        .transform((datos) => ({
+            ...datos,
+            nombre: responsableNuevo.value ? datos.nombre : null,
+            email: responsableNuevo.value ? datos.email : null,
+        }))
+        .post(`/plataforma/organizaciones/${props.cliente.id}/rescates`, {
+            preserveScroll: true,
+            onSuccess: () => (rescatando.value = false),
+        });
+}
 
 /* Entrar por la ventana que abrió el cliente (punto 44). */
 const pagina = usePage();
@@ -408,6 +477,16 @@ const prevision = computed<string[]>(() => {
                     <CardHeader>
                         <CardTitle>Cuentas</CardTitle>
                         <CardDescription>Las da de alta su responsable de seguridad, no la plataforma.</CardDescription>
+                        <!-- Para cuando el cliente se queda sin quien invite (punto 52). -->
+                        <Button
+                            v-if="puede('cuentas.rescatar') && !cliente.bajaEn"
+                            variant="outline"
+                            size="sm"
+                            class="mt-2 justify-self-start"
+                            @click="pedirResponsable"
+                        >
+                            Designar nuevo responsable…
+                        </Button>
                     </CardHeader>
                     <CardContent class="px-0">
                         <p v-if="errorCuentas" class="mb-2 px-6 text-sm text-destructive">{{ errorCuentas }}</p>
@@ -437,6 +516,14 @@ const prevision = computed<string[]>(() => {
                                     <TableCell><CeldaBadge :valor="{ ...cuenta.estado }" /></TableCell>
                                     <TableCell class="pr-6 text-right">
                                         <Button
+                                            v-if="puede('cuentas.rescatar') && cuenta.dosFactores && !cuenta.plataforma"
+                                            variant="ghost"
+                                            size="sm"
+                                            @click="pedirSegundoFactor(cuenta)"
+                                        >
+                                            Restablecer dos pasos…
+                                        </Button>
+                                        <Button
                                             v-if="cuenta.estado.valor === 'invitada' && puede('clientes.gestionar')"
                                             variant="outline"
                                             size="sm"
@@ -452,6 +539,28 @@ const prevision = computed<string[]>(() => {
                                 </TableRow>
                             </TableBody>
                         </Table>
+                    </CardContent>
+                </Card>
+
+                <!-- Los rescates de este cliente (punto 52). Se resuelven en Solicitudes. -->
+                <Card v-if="rescates.length > 0">
+                    <CardHeader>
+                        <CardTitle>Rescates de cuenta</CardTitle>
+                        <CardDescription>
+                            Los ejecuta o rechaza otra persona de Administración en
+                            <Link href="/plataforma/solicitudes" class="underline underline-offset-4">Solicitudes</Link>.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <ol class="divide-y text-sm">
+                            <li v-for="solicitud in rescates" :key="solicitud.id" class="flex flex-wrap items-center justify-between gap-2 py-2.5">
+                                <span class="min-w-0">
+                                    <span class="block">{{ solicitud.tipo }}</span>
+                                    <span class="block truncate text-muted-foreground">{{ solicitud.cuenta }}</span>
+                                </span>
+                                <CeldaBadge :valor="{ ...solicitud.estado }" />
+                            </li>
+                        </ol>
                     </CardContent>
                 </Card>
 
@@ -617,6 +726,60 @@ const prevision = computed<string[]>(() => {
                     <Button variant="outline" @click="dandoDeBaja = false">Cancelar</Button>
                     <Button :disabled="baja.processing" @click="darDeBaja">Dar de baja</Button>
                 </DialogFooter>
+            </DialogContent>
+        </Dialog>
+        <Dialog v-model:open="rescatando">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>
+                        {{
+                            rescate.tipo === 'designar_responsable'
+                                ? 'Designar un nuevo responsable de seguridad'
+                                : `Restablecer los dos pasos de ${cuentaElegida?.nombre ?? ''}`
+                        }}
+                    </DialogTitle>
+                    <DialogDescription>
+                        Esto sólo deja la solicitud. La ejecuta otra persona de Administración, y entonces se avisa al
+                        cliente por correo y queda en su traza.
+                    </DialogDescription>
+                </DialogHeader>
+                <form class="grid gap-4" @submit.prevent="pedirRescate">
+                    <p v-if="errorRescate" class="text-sm text-destructive">{{ errorRescate }}</p>
+                    <template v-if="rescate.tipo === 'designar_responsable'">
+                        <CampoSelect
+                            v-model="rescate.cuenta_id"
+                            nombre="cuenta_id"
+                            etiqueta="Quién"
+                            :opciones="candidatasAResponsable"
+                            :error="rescate.errors.cuenta_id"
+                            ayuda="Una cuenta que ya tiene, que pasará a responsable, o una persona nueva a la que se invitará."
+                        />
+                        <template v-if="responsableNuevo">
+                            <CampoTexto v-model="rescate.nombre" nombre="nombre" etiqueta="Nombre" :error="rescate.errors.nombre" requerido />
+                            <CampoTexto
+                                v-model="rescate.email"
+                                nombre="email"
+                                etiqueta="Correo electrónico"
+                                tipo="email"
+                                :error="rescate.errors.email"
+                                requerido
+                            />
+                        </template>
+                    </template>
+                    <CampoTextarea
+                        v-model="rescate.verificacion"
+                        nombre="verificacion"
+                        etiqueta="Cómo se ha comprobado quién lo pide"
+                        :filas="3"
+                        :error="rescate.errors.verificacion"
+                        requerido
+                        ayuda="Quién lo pidió, por qué canal y cómo se confirmó: «llamada al teléfono de la ficha, confirmada con su director general». Es lo que leerá quien lo ejecute."
+                    />
+                    <DialogFooter>
+                        <Button type="button" variant="outline" @click="rescatando = false">Cancelar</Button>
+                        <Button type="submit" :disabled="rescate.processing">Dejar la solicitud</Button>
+                    </DialogFooter>
+                </form>
             </DialogContent>
         </Dialog>
     </AppLayout>

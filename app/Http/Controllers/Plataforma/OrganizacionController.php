@@ -4,16 +4,19 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Plataforma;
 
+use App\Domain\Autorizacion\Enums\Rol;
 use App\Domain\Organizacion\Models\Organizacion;
 use App\Domain\Plataforma\AltaOrganizacion;
 use App\Domain\Plataforma\BajaOrganizacion;
 use App\Domain\Plataforma\CambiarSuscripcion;
 use App\Domain\Plataforma\Enums\AccionPlataforma;
+use App\Domain\Plataforma\Enums\CapacidadPlataforma;
 use App\Domain\Plataforma\Enums\EstadoSuscripcion;
 use App\Domain\Plataforma\Excepciones\AltaNoPermitida;
 use App\Domain\Plataforma\LimitesDelPlan;
 use App\Domain\Plataforma\Models\EventoPlataforma;
 use App\Domain\Plataforma\Models\Plan;
+use App\Domain\Plataforma\Models\SolicitudPlataforma;
 use App\Domain\Plataforma\Models\TransicionSuscripcion;
 use App\Domain\Plataforma\TrazaPlataforma;
 use App\Domain\Usuario\Enums\EstadoCuenta;
@@ -78,7 +81,7 @@ class OrganizacionController extends Controller
         return to_route('plataforma.organizaciones.show', $organizacion);
     }
 
-    public function show(Organizacion $organizacion): Response
+    public function show(Request $request, Organizacion $organizacion): Response
     {
         $cuentas = User::query()
             ->where('organizacion_id', $organizacion->id)
@@ -115,6 +118,8 @@ class OrganizacionController extends Controller
                     'nombre' => $cuenta->name,
                     'email' => $cuenta->email,
                     'rol' => $cuenta->rol()?->etiqueta(),
+                    'esResponsable' => $cuenta->rol() === Rol::ResponsableSeguridad,
+                    'dosFactores' => $cuenta->dosFactoresConfirmado(),
                     'plataforma' => $cuenta->esPlataforma(),
                     'estado' => [
                         'valor' => $estado->value,
@@ -124,6 +129,19 @@ class OrganizacionController extends Controller
                     ],
                 ];
             })->values()->all(),
+            // Los rescates pendientes de este cliente (punto 52), para quien
+            // puede resolverlos.
+            'rescates' => $request->user()?->puedeEnPlataforma(CapacidadPlataforma::CuentasRescatar) === true
+                ? SolicitudPlataforma::query()
+                    ->where('organizacion_afectada_id', $organizacion->id)
+                    ->with(['organizacion:id,nombre', 'cuenta:id,name,email', 'solicitante:id,name', 'resolutor:id,name'])
+                    ->orderByDesc('solicitada_en')
+                    ->limit(10)
+                    ->get()
+                    ->map(fn (SolicitudPlataforma $solicitud): array => RescateController::solicitud($solicitud, $request->user()))
+                    ->values()
+                    ->all()
+                : [],
             'invitadas' => $cuentas->filter(static fn (User $cuenta): bool => $cuenta->estadoCuenta() === EstadoCuenta::Invitada)->count(),
             'traza' => EventoPlataforma::query()
                 ->where('organizacion_afectada_id', $organizacion->id)

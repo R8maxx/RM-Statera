@@ -16,6 +16,7 @@ import {
     GaugeIcon,
     GraduationCapIcon,
     HandshakeIcon,
+    KeyRoundIcon,
     LayersIcon,
     LayoutDashboardIcon,
     LayoutTemplateIcon,
@@ -556,6 +557,13 @@ export const navegacion: GrupoNavegacion[] = [
                 icono: LayersIcon,
                 permiso: 'plataforma.planes.gestionar',
                 alias: ['suscripción', 'límites', 'precio', 'gracia'],
+            },
+            {
+                titulo: 'Solicitudes',
+                href: '/plataforma/solicitudes',
+                icono: KeyRoundIcon,
+                permiso: 'plataforma.cuentas.rescatar',
+                alias: ['rescate', 'segundo factor', 'dos pasos', 'responsable', 'recuperar cuenta'],
             },
             {
                 titulo: 'Traza',
