@@ -711,6 +711,16 @@ capacidad.
   mensaje, que puede llevar una consulta con sus valores o un correo. El
   detalle está en Horizon, detrás de la misma capacidad y del segundo factor.
 
+**Y una que encontró el recorrido en el navegador:** la autorización de serie de
+Horizon deja pasar a cualquiera, sin sesión incluso, cuando `APP_ENV=local`, y
+el gate ni se consulta. Los tests no lo veían porque corren en `testing`.
+`HorizonServiceProvider::authorization()` va siempre por el gate; si se
+sobrescribe, tiene que llamar a `gate()`, que es quien lo define.
+
+**El Inicio de la plataforma es `/plataforma` y el resto de entradas cuelgan de
+él.** `esSeccionActiva()` enciende sólo la entrada más concreta que reclama la
+ruta; antes se encendían Inicio y la sección a la vez.
+
 ## Exportar un cliente (punto 56)
 
 «Exportar todos los datos» (`clientes.exportar`, sólo Administración) encola
@@ -749,7 +759,7 @@ no del cliente.
 `organizaciones:purgar {id}` borra a un cliente que se fue. **Sólo por
 consola**, y con tres frenos: noventa días de baja, una exportación `lista`
 generada después de la baja (o `--sin-exportacion` dicho a propósito) y el CIF
-tecleado. `--dry-run` cuenta y no toca nada; los recuentos salen de
+tecleado. `--dry-run` cuenta y no toca nada, también antes del plazo, y dice desde cuándo se podrá; los recuentos salen de
 `ModelosDelCliente`, dentro del contexto del cliente.
 
 **La fila la borra `purgar_organizacion()`, no el comando.** La aplicación ya no

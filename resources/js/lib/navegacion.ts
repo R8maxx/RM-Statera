@@ -632,9 +632,21 @@ export function navegacionPara(permisos: readonly string[]): GrupoNavegacion[] {
 /** Todas las entradas en plano, para buscar y para resolver la ruta activa. */
 export const entradas: EntradaNavegacion[] = navegacion.flatMap((grupo) => grupo.entradas);
 
-/** Una sección está activa si la ruta es la suya o cuelga de ella. */
-export function esSeccionActiva(href: string, ruta: string): boolean {
+function cuelgaDe(href: string, ruta: string): boolean {
     return ruta === href || ruta.startsWith(`${href}/`);
+}
+
+/**
+ * Una sección está activa si la ruta es la suya o cuelga de ella, **y ninguna
+ * otra entrada más concreta la reclama**. La plataforma tiene su inicio en
+ * `/plataforma` y el resto de entradas debajo: sin esto, Inicio se encendía
+ * a la vez que Organizaciones.
+ */
+export function esSeccionActiva(href: string, ruta: string): boolean {
+    return (
+        cuelgaDe(href, ruta) &&
+        !entradas.some((otra) => otra.href.length > href.length && otra.href.startsWith(`${href}/`) && cuelgaDe(otra.href, ruta))
+    );
 }
 
 /** La entrada a la que pertenece una ruta, para las migas de pan. */

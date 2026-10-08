@@ -29,7 +29,8 @@ use Throwable;
  *    explícitamente `--sin-exportacion`. Lo que se borra no vuelve.
  * 3. **Se teclea su CIF** (o su nombre, si no tiene).
  *
- * `--dry-run` cuenta lo que se borraría y no toca nada.
+ * `--dry-run` cuenta lo que se borraría y no toca nada, también antes del
+ * plazo, para poder planificar la purga.
  *
  * **Los ficheros**: se borran los de `adjuntos` y los borradores de
  * `documentos`. Las evidencias y los documentos emitidos pueden estar bajo
@@ -56,8 +57,18 @@ final class PurgarOrganizacionCommand extends Command
             return self::FAILURE;
         }
 
-        if ($organizacion->baja_en === null || $organizacion->baja_en->gt(now()->subDays(90))) {
-            $this->components->error('Sólo se purga una organización que lleve al menos noventa días de baja.');
+        if ($organizacion->baja_en === null) {
+            $this->components->error('Sólo se purga una organización dada de baja, y tras noventa días.');
+
+            return self::FAILURE;
+        }
+
+        $purgableDesde = $organizacion->baja_en->copy()->addDays(90);
+
+        // La simulación no borra nada: cuenta también antes del plazo, para
+        // poder planificar la purga con tiempo.
+        if ($purgableDesde->isFuture() && ! $this->option('dry-run')) {
+            $this->components->error("Sólo se purga una organización que lleve al menos noventa días de baja: no antes del {$purgableDesde->format('d/m/Y')}.");
 
             return self::FAILURE;
         }
@@ -84,6 +95,10 @@ final class PurgarOrganizacionCommand extends Command
         $this->components->twoColumnDetail('Ficheros', (string) count($ficheros));
 
         if ($this->option('dry-run')) {
+            if ($purgableDesde->isFuture()) {
+                $this->components->warn("Todavía no se puede purgar: no antes del {$purgableDesde->format('d/m/Y')}.");
+            }
+
             $this->components->info('Simulación: no se ha borrado nada.');
 
             return self::SUCCESS;

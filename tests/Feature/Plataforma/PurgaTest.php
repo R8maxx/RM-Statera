@@ -99,6 +99,17 @@ it('se niega antes de noventa días de baja, y con la organización activa', fun
     expect(Organizacion::query()->whereKey($this->organizacion->id)->exists())->toBeTrue();
 });
 
+it('la simulación cuenta también antes del plazo, y dice desde cuándo se podrá', function (): void {
+    deBajaHace($this->organizacion, 10);
+
+    purgar($this, ['--dry-run' => true])
+        ->expectsOutputToContain('Todavía no se puede purgar')
+        ->expectsOutputToContain('Simulación')
+        ->assertSuccessful();
+
+    expect(Organizacion::query()->whereKey($this->organizacion->id)->exists())->toBeTrue();
+});
+
 it('en simulación cuenta y no toca nada', function (): void {
     deBajaHace($this->organizacion, 91);
     $antes = filasDe($this->organizacion->id);

@@ -6,6 +6,7 @@ namespace App\Providers;
 
 use App\Domain\Plataforma\Enums\CapacidadPlataforma;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Laravel\Horizon\Horizon;
 use Laravel\Horizon\HorizonApplicationServiceProvider;
@@ -22,6 +23,18 @@ class HorizonServiceProvider extends HorizonApplicationServiceProvider
         // Horizon::routeSmsNotificationsTo('15556667777');
         // Horizon::routeMailNotificationsTo('example@example.com');
         // Horizon::routeSlackNotificationsTo('slack-webhook-url', '#channel');
+    }
+
+    /**
+     * Siempre por el gate, también en `local`. La autorización de serie deja
+     * pasar a cualquiera, sin sesión incluso, cuando `APP_ENV=local`, y un
+     * entorno de desarrollo alcanzable en la red enseñaría los payloads.
+     */
+    protected function authorization(): void
+    {
+        $this->gate();
+
+        Horizon::auth(fn (Request $request): bool => Gate::check('viewHorizon', [$request->user()]));
     }
 
     /**

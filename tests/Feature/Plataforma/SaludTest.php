@@ -104,6 +104,14 @@ it('gestión comercial no ve la salud ni Horizon', function (): void {
     expect(Gate::forUser($sinSegundoFactor)->allows('viewHorizon'))->toBeFalse();
 });
 
+it('Horizon pasa por el gate también en local, y no deja entrar a quien no tiene sesión', function (): void {
+    app()->detectEnvironment(fn (): string => 'local');
+
+    $this->get('/horizon')->assertForbidden();
+    $this->actingAs(deSalud(PerfilPlataforma::Comercial))->get('/horizon')->assertForbidden();
+    $this->actingAs(deSalud())->get('/horizon')->assertOk();
+});
+
 it('el cuadro de mando avisa de la salud sólo a quien puede verla', function (): void {
     copiaEn(now()->subDays(3));
 
