@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests;
 
 use App\Domain\Tarea\Enums\PrioridadTarea;
+use App\Http\Requests\Concerns\DeLaOrganizacionActiva;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -18,6 +19,8 @@ use Illuminate\Validation\Rule;
  */
 class AbrirAccionCorrectivaRequest extends FormRequest
 {
+    use DeLaOrganizacionActiva;
+
     /**
      * @return array<string, mixed>
      */
@@ -30,7 +33,7 @@ class AbrirAccionCorrectivaRequest extends FormRequest
             'responsable_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('users', 'id')->where('organizacion_id', $this->user()?->organizacion_id),
+                Rule::exists('users', 'id')->where('organizacion_id', $this->organizacionActiva()),
             ],
             // Sin `after_or_equal:today`, como en tareas: una acción que se
             // apunta tarde lleva la fecha que le tocaba, y falsearla para que el

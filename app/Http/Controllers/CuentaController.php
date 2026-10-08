@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Domain\Autorizacion\Enums\Rol;
+use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Persona\Models\Persona;
 use App\Domain\Sistema\Models\Sistema;
 use App\Domain\Traza\Enums\AccionAuditada;
@@ -52,7 +53,8 @@ class CuentaController extends Controller
 
     public function index(Request $request, CuentaRecurso $recurso, ResumenCuentas $resumen): Response
     {
-        $organizacionId = (int) $request->user()?->organizacion_id;
+        // La del contexto: es la que se está mirando (punto 46).
+        $organizacionId = app(ContextoOrganizacion::class)->idObligatorio();
 
         return Inertia::render('cuentas/Index', [
             ...$this->tabla($recurso, $request),

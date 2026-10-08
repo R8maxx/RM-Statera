@@ -9,6 +9,7 @@ use App\Domain\Organizacion\Models\Organizacion;
 use App\Domain\Plataforma\LimitesDelPlan;
 use App\Domain\Sistema\Enums\EstadoSistema;
 use App\Domain\Sistema\Models\Sistema;
+use App\Http\Requests\Concerns\DeLaOrganizacionActiva;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -19,6 +20,8 @@ use Illuminate\Validation\Validator;
  */
 class GuardarSistemaRequest extends FormRequest
 {
+    use DeLaOrganizacionActiva;
+
     /**
      * @return array<string, mixed>
      */
@@ -36,7 +39,7 @@ class GuardarSistemaRequest extends FormRequest
                 // dos clientes distintos pueden llamar SIS-01 a sistemas
                 // distintos. La regla lo refleja explícitamente.
                 Rule::unique('sistemas', 'codigo')
-                    ->where('organizacion_id', $this->user()?->organizacion_id)
+                    ->where('organizacion_id', $this->organizacionActiva())
                     ->ignore($sistema?->id),
             ],
             'nombre' => ['required', 'string', 'max:255'],

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests;
 
 use App\Domain\Tarea\Enums\PrioridadTarea;
+use App\Http\Requests\Concerns\DeLaOrganizacionActiva;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -17,6 +18,8 @@ use Illuminate\Validation\Rule;
  */
 class AbrirActuacionDeMejoraRequest extends FormRequest
 {
+    use DeLaOrganizacionActiva;
+
     /**
      * @return array<string, mixed>
      */
@@ -29,7 +32,7 @@ class AbrirActuacionDeMejoraRequest extends FormRequest
             'responsable_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('users', 'id')->where('organizacion_id', $this->user()?->organizacion_id),
+                Rule::exists('users', 'id')->where('organizacion_id', $this->organizacionActiva()),
             ],
             'fecha_limite' => ['nullable', 'date'],
             'coste_estimado' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],

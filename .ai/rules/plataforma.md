@@ -277,10 +277,6 @@ el botón de salir siempre a mano.
   pasarela, y nada lo lee.
 - **No se registra cada página que ve el soporte**, sólo cuándo entra y cuándo
   sale. Como el auditor externo, que tampoco deja rastro de lectura.
-- **Hay `FormRequest` de escritura que leen `$request->user()->organizacion_id`**
-  en vez del contexto. El soporte no los alcanza, porque sólo lee, así que no
-  se han tocado. Los dos lectores de `ActivoController` (las etiquetas QR) ya
-  leen el contexto (punto 46). Si aparece otro lector, se pasa al contexto.
 - **Superar un límite no quita nada.** Si se baja de plan a uno con menos
   cuentas de las que ya hay, nadie se desactiva, pero no se puede añadir otra.
   Desde el punto 46 la ficha de plataforma lo dice en rojo.
@@ -416,3 +412,18 @@ abrir el cliente si la quiere.
   logo.
 - **Las etiquetas QR leían la organización de la cuenta**, y dentro del
   soporte salían sin QR. Ahora leen la del contexto.
+
+### La organización contra la que se valida es la del contexto (punto 47)
+
+Veintitrés `FormRequest` acotaban sus `exists` y `unique` con
+`$this->user()?->organizacion_id`, y `CuentaController::index` contaba con lo
+mismo. Hasta el punto 44 era lo mismo que el contexto. Desde que una cuenta de
+la plataforma puede mirar una organización que no es la suya, ya no.
+
+Ahora todos usan `DeLaOrganizacionActiva::organizacionActiva()`, que lee
+`ContextoOrganizacion::idObligatorio()`. Es `idObligatorio()` y no `id()`
+porque un `where` con nulo es un `whereNull`. **Un `FormRequest` nuevo que
+acote por organización usa el trait**, no la cuenta.
+
+**`GuardarFotoPerfil` se queda con la de la cuenta, a propósito**: la foto es
+de la persona y no de la organización que se está mirando.

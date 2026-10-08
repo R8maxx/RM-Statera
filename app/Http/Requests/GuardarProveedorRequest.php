@@ -11,6 +11,7 @@ use App\Domain\Proveedor\Enums\ModeloNube;
 use App\Domain\Proveedor\Enums\UbicacionDatos;
 use App\Domain\Proveedor\Models\Proveedor;
 use App\Domain\Usuario\CuentasAsignables;
+use App\Http\Requests\Concerns\DeLaOrganizacionActiva;
 use App\Http\Requests\Concerns\NormalizaSeleccionVacia;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
@@ -29,6 +30,7 @@ use Illuminate\Validation\Rule;
  */
 class GuardarProveedorRequest extends FormRequest
 {
+    use DeLaOrganizacionActiva;
     use NormalizaSeleccionVacia;
 
     /**
@@ -62,7 +64,7 @@ class GuardarProveedorRequest extends FormRequest
             'responsable_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('users', 'id')->where('organizacion_id', $this->user()?->organizacion_id),
+                Rule::exists('users', 'id')->where('organizacion_id', $this->organizacionActiva()),
                 // Ni un auditor ni una cuenta que ya no entra: ver `CuentasAsignables`.
                 function (string $atributo, mixed $valor, Closure $falla): void {
                     $actual = $this->route('proveedor')?->responsable_id;

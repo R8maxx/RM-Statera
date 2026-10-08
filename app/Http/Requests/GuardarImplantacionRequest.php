@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests;
 
 use App\Domain\Implantacion\Enums\NivelMadurez;
+use App\Http\Requests\Concerns\DeLaOrganizacionActiva;
 use App\Http\Requests\Concerns\NormalizaSeleccionVacia;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -23,6 +24,7 @@ use Illuminate\Validation\Rule;
  */
 class GuardarImplantacionRequest extends FormRequest
 {
+    use DeLaOrganizacionActiva;
     use NormalizaSeleccionVacia;
 
     /**
@@ -43,7 +45,7 @@ class GuardarImplantacionRequest extends FormRequest
             'responsable_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('users', 'id')->where('organizacion_id', $this->user()?->organizacion_id),
+                Rule::exists('users', 'id')->where('organizacion_id', $this->organizacionActiva()),
             ],
             'fecha_objetivo' => ['nullable', 'date'],
             'nivel_madurez' => ['nullable', Rule::enum(NivelMadurez::class)],

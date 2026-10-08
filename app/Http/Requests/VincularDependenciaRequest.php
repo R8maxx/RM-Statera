@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\DeLaOrganizacionActiva;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -18,6 +19,8 @@ use Illuminate\Validation\Rule;
  */
 class VincularDependenciaRequest extends FormRequest
 {
+    use DeLaOrganizacionActiva;
+
     /**
      * @return array<string, mixed>
      */
@@ -27,7 +30,7 @@ class VincularDependenciaRequest extends FormRequest
             'depende_de_id' => [
                 'required',
                 'integer',
-                Rule::exists('activos', 'id')->where('organizacion_id', $this->user()?->organizacion_id),
+                Rule::exists('activos', 'id')->where('organizacion_id', $this->organizacionActiva()),
             ],
             'nota' => ['nullable', 'string', 'max:500'],
         ];

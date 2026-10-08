@@ -10,6 +10,7 @@ use App\Domain\Usuario\CuentasAsignables;
 use App\Domain\Vulnerabilidad\Enums\OrigenVulnerabilidad;
 use App\Domain\Vulnerabilidad\Enums\Severidad;
 use App\Domain\Vulnerabilidad\Models\Vulnerabilidad;
+use App\Http\Requests\Concerns\DeLaOrganizacionActiva;
 use App\Http\Requests\Concerns\NormalizaSeleccionVacia;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
@@ -28,6 +29,7 @@ use Illuminate\Validation\Rule;
  */
 class GuardarVulnerabilidadRequest extends FormRequest
 {
+    use DeLaOrganizacionActiva;
     use NormalizaSeleccionVacia;
 
     /**
@@ -72,7 +74,7 @@ class GuardarVulnerabilidadRequest extends FormRequest
             'responsable_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('users', 'id')->where('organizacion_id', $this->user()?->organizacion_id),
+                Rule::exists('users', 'id')->where('organizacion_id', $this->organizacionActiva()),
                 // Ni un auditor ni una cuenta que ya no entra: ver `CuentasAsignables`.
                 function (string $atributo, mixed $valor, Closure $falla): void {
                     $actual = $this->route('vulnerabilidad')?->responsable_id;

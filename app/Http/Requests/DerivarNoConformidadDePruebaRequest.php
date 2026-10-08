@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests;
 
 use App\Domain\Organizacion\ContextoOrganizacion;
+use App\Http\Requests\Concerns\DeLaOrganizacionActiva;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -19,6 +20,8 @@ use Illuminate\Validation\Rule;
  */
 class DerivarNoConformidadDePruebaRequest extends FormRequest
 {
+    use DeLaOrganizacionActiva;
+
     /**
      * @return array<string, mixed>
      */
@@ -36,7 +39,7 @@ class DerivarNoConformidadDePruebaRequest extends FormRequest
             'responsable_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('users', 'id')->where('organizacion_id', $this->user()?->organizacion_id),
+                Rule::exists('users', 'id')->where('organizacion_id', $this->organizacionActiva()),
             ],
             'fecha_deteccion' => ['required', 'date'],
             'fecha_prevista' => ['nullable', 'date'],

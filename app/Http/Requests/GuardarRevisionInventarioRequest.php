@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\DeLaOrganizacionActiva;
 use App\Http\Requests\Concerns\NormalizaSeleccionVacia;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -19,6 +20,7 @@ use Illuminate\Validation\Rule;
  */
 class GuardarRevisionInventarioRequest extends FormRequest
 {
+    use DeLaOrganizacionActiva;
     use NormalizaSeleccionVacia;
 
     /**
@@ -32,7 +34,7 @@ class GuardarRevisionInventarioRequest extends FormRequest
             'responsable_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('users', 'id')->where('organizacion_id', $this->user()?->organizacion_id),
+                Rule::exists('users', 'id')->where('organizacion_id', $this->organizacionActiva()),
             ],
             'alcance' => ['required', 'string', 'max:255'],
             'altas' => ['required', 'integer', 'min:0'],

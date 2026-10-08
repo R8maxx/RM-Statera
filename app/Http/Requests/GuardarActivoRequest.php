@@ -11,6 +11,7 @@ use App\Domain\Activo\Enums\TipoActivo;
 use App\Domain\Activo\Models\Activo;
 use App\Domain\Catalogo\Enums\Dimension;
 use App\Domain\Categorizacion\Enums\NivelDimension;
+use App\Http\Requests\Concerns\DeLaOrganizacionActiva;
 use App\Http\Requests\Concerns\NormalizaSeleccionVacia;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -27,6 +28,7 @@ use Illuminate\Validation\Validator;
  */
 class GuardarActivoRequest extends FormRequest
 {
+    use DeLaOrganizacionActiva;
     use NormalizaSeleccionVacia;
 
     /**
@@ -45,7 +47,7 @@ class GuardarActivoRequest extends FormRequest
                 // Único dentro de la organización y no globalmente: dos clientes
                 // distintos pueden llamar SRV-01 a servidores distintos.
                 Rule::unique('activos', 'codigo')
-                    ->where('organizacion_id', $this->user()?->organizacion_id)
+                    ->where('organizacion_id', $this->organizacionActiva())
                     ->ignore($activo?->id),
             ],
             'nombre' => ['required', 'string', 'max:255'],
@@ -67,12 +69,12 @@ class GuardarActivoRequest extends FormRequest
             'propietario_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('users', 'id')->where('organizacion_id', $this->user()?->organizacion_id),
+                Rule::exists('users', 'id')->where('organizacion_id', $this->organizacionActiva()),
             ],
             'custodio_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('users', 'id')->where('organizacion_id', $this->user()?->organizacion_id),
+                Rule::exists('users', 'id')->where('organizacion_id', $this->organizacionActiva()),
             ],
             // RLS: un proveedor de otra organización no existe para esta consulta.
             'proveedor_id' => ['nullable', 'integer', Rule::exists('proveedores', 'id')],
@@ -85,7 +87,7 @@ class GuardarActivoRequest extends FormRequest
             'sistemas' => ['array'],
             'sistemas.*' => [
                 'integer',
-                Rule::exists('sistemas', 'id')->where('organizacion_id', $this->user()?->organizacion_id),
+                Rule::exists('sistemas', 'id')->where('organizacion_id', $this->organizacionActiva()),
             ],
         ];
 

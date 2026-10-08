@@ -6,6 +6,7 @@ namespace App\Http\Requests;
 
 use App\Domain\Obligacion\Cadencia;
 use App\Domain\Obligacion\CodigoCompromiso;
+use App\Http\Requests\Concerns\DeLaOrganizacionActiva;
 use App\Http\Requests\Concerns\NormalizaSeleccionVacia;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -25,6 +26,7 @@ use Illuminate\Validation\Rule;
  */
 class GuardarCompromisoRequest extends FormRequest
 {
+    use DeLaOrganizacionActiva;
     use NormalizaSeleccionVacia;
 
     /**
@@ -77,7 +79,7 @@ class GuardarCompromisoRequest extends FormRequest
                 'string',
                 'max:255',
                 Rule::unique('compromisos', 'codigo')
-                    ->where('organizacion_id', $this->user()?->organizacion_id)
+                    ->where('organizacion_id', $this->organizacionActiva())
                     ->ignore($compromiso),
             ],
             'titulo' => ['required', 'string', 'max:255'],
@@ -94,7 +96,7 @@ class GuardarCompromisoRequest extends FormRequest
             'responsable_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('users', 'id')->where('organizacion_id', $this->user()?->organizacion_id),
+                Rule::exists('users', 'id')->where('organizacion_id', $this->organizacionActiva()),
             ],
             'notas' => ['nullable', 'string', 'max:5000'],
         ];

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\DeLaOrganizacionActiva;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -17,6 +18,8 @@ use Illuminate\Validation\Rule;
  */
 class MarcarRevisadosRequest extends FormRequest
 {
+    use DeLaOrganizacionActiva;
+
     /**
      * @return array<string, mixed>
      */
@@ -26,7 +29,7 @@ class MarcarRevisadosRequest extends FormRequest
             'activos' => ['required', 'array', 'min:1'],
             'activos.*' => [
                 'integer',
-                Rule::exists('activos', 'id')->where('organizacion_id', $this->user()?->organizacion_id),
+                Rule::exists('activos', 'id')->where('organizacion_id', $this->organizacionActiva()),
             ],
         ];
     }

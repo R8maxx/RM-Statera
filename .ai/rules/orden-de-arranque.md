@@ -713,3 +713,13 @@ y 36 retención RGPD.
     vencimiento, y sólo el de hoy. Y por el camino se cerraron dos fallos
     anotados del 44: el logo que desaparecía en `/organizacion` por un prop con
     el nombre de uno compartido, y las etiquetas sin QR dentro del soporte.
+
+47. ✅ Validar contra la organización del contexto y no contra la de la cuenta.
+    Era lo último que el tramo dejaba anotado en el código: veintitrés
+    `FormRequest` acotaban con la organización de quien hacía la petición, y
+    desde los puntos 44 y 45 esa ya no es siempre la que se está mirando. Un
+    trait (`DeLaOrganizacionActiva`) y un cambio mecánico.
+
+    Se hizo con el recorrido de la baja en el navegador: dar de baja con el
+    motivo obligatorio, el rechazo del login con su mensaje, reactivar y volver
+    a entrar.
