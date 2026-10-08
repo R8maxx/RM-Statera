@@ -100,6 +100,14 @@ final class OrganizacionPlataformaRecurso extends Recurso
                 'razon_social' => 'razon_social',
                 'cif' => 'cif',
             ])->placeholder('Buscar por nombre, razón social o CIF…'),
+
+            // Los destinos de las cifras del cuadro de mando (punto 53).
+            Filtro::porScope('vence_pronto', 'Vence en 30 días', 'vencePronto')->enColumna('suscripcion'),
+            Filtro::porScope('en_gracia', 'En periodo de gracia', 'enGracia')->enColumna('suscripcion'),
+            Filtro::porScope('solo_lectura', 'En sólo lectura', 'enSoloLectura')->enColumna('suscripcion'),
+            Filtro::porScope('sobre_su_plan', 'Con más cuentas que su plan', 'sobreSuPlan')->enColumna('cuentas_activas'),
+            Filtro::porScope('de_baja', 'De baja', 'deBaja')->enColumna('estado'),
+            Filtro::porScope('soporte_abierto', 'Con soporte abierto', 'conSoporteAbierto')->enColumna('estado'),
         ];
     }
 

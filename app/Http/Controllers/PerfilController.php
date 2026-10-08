@@ -107,7 +107,7 @@ class PerfilController extends Controller
         // tiene panel: su casa es la lista de clientes (punto 41). Si además es
         // de una (punto 45), entra a la suya como cualquiera.
         if ($usuario->esPlataforma() && $usuario->organizacion_id === null) {
-            return redirect()->route('plataforma.organizaciones.index');
+            return redirect()->route('plataforma.inicio');
         }
 
         return redirect()->to($usuario->pagina_inicio->url($usuario));

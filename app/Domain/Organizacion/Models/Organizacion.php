@@ -13,6 +13,7 @@ use App\Domain\Sistema\Models\Sistema;
 use App\Domain\Traza\RegistroTraza;
 use App\Domain\Vulnerabilidad\Enums\Severidad;
 use Database\Factories\OrganizacionFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -236,6 +237,72 @@ class Organizacion extends Model
     public function estaDeBaja(): bool
     {
         return $this->baja_en !== null;
+    }
+
+    /*
+     * Los filtros del cuadro de mando de la plataforma (punto 53). Leen sólo
+     * columnas de `organizaciones`, `planes` y `users`, fuera de RLS.
+     */
+
+    /** @param  Builder<self>  $consulta */
+    public function scopeVencePronto(Builder $consulta, int $dias = 30): void
+    {
+        $consulta->whereNull('organizaciones.baja_en')
+            ->whereNotNull('organizaciones.plan_id')
+            ->whereBetween('organizaciones.suscripcion_vence_en', [now(), now()->addDays($dias)]);
+    }
+
+    /** @param  Builder<self>  $consulta */
+    public function scopeEnGracia(Builder $consulta): void
+    {
+        $consulta->whereNull('organizaciones.baja_en')
+            ->where('organizaciones.suscripcion_vence_en', '<', now())
+            ->whereRaw("organizaciones.suscripcion_vence_en + (select planes.dias_gracia from planes where planes.id = organizaciones.plan_id) * interval '1 day' >= now()");
+    }
+
+    /** @param  Builder<self>  $consulta */
+    public function scopeEnSoloLectura(Builder $consulta): void
+    {
+        $consulta->whereNull('organizaciones.baja_en')
+            ->whereNotNull('organizaciones.plan_id')
+            ->whereRaw("organizaciones.suscripcion_vence_en + (select planes.dias_gracia from planes where planes.id = organizaciones.plan_id) * interval '1 day' < now()");
+    }
+
+    /** @param  Builder<self>  $consulta */
+    public function scopeDeBaja(Builder $consulta): void
+    {
+        $consulta->whereNotNull('organizaciones.baja_en');
+    }
+
+    /** @param  Builder<self>  $consulta */
+    public function scopeConSoporteAbierto(Builder $consulta): void
+    {
+        $consulta->where('organizaciones.soporte_hasta', '>', now());
+    }
+
+    /**
+     * Las que ocupan más cuentas de las que admite su plan. Cuenta igual que
+     * `LimitesDelPlan::cuentasOcupadas()`: no desactivadas, ni de la
+     * plataforma, ni auditores externos.
+     *
+     * @param  Builder<self>  $consulta
+     */
+    public function scopeSobreSuPlan(Builder $consulta): void
+    {
+        $consulta->whereNull('organizaciones.baja_en')->whereRaw(<<<'SQL'
+            (select planes.limite_cuentas from planes where planes.id = organizaciones.plan_id) <
+            (select count(*) from users
+                where users.organizacion_id = organizaciones.id
+                  and users.desactivada_en is null
+                  and users.es_plataforma = false
+                  and not exists (
+                      select 1 from model_has_roles
+                      join roles on roles.id = model_has_roles.role_id
+                      where model_has_roles.model_id = users.id
+                        and model_has_roles.organizacion_id = users.organizacion_id
+                        and roles.name = 'auditor'
+                  ))
+        SQL);
     }
 
     /** En qué punto está su suscripción; se deriva, no se guarda. */

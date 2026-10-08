@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Plataforma\AdministradorController;
+use App\Http\Controllers\Plataforma\CuadroDeMandoController;
 use App\Http\Controllers\Plataforma\OrganizacionController;
 use App\Http\Controllers\Plataforma\PlanController;
 use App\Http\Controllers\Plataforma\RescateController;
@@ -43,7 +44,8 @@ Route::middleware(['auth', SoloPlataforma::class])
         Route::post('/soporte/salir', [SoporteController::class, 'salir'])->name('soporte.salir');
 
         Route::middleware('plataforma:clientes.ver')->group(function (): void {
-            Route::redirect('/', '/plataforma/organizaciones')->name('inicio');
+            // La casa: lo que requiere atención hoy (punto 53).
+            Route::get('/', [CuadroDeMandoController::class, 'index'])->name('inicio');
             Route::get('/organizaciones', [OrganizacionController::class, 'index'])->name('organizaciones.index');
             Route::get('/organizaciones/{organizacion}', [OrganizacionController::class, 'show'])
                 ->whereNumber('organizacion')

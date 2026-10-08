@@ -545,6 +545,13 @@ export const navegacion: GrupoNavegacion[] = [
         icono: ServerCogIcon,
         entradas: [
             {
+                titulo: 'Inicio',
+                href: '/plataforma',
+                icono: GaugeIcon,
+                permiso: 'plataforma.clientes.ver',
+                alias: ['cuadro de mando', 'resumen', 'qué hay hoy'],
+            },
+            {
                 titulo: 'Organizaciones',
                 href: '/plataforma/organizaciones',
                 icono: BuildingIcon,

@@ -63,7 +63,7 @@ const usuario = computed(() => pagina.props.auth.usuario);
  * Adónde lleva el logotipo. Quien administra la plataforma no tiene panel de
  * organización: su casa es la lista de clientes (punto 41).
  */
-const rutaCasa = computed(() => (usuario.value?.plataforma && !organizacion.value ? '/plataforma/organizaciones' : '/panel'));
+const rutaCasa = computed(() => (usuario.value?.plataforma && !organizacion.value ? '/plataforma' : '/panel'));
 const organizacion = computed(() => pagina.props.organizacion);
 const suscripcion = computed(() => pagina.props.suscripcion);
 const soporte = computed(() => pagina.props.soporte);

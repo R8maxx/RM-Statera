@@ -752,3 +752,9 @@ y 36 retención RGPD.
     escribiendo en el mismo árbol obligaron a parar dos veces y a hacer el
     commit de cada una por separado. La decisión de diseño es de César: lo pide
     uno con la verificación escrita y lo ejecuta otro.
+
+53. ✅ El cuadro de mando de la plataforma: la casa de quien administra, con lo
+    que requiere atención hoy y cada cifra enlazada a su lista filtrada. El
+    cuidado estuvo en que la cifra y la lista cuenten lo mismo, porque las dos
+    salen de los mismos scopes. Por el camino, la revisión de seguridad del 52
+    encontró dos fallos en el rescate, que se cerraron en su propio commit.

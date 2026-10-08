@@ -39,7 +39,7 @@ it('el administrador entra en la plataforma y aterriza en ella', function (): vo
     $admin = adminConDosFactores();
 
     $this->actingAs($admin)->get('/plataforma/organizaciones')->assertOk();
-    $this->actingAs($admin)->get('/inicio')->assertRedirect('/plataforma/organizaciones');
+    $this->actingAs($admin)->get('/inicio')->assertRedirect('/plataforma');
 });
 
 it('sin segundo factor la plataforma manda al perfil, también para leer', function (): void {
@@ -121,5 +121,5 @@ it('el administrador abre su perfil aunque no tenga organización', function ():
 
 it('la raíz lleva a cada cuenta a su inicio, también al administrador', function (): void {
     $this->actingAs(adminConDosFactores())->get('/')->assertRedirect('/inicio');
-    $this->actingAs(adminConDosFactores())->get('/inicio')->assertRedirect('/plataforma/organizaciones');
+    $this->actingAs(adminConDosFactores())->get('/inicio')->assertRedirect('/plataforma');
 });

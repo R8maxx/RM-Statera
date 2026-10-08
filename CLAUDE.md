@@ -155,6 +155,7 @@ completa con el razonamiento del orden, en `.ai/rules/orden-de-arranque.md`.
 | 50 | La traza de la plataforma, consultable | — | `plataforma.md` |
 | 51 | La organización elige y cambia de plan | — | `plataforma.md` |
 | 52 | Rescatar cuentas con dos personas: segundo factor y nuevo responsable | — | `plataforma.md` |
+| 53 | El cuadro de mando de la plataforma | — | `plataforma.md` |
 
 **La fase 3 está cerrada.** Con continuidad (§ 4.11) dentro —el BIA por servicio,
 el plan como documento y las pruebas que lo contrastan— el ciclo vivo se recorre

@@ -642,3 +642,23 @@ la forma con closure, que pasa por el query builder.
 - **Ejecutar y rechazar vuelven a leer la solicitud con `lockForUpdate`** dentro
   de la transacción. La comprobación de fuera dejaba una ventana en la que dos
   peticiones la ejecutaban las dos.
+
+## El cuadro de mando (punto 53)
+
+`/plataforma` es la casa de quien administra sin organización: `/inicio` y el
+logotipo llevan ahí. Lo calcula `CuadroDeMando` leyendo sólo tablas fuera de
+RLS. Cada cifra es una pregunta con acción detrás: vencen en 30 días, en gracia,
+en sólo lectura, con más cuentas que su plan, invitaciones caducadas, soporte
+abierto, rescates pendientes y de baja.
+
+**Cada cifra es una lista filtrada**, con los scopes de `Organizacion`
+(`vencePronto`, `enGracia`, `enSoloLectura`, `sobreSuPlan`, `deBaja`,
+`conSoporteAbierto`) y los filtros `porScope` de `OrganizacionPlataformaRecurso`.
+`CuadroDeMandoTest` comprueba que la cifra y la lista cuentan lo mismo.
+
+`scopeSobreSuPlan` repite en SQL la cuenta de `LimitesDelPlan::cuentasOcupadas()`:
+sin desactivadas, sin las de la plataforma y sin auditores. **Si una cambia, la
+otra también.**
+
+El rojo sólo va en sólo lectura y en invitaciones caducadas, que dejan a alguien
+sin poder trabajar. Las cifras a cero se atenúan.
