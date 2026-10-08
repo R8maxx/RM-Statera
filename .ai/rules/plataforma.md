@@ -633,3 +633,12 @@ correo al cliente lo dice.
 **Trampa que mordió:** `Rule::exists(...)->where('es_plataforma', false)` enlaza
 el booleano como cadena vacía y PostgreSQL lo rechaza con un 500. Hay que usar
 la forma con closure, que pasa por el query builder.
+
+**Dos fallos que encontró la revisión de seguridad del 52, y cómo se cerraron:**
+
+- **La segunda persona se fija al pedir** (`requiere_segunda_persona`). Si se
+  miraba al ejecutar, quien pedía podía retirar o bajar de perfil a la otra
+  persona y ejecutar su propia solicitud a solas.
+- **Ejecutar y rechazar vuelven a leer la solicitud con `lockForUpdate`** dentro
+  de la transacción. La comprobación de fuera dejaba una ventana en la que dos
+  peticiones la ejecutaban las dos.

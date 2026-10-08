@@ -28,6 +28,7 @@ use Illuminate\Support\Carbon;
  * @property ?Carbon $resuelta_en
  * @property ?string $motivo_rechazo
  * @property bool $sin_segunda_persona
+ * @property bool $requiere_segunda_persona si había otra persona de Administración al pedirla
  * @property-read Organizacion $organizacion
  * @property-read ?User $cuenta
  * @property-read ?User $solicitante
@@ -51,6 +52,7 @@ class SolicitudPlataforma extends Model
         'solicitada_por',
         'solicitada_en',
         'estado',
+        'requiere_segunda_persona',
     ];
 
     /** El estado que vale: una pendiente que pasó su plazo está caducada. */
@@ -99,6 +101,7 @@ class SolicitudPlataforma extends Model
             'solicitada_en' => 'datetime',
             'resuelta_en' => 'datetime',
             'sin_segunda_persona' => 'boolean',
+            'requiere_segunda_persona' => 'boolean',
         ];
     }
 }

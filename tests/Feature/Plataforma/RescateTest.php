@@ -7,9 +7,11 @@ use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Plataforma\Enums\AccionPlataforma;
 use App\Domain\Plataforma\Enums\EstadoSolicitud;
 use App\Domain\Plataforma\Enums\PerfilPlataforma;
+use App\Domain\Plataforma\Excepciones\RescateNoPermitido;
 use App\Domain\Plataforma\Models\EventoPlataforma;
 use App\Domain\Plataforma\Models\SolicitudPlataforma;
 use App\Domain\Plataforma\Notifications\AvisoDeRescate;
+use App\Domain\Plataforma\Rescate\ResolverRescate;
 use App\Domain\Traza\Models\EventoAuditoria;
 use App\Domain\Usuario\Enums\EstadoCuenta;
 use App\Domain\Usuario\Notifications\InvitacionACuenta;
@@ -203,4 +205,27 @@ it('gestión comercial no pide ni resuelve rescates', function (): void {
         'cuenta_id' => $this->tecnico->id,
         'verificacion' => VERIFICACION,
     ])->assertForbidden();
+});
+
+it('retirar a la otra persona después de pedir no permite ejecutarla a solas', function (): void {
+    $solicitud = pedirSegundoFactor($this);
+
+    // Quien pidió deja sola su perfil de Administración y lo intenta.
+    $this->ejecuta->forceFill(['desactivada_en' => now()])->save();
+
+    $this->actingAs($this->pide)->post("/plataforma/solicitudes/{$solicitud->id}/ejecutar")
+        ->assertSessionHasErrors('solicitud');
+
+    expect($this->tecnico->fresh()?->two_factor_secret)->not->toBeNull();
+});
+
+it('una solicitud ya resuelta no se vuelve a ejecutar', function (): void {
+    $solicitud = pedirSegundoFactor($this);
+
+    $this->actingAs($this->ejecuta)->post("/plataforma/solicitudes/{$solicitud->id}/ejecutar");
+
+    // La misma instancia, cargada antes de que se ejecutara: es lo que vería
+    // una segunda petición que llegó a la vez.
+    expect(fn () => app(ResolverRescate::class)->ejecutar($this->ejecuta, $solicitud))
+        ->toThrow(RescateNoPermitido::class);
 });

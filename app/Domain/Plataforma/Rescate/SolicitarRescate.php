@@ -6,6 +6,7 @@ namespace App\Domain\Plataforma\Rescate;
 
 use App\Domain\Autorizacion\Enums\Rol;
 use App\Domain\Organizacion\Models\Organizacion;
+use App\Domain\Plataforma\AdministradoresDePlataforma;
 use App\Domain\Plataforma\Enums\AccionPlataforma;
 use App\Domain\Plataforma\Enums\CapacidadPlataforma;
 use App\Domain\Plataforma\Enums\EstadoSolicitud;
@@ -31,7 +32,10 @@ use Illuminate\Support\Facades\DB;
  */
 final class SolicitarRescate
 {
-    public function __construct(private readonly TrazaPlataforma $traza) {}
+    public function __construct(
+        private readonly TrazaPlataforma $traza,
+        private readonly AdministradoresDePlataforma $administradores,
+    ) {}
 
     /**
      * @param  array{nombre?: string, email?: string}  $datos  del responsable nuevo, si no hay cuenta
@@ -60,6 +64,9 @@ final class SolicitarRescate
                 'solicitada_por' => $administrador->id,
                 'solicitada_en' => Carbon::now(),
                 'estado' => EstadoSolicitud::Pendiente->value,
+                // Se fija ahora y no al ejecutar: si no, quien pide podría
+                // retirar a la otra persona y ejecutarla sola.
+                'requiere_segunda_persona' => $this->administradores->quedaOtro($administrador),
             ]);
 
             $this->traza->registrar(AccionPlataforma::RescateSolicitado, $organizacion, [

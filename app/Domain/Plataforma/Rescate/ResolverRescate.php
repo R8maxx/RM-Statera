@@ -58,6 +58,10 @@ final class ResolverRescate
         $organizacion = $solicitud->organizacion;
 
         $afectada = DB::transaction(function () use ($administrador, $solicitud, $organizacion, $sinSegundaPersona): User {
+            // Otra vez, con la fila bloqueada: dos clics o dos personas a la vez
+            // no pueden ejecutarla dos veces.
+            $this->bloquearPendiente($solicitud);
+
             $afectada = $this->contexto->paraOrganizacion($organizacion, fn (): User => match ($solicitud->tipo) {
                 TipoRescate::RestablecerSegundoFactor => $this->restablecerSegundoFactor($solicitud),
                 TipoRescate::DesignarResponsable => $this->designarResponsable($administrador, $solicitud),
@@ -100,6 +104,8 @@ final class ResolverRescate
         }
 
         DB::transaction(function () use ($administrador, $solicitud, $motivo): void {
+            $this->bloquearPendiente($solicitud);
+
             $solicitud->forceFill([
                 'estado' => EstadoSolicitud::Rechazada->value,
                 'resuelta_por' => $administrador->id,
@@ -124,9 +130,25 @@ final class ResolverRescate
             throw RescateNoPermitido::yaResuelta();
         }
 
-        // La segunda mirada, salvo que no haya nadie más que pueda darla.
-        if ($solicitud->solicitada_por === $administrador->id && $this->administradores->quedaOtro($administrador)) {
+        // La segunda mirada, salvo que no hubiera nadie más que pudiera darla
+        // **cuando se pidió**. Si la había, retirarla después no la quita.
+        if ($solicitud->solicitada_por === $administrador->id
+            && ($solicitud->requiere_segunda_persona || $this->administradores->quedaOtro($administrador))) {
             throw RescateNoPermitido::mismaPersona();
+        }
+    }
+
+    /**
+     * Vuelve a leer la solicitud bloqueando su fila y comprueba que siga
+     * pendiente. Sin esto, la comprobación de fuera de la transacción dejaba
+     * una ventana en la que dos peticiones la ejecutaban las dos.
+     */
+    private function bloquearPendiente(SolicitudPlataforma $solicitud): void
+    {
+        $actual = SolicitudPlataforma::query()->whereKey($solicitud->id)->lockForUpdate()->firstOrFail();
+
+        if ($actual->estado() !== EstadoSolicitud::Pendiente) {
+            throw RescateNoPermitido::yaResuelta();
         }
     }
 
