@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Plataforma;
 
 use App\Domain\Plataforma\Enums\AccionPlataforma;
+use App\Domain\Plataforma\Enums\PerfilPlataforma;
 use App\Domain\Usuario\EnviarInvitacion;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -36,25 +37,26 @@ final class AltaAdministrador
      * crear otra (punto 45): conserva su organización y su rol, y gana la
      * plataforma. No se le manda invitación, porque ya entra.
      */
-    public function promover(User $cuenta): User
+    public function promover(User $cuenta, PerfilPlataforma $perfil = PerfilPlataforma::Administracion): User
     {
         if ($cuenta->esPlataforma()) {
             return $cuenta;
         }
 
-        $cuenta->forceFill(['es_plataforma' => true])->save();
+        $cuenta->forceFill(['es_plataforma' => true, 'perfil_plataforma' => $perfil->value])->save();
 
         $this->traza->registrar(AccionPlataforma::AdministradorPromovido, $cuenta->organizacion, [
             'name' => $cuenta->name,
             'email' => $cuenta->email,
+            'perfil' => $perfil->value,
         ], $cuenta->id);
 
         return $cuenta;
     }
 
-    public function __invoke(string $nombre, string $email): User
+    public function __invoke(string $nombre, string $email, PerfilPlataforma $perfil = PerfilPlataforma::Administracion): User
     {
-        $cuenta = DB::transaction(function () use ($nombre, $email): User {
+        $cuenta = DB::transaction(function () use ($nombre, $email, $perfil): User {
             // Sin organización, y no por olvido: es lo que la distingue, y el
             // `CHECK` de la base impide que tenga las dos cosas.
             $cuenta = new User;
@@ -64,6 +66,7 @@ final class AltaAdministrador
                 'password' => Str::password(64),
                 'organizacion_id' => null,
                 'es_plataforma' => true,
+                'perfil_plataforma' => $perfil->value,
                 'invitada_en' => now(),
                 'activada_en' => null,
             ])->save();
@@ -71,6 +74,7 @@ final class AltaAdministrador
             $this->traza->registrar(AccionPlataforma::AdministradorCreado, null, [
                 'name' => $cuenta->name,
                 'email' => $cuenta->email,
+                'perfil' => $perfil->value,
             ], $cuenta->id);
 
             return $cuenta;

@@ -6,6 +6,7 @@ namespace App\Domain\Plataforma\Models;
 
 use App\Domain\Organizacion\Models\Organizacion;
 use App\Domain\Plataforma\Enums\AccionPlataforma;
+use App\Domain\Plataforma\Enums\HitoSuscripcion;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -41,6 +42,28 @@ class EventoPlataforma extends Model
     public function organizacionAfectada(): BelongsTo
     {
         return $this->belongsTo(Organizacion::class, 'organizacion_afectada_id');
+    }
+
+    /**
+     * Lo que añade el detalle a la acción, en una frase para la ficha del
+     * cliente, o nulo si no añade nada que se lea.
+     */
+    public function resumen(): ?string
+    {
+        if ($this->accion !== AccionPlataforma::AvisoVencimientoEnviado) {
+            return null;
+        }
+
+        $hito = HitoSuscripcion::tryFrom((string) ($this->detalle['hito'] ?? ''));
+        $destinatarios = array_values(array_filter(
+            (array) ($this->detalle['destinatarios'] ?? []),
+            is_string(...),
+        ));
+
+        return implode(' · ', array_filter([
+            $hito?->etiqueta(),
+            $destinatarios === [] ? 'sin responsable de seguridad que pudiera recibirlo' : 'a '.implode(', ', $destinatarios),
+        ]));
     }
 
     /** @return array<string, string> */

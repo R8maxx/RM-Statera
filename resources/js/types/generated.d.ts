@@ -182,9 +182,11 @@ export type TipoPasoPersona = 'alta' | 'baja';
 }
 namespace Plataforma {
 namespace Enums {
-export type AccionPlataforma = 'administrador_creado' | 'administrador_activado' | 'inicio_sesion' | 'cierre_sesion' | 'intento_fallido' | 'organizacion_alta' | 'suscripcion_cambiada' | 'plan_guardado' | 'soporte_entrada' | 'soporte_salida' | 'administrador_promovido' | 'invitacion_reenviada' | 'organizacion_baja' | 'organizacion_reactivada';
+export type AccionPlataforma = 'administrador_creado' | 'administrador_activado' | 'inicio_sesion' | 'cierre_sesion' | 'intento_fallido' | 'organizacion_alta' | 'suscripcion_cambiada' | 'plan_guardado' | 'soporte_entrada' | 'soporte_salida' | 'administrador_promovido' | 'invitacion_reenviada' | 'organizacion_baja' | 'organizacion_reactivada' | 'aviso_vencimiento_enviado';
+export type CapacidadPlataforma = 'clientes.ver' | 'clientes.gestionar' | 'planes.gestionar' | 'soporte.entrar' | 'cuentas.rescatar' | 'clientes.baja' | 'clientes.exportar' | 'administradores.gestionar' | 'traza.ver' | 'salud.ver';
 export type EstadoSuscripcion = 'vigente' | 'en_gracia' | 'solo_lectura';
 export type HitoSuscripcion = 'faltan_30' | 'faltan_7' | 'falta_1' | 'en_gracia' | 'solo_lectura';
+export type PerfilPlataforma = 'administracion' | 'comercial';
 }
 }
 namespace Proveedor {

@@ -8,6 +8,7 @@ use App\Domain\Autorizacion\Enums\Permiso;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Organizacion\Marca\PiezaDeMarca;
 use App\Domain\Organizacion\Models\Organizacion;
+use App\Domain\Plataforma\Enums\CapacidadPlataforma;
 use App\Domain\Plataforma\Enums\EstadoSuscripcion;
 use App\Domain\Plataforma\Soporte\SesionDeSoporte;
 use App\Models\User;
@@ -61,10 +62,10 @@ class HandleInertiaRequests extends Middleware
                 // Los permisos viajan como lista plana: el frontend solo decide
                 // qué pinta, nunca qué autoriza. La autorización es del servidor.
                 //
-                // Quien administra la plataforma no tiene rol de spatie: recibe
-                // una sola marca, `plataforma.gestionar`, que no es un permiso de
-                // la base sino la llave con la que `lib/navegacion.ts` le pinta
-                // su grupo. Quien autoriza es `SoloPlataforma` (punto 41).
+                // Quien administra la plataforma recibe además sus capacidades
+                // con el prefijo `plataforma.` (punto 48). No son permisos de la
+                // base: son la llave con la que `lib/navegacion.ts` le pinta su
+                // grupo. Quien autoriza es `CapacidadDePlataforma`.
                 'permisos' => $usuario?->esPlataforma() === true
                     ? $this->permisosDePlataforma($usuario, $contexto)
                     : ($usuario?->getAllPermissions()->pluck('name')->values()->all() ?? []),
@@ -103,7 +104,7 @@ class HandleInertiaRequests extends Middleware
     }
 
     /**
-     * Fuera de un cliente, sólo la marca de su grupo; en su propia
+     * Siempre sus capacidades de plataforma (punto 48); en su propia
      * organización (punto 45), además los de su rol; dentro de otra como
      * soporte, los `.ver`, que son los que `Gate::before` le concede. Así el
      * lateral le enseña lo que puede abrir y nada más.
@@ -112,16 +113,21 @@ class HandleInertiaRequests extends Middleware
      */
     private function permisosDePlataforma(User $usuario, ContextoOrganizacion $contexto): array
     {
+        $capacidades = array_map(
+            static fn (CapacidadPlataforma $capacidad): string => $capacidad->permiso(),
+            $usuario->perfil_plataforma?->capacidades() ?? [],
+        );
+
         if (! $contexto->hayContexto()) {
-            return ['plataforma.gestionar'];
+            return $capacidades;
         }
 
         if (! SesionDeSoporte::activo($usuario, $contexto)) {
-            return ['plataforma.gestionar', ...$usuario->getAllPermissions()->pluck('name')->values()->all()];
+            return [...$capacidades, ...$usuario->getAllPermissions()->pluck('name')->values()->all()];
         }
 
         return [
-            'plataforma.gestionar',
+            ...$capacidades,
             ...array_map(
                 static fn (Permiso $permiso): string => $permiso->value,
                 array_values(array_filter(Permiso::cases(), static fn (Permiso $permiso): bool => ! $permiso->esDeEscritura())),

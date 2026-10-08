@@ -129,11 +129,15 @@ class OrganizacionController extends Controller
                 ->where('organizacion_afectada_id', $organizacion->id)
                 ->with('usuario:id,name')
                 ->latest('created_at')
+                // Un comando escribe varios en el mismo instante: que el
+                // último anotado salga primero, no al azar.
+                ->latest('id')
                 ->limit(20)
                 ->get()
                 ->map(static fn (EventoPlataforma $evento): array => [
                     'id' => $evento->id,
                     'accion' => $evento->accion->etiqueta(),
+                    'resumen' => $evento->resumen(),
                     'autor' => $evento->usuario?->name,
                     'fecha' => $evento->created_at->toIso8601String(),
                 ])
@@ -204,7 +208,10 @@ class OrganizacionController extends Controller
      * Los planes que se pueden elegir: los activos y, si hay, el que ya tiene.
      * Retirar un plan no se lo quita a quien lo tiene.
      *
-     * @return list<array{valor: string, etiqueta: string}>
+     * Con sus límites y su gracia, para que la ficha diga qué saldrá de guardar
+     * antes de guardarlo.
+     *
+     * @return list<array{valor: string, etiqueta: string, limiteCuentas: ?int, limiteSistemas: ?int, diasGracia: int}>
      */
     private function planesActivos(?int $actual = null): array
     {
@@ -212,7 +219,13 @@ class OrganizacionController extends Controller
             ->where(fn ($consulta) => $consulta->where('activo', true)->when($actual !== null, fn ($o) => $o->orWhere('id', $actual)))
             ->orderBy('nombre')
             ->get()
-            ->map(static fn (Plan $plan): array => ['valor' => (string) $plan->id, 'etiqueta' => $plan->nombre])
+            ->map(static fn (Plan $plan): array => [
+                'valor' => (string) $plan->id,
+                'etiqueta' => $plan->nombre,
+                'limiteCuentas' => $plan->limite_cuentas,
+                'limiteSistemas' => $plan->limite_sistemas,
+                'diasGracia' => $plan->dias_gracia,
+            ])
             ->values()
             ->all();
     }

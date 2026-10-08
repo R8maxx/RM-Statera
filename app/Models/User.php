@@ -6,6 +6,8 @@ namespace App\Models;
 
 use App\Domain\Autorizacion\Enums\Rol;
 use App\Domain\Organizacion\Models\Organizacion;
+use App\Domain\Plataforma\Enums\CapacidadPlataforma;
+use App\Domain\Plataforma\Enums\PerfilPlataforma;
 use App\Domain\Usuario\Enums\EstadoCuenta;
 use App\Domain\Usuario\Enums\PaginaInicio;
 use App\Domain\Usuario\Enums\Tema;
@@ -33,6 +35,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property ?string $foto_ruta
  * @property ?int $organizacion_id
  * @property bool $es_plataforma administra Statera; puede ser además de una organización (punto 45)
+ * @property ?PerfilPlataforma $perfil_plataforma con qué perfil, si administra (punto 48)
  * @property ?Carbon $two_factor_confirmed_at
  * @property ?string $two_factor_secret
  * @property ?Carbon $invitada_en
@@ -90,6 +93,14 @@ class User extends Authenticatable implements PasskeyUser
     public function organizacionDeBaja(): bool
     {
         return $this->organizacion_id !== null && $this->organizacion?->estaDeBaja() === true;
+    }
+
+    /**
+     * Si puede hacer esto en la plataforma (punto 48). Lo decide su perfil.
+     */
+    public function puedeEnPlataforma(CapacidadPlataforma $capacidad): bool
+    {
+        return $this->esPlataforma() && $this->perfil_plataforma?->puede($capacidad) === true;
     }
 
     /**
@@ -240,6 +251,7 @@ class User extends Authenticatable implements PasskeyUser
             'pagina_inicio' => PaginaInicio::class,
             'avisos_por_correo' => 'boolean',
             'es_plataforma' => 'boolean',
+            'perfil_plataforma' => PerfilPlataforma::class,
             'password' => 'hashed',
         ];
     }

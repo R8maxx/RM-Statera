@@ -8,6 +8,7 @@ use App\Domain\Autorizacion\Enums\Rol;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Organizacion\Models\Organizacion;
 use App\Domain\Plataforma\Enums\AccionPlataforma;
+use App\Domain\Plataforma\Enums\CapacidadPlataforma;
 use App\Domain\Plataforma\Excepciones\SoporteNoPermitido;
 use App\Domain\Plataforma\Notifications\EntradaDeSoporte;
 use App\Domain\Plataforma\TrazaPlataforma;
@@ -46,7 +47,10 @@ final class AccesoDeSoporte
             throw SoporteNoPermitido::esLaSuya();
         }
 
-        if (! $administrador->esPlataforma() || $organizacion->estaDeBaja() || ! $organizacion->soporteAbierto()) {
+        // Con perfil que lo permita (punto 48): Gestión comercial no entra.
+        if (! $administrador->puedeEnPlataforma(CapacidadPlataforma::SoporteEntrar)
+            || $organizacion->estaDeBaja()
+            || ! $organizacion->soporteAbierto()) {
             throw SoporteNoPermitido::ventanaCerrada();
         }
 

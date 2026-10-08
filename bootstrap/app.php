@@ -13,6 +13,7 @@ use App\Domain\Persona\Console\SeudonimizarPersonasCommand;
 use App\Domain\Plataforma\Console\AvisarSuscripcionesCommand;
 use App\Domain\Plataforma\Console\CrearAdministradorCommand;
 use App\Http\Middleware\BloqueoPorInactividad;
+use App\Http\Middleware\CapacidadDePlataforma;
 use App\Http\Middleware\CuentaVigente;
 use App\Http\Middleware\EstablecerContextoOrganizacion;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -97,6 +98,9 @@ return Application::configure(basePath: dirname(__DIR__))
          * `Str::is` entiende el comodín, así que `cuerpo.*` cubre el árbol
          * entero a cualquier profundidad.
          */
+        // La capacidad que exige cada ruta de la plataforma (punto 48).
+        $middleware->alias(['plataforma' => CapacidadDePlataforma::class]);
+
         $middleware->trimStrings(except: ['cuerpo', 'cuerpo.*']);
 
         // Estos dos corren ANTES de resolver la ruta, así que aquí no hay

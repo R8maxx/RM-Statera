@@ -532,10 +532,10 @@ export const navegacion: GrupoNavegacion[] = [
         ],
     },
     /*
-     * La plataforma (punto 41): sólo la ve quien administra Statera, que no
-     * tiene organización ni rol. `plataforma.gestionar` no es un permiso de la
-     * base: es la marca que `HandleInertiaRequests` le pone en `auth.permisos`
-     * para que esto se pinte. Quien autoriza es `SoloPlataforma`.
+     * La plataforma (punto 41): sólo la ve quien administra Statera. Cada
+     * entrada lleva la capacidad que exige su ruta (punto 48), con el prefijo
+     * `plataforma.` con que `HandleInertiaRequests` las pone en `auth.permisos`.
+     * Quien autoriza es `CapacidadDePlataforma`.
      */
     {
         titulo: 'Plataforma',
@@ -545,14 +545,14 @@ export const navegacion: GrupoNavegacion[] = [
                 titulo: 'Organizaciones',
                 href: '/plataforma/organizaciones',
                 icono: BuildingIcon,
-                permiso: 'plataforma.gestionar',
+                permiso: 'plataforma.clientes.ver',
                 alias: ['clientes', 'tenants', 'alta', 'empresas'],
             },
             {
                 titulo: 'Planes',
                 href: '/plataforma/planes',
                 icono: LayersIcon,
-                permiso: 'plataforma.gestionar',
+                permiso: 'plataforma.planes.gestionar',
                 alias: ['suscripción', 'límites', 'precio', 'gracia'],
             },
         ],
@@ -574,7 +574,11 @@ export function navegacionPara(permisos: readonly string[]): GrupoNavegacion[] {
      * (punto 41): sin esta condición le salía el SGSI entero en el lateral y
      * cada enlace le respondía 403.
      */
-    const dentroDeUnaOrganizacion = permisos.some((permiso) => permiso.endsWith('.ver'));
+    // Las capacidades de la plataforma (`plataforma.clientes.ver`) también acaban
+    // en `.ver`, y no dicen nada de estar dentro de una organización (punto 48).
+    const dentroDeUnaOrganizacion = permisos.some(
+        (permiso) => permiso.endsWith('.ver') && !permiso.startsWith('plataforma.'),
+    );
 
     return navegacion
         .map((grupo) => ({

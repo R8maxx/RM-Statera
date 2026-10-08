@@ -5,14 +5,17 @@ declare(strict_types=1);
 use App\Domain\Autorizacion\Enums\Rol;
 use App\Domain\Organizacion\ContextoOrganizacion;
 use App\Domain\Plataforma\CambiarSuscripcion;
+use App\Domain\Plataforma\Enums\AccionPlataforma;
 use App\Domain\Plataforma\Enums\HitoSuscripcion;
 use App\Domain\Plataforma\Models\AvisoSuscripcion;
+use App\Domain\Plataforma\Models\EventoPlataforma;
 use App\Domain\Plataforma\Models\Plan;
 use App\Domain\Plataforma\Notifications\ResumenDeVencimientos;
 use App\Domain\Plataforma\Notifications\VencimientoDeSuscripcion;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
+use Inertia\Testing\AssertableInertia;
 
 /*
 |--------------------------------------------------------------------------
@@ -87,7 +90,45 @@ it('en simulación no envía ni anota nada', function (): void {
     $this->artisan('suscripciones:avisar', ['--dry-run' => true])->assertSuccessful();
 
     Notification::assertNothingSent();
-    expect(AvisoSuscripcion::query()->count())->toBe(0);
+    expect(AvisoSuscripcion::query()->count())->toBe(0)
+        ->and(EventoPlataforma::query()->where('accion', AccionPlataforma::AvisoVencimientoEnviado->value)->exists())->toBeFalse();
+});
+
+it('deja cada aviso en la traza de la plataforma, con el hito y a quién fue', function (): void {
+    venceEl($this, '2026-11-08');
+
+    $this->artisan('suscripciones:avisar');
+    $this->artisan('suscripciones:avisar');
+
+    $eventos = EventoPlataforma::query()->where('accion', AccionPlataforma::AvisoVencimientoEnviado->value)->get();
+
+    expect($eventos)->toHaveCount(1)
+        ->and($eventos->first()?->organizacion_afectada_id)->toBe($this->organizacion->id)
+        ->and($eventos->first()?->detalle['hito'] ?? null)->toBe(HitoSuscripcion::Faltan7->value)
+        ->and($eventos->first()?->resumen())->toBe("Vence en una semana · a {$this->responsable->email}");
+});
+
+it('también anota el aviso que no tenía a quién llegar', function (): void {
+    venceEl($this, '2026-11-08');
+    $this->responsable->forceFill(['desactivada_en' => now()])->save();
+
+    $this->artisan('suscripciones:avisar');
+
+    expect(EventoPlataforma::query()->where('accion', AccionPlataforma::AvisoVencimientoEnviado->value)->first()?->resumen())
+        ->toBe('Vence en una semana · sin responsable de seguridad que pudiera recibirlo');
+});
+
+it('la ficha del cliente enseña el aviso en lo que ha hecho la plataforma', function (): void {
+    venceEl($this, '2026-11-08');
+    $this->artisan('suscripciones:avisar');
+    sinOrganizacion();
+    $this->admin->forceFill(['two_factor_confirmed_at' => now(), 'two_factor_secret' => 'secreto'])->save();
+
+    $this->actingAs($this->admin)->get("/plataforma/organizaciones/{$this->organizacion->id}")
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $pagina) => $pagina
+            ->where('traza.0.accion', 'Aviso de vencimiento enviado')
+            ->where('traza.0.resumen', "Vence en una semana · a {$this->responsable->email}"));
 });
 
 it('no avisa a una organización de baja ni a una sin vencimiento', function (): void {

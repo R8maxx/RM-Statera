@@ -723,3 +723,11 @@ y 36 retención RGPD.
     Se hizo con el recorrido de la baja en el navegador: dar de baja con el
     motivo obligatorio, el rechazo del login con su mensaje, reactivar y volver
     a entrar.
+
+48. ✅ Los perfiles de la plataforma, el primero del plan de administración
+    (`plan-administracion-plataforma.md`). Va antes que todo lo demás porque
+    cada función nueva cuelga de una capacidad. César eligió dos perfiles, para
+    tener el mínimo privilegio sin complicarlo. Lo que no se ve leyendo el
+    código es la trampa del sufijo: las capacidades de la plataforma acaban en
+    `.ver` como los permisos de cliente, y la navegación usaba ese sufijo para
+    saber si se estaba dentro de una organización.

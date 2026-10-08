@@ -6,11 +6,13 @@ namespace App\Domain\Plataforma\Console;
 
 use App\Domain\Autorizacion\Enums\Rol;
 use App\Domain\Organizacion\Models\Organizacion;
+use App\Domain\Plataforma\Enums\AccionPlataforma;
 use App\Domain\Plataforma\Enums\EstadoSuscripcion;
 use App\Domain\Plataforma\Enums\HitoSuscripcion;
 use App\Domain\Plataforma\Models\AvisoSuscripcion;
 use App\Domain\Plataforma\Notifications\ResumenDeVencimientos;
 use App\Domain\Plataforma\Notifications\VencimientoDeSuscripcion;
+use App\Domain\Plataforma\TrazaPlataforma;
 use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Notification;
@@ -26,6 +28,11 @@ use Illuminate\Support\Facades\Notification;
  * para qué vencimiento. Al renovar, el vencimiento cambia y los avisos vuelven
  * a empezar.
  *
+ * **Y cada aviso queda en la traza de la plataforma**, con el hito y a quién
+ * fue, para que la ficha del cliente conteste «¿le avisamos?» sin mirar la
+ * base. También cuando no había ningún responsable que pudiera recibirlo: ese
+ * es justo el aviso que conviene ver.
+ *
  * **No necesita contexto de organización**: lee `organizaciones`, `planes`,
  * `users` y `avisos_suscripcion`, que no están bajo RLS. Las organizaciones de
  * baja se saltan, porque nadie suyo puede entrar a renovar.
@@ -37,7 +44,7 @@ final class AvisarSuscripcionesCommand extends Command
 
     protected $description = 'Avisa a cada cliente de que su suscripción vence o ha vencido';
 
-    public function handle(): int
+    public function handle(TrazaPlataforma $traza): int
     {
         $simulacion = (bool) $this->option('dry-run');
         $resumen = [];
@@ -87,6 +94,12 @@ final class AvisarSuscripcionesCommand extends Command
                 'hito' => $hito->value,
                 'vence_en' => $vence,
                 'enviado_en' => now(),
+            ]);
+
+            $traza->registrar(AccionPlataforma::AvisoVencimientoEnviado, $organizacion, [
+                'hito' => $hito->value,
+                'vence_en' => $vence->toIso8601String(),
+                'destinatarios' => array_map(static fn (User $cuenta): string => $cuenta->email, $responsables),
             ]);
         }
 

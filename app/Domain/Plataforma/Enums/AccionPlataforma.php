@@ -36,6 +36,7 @@ enum AccionPlataforma: string
     case InvitacionReenviada = 'invitacion_reenviada';
     case OrganizacionBaja = 'organizacion_baja';
     case OrganizacionReactivada = 'organizacion_reactivada';
+    case AvisoVencimientoEnviado = 'aviso_vencimiento_enviado';
 
     public function etiqueta(): string
     {
@@ -54,6 +55,7 @@ enum AccionPlataforma: string
             self::InvitacionReenviada => 'Invitación reenviada',
             self::OrganizacionBaja => 'Organización dada de baja',
             self::OrganizacionReactivada => 'Organización reactivada',
+            self::AvisoVencimientoEnviado => 'Aviso de vencimiento enviado',
         };
     }
 }

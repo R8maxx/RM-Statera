@@ -5,6 +5,7 @@ paths:
   - resources/js/pages/plataforma/**
   - app/Http/Controllers/Plataforma/**
   - app/Http/Middleware/SoloPlataforma.php
+  - app/Http/Middleware/CapacidadDePlataforma.php
   - app/Http/Middleware/SuscripcionVigente.php
   - app/Http/Middleware/SoporteSoloLectura.php
   - app/Http/Requests/AbrirSoporteRequest.php
@@ -285,7 +286,11 @@ el botón de salir siempre a mano.
   sale. Como el auditor externo, que tampoco deja rastro de lectura.
 - **Superar un límite no quita nada.** Si se baja de plan a uno con menos
   cuentas de las que ya hay, nadie se desactiva, pero no se puede añadir otra.
-  Desde el punto 46 la ficha de plataforma lo dice en rojo.
+  La ficha de plataforma lo dice en un aviso **neutro**, encima de la franja de
+  estado, y no en rojo como al principio: pasarse del límite no es un error,
+  igual que un dato sin completar (DESIGN.md § 9). El formulario de la
+  suscripción lo anticipa en «Lo que sale de aquí» antes de guardar, con los
+  límites y la gracia que `planesActivos()` manda de cada plan.
 - **La baja no borra los datos.** Borrar de verdad a un cliente que se va es un
   proceso destructivo aparte, con sus plazos de conservación, y no existe.
 - **No hay alta de administradores desde la web**, ni lista de administradores.
@@ -383,6 +388,14 @@ la plataforma recibe un resumen de a quién se avisó.
 - **Cada aviso sale una vez**: `avisos_suscripcion` guarda el hito y el
   vencimiento, con clave única. Al renovar, el vencimiento cambia y los avisos
   vuelven a empezar.
+- **Y cada aviso queda en la traza de la plataforma** (`aviso_vencimiento_enviado`),
+  con el hito, el vencimiento y los correos a los que fue, en `detalle`.
+  `avisos_suscripcion` sirve para no repetir; la traza sirve para que la ficha
+  del cliente conteste «¿le avisamos?». **También se anota el aviso que no tenía
+  a quién llegar**, porque el cliente no tenía un responsable activo: es el aviso
+  que más conviene ver. `EventoPlataforma::resumen()` lo convierte en la frase de
+  la ficha. Como el comando escribe varios en el mismo instante, la ficha ordena
+  también por `id`.
 - **No necesita contexto**: todo lo que lee está fuera de RLS. Se salta las
   organizaciones de baja y las que no tienen plan o vencimiento.
 
@@ -433,3 +446,26 @@ acote por organización usa el trait**, no la cuenta.
 
 **`GuardarFotoPerfil` se queda con la de la cuenta, a propósito**: la foto es
 de la persona y no de la organización que se está mirando.
+
+## Los perfiles (punto 48)
+
+**Dos perfiles, `users.perfil_plataforma`**: Administración, que puede todo, y
+Gestión comercial, que lleva clientes, planes, suscripciones y la traza. Un
+`CHECK` ata la marca al perfil: `es_plataforma` si y sólo si hay perfil. Así no
+existe un administrador sin perfil, que no podría hacer nada sin saber por qué.
+
+**Cada ruta de `/plataforma` exige una `CapacidadPlataforma`** con el
+middleware `plataforma:<capacidad>` (`CapacidadDePlataforma`), y el perfil
+decide cuáles tiene (`PerfilPlataforma::capacidades()`). `PerfilesTest` recorre
+las rutas y se pone rojo con una que no lleve ninguna. La única excepción
+declarada es salir del soporte, porque quien está dentro tiene que poder salir
+siempre.
+
+**Al cliente le llegan como `plataforma.<capacidad>`** en `auth.permisos`, y
+`lib/navegacion.ts` y las fichas deciden con ellas qué pintar. Ojo con una
+trampa: `plataforma.clientes.ver` acaba en `.ver`, así que `navegacionPara()`
+excluye el prefijo `plataforma.` al deducir si se está dentro de una
+organización.
+
+`AccesoDeSoporte` exige además `soporte.entrar` en el dominio, no sólo en la
+ruta.

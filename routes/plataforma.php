@@ -31,37 +31,55 @@ Route::middleware(['auth', SoloPlataforma::class])
     ->prefix('plataforma')
     ->name('plataforma.')
     ->group(function (): void {
-        Route::redirect('/', '/plataforma/organizaciones');
+        /*
+        | Cada ruta exige una capacidad (punto 48), que decide el perfil de quien
+        | administra: `plataforma:<capacidad>`. `PerfilesTest` recorre estas rutas
+        | y se pone rojo con una que no lleve ninguna. La única excepción es salir
+        | del soporte: quien está dentro tiene que poder salir siempre.
+        */
+        Route::post('/soporte/salir', [SoporteController::class, 'salir'])->name('soporte.salir');
 
-        Route::get('/organizaciones', [OrganizacionController::class, 'index'])->name('organizaciones.index');
-        Route::get('/organizaciones/crear', [OrganizacionController::class, 'create'])->name('organizaciones.create');
-        Route::post('/organizaciones', [OrganizacionController::class, 'store'])->name('organizaciones.store');
-        Route::get('/organizaciones/{organizacion}', [OrganizacionController::class, 'show'])->name('organizaciones.show');
-        Route::put('/organizaciones/{organizacion}/suscripcion', [OrganizacionController::class, 'suscripcion'])
-            ->name('organizaciones.suscripcion');
+        Route::middleware('plataforma:clientes.ver')->group(function (): void {
+            Route::redirect('/', '/plataforma/organizaciones')->name('inicio');
+            Route::get('/organizaciones', [OrganizacionController::class, 'index'])->name('organizaciones.index');
+            Route::get('/organizaciones/{organizacion}', [OrganizacionController::class, 'show'])
+                ->whereNumber('organizacion')
+                ->name('organizaciones.show');
+        });
+
+        Route::middleware('plataforma:clientes.gestionar')->group(function (): void {
+            Route::get('/organizaciones/crear', [OrganizacionController::class, 'create'])->name('organizaciones.create');
+            Route::post('/organizaciones', [OrganizacionController::class, 'store'])->name('organizaciones.store');
+            Route::put('/organizaciones/{organizacion}/suscripcion', [OrganizacionController::class, 'suscripcion'])
+                ->name('organizaciones.suscripcion');
+            // `{cuentaId}` y no `{cuenta}`: ése lo resuelve el binding global, acotado a
+            // la organización del contexto, que aquí no hay. Se acota en el controlador.
+            Route::post('/organizaciones/{organizacion}/cuentas/{cuentaId}/reenviar', [OrganizacionController::class, 'reenviar'])
+                ->whereNumber('cuentaId')
+                ->name('organizaciones.reenviar');
+        });
+
         // La baja (punto 46): un estado que se deshace, nunca un borrado.
-        Route::post('/organizaciones/{organizacion}/baja', [OrganizacionController::class, 'darDeBaja'])
-            ->name('organizaciones.baja');
-        Route::post('/organizaciones/{organizacion}/reactivar', [OrganizacionController::class, 'reactivar'])
-            ->name('organizaciones.reactivar');
-        // `{cuentaId}` y no `{cuenta}`: ése lo resuelve el binding global, acotado a
-        // la organización del contexto, que aquí no hay. Se acota en el controlador.
-        Route::post('/organizaciones/{organizacion}/cuentas/{cuentaId}/reenviar', [OrganizacionController::class, 'reenviar'])
-            ->whereNumber('cuentaId')
-            ->name('organizaciones.reenviar');
+        Route::middleware('plataforma:clientes.baja')->group(function (): void {
+            Route::post('/organizaciones/{organizacion}/baja', [OrganizacionController::class, 'darDeBaja'])
+                ->name('organizaciones.baja');
+            Route::post('/organizaciones/{organizacion}/reactivar', [OrganizacionController::class, 'reactivar'])
+                ->name('organizaciones.reactivar');
+        });
 
         // El soporte (punto 44): sólo por la ventana que abre el cliente, y
-        // dentro sólo se lee. Salir no lleva `{organizacion}`: sale de la que
-        // diga la sesión, que es la única en la que se puede estar.
+        // dentro sólo se lee.
         Route::post('/organizaciones/{organizacion}/soporte', [SoporteController::class, 'entrar'])
+            ->middleware('plataforma:soporte.entrar')
             ->name('soporte.entrar');
-        Route::post('/soporte/salir', [SoporteController::class, 'salir'])->name('soporte.salir');
 
         // Los planes (punto 43). Sin borrar: se retiran con `activo`, porque
         // el histórico de las suscripciones apunta a ellos.
-        Route::get('/planes', [PlanController::class, 'index'])->name('planes.index');
-        Route::get('/planes/crear', [PlanController::class, 'create'])->name('planes.create');
-        Route::post('/planes', [PlanController::class, 'store'])->name('planes.store');
-        Route::get('/planes/{plan}/editar', [PlanController::class, 'edit'])->name('planes.edit');
-        Route::put('/planes/{plan}', [PlanController::class, 'update'])->name('planes.update');
+        Route::middleware('plataforma:planes.gestionar')->group(function (): void {
+            Route::get('/planes', [PlanController::class, 'index'])->name('planes.index');
+            Route::get('/planes/crear', [PlanController::class, 'create'])->name('planes.create');
+            Route::post('/planes', [PlanController::class, 'store'])->name('planes.store');
+            Route::get('/planes/{plan}/editar', [PlanController::class, 'edit'])->name('planes.edit');
+            Route::put('/planes/{plan}', [PlanController::class, 'update'])->name('planes.update');
+        });
     });

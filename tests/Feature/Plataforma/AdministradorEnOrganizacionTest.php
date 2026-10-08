@@ -31,7 +31,7 @@ use Inertia\Testing\AssertableInertia;
 function administradorMiembro(Rol $rol = Rol::ResponsableSeguridad): User
 {
     $cuenta = usuarioCon($rol);
-    $cuenta->forceFill(['es_plataforma' => true, 'two_factor_confirmed_at' => now(), 'two_factor_secret' => 'secreto'])->save();
+    $cuenta->forceFill(['es_plataforma' => true, 'perfil_plataforma' => 'administracion', 'two_factor_confirmed_at' => now(), 'two_factor_secret' => 'secreto'])->save();
 
     return $cuenta->fresh() ?? $cuenta;
 }
@@ -65,7 +65,7 @@ it('entra a su panel y ve también la plataforma', function (): void {
         ->assertInertia(fn (AssertableInertia $pagina) => $pagina
             ->where('soporte', null)
             ->where('organizacion.id', $this->organizacion->id)
-            ->where('auth.permisos', fn ($permisos): bool => collect($permisos)->contains('plataforma.gestionar')
+            ->where('auth.permisos', fn ($permisos): bool => collect($permisos)->contains('plataforma.clientes.ver')
                 && collect($permisos)->contains('sistemas.gestionar')));
 
     $this->actingAs($admin)->get('/plataforma/organizaciones')->assertOk();

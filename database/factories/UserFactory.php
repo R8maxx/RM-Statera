@@ -53,7 +53,14 @@ class UserFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'organizacion_id' => null,
             'es_plataforma' => true,
+            'perfil_plataforma' => 'administracion',
         ]);
+    }
+
+    /** De la plataforma con perfil de gestión comercial (punto 48). */
+    public function comercial(): static
+    {
+        return $this->plataforma()->state(fn (array $attributes) => ['perfil_plataforma' => 'comercial']);
     }
 
     public function desactivada(?string $motivo = null): static

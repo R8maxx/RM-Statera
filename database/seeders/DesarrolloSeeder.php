@@ -2612,7 +2612,23 @@ class DesarrolloSeeder extends Seeder
 
         $administrador->forceFill([
             'es_plataforma' => true,
+            'perfil_plataforma' => $administrador->perfil_plataforma->value ?? 'administracion',
             'activada_en' => $administrador->activada_en ?? now(),
+        ])->save();
+
+        // Y una de gestión comercial (punto 48): clientes y planes, sin soporte,
+        // sin rescates, sin bajas y sin la salud del servicio.
+        $comercial = User::query()
+            ->whereNull('organizacion_id')
+            ->firstOrCreate(
+                ['email' => 'comercial@statera.test'],
+                ['name' => 'Gestión comercial', 'password' => 'contrasena-de-desarrollo'],
+            );
+
+        $comercial->forceFill([
+            'es_plataforma' => true,
+            'perfil_plataforma' => 'comercial',
+            'activada_en' => $comercial->activada_en ?? now(),
         ])->save();
 
         // Dos planes de ejemplo (punto 43). La organización sembrada se queda
@@ -2662,7 +2678,7 @@ class DesarrolloSeeder extends Seeder
         User::query()
             ->where('organizacion_id', $pruebas->id)
             ->where('email', 'plataforma.miembro@statera.test')
-            ->update(['es_plataforma' => true]);
+            ->update(['es_plataforma' => true, 'perfil_plataforma' => 'administracion']);
 
         /** @var list<array{0: string, 1: string, 2: string, 3: ?Plan, 4: ?Carbon, 5: array<string, mixed>}> $clientes */
         $clientes = [

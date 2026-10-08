@@ -150,6 +150,7 @@ completa con el razonamiento del orden, en `.ai/rules/orden-de-arranque.md`.
 | 45 | El administrador que además es de una organización | — | `plataforma.md`, `cuentas.md` |
 | 46 | Avisos de vencimiento por correo y baja de organizaciones | — | `plataforma.md` |
 | 47 | Validar contra la organización del contexto, no la de la cuenta | — | `plataforma.md` |
+| 48 | Perfiles de la plataforma: Administración y Gestión comercial | — | `plataforma.md` |
 
 **La fase 3 está cerrada.** Con continuidad (§ 4.11) dentro —el BIA por servicio,
 el plan como documento y las pruebas que lo contrastan— el ciclo vivo se recorre

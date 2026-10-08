@@ -7,6 +7,7 @@ namespace App\Domain\Plataforma\Console;
 use App\Domain\Autorizacion\Enums\Rol;
 use App\Domain\Organizacion\Models\Organizacion;
 use App\Domain\Plataforma\AltaAdministrador;
+use App\Domain\Plataforma\Enums\PerfilPlataforma;
 use App\Domain\Plataforma\UnirAdministrador;
 use App\Models\User;
 use Illuminate\Console\Command;
@@ -28,7 +29,8 @@ final class CrearAdministradorCommand extends Command
         {email : El correo con el que entrará}
         {nombre : Cómo se le nombra en la traza y en la interfaz}
         {--organizacion= : Id de una organización de la que hacerle además usuario (punto 45)}
-        {--rol=tecnico : Su rol en esa organización: responsable_seguridad o tecnico}';
+        {--rol=tecnico : Su rol en esa organización: responsable_seguridad o tecnico}
+        {--perfil=administracion : Su perfil en la plataforma: administracion o comercial (punto 48)}';
 
     protected $description = 'Da de alta a una persona que administra la plataforma y le envía la invitación';
 
@@ -51,6 +53,14 @@ final class CrearAdministradorCommand extends Command
 
         /** @var array{email: string, nombre: string} $validos */
         $validos = $validacion->validated();
+
+        $perfil = PerfilPlataforma::tryFrom((string) $this->option('perfil'));
+
+        if ($perfil === null) {
+            $this->components->error('El perfil es administracion o comercial.');
+
+            return self::FAILURE;
+        }
 
         $organizacion = null;
         $rol = Rol::tryFrom((string) $this->option('rol'));
@@ -76,13 +86,13 @@ final class CrearAdministradorCommand extends Command
                 return self::FAILURE;
             }
 
-            $alta->promover($existente);
+            $alta->promover($existente, $perfil);
             $this->components->info("{$existente->email} ya tenía cuenta: ahora administra también la plataforma, y conserva su organización y su rol.");
 
             return self::SUCCESS;
         }
 
-        $cuenta = $existente instanceof User ? $existente : $alta($validos['nombre'], $validos['email']);
+        $cuenta = $existente instanceof User ? $existente : $alta($validos['nombre'], $validos['email'], $perfil);
 
         if ($existente instanceof User && $organizacion === null) {
             $this->components->warn("{$existente->email} ya administra la plataforma.");
